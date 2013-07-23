@@ -18,6 +18,10 @@ Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 #Load normalized spectrum
 wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
 
+std_ind = (wl > 5176) & (wl < 5177)
+print("STD = ", np.std(fl[std_ind]))
+print("Len = ", len(fl))
+
 #efile = rechelletxt()
 #use order 36 for all testing
 #wl,fl = efile[22]
@@ -39,7 +43,7 @@ def load_flux(temp,logg):
     flux_file.close()
     f_pure = f_pure[ind]
     print("Loaded " + fname)
-    return f_pure/f_pure[0]
+    return f_pure
 
 ##################################################
 #Stellar Broadening
@@ -135,20 +139,39 @@ def plot_check():
     plt.show()
 
 def compare_sample():
-    fig, ax = plt.subplots(nrows=2,sharex=True,figsize=(11,8))
-
-    ax[0].plot(wl,fl)
-    ax[0].set_title("GW Ori normalized, order 23")
-    
+    fig, ax = plt.subplots(nrows=5,sharex=True,figsize=(11,8))
     v_shift = -30.
     Mg_shift = shift_vz(Mg,v_shift)
-    f1 = model(5700,v_shift)
-    ax[1].plot(wl,f1)
-    ax[1].set_title("PHOENIX T=5700 K")
+    
+    p_1 = (5600, v_shift, 8.6e-16, 0.348)
+    p0 = (5700, v_shift, 8.3e-16, 0.31)
+    p1 = (5800, v_shift, 8.06e-16, 0.27)
+    p2 = (5900, v_shift, 7.79e-16, 0.24)
+    p3 = (6000, v_shift, 7.60e-16, 0.18)
+
+    ax[0].plot(wl,fl,"r")
+    ax[0].plot(wl,model(*p_1))
+    ax[0].set_title(r"PHOENIX T=5600 K $\chi^2 = {:.0f}$".format(chi(p_1)))
+
+    ax[1].plot(wl,fl,"r")
+    ax[1].plot(wl,model(*p0))
+    ax[1].set_title(r"PHOENIX T=5700 K $\chi^2 = {:.0f}$".format(chi(p0)))
+    
+    ax[2].plot(wl,fl,"r")
+    ax[2].plot(wl,model(*p1))
+    ax[2].set_title(r"PHOENIX T=5800 K $\chi^2 = {:.0f}$".format(chi(p1)))
+
+    ax[3].plot(wl,fl,"r")
+    ax[3].plot(wl,model(*p2))
+    ax[3].set_title(r"PHOENIX T=5900 K $\chi^2 = {:.0f}$".format(chi(p2)))
+
+    ax[4].plot(wl,fl,"r")
+    ax[4].plot(wl,model(*p3))
+    ax[4].set_title(r"PHOENIX T=5900 K $\chi^2 = {:.0f}$".format(chi(p3)))
 
     ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
     ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
-    fig.subplots_adjust(top=0.97,right=0.97,hspace=0.25,left=0.08)
+    fig.subplots_adjust(top=0.94,right=0.97,hspace=0.25,left=0.08)
     for i in ax:
         for j in Mg_shift:
             i.axvline(j,ls=":",color="k")
@@ -172,7 +195,7 @@ def compare_kurucz():
     ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
     plt.show()
 
-def model(temp, vz, vsini=40., pref=1.0, logg=4.5):#, Av, T_veil):
+def model(temp, vz, scale=1.0, pedestal=0.0, vsini=40., logg=4.5):#, Av, T_veil):
     '''Given parameters, return the model. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
     f = load_flux(temp,logg)
 
@@ -189,23 +212,28 @@ def model(temp, vz, vsini=40., pref=1.0, logg=4.5):#, Av, T_veil):
 
     #downsample to TRES bins,multiply by prefactor
     dsamp = downsample(wvz, f_TRES, wl)
-    return pref*dsamp
+    return scale*dsamp + pedestal
     
+global gmod
+gmod = model(6000, -30)
 
-def chi2(temp, vz, pref=1., vsini=40., logg=4.5):
-    f = model(temp, vz, vsini, pref, logg)
-    sigma = 0.02
+def model2(scale,pedestal):
+    return scale*gmod + pedestal
+
+def chi(p):
+    f = model(*p)
+    sigma = 0.04
     val = np.sum((fl - f)**2/sigma**2)
     return(val)
 
-def chiMC(p):
-    chi = chi2(*tuple(p))
-    print(chi)
-    return chi
-
+def chi2(p):
+    f = model2(*p)
+    sigma = 0.04
+    val = np.sum((fl - f)**2/sigma**2)
+    return(val)
 
 def r(p_cur, p_old):
-    return np.exp(-(chiMC(p_cur) - chiMC(p_old))/2.)
+    return np.exp(-(chi2(p_cur) - chi2(p_old))/2.)
 
 #def posterior(p):
 #    return likelihood(p)*prior(p)
@@ -214,17 +242,16 @@ def r(p_cur, p_old):
 #    return posterior(p_cur)/posterior(p_old)
 
 global p_old
-p_old = np.array([5700,-30,1.0])
+p_old = np.array([8.04e-16,0.335])
 
 def run_chain():
     sequences = []
-    for j in range(10):
+    for j in range(10000):
         print(j)
         global p_old
         accept = False
-        p_jump = np.array([np.random.choice([-300,-200,-100,0,100,200,300],p=np.array([ 0.00442619, 0.0539536, 0.24179206, 0.3996563, 0.24179206, 0.0539536, 0.00442619])),
-            np.random.normal(scale=0.3), 
-            np.random.normal(scale=0.01)])
+        p_jump = np.array([np.random.normal(scale=2e-18), 
+            np.random.normal(scale=2e-3)])
 
         p_new = p_old + p_jump
         ratio = r(p_new, p_old)
@@ -237,19 +264,15 @@ def run_chain():
             if ratio >= u:
                 p_old = p_new
                 accept = True
-        temp,vz,pref = p_old
-        sequences.append([j,ratio,accept,temp,vz,pref])
+        scale, pedestal = p_old
+        sequences.append([j,ratio,accept,scale,pedestal])
 
-    asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","temp","vz","pref"])
-
+    asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
 
 
 def main():
-    #compare_sample()
+    compare_sample()
     #run_chain()
-    print(chiMC((5700,-30.,1)))
-    print(chiMC((5800,-30.,1)))
-
     pass
 
 if __name__=="__main__":
