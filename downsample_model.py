@@ -8,6 +8,9 @@ from scipy.ndimage.filters import convolve
 from kernel import gauss_series, vsini_ang
 from matplotlib.ticker import FormatStrFormatter as FSF
 
+c_ang = 2.99792458e18 #A s^-1
+c_kms = 2.99792458e5 #km s^-1
+
 #flux_file = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05500-0.00-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 flux_1 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05700-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 flux_2 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05800-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
@@ -37,6 +40,12 @@ w = w[ind]
 #flux_file.close()
 #wl_file.close()
 
+
+@np.vectorize
+def shift_vz(lam_source, v):
+    '''Given the source wavelength, lam_sounce, return the observed wavelength based upon a velocity v in km/s. Negative velocities are towards the observer (blueshift).'''
+    lam_observe = lam_source * np.sqrt((c_kms + v)/(c_kms - v))
+    return lam_observe
 
 #convolve with stellar broadening
 #k = vsini_ang(5187.,40.)
