@@ -11,31 +11,39 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 c_ang = 2.99792458e18 #A s^-1
 c_kms = 2.99792458e5 #km s^-1
 
+def load_file(temp,logg):
+    fname="HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5d}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(temp=temp,logg=logg)
+    print(fname)
+
+load_file(5700,4.5)
+load_file(5800,3.5)
+
+
 #flux_file = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05500-0.00-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
-flux_1 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05700-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
-flux_2 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05800-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
-wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
-
-f_pure1 = flux_1[0].data
-f_pure2 = flux_2[0].data
-
-#f_pure = flux_file[0].data
-w = wl_file[0].data
-
-wl,fl = np.loadtxt("GWOri_c/23.txt",unpack=True)
-wl_n,fl_n = np.loadtxt("GWOri_cn/23.txt",unpack=True)
+#flux_1 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05700-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+#flux_2 = pf.open("HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte05800-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+#wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+#
+#f_pure1 = flux_1[0].data
+#f_pure2 = flux_2[0].data
+#
+##f_pure = flux_file[0].data
+#w = wl_file[0].data
+#
+#wl,fl = np.loadtxt("GWOri_c/23.txt",unpack=True)
+#wl_n,fl_n = np.loadtxt("GWOri_cn/23.txt",unpack=True)
 
 #efile = rechelletxt()
 #use order 36 for all testing
 #wl,fl = efile[22]
 
 #Limit huge file to necessary range
-ind = (w > (wl[0] - 10.)) & (w < (wl[-1] + 10))
+#ind = (w > (wl[0] - 10.)) & (w < (wl[-1] + 10))
 
 #f_pure = f_pure[ind]/10**13
-f_pure1 = f_pure1[ind]/10**13
-f_pure2 = f_pure2[ind]/10**13
-w = w[ind]
+#f_pure1 = f_pure1[ind]/10**13
+#f_pure2 = f_pure2[ind]/10**13
+#w = w[ind]
 
 #flux_file.close()
 #wl_file.close()
@@ -52,9 +60,9 @@ def shift_vz(lam_source, v):
 #f_broad = convolve(f_pure, k)
 
 #convolve with filter to resolution of TRES
-filt = gauss_series(0.01,lam0=5187.)
-f_TRES1 = convolve(f_pure1,filt)
-f_TRES2 = convolve(f_pure2,filt)
+#filt = gauss_series(0.01,lam0=5187.)
+#f_TRES1 = convolve(f_pure1,filt)
+#f_TRES2 = convolve(f_pure2,filt)
 #f = f_TRES
 
 
@@ -63,13 +71,13 @@ f_TRES2 = convolve(f_pure2,filt)
 #print("Interpolation done")
 
 #Determine the bin edges
-edges = np.empty((len(wl)+1,))
-difs = np.diff(wl)/2.
-edges[1:-1] = wl[:-1] + difs
-edges[0] = wl[0] - difs[0]
-edges[-1] = wl[-1] + difs[-1]
-b0s = edges[:-1]
-b1s = edges[1:]
+#edges = np.empty((len(wl)+1,))
+#difs = np.diff(wl)/2.
+#edges[1:-1] = wl[:-1] + difs
+#edges[0] = wl[0] - difs[0]
+#edges[-1] = wl[-1] + difs[-1]
+#b0s = edges[:-1]
+#b1s = edges[1:]
 
 @np.vectorize
 def avg_bin(bin0,bin1):
@@ -145,4 +153,4 @@ def compare_kurucz():
     ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
     plt.show()
 
-compare_kurucz()
+#compare_kurucz()
