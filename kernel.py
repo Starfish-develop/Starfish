@@ -18,7 +18,7 @@ def karray(center, width, res):
 def gauss_kernel(dlam,V=6.8,lam0=6500.):
     '''V is the FWHM in km/s. lam0 is the central wavelength in A'''
     sigma = V/2.355 * 1e13 #A/s
-    return c/lam0 * 1/(sigma * np.sqrt(2*np.pi)) * np.exp( - (c*dlam/lam0)**2/(2. * sigma**2))
+    return c_ang/lam0 * 1/(sigma * np.sqrt(2*np.pi)) * np.exp( - (c_ang*dlam/lam0)**2/(2. * sigma**2))
 
 def plot_gauss():
     lams = np.linspace(-1,1,num=200)
