@@ -1,5 +1,4 @@
 import numpy as np
-import pyfits as pf
 import matplotlib.pyplot as plt
 from echelle_io import rechelletxt
 from scipy.interpolate import interp1d
@@ -18,6 +17,7 @@ Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 #Load normalized spectrum
 wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
 
+#Estimate noise level
 std_ind = (wl > 5176) & (wl < 5177)
 print("STD = ", np.std(fl[std_ind]))
 print("Len = ", len(fl))
@@ -26,24 +26,17 @@ print("Len = ", len(fl))
 #use order 36 for all testing
 #wl,fl = efile[22]
 
-#Limit huge file to necessary range
-#ind = (w > (wl[0] - 10.)) & (w < (wl[-1] + 10))
+w = np.load("wave_trim.npy")
 
-wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
-w = wl_file[0].data
-wl_file.close()
-#ind = (w > 3800.) & (w < 10000.)
+#Limit huge file to necessary range
 ind = (w > (wl[0] - 10.)) & (w < (wl[-1] + 10))
 w = w[ind]
 
 def load_flux(temp,logg):
-    fname="HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(temp=temp,logg=logg)
-    flux_file = pf.open(fname)
-    f_pure = flux_file[0].data
-    flux_file.close()
-    f_pure = f_pure[ind]
+    fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
     print("Loaded " + fname)
-    return f_pure
+    f = np.load(fname)
+    return f[ind]
 
 ##################################################
 #Stellar Broadening
@@ -175,7 +168,7 @@ def compare_sample():
     for i in ax:
         for j in Mg_shift:
             i.axvline(j,ls=":",color="k")
-    plt.show()
+    plt.savefig("plots/chi2_grid_T.png")
 
 
 def compare_kurucz():
