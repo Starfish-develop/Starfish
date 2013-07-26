@@ -17,7 +17,7 @@ def wechelletxt():
         print(inp,out)
         iraf.wspectext(input=inp,output=out)
 
-def rechelletxt():
+def rechelletxt(bname):
     espec = []
     for i in range(1,norder+1):
         inp = bname + "/{:0>2d}.txt".format(i)
