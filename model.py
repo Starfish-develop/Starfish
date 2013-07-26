@@ -4,7 +4,7 @@ from echelle_io import rechelletxt
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
-from matplotlib.ticker import FormatStrFormatter as FSF
+from scipy.optimize import leastsq
 import asciitable
 
 c_ang = 2.99792458e18 #A s^-1
@@ -13,16 +13,17 @@ c_kms = 2.99792458e5 #km s^-1
 Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load real data
-#wl,fl = np.loadtxt("GWOri_c/23.txt",unpack=True)
+#wl,fl_r = np.loadtxt("GWOri_c/23.txt",unpack=True)
 #Load normalized spectrum
 wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
+#wl,fl = np.loadtxt("GWOri_cn/25.txt",unpack=True)
+#Create continuum
+#cont = fl_r/fl
 
-#Estimate noise level
-std_ind = (wl > 5176) & (wl < 5177)
-print("STD = ", np.std(fl[std_ind]))
-print("Len = ", len(fl))
+efile = rechelletxt("GWOri_c")
+efile_n = rechelletxt("GWOri_cn")
+order,sigma_norm = np.loadtxt("sigmas.dat",unpack=True)
 
-#efile = rechelletxt()
 #use order 36 for all testing
 #wl,fl = efile[22]
 
@@ -131,64 +132,8 @@ def plot_check():
     plt.plot(edges[-11:],ys,"o")
     plt.show()
 
-def compare_sample():
-    fig, ax = plt.subplots(nrows=5,sharex=True,figsize=(11,8))
-    v_shift = -30.
-    Mg_shift = shift_vz(Mg,v_shift)
-    
-    p_1 = (5600, v_shift, 8.6e-16, 0.348)
-    p0 = (5700, v_shift, 8.3e-16, 0.31)
-    p1 = (5800, v_shift, 8.06e-16, 0.27)
-    p2 = (5900, v_shift, 7.79e-16, 0.24)
-    p3 = (6000, v_shift, 7.60e-16, 0.18)
 
-    ax[0].plot(wl,fl,"r")
-    ax[0].plot(wl,model(*p_1))
-    ax[0].set_title(r"PHOENIX T=5600 K $\chi^2 = {:.0f}$".format(chi(p_1)))
-
-    ax[1].plot(wl,fl,"r")
-    ax[1].plot(wl,model(*p0))
-    ax[1].set_title(r"PHOENIX T=5700 K $\chi^2 = {:.0f}$".format(chi(p0)))
-    
-    ax[2].plot(wl,fl,"r")
-    ax[2].plot(wl,model(*p1))
-    ax[2].set_title(r"PHOENIX T=5800 K $\chi^2 = {:.0f}$".format(chi(p1)))
-
-    ax[3].plot(wl,fl,"r")
-    ax[3].plot(wl,model(*p2))
-    ax[3].set_title(r"PHOENIX T=5900 K $\chi^2 = {:.0f}$".format(chi(p2)))
-
-    ax[4].plot(wl,fl,"r")
-    ax[4].plot(wl,model(*p3))
-    ax[4].set_title(r"PHOENIX T=5900 K $\chi^2 = {:.0f}$".format(chi(p3)))
-
-    ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
-    ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
-    fig.subplots_adjust(top=0.94,right=0.97,hspace=0.25,left=0.08)
-    for i in ax:
-        for j in Mg_shift:
-            i.axvline(j,ls=":",color="k")
-    plt.savefig("plots/chi2_grid_T.png")
-
-
-def compare_kurucz():
-    wl,fl = np.loadtxt("kurucz.txt",unpack=True)
-    wl = 10.**wl
-    fig, ax = plt.subplots(nrows=4,sharex=True,figsize=(8,8))
-    ax[0].plot(wl,fl)
-    ax[0].set_title("Kurucz T=5750 K, convolved to 6.5 km/s")
-    ax[1].plot(w,f_TRES1)
-    ax[1].set_title("PHOENIX T=5700 K, convolved 6.5 km/s")
-    ax[2].plot(w,f_TRES2)
-    ax[2].set_title("PHOENIX T=5800 K, convolved 6.5 km/s")
-    ax[3].plot(wl_n,fl_n)
-    ax[3].set_title("GW Ori normalized, order 23")
-    ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
-    ax[-1].set_xlim(5170,5195)
-    ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
-    plt.show()
-
-def model(temp, vz, scale=1.0, pedestal=0.0, vsini=40., logg=4.5):#, Av, T_veil):
+def model(temp, vz=-30, scale=1.0, vsini=40., logg=4.5):
     '''Given parameters, return the model. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
     f = load_flux(temp,logg)
 
@@ -205,25 +150,33 @@ def model(temp, vz, scale=1.0, pedestal=0.0, vsini=40., logg=4.5):#, Av, T_veil)
 
     #downsample to TRES bins,multiply by prefactor
     dsamp = downsample(wvz, f_TRES, wl)
-    return scale*dsamp + pedestal
+    return scale*dsamp 
+
+def find_pref(flux):
+    func = lambda x : chi(x*flux)
+    return leastsq(func, 1e-15)[0][0]
+
+@np.vectorize
+def calc_chi2(temp,logg):
+    raw_flux = model(temp,logg=logg)
+    pref = find_pref(raw_flux)
+    return chi2(pref * raw_flux)
+
     
-global gmod
-gmod = model(6000, -30)
+def model2(scale):
+    return scale*gmod 
 
-def model2(scale,pedestal):
-    return scale*gmod + pedestal
+global sigma
+sigma = 0.04 /0.06 * np.load("sigma.npy")
 
-def chi(p):
-    f = model(*p)
-    sigma = 0.04
-    val = np.sum((fl - f)**2/sigma**2)
-    return(val)
+def chi(flux):
+    #f = model(*p)
+    val = np.sum((fl - flux)/sigma)
+    return val
 
-def chi2(p):
-    f = model2(*p)
-    sigma = 0.04
-    val = np.sum((fl - f)**2/sigma**2)
-    return(val)
+def chi2(flux):
+    val = np.sum((fl - flux)**2/sigma**2)
+    return val
 
 def r(p_cur, p_old):
     return np.exp(-(chi2(p_cur) - chi2(p_old))/2.)
@@ -234,8 +187,8 @@ def r(p_cur, p_old):
 #def r(p_cur,p_old):
 #    return posterior(p_cur)/posterior(p_old)
 
-global p_old
-p_old = np.array([8.04e-16,0.335])
+#global p_old
+#p_old = np.array([8.04e-16,0.335])
 
 def run_chain():
     sequences = []
@@ -264,8 +217,10 @@ def run_chain():
 
 
 def main():
-    compare_sample()
+    #compare_sample()
     #run_chain()
+    print(calc_chi2(5900,3.5))
+    print(calc_chi2(5900,4.0))
     pass
 
 if __name__=="__main__":
