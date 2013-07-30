@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from echelle_io import rechelletxt
+from echelle_io import rechelletxt,load_masks
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
@@ -12,32 +12,29 @@ c_kms = 2.99792458e5 #km s^-1
 
 Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
-#Load real data
-#wl,fl_r = np.loadtxt("GWOri_c/23.txt",unpack=True)
-#Load normalized spectrum
-wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
-#wl,fl = np.loadtxt("GWOri_cn/25.txt",unpack=True)
-#Create continuum
-#cont = fl_r/fl
+#Load normalized order spectrum
+efile_n = rechelletxt("GWOri_cn") #has structure len = 51, for each order: [wl,fl]
+sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
 
-efile = rechelletxt("GWOri_c")
-efile_n = rechelletxt("GWOri_cn")
-order,sigma_norm = np.loadtxt("sigmas.dat",unpack=True)
+#Load masking region
+masks = load_masks()
 
-#use order 36 for all testing
-#wl,fl = efile[22]
+#Load 3700 to 10000 ang wavelength vector
+w_full = np.load("wave_trim.npy")
 
-w = np.load("wave_trim.npy")
-
-#Limit huge file to necessary range
-ind = (w > (wl[0] - 10.)) & (w < (wl[-1] + 10))
-w = w[ind]
+norder = len(efile_n)
 
 def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
     print("Loaded " + fname)
     f = np.load(fname)
-    return f[ind]
+    return f
+
+
+##################################################
+#Data processing steps
+##################################################
+
 
 ##################################################
 #Stellar Broadening
@@ -132,25 +129,41 @@ def plot_check():
     plt.plot(edges[-11:],ys,"o")
     plt.show()
 
+def model(temp, vz=-30, vsini=40., logg=4.5):
+    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
+    #Loads the ENTIRE spectrum, not limited to a specific order
+    f_full = load_flux(temp,logg)
 
-def model(temp, vz=-30, scale=1.0, vsini=40., logg=4.5):
-    '''Given parameters, return the model. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
-    f = load_flux(temp,logg)
+    model_flux = []
+    #Cycle through all the orders in the echelle spectrum
+    for i in range(norder):
+        print("Processing order %s" % (i+1,))
+        wl,fl = efile_n[i]
 
-    #convolve with stellar broadening (sb)
-    k = vsini_ang(np.mean(wl),vsini)
-    f_sb = convolve(f, k)
+        #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
+        ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
+        w = w_full[ind]
+        f = f_full[ind]
 
-    wvz = shift_vz(w,vz) #shifted wavelengths
+        #convolve with stellar broadening (sb)
+        k = vsini_ang(np.mean(wl),vsini) #stellar rotation kernel centered at order
+        f_sb = convolve(f, k)
 
-    dlam = wvz[1] - wvz[0]
-    #convolve with filter to resolution of TRES
-    filt = gauss_series(dlam,lam0=np.mean(wvz))
-    f_TRES = convolve(f_sb,filt)
+        wvz = shift_vz(w,vz) #shifted wavelengths due to radial velocity
 
-    #downsample to TRES bins,multiply by prefactor
-    dsamp = downsample(wvz, f_TRES, wl)
-    return scale*dsamp 
+        dlam = wvz[1] - wvz[0] #spacing of shifted wavelengths necessary for TRES resolution kernel
+
+        #convolve with filter to resolution of TRES
+        filt = gauss_series(dlam,lam0=np.mean(wvz))
+        f_TRES = convolve(f_sb,filt)
+
+        #downsample to TRES bins
+        dsamp = downsample(wvz, f_TRES, wl)
+
+        model_flux.append(dsamp)
+
+    #Only returns the fluxes, because the wl is actually the TRES wavelength vector
+    return model_flux
 
 def find_pref(flux):
     func = lambda x : chi(x*flux)
@@ -165,9 +178,6 @@ def calc_chi2(temp,logg):
     
 def model2(scale):
     return scale*gmod 
-
-global sigma
-sigma = 0.04 /0.06 * np.load("sigma.npy")
 
 def chi(flux):
     #f = model(*p)
@@ -215,12 +225,12 @@ def run_chain():
 
     asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
 
-
 def main():
     #compare_sample()
     #run_chain()
-    print(calc_chi2(5900,3.5))
-    print(calc_chi2(5900,4.0))
+    #print(calc_chi2(5900,3.5))
+    #print(calc_chi2(5900,4.0))
+
     pass
 
 if __name__=="__main__":
