@@ -1,10 +1,10 @@
 import cProfile
 import pstats
 #import trim_PHOENIX
-#import model
+import model
 
 
-#cProfile.run("model.main()","fits_prof")
+cProfile.run("model.main()","prof2")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -12,5 +12,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.1)
 
-#display_stats('fits_prof')
-display_stats('np_prof')
+display_stats('prof2')

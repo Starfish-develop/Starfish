@@ -119,6 +119,44 @@ def downsample(w_m,f_m,w_TRES):
     samp = avg_bin(b0s,b1s)
     return(samp)
 
+def downsample2(w_m,f_m,w_TRES):
+    '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to exactly match the TRES wavelength bins. Try this without calling the interpolation routine.'''
+
+    @np.vectorize
+    def avg_bin(bin0,bin1):
+        mdl_ind = (w_m > bin0) & (w_m < bin1)
+        length = np.sum(mdl_ind)+2
+        wave = np.empty((length,))
+        flux = np.empty((length,))
+        wave[0] = bin0
+        wave[-1] = bin1
+        wave[1:-1] = w_m[mdl_ind]
+        flux[1:-1] = f_m[mdl_ind]
+        flux[0] = flux[1]
+        flux[-1] = flux[-2]
+        return trapz(flux,wave)/(bin1-bin0)
+
+    #Determine the bin edges
+    edges = np.empty((len(w_TRES)+1,))
+    difs = np.diff(w_TRES)/2.
+    edges[1:-1] = w_TRES[:-1] + difs
+    edges[0] = w_TRES[0] - difs[0]
+    edges[-1] = w_TRES[-1] + difs[-1]
+    b0s = edges[:-1]
+    b1s = edges[1:]
+
+    return avg_bin(b0s,b1s)
+
+def test_downsample():
+    wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
+    f_full = load_flux(5900,3.5)
+
+    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
+    ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
+    w = w_full[ind]
+    f = f_full[ind]
+    downsample2(w,f,wl)
+
 ##################################################
 #Plotting Checks
 ##################################################
@@ -158,7 +196,7 @@ def model(temp, vz=-30, vsini=40., logg=4.5):
         f_TRES = convolve(f_sb,filt)
 
         #downsample to TRES bins
-        dsamp = downsample(wvz, f_TRES, wl)
+        dsamp = downsample2(wvz, f_TRES, wl)
 
         model_flux.append(dsamp)
 
@@ -226,6 +264,8 @@ def run_chain():
     asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
 
 def main():
+    #mod = model(5900)
+    test_downsample()
     #compare_sample()
     #run_chain()
     #print(calc_chi2(5900,3.5))
