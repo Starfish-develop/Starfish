@@ -1,4 +1,5 @@
 import numpy as np
+import pyfits as pf
 import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
@@ -112,15 +113,107 @@ def plot_continuum():
     plt.plot(m.wl,norm_noise)
     plt.show()
     
+def plot_GWOri_merged():
+    GW_file = pf.open("GWOri_cnm.fits")
+    f = GW_file[0].data
+    disp = 0.032920821413025
+    w0 = 3850.3823242188
+    w = np.arange(len(f)) * disp + w0
+
+    fig = plt.figure(figsize=(10,4))
+    ax = fig.add_subplot(111)
+    ax.plot(w,f)
+    ax.set_xlabel(r"$\lambda\quad[\AA]$")
+    ax.set_xlim(3800,9100)
+    plt.show()
+
+def plot_GWOri_all_orders():
+    fig,ax = plt.subplots(nrows=5,ncols=5,figsize=(11,8))
+    for i in range(5):
+        for j in range(5):
+            order = i*5 + j + 25
+            w,f = m.efile_n[order]            
+            ax[i,j].plot(w,f)
+            ax[i,j].xaxis.set_major_formatter(FSF("%.0f"))
+            ax[i,j].locator_params(axis='x',nbins=5)
+            ax[i,j].set_xlim(w[0],w[-1])
+            ax[i,j].annotate("%s" % (order +1), (0.1,0.85), xycoords="axes fraction")
+    fig.subplots_adjust(left=0.04,bottom=0.04,top=0.97,right=0.97)
+    ax[4,0].set_xlabel(r"$\lambda\quad[\AA]$")
+    plt.show()
+
+def plot_sigmas():
+    fig,ax = plt.subplots(nrows=5,ncols=5,figsize=(11,8))
+    for i in range(5):
+        for j in range(5):
+            order = i*5 + j + 25
+            w,f = m.efile_n[order]            
+            sigma = m.sigmas[order]
+            ax[i,j].plot(w,sigma)
+            ax[i,j].xaxis.set_major_formatter(FSF("%.0f"))
+            ax[i,j].locator_params(axis='x',nbins=5)
+            ax[i,j].set_xlim(w[0],w[-1])
+            ax[i,j].annotate("%s" % (order +1), (0.1,0.85), xycoords="axes fraction")
+    fig.subplots_adjust(left=0.04,bottom=0.04,top=0.97,right=0.97)
+    ax[4,0].set_xlabel(r"$\lambda\quad[\AA]$")
+    plt.show()
+
+def plot_full_model():
+    fig,ax = plt.subplots(nrows=5,ncols=5,figsize=(11,8))
+    f_mod = m.model(5900)
+    for i in range(5):
+        for j in range(5):
+            order = i*5 + j + 25
+            w,f = m.efile_n[order]            
+            f = f_mod[order]
+            ax[i,j].plot(w,f)
+            ax[i,j].xaxis.set_major_formatter(FSF("%.0f"))
+            ax[i,j].locator_params(axis='x',nbins=5)
+            ax[i,j].set_xlim(w[0],w[-1])
+            ax[i,j].annotate("%s" % (order +1), (0.1,0.85), xycoords="axes fraction")
+    fig.subplots_adjust(left=0.04,bottom=0.04,top=0.97,right=0.97)
+    ax[4,0].set_xlabel(r"$\lambda\quad[\AA]$")
+    plt.show()
+
+def plot_comic_strip():
+    f_mod = m.model(5900)
+    for i in range(10):
+        fig,ax = plt.subplots(nrows=3,ncols=5,figsize=(11,8))
+        for j in range(5):
+            order = i*5 + j
+            w,f_TRES = m.efile_n[order]
+            f = f_mod[order]
+            sigma = m.sigmas[order]
+            ax[0,j].plot(w,sigma)
+            ax[0,j].annotate("%s" % (order +1), (0.4,0.85), xycoords="axes fraction")
+            ax[1,j].plot(w,f_TRES,"b")
+            order_masks = m.masks[order]
+            if len(order_masks) >= 1:
+                for mask in order_masks:
+                    start,end = mask
+                    ind = (w > start) & (w < end)
+                    ax[1,j].plot(w[ind],f_TRES[ind],"r")
+            ax[2,j].plot(w,f)
+            for k in ax[:,j]:
+                k.set_xlim(w[0],w[-1])
+                k.xaxis.set_major_formatter(FSF("%.0f"))
+                k.locator_params(axis='x',nbins=5)
+        fig.savefig("plots/comic_strips/set%s.png" % (i,))
+
+
 
 def main():
     #plot_continuum()
-    compare_sample()
+    #compare_sample()
     #calc_chi2_grid()
     #plot_T_logg()
     #plot_logg_grid()
     #plot_wl()
     #plot_wl_short()
+    #plot_GWOri_all_orders()
+    #plot_sigmas()
+    #plot_full_model()
+    plot_comic_strip()
     pass
 
 if __name__=="__main__":
