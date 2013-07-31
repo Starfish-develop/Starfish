@@ -112,6 +112,38 @@ def plot_continuum():
     np.save("sigma.npy",norm_noise)
     plt.plot(m.wl,norm_noise)
     plt.show()
+
+def test_downsample():
+    wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
+    f_full = m.load_flux(5900,3.5)
+
+    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
+    ind = (m.w_full > (wl[0] - 5.)) & (m.w_full < (wl[-1] + 5.))
+    w = m.w_full[ind]
+    f = f_full[ind]
+
+    #convolve with stellar broadening (sb)
+    k = m.vsini_ang(np.mean(wl),40.) #stellar rotation kernel centered at order
+    f_sb = m.convolve(f, k)
+
+    dlam = w[1] - w[0]
+
+    #convolve with filter to resolution of TRES
+    filt = m.gauss_series(dlam,lam0=np.mean(w))
+    f_TRES = m.convolve(f_sb,filt)
+
+    fig,ax = plt.subplots(nrows=4,figsize=(11,8),sharex=True)
+    d1 = m.downsample(w,f_TRES,wl)
+    d2 = m.downsample4(w,f_TRES,wl)
+    ax[0].plot(wl,d1)
+    ax[1].plot(wl,d2)
+    ax[2].plot(wl,d1-d2)
+    ax[3].plot(wl,(d1-d2)/d1)
+    ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
+    ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
+    fig.subplots_adjust(top=0.94,right=0.97,hspace=0.25,left=0.08)
+    plt.show()
+
     
 def plot_GWOri_merged():
     GW_file = pf.open("GWOri_cnm.fits")
@@ -198,7 +230,7 @@ def plot_comic_strip():
                 k.set_xlim(w[0],w[-1])
                 k.xaxis.set_major_formatter(FSF("%.0f"))
                 k.locator_params(axis='x',nbins=5)
-        fig.savefig("plots/comic_strips/set%s.png" % (i,))
+        fig.savefig("plots/comic_strips_4/set%s.png" % (i,))
 
 
 
@@ -213,7 +245,8 @@ def main():
     #plot_GWOri_all_orders()
     #plot_sigmas()
     #plot_full_model()
-    plot_comic_strip()
+    #plot_comic_strip()
+    test_downsample()
     pass
 
 if __name__=="__main__":

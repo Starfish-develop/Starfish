@@ -147,6 +147,52 @@ def downsample2(w_m,f_m,w_TRES):
 
     return avg_bin(b0s,b1s)
 
+def downsample3(w_m,f_m,w_TRES):
+    '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to exactly match the TRES wavelength bins. Try this only by averaging.'''
+
+    #More time could be saved by splitting up the original array into averageable chunks.
+
+    @np.vectorize
+    def avg_bin(bin0,bin1):
+        return np.average(f_m[(w_m > bin0) & (w_m < bin1)])
+
+    #Determine the bin edges
+    edges = np.empty((len(w_TRES)+1,))
+    difs = np.diff(w_TRES)/2.
+    edges[1:-1] = w_TRES[:-1] + difs
+    edges[0] = w_TRES[0] - difs[0]
+    edges[-1] = w_TRES[-1] + difs[-1]
+    b0s = edges[:-1]
+    b1s = edges[1:]
+
+    return avg_bin(b0s,b1s)
+
+def downsample4(w_m,f_m,w_TRES):
+
+    out_flux = np.zeros_like(w_TRES)
+    len_mod = len(w_m)
+
+    #Determine the bin edges
+    len_TRES = len(w_TRES)
+    edges = np.empty((len_TRES+1,))
+    difs = np.diff(w_TRES)/2.
+    edges[1:-1] = w_TRES[:-1] + difs
+    edges[0] = w_TRES[0] - difs[0]
+    edges[-1] = w_TRES[-1] + difs[-1]
+
+    i_start = np.argwhere((w_m > edges[0]))[0][0] #return the first starting index for the model wavelength array
+
+    edges_i = 1
+    for i in range(len(w_m)):
+        if w_m[i] > edges[edges_i]:
+            i_finish = i - 1
+            out_flux[edges_i - 1] = np.mean(f_m[i_start:i_finish])
+            edges_i += 1
+            i_start = i_finish
+            if edges_i > len_TRES:
+                break
+    return out_flux
+
 def test_downsample():
     wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
     f_full = load_flux(5900,3.5)
@@ -155,7 +201,8 @@ def test_downsample():
     ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
     w = w_full[ind]
     f = f_full[ind]
-    downsample2(w,f,wl)
+
+    downsample4(w,f,wl)
 
 ##################################################
 #Plotting Checks
@@ -187,16 +234,19 @@ def model(temp, vz=-30, vsini=40., logg=4.5):
         k = vsini_ang(np.mean(wl),vsini) #stellar rotation kernel centered at order
         f_sb = convolve(f, k)
 
-        wvz = shift_vz(w,vz) #shifted wavelengths due to radial velocity
+        #wvz = shift_vz(w,vz) #shifted wavelengths due to radial velocity
 
-        dlam = wvz[1] - wvz[0] #spacing of shifted wavelengths necessary for TRES resolution kernel
+        #dlam = wvz[1] - wvz[0] #spacing of shifted wavelengths necessary for TRES resolution kernel
+        dlam = w[1] - w[0]
 
         #convolve with filter to resolution of TRES
-        filt = gauss_series(dlam,lam0=np.mean(wvz))
+        #filt = gauss_series(dlam,lam0=np.mean(wvz))
+        filt = gauss_series(dlam,lam0=np.mean(w))
         f_TRES = convolve(f_sb,filt)
 
         #downsample to TRES bins
-        dsamp = downsample2(wvz, f_TRES, wl)
+        #dsamp = downsample4(wvz, f_TRES, wl)
+        dsamp = downsample4(w, f_TRES, wl)
 
         model_flux.append(dsamp)
 
@@ -264,8 +314,8 @@ def run_chain():
     asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
 
 def main():
-    #mod = model(5900)
-    test_downsample()
+    mod = model(5900)
+    #test_downsample()
     #compare_sample()
     #run_chain()
     #print(calc_chi2(5900,3.5))
