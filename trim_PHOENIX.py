@@ -21,6 +21,7 @@ def rewrite_flux(temp,logg):
         flux_file.close()
         f = f[ind]
         print("Loaded " + rname)
+        print(f.dtype)
         np.save(wname,f)
         print("Wrote " + wname)
         print()
@@ -47,10 +48,10 @@ def load_flux_fits(temp,logg):
 
 
 def main():
-    #for temp in Ts:
-    #    for logg in loggs:
-    #        rewrite_flux(temp,logg)
-    rewrite_wl()
+    for temp in Ts:
+        for logg in loggs:
+            rewrite_flux(temp,logg)
+    #rewrite_wl()
     #load_npy(5700,4.5)
     #load_fits(5700,4.5)
 
