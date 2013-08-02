@@ -28,6 +28,7 @@ def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
     print("Loaded " + fname)
     f = np.load(fname)
+    print(f.dtype)
     return f
 
 
@@ -193,6 +194,47 @@ def downsample4(w_m,f_m,w_TRES):
                 break
     return out_flux
 
+def downsample5(w_m,f_m,w_TRES):
+    out_flux = np.zeros_like(w_TRES)
+    len_mod = len(w_m)
+
+    #Determine the TRES bin edges
+    len_TRES = len(w_TRES)
+    edges = np.empty((len_TRES+1,))
+    difs = np.diff(w_TRES)/2.
+    edges[1:-1] = w_TRES[:-1] + difs
+    edges[0] = w_TRES[0] - difs[0]
+    edges[-1] = w_TRES[-1] + difs[-1]
+
+    #Determine PHOENIX bin edges
+    Pedges = np.empty((len_mod+1,))
+    Pdifs = np.diff(w_m)/2.
+    Pedges[1:-1] = w_m[:-1] + Pdifs
+    Pedges[0] = w_m[0] - Pdifs[0]
+    Pedges[-1] = w_m[-1] + Pdifs[-1]
+
+    i_start = np.argwhere((edges[0] < Pedges))[0][0] - 1 #return the first starting index for the model wavelength edges array (Pedges)
+
+    edges_i = 1
+    left_weight = (Pedges[i_start + 1] - edges[0])/(Pedges[i_start + 1] - Pedges[i_start])
+
+    for i in range(len_mod+1):
+
+        if Pedges[i] > edges[edges_i]:
+            right_weight = (edges[edges_i] - Pedges[i - 1])/(Pedges[i] - Pedges[i - 1])
+            weights = np.ones((i - i_start,))
+            weights[0] = left_weight
+            weights[-1] = right_weight
+
+            out_flux[edges_i - 1] = np.average(f_m[i_start:i],weights=weights)
+
+            edges_i += 1
+            i_start = i - 1
+            left_weight = 1. - right_weight
+            if edges_i > len_TRES:
+                break
+    return out_flux
+
 def test_downsample():
     wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
     f_full = load_flux(5900,3.5)
@@ -246,7 +288,7 @@ def model(temp, vz=-30, vsini=40., logg=4.5):
 
         #downsample to TRES bins
         #dsamp = downsample4(wvz, f_TRES, wl)
-        dsamp = downsample4(w, f_TRES, wl)
+        dsamp = downsample5(w, f_TRES, wl)
 
         model_flux.append(dsamp)
 

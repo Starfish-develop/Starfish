@@ -3,6 +3,7 @@ import pyfits as pf
 import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
+from scipy.integrate import trapz
 
 def plot_logg_grid():
     fig, ax = plt.subplots(nrows=13,sharex=True,sharey=True,figsize=(11,8))
@@ -114,25 +115,25 @@ def plot_continuum():
     plt.show()
 
 def test_downsample():
-    wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
+    wl,fl = np.loadtxt("GWOri_cn/34.txt",unpack=True)
     f_full = m.load_flux(5900,3.5)
 
     #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
-    ind = (m.w_full > (wl[0] - 5.)) & (m.w_full < (wl[-1] + 5.))
+    ind = (m.w_full > 6163.) & (m.w_full < 6164)
     w = m.w_full[ind]
     f = f_full[ind]
 
     #convolve with stellar broadening (sb)
-    k = m.vsini_ang(np.mean(wl),40.) #stellar rotation kernel centered at order
-    f_sb = m.convolve(f, k)
+    #k = m.vsini_ang(np.mean(wl),40.) #stellar rotation kernel centered at order
+    #f_sb = m.convolve(f, k)
 
-    dlam = w[1] - w[0]
+    #dlam = w[1] - w[0]
 
     #convolve with filter to resolution of TRES
-    filt = m.gauss_series(dlam,lam0=np.mean(w))
-    f_TRES = m.convolve(f_sb,filt)
+    #filt = m.gauss_series(dlam,lam0=np.mean(w))
+    #f_TRES = m.convolve(f_sb,filt)
 
-    fig,ax = plt.subplots(nrows=4,figsize=(11,8),sharex=True)
+    fig,ax = plt.subplots(nrows=2,figsize=(11,8),sharex=True)
     d1 = m.downsample(w,f_TRES,wl)
     d2 = m.downsample4(w,f_TRES,wl)
     ax[0].plot(wl,d1)
@@ -143,6 +144,74 @@ def test_downsample():
     ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
     fig.subplots_adjust(top=0.94,right=0.97,hspace=0.25,left=0.08)
     plt.show()
+
+def test_bin():
+    wl,fl = np.loadtxt("GWOri_cn/34.txt",unpack=True)
+    f_full = m.load_flux(5900,3.5)
+    wl = m.shift_vz(wl,30.)
+
+    indT = (wl > 6163.47) & (wl < 6284)
+    wl = wl[indT]
+    fl = fl[indT]
+
+
+    #Determine the TRES bin edges
+    len_TRES = len(wl)
+    edges = np.empty((len_TRES+1,),dtype=np.float64)
+    difs = np.diff(wl)/2.
+    edges[1:-1] = wl[:-1] + difs
+    edges[0] = wl[0] - difs[0]
+    edges[-1] = wl[-1] + difs[-1]
+    
+    ind = (m.w_full > (edges[0])) & (m.w_full < (0.005 + edges[-1]))
+
+    w = m.w_full[ind]
+    f = f_full[ind]
+    print(f.dtype)
+
+
+    #change all to 64 bit to see if this is a rounding error
+    w = w.astype(np.float64)
+    f = f.astype(np.float64)
+    wl = wl.astype(np.float64)
+
+    d1 = m.downsample5(w,f,wl)
+    weights = np.ones_like(f)
+
+    #For average between 6237.5 and 6237.65
+    #weights[0] = 0.97663176
+    #weights[-1] = 0.59715568
+
+
+    print("Length of f", len(f))
+    #For average between 6237.5 and 6250
+    weights[0] = 0.69301058
+    weights[-1] = 0.72874322
+
+    FTRES = trapz(d1,wl)
+    FFULL = trapz(f,w)
+
+
+    print(w)
+    print(weights)
+
+    dmean = np.mean(d1)
+    fmean = np.average(f,weights=weights)
+    print("Comparing averages", dmean, dmean.dtype, fmean, fmean.dtype)
+    print("Comparing total flux", FTRES, FFULL)
+
+    #Yields exactly the same answer for the average between 6237.5 and 6237.65: 
+    #Comparing averages 8.45379889267e+14 8.4538e+14
+
+    fig,ax = plt.subplots(nrows=1,figsize=(11,8))
+    #ax[0].plot(wl,fl,"o")
+    ax.plot(w,f)
+    ax.plot(wl,d1,"ro")
+    #for i in ax:
+    #ax.set_xlim(6237.5,6238.5)
+    #ax.set_ylim(8.1e14,8.6e14)
+    plt.show()
+
 
     
 def plot_GWOri_merged():
@@ -246,7 +315,8 @@ def main():
     #plot_sigmas()
     #plot_full_model()
     #plot_comic_strip()
-    test_downsample()
+    test_bin()
+    #test_downsample()
     pass
 
 if __name__=="__main__":
