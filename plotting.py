@@ -288,18 +288,67 @@ def plot_comic_strip():
             ax[0,j].plot(w,sigma)
             ax[0,j].annotate("%s" % (order +1), (0.4,0.85), xycoords="axes fraction")
             ax[1,j].plot(w,f_TRES,"b")
-            order_masks = m.masks[order]
-            if len(order_masks) >= 1:
-                for mask in order_masks:
-                    start,end = mask
-                    ind = (w > start) & (w < end)
-                    ax[1,j].plot(w[ind],f_TRES[ind],"r")
+            omask = m.masks[order]
+            ax[1,j].plot(w[-omask],f_TRES[-omask],"r")
+#            if len(order_masks) >= 1:
+#                for mask in order_masks:
+#                    start,end = mask
+#                    ind = (w > start) & (w < end)
+#                    ax[1,j].plot(w[ind],f_TRES[ind],"r")
             ax[2,j].plot(w,f)
             for k in ax[:,j]:
                 k.set_xlim(w[0],w[-1])
                 k.xaxis.set_major_formatter(FSF("%.0f"))
                 k.locator_params(axis='x',nbins=5)
-        fig.savefig("plots/comic_strips_4/set%s.png" % (i,))
+        fig.savefig("plots/comic_strips/set%s.png" % (i,))
+
+def plot_tilt():
+    wl,fl = np.loadtxt("GWOri_cn/43.txt",unpack=True)
+    wl = m.shift_vz(wl,30.2)
+    f = m.model(5900,3.5,orders=[42])[0]
+    z = m.masks[42]
+    wl,f,fl,sigma = wl[z],f[z],fl[z],m.sigmas[42][z]
+
+    p = m.find_line(wl,f,fl,sigma)
+
+    fig,ax = plt.subplots(nrows=3,figsize=(11,8))
+    ax[0].plot(wl,fl)
+    ax[1].plot(wl,f)
+    #ax[1].plot(wl,p[0] + p[1]*wl)
+    ax[1].plot(wl,1.3e15 + -9e10 * wl, 'r')
+    ax[2].plot(wl,fl,"b")
+    ax[2].plot(wl,f/(p[0] + p[1]*wl),"r")
+    plt.show()
+
+def test_global_chi2():
+    f_mod = m.model(6500,3.5)
+    m.global_chi2(f_mod)
+    line_coeff = np.load("line_coeff.npy")
+    for i in range(10):
+        fig,ax = plt.subplots(nrows=3,ncols=5,figsize=(11,8))
+        for j in range(5):
+            order = i*5 + j
+            w,f_TRES = m.efile_n[order]
+            f = f_mod[order]
+            sigma = m.sigmas[order]
+            ax[0,j].annotate("%s" % (order +1), (0.4,0.85), xycoords="axes fraction")
+            ax[0,j].plot(w,f_TRES,"b")
+            omask = m.masks[order]
+            ax[0,j].plot(w[-omask],f_TRES[-omask],"r")
+
+            ax[1,j].plot(w,f)
+            p = line_coeff[order]
+            ax[1,j].plot(w,p[0] + p[1] * w)
+
+            ax[2,j].plot(w,f_TRES,"b")
+            ax[2,j].plot(w[-omask],f_TRES[-omask],"g")
+            ax[2,j].plot(w,f/(p[0] + p[1] * w),"r")
+            for k in ax[:,j]:
+                k.set_xlim(w[0],w[-1])
+                k.xaxis.set_major_formatter(FSF("%.0f"))
+                k.locator_params(axis='x',nbins=5)
+        fig.savefig("plots/comic_strips_tilt/set%s.png" % (i,))
+
 
 
 
@@ -315,8 +364,10 @@ def main():
     #plot_sigmas()
     #plot_full_model()
     #plot_comic_strip()
-    test_bin()
+    #test_bin()
     #test_downsample()
+    #plot_tilt()
+    test_global_chi2()
     pass
 
 if __name__=="__main__":

@@ -8,8 +8,8 @@ cProfile.run("model.main()","prof_mod5")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
-    p.sort_stats('cumulative').print_stats(.1)
+    p.sort_stats('cumulative').print_stats(.9)
     #p.sort_stats('name').print_stats()
-    p.sort_stats('time').print_stats(.1)
+    p.sort_stats('time').print_stats(.9)
 
 display_stats('prof_mod5')
