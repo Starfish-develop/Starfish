@@ -4,7 +4,7 @@ from echelle_io import rechelletxt,load_masks
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
-from scipy.optimize import leastsq
+from scipy.optimize import leastsq,fmin
 import asciitable
 
 c_ang = 2.99792458e18 #A s^-1
@@ -16,8 +16,8 @@ Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 efile_n = rechelletxt("GWOri_cn") #has structure len = 51, for each order: [wl,fl]
 sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
 
-#Load masking region
-masks = load_masks()
+masks = np.load("masks_array.npy")
+
 
 #Load 3700 to 10000 ang wavelength vector
 w_full = np.load("wave_trim.npy")
@@ -30,6 +30,23 @@ def load_flux(temp,logg):
     f = np.load(fname)
     print(f.dtype)
     return f
+
+def make_bool_masks():
+    '''Takes the masks loaded from echelle_io and turns these into boolean arrays that can be applied when doing chi^2 comparisons or plots'''
+    masks = load_masks() #Load masking region from text file
+    masks_array = np.ones((51, 2299),dtype=np.bool)
+    for order in range(51):
+        order_masks = masks[order]
+        wl,fl = efile_n[order]
+        len_wl = len(wl)
+        if len(order_masks) >= 1:
+            for mask in order_masks:
+                start,end = mask
+                ind = (wl > start) & (wl < end)
+                masks_array[order] *= -ind #multiplication knocks out Falses
+
+    np.save("masks_array.npy", masks_array)
+    print("Created mask array")
 
 
 ##################################################
@@ -194,6 +211,8 @@ def downsample4(w_m,f_m,w_TRES):
                 break
     return out_flux
 
+ones = np.ones((10,))
+
 def downsample5(w_m,f_m,w_TRES):
     out_flux = np.zeros_like(w_TRES)
     len_mod = len(w_m)
@@ -222,7 +241,7 @@ def downsample5(w_m,f_m,w_TRES):
 
         if Pedges[i] > edges[edges_i]:
             right_weight = (edges[edges_i] - Pedges[i - 1])/(Pedges[i] - Pedges[i - 1])
-            weights = np.ones((i - i_start,))
+            weights = ones[:(i - i_start)].copy()
             weights[0] = left_weight
             weights[-1] = right_weight
 
@@ -256,14 +275,14 @@ def plot_check():
     plt.plot(edges[-11:],ys,"o")
     plt.show()
 
-def model(temp, vz=-30, vsini=40., logg=4.5):
+def model(temp, vz=-30, vsini=40., logg=4.5,orders=range(norder)):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
     #Loads the ENTIRE spectrum, not limited to a specific order
     f_full = load_flux(temp,logg)
 
     model_flux = []
     #Cycle through all the orders in the echelle spectrum
-    for i in range(norder):
+    for i in orders:
         print("Processing order %s" % (i+1,))
         wl,fl = efile_n[i]
 
@@ -295,9 +314,37 @@ def model(temp, vz=-30, vsini=40., logg=4.5):
     #Only returns the fluxes, because the wl is actually the TRES wavelength vector
     return model_flux
 
-def find_pref(flux):
-    func = lambda x : chi(x*flux)
-    return leastsq(func, 1e-15)[0][0]
+def find_line(wl,f,fl,sigma):
+    '''As always, f is the model flux and fl is the data flux'''
+    func = lambda p : chi(f/(p[0] + p[1]*wl),fl,sigma)
+    mf = np.median(f)
+    print(mf)
+    p0  = np.array([1.3e15,-9e10])
+    ans = leastsq(func, p0)[0]
+    print(ans)
+    return ans
+
+def global_chi2(model_flux):
+    '''Given a model flux, do a global chi2 comparison to the TRES data. This means divide each order by a line to fit first.'''
+    line_coeff = np.zeros((51,2))
+    chi2_list = np.zeros((51,))
+    for i in range(len(model_flux)):
+        print("Order: ",i + 1)
+        f = model_flux[i]
+        wl,fl = efile_n[i]
+        sigma = sigmas[i]
+        #mask all these values
+        z = masks[i]
+        wl,f,fl,sigma = wl[z],f[z],fl[z],sigma[z]
+        p = find_line(wl,f,fl,sigma)
+        line_coeff[i] = p
+        chi2_list[i] = chi2(f/(p[0] + p[1]*wl),fl,sigma)
+        print(chi2_list[i])
+        print()
+    np.save("line_coeff.npy",line_coeff)
+    print("Global chi^2", np.sum(chi2_list))
+
+
 
 @np.vectorize
 def calc_chi2(temp,logg):
@@ -305,17 +352,14 @@ def calc_chi2(temp,logg):
     pref = find_pref(raw_flux)
     return chi2(pref * raw_flux)
 
-    
-def model2(scale):
-    return scale*gmod 
-
-def chi(flux):
+def chi(f,fl,sigma):
+    '''As always, f is the model flux and fl is the data flux'''
     #f = model(*p)
-    val = np.sum((fl - flux)/sigma)
+    val = (fl - f)/sigma
     return val
 
-def chi2(flux):
-    val = np.sum((fl - flux)**2/sigma**2)
+def chi2(f,fl,sigma):
+    val = np.sum((fl - f)**2/sigma**2)
     return val
 
 def r(p_cur, p_old):
@@ -356,7 +400,8 @@ def run_chain():
     asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
 
 def main():
-    mod = model(5900)
+    #make_bool_masks()
+    #mod = model(5900)
     #test_downsample()
     #compare_sample()
     #run_chain()

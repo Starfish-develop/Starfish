@@ -54,6 +54,7 @@ def create_sigma_file():
 #sigmas = create_sigma_file()
 
 def load_masks():
+    '''Loads all of the masking regions. Returns a list that is accesed by start, end = masking_region[order][region]'''
     data = asciitable.read("masking_regions.dat")
     masking_region = []
     for i in range(1,52):
