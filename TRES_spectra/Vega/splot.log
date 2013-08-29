@@ -1,0 +1,11 @@
+
+Aug  8 22:22 [Vega_2012-04-02_12h50m48s_cb.norm.crop.spec.fits[*,37]]: Vega
+    center      cont      flux       eqw      core     gfwhm     lfwhm
+  6561.771   51922.2  -490830.     9.453  -21823.5     21.13        0.
+  6562.198  47082.99  -281152.     5.971  -19829.6     13.32        0.
+
+Aug 13 13:47 [11LORI_2012-04-02_02h46m34s_cb.norm.crop.flux.spec.fits[*,24]]: 11LORI
+avg:  1.941E-13  rms:  6.762E-15   snr:    28.70
+
+Aug 13 13:48 [11LORI_2012-04-02_02h46m34s_cb.norm.crop.flux.spec.fits[*,25]]: 11LORI
+avg:  1.986E-13  rms:  5.901E-15   snr:    33.65
