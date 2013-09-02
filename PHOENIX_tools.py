@@ -35,6 +35,18 @@ def flux_interpolator():
     flux_intp = NearestNDInterpolator(np.array([T_list, logg_list]).T, fluxes)
     return flux_intp
 
+def flux_interpolator_np():
+    points = np.loadtxt("param_grid_GWOri.txt")
+    print(points)
+    #T_list = points["T"].data
+    #logg_list = points["logg"].data
+    len_w = 716665
+    fluxes = np.empty((len(points),len_w)) 
+    for i in range(len(points)):
+        fluxes[i] = load_flux_npy(points[i][0],points[i][1])
+    flux_intp = NearestNDInterpolator(points, fluxes)
+    return flux_intp
+
 def rewrite_flux(temp,logg):
     rname="HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(temp=temp,logg=logg)
 
@@ -87,7 +99,7 @@ def interpolate_test():
 
     #Now call func for any values between 5800, 5900, returns the full flux.
 
-
+fluxes = flux_interpolator_np()
 
 def main():
     #Rewrite Flux

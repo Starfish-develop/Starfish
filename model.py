@@ -1,14 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from echelle_io import rechellenpflat,load_masks
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d,NearestNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
 from deredden import deredden
-from astropy.io import ascii
 from numpy.polynomial import Chebyshev as Ch
-from PHOENIX_tools import flux_interpolator
 
 '''
 Coding convention:
@@ -69,8 +66,16 @@ def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
     print("Loaded " + fname)
     f = np.load(fname)
-    print(f.dtype)
     return f
+
+def flux_interpolator():
+    points = np.loadtxt("param_grid_GWOri.txt")
+    len_w = 716665
+    fluxes = np.empty((len(points),len_w)) 
+    for i in range(len(points)):
+        fluxes[i] = load_flux(points[i][0],points[i][1])
+    flux_intp = NearestNDInterpolator(points, fluxes)
+    return flux_intp
 
 flux = flux_interpolator()
 
