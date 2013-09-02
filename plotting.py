@@ -409,13 +409,13 @@ def one_order():
 
 def test_chebyshev():
     #coef = np.array([0.3,0.2,0.6])
-    coef = np.array([1.,0.,0.])
+    coef = np.array([1.,1.,0.])
     myCh = Ch(coef)
-    myCh2 = Ch(coef,domain=[0,3.])
-    xs = np.linspace(0,3.)
+    #myCh2 = Ch(coef,domain=[0,3.])
+    #xs = np.linspace(0,3.)
     x0 = np.linspace(-1,1)
     plt.plot(x0, myCh(x0))
-    plt.plot(xs, myCh2(xs))
+    #plt.plot(xs, myCh2(xs))
 
     plt.show()
 
@@ -465,8 +465,8 @@ def main():
     #three_orders()
     #one_order()
     #plot_GWOri_all_unnormalized()
-    #test_chebyshev()
-    plot_order_23()
+    test_chebyshev()
+    #plot_order_23()
     pass
 
 if __name__=="__main__":

@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d,NearestNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
-from deredden import deredden
+#from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
 
 '''
@@ -359,7 +359,7 @@ def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
     temp, logg, vsini, vz = p[:4]
-    if (logg < 0) or (vsini < 0) or (temp < 2300):
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 4000) or (temp > 6900):
         return -np.inf
     else:
         coefs = p[4:]
