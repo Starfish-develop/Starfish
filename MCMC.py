@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Sample the discretized grid using emcee.
 """
@@ -33,14 +34,14 @@ p0 = np.array([temp,logg,vsini,vz,c0,c1,c2,c3,c4]).T
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=15)#, args=[means, icov])
 
 # Run 100 steps as a burn-in.
-pos, prob, state = sampler.run_mcmc(p0, 10)
+pos, prob, state = sampler.run_mcmc(p0, 20)
 
 # Reset the chain to remove the burn-in samples.
 sampler.reset()
 
 # Starting from the final position in the burn-in chain, sample for 1000
 # steps.
-sampler.run_mcmc(pos, 50, rstate0=state)
+sampler.run_mcmc(pos, 80, rstate0=state)
 
 # Print out the mean acceptance fraction. In general, acceptance_fraction
 # has an entry for each walker so, in this case, it is a 250-dimensional
