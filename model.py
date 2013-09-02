@@ -1,28 +1,69 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from echelle_io import rechelletxt,load_masks
+from echelle_io import rechellenpflat,load_masks
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
-import asciitable
+from deredden import deredden
+from astropy.io import ascii
+from numpy.polynomial import Chebyshev as Ch
+from PHOENIX_tools import flux_interpolator
 
+'''
+Coding convention:
+    wl: refers to an individual 1D TRES wavelength array, shape = (2304,)
+    fl: refers to an individual 1D TRES flux array, shape = (2304,)
+
+    wls: referes to 2D TRES wavelength array, shape = (51, 2304)
+    fls: referes to 2D TRES flux array, shape = (51, 2304)
+
+    wlsz: refers to 2D TRES wavelength array, shifted in velocity, shape = (51, 2304)
+
+    w: refers to individual 1D PHOENIX wavelength array, spacing 0.01A, shape = (large number,)
+    f: refers to individual 1D PHOENIX flux array, shape = (large number,)
+
+    fls: refers to 2D model flux array, after being downsampled to TRES resolution, shape = (51, 2304)
+
+'''
+
+##################################################
+# Constants
+##################################################
 c_ang = 2.99792458e18 #A s^-1
 c_kms = 2.99792458e5 #km s^-1
+G = 6.67259e-8 #cm3 g-1 s-2
+M_sun = 1.99e33 #g
+R_sun = 6.955e10 #cm
+pc = 3.0856776e18 #cm
+AU = 1.4959787066e13 #cm
 
 Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load normalized order spectrum
-efile_n = rechelletxt("GWOri_cn") #has structure len = 51, for each order: [wl,fl]
+wls, fls = rechellenpflat("GWOri_cf")
+
 sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
 
 masks = np.load("masks_array.npy")
 
-
 #Load 3700 to 10000 ang wavelength vector
 w_full = np.load("wave_trim.npy")
 
-norder = len(efile_n)
+norder = len(wls)
+
+#Numpy array of orders I want to use, indexed to 1
+#good_orders = [i for i in range(5,18)] + [i for i in range(20,30)] + [i for i in range(31,37)] + [43,46]
+#orders = np.array(good_orders) - 1 #index to 0
+#orders = np.array([21,22,23])
+orders = np.array([22])
+
+#Truncate TRES to include only those orders
+wls = wls[orders]
+fls = fls[orders]
+sigmas = sigmas[orders]
+masks = masks[orders]
+
 
 def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
@@ -31,23 +72,7 @@ def load_flux(temp,logg):
     print(f.dtype)
     return f
 
-def make_bool_masks():
-    '''Takes the masks loaded from echelle_io and turns these into boolean arrays that can be applied when doing chi^2 comparisons or plots'''
-    masks = load_masks() #Load masking region from text file
-    masks_array = np.ones((51, 2299),dtype=np.bool)
-    for order in range(51):
-        order_masks = masks[order]
-        wl,fl = efile_n[order]
-        len_wl = len(wl)
-        if len(order_masks) >= 1:
-            for mask in order_masks:
-                start,end = mask
-                ind = (wl > start) & (wl < end)
-                masks_array[order] *= -ind #multiplication knocks out Falses
-
-    np.save("masks_array.npy", masks_array)
-    print("Created mask array")
-
+flux = flux_interpolator()
 
 ##################################################
 #Data processing steps
@@ -84,6 +109,11 @@ def shift_vz(lam_source, vz):
     '''Given the source wavelength, lam_sounce, return the observed wavelength based upon a radial velocity vz in km/s. Negative velocities are towards the observer (blueshift).'''
     lam_observe = lam_source * np.sqrt((c_kms + vz)/(c_kms - vz))
     return lam_observe
+
+
+def shift_TRES(vz):
+    wlsz = shift_vz(wls,vz)
+    return wlsz
 
 
 ##################################################
@@ -266,147 +296,131 @@ def test_downsample():
     downsample4(w,f,wl)
 
 ##################################################
-#Plotting Checks
+# Model 
 ##################################################
 
-def plot_check():
-    ys = np.ones((11,))
-    plt.plot(wl[-10:],ys[-10:],"o")
-    plt.plot(edges[-11:],ys,"o")
-    plt.show()
 
-def model(temp, vz=-30, vsini=40., logg=4.5,orders=range(norder)):
-    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift.'''
+def model(wlsz, temp, logg, vsini):
+    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+    #M = M * M_sun #g
+    #R = R * R_sun #cm
+    #d = d * pc #cm
+
+    #logg = np.log10(G * M / R**2)
+    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
+
     #Loads the ENTIRE spectrum, not limited to a specific order
-    f_full = load_flux(temp,logg)
+    f_full = flux(temp, logg)
 
-    model_flux = []
+    model_flux = np.zeros_like(wlsz)
     #Cycle through all the orders in the echelle spectrum
-    for i in orders:
-        print("Processing order %s" % (i+1,))
-        wl,fl = efile_n[i]
+    for i,wlz in enumerate(wlsz):
+        #print("Processing order %s" % (orders[i]+1,))
 
         #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
-        ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
+        ind = (w_full > (wlz[0] - 5.)) & (w_full < (wlz[-1] + 5.))
         w = w_full[ind]
         f = f_full[ind]
 
         #convolve with stellar broadening (sb)
-        k = vsini_ang(np.mean(wl),vsini) #stellar rotation kernel centered at order
+        k = vsini_ang(np.mean(wlz),vsini) #stellar rotation kernel centered at order
         f_sb = convolve(f, k)
 
-        #wvz = shift_vz(w,vz) #shifted wavelengths due to radial velocity
-
-        #dlam = wvz[1] - wvz[0] #spacing of shifted wavelengths necessary for TRES resolution kernel
-        dlam = w[1] - w[0]
+        dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel
 
         #convolve with filter to resolution of TRES
-        #filt = gauss_series(dlam,lam0=np.mean(wvz))
-        filt = gauss_series(dlam,lam0=np.mean(w))
+        filt = gauss_series(dlam,lam0=np.mean(wlz))
         f_TRES = convolve(f_sb,filt)
 
         #downsample to TRES bins
-        #dsamp = downsample4(wvz, f_TRES, wl)
-        dsamp = downsample5(w, f_TRES, wl)
+        dsamp = downsample5(w, f_TRES, wlz)
 
-        model_flux.append(dsamp)
+        #redden spectrum
+        #red = dsamp/deredden(wlz,Av,mags=False)
 
-    #Only returns the fluxes, because the wl is actually the TRES wavelength vector
+        model_flux[i] = dsamp
+
+    #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
 
-def find_line(wl,f,fl,sigma):
-    '''As always, f is the model flux and fl is the data flux'''
-    func = lambda p : chi(f/(p[0] + p[1]*wl),fl,sigma)
-    mf = np.median(f)
-    print(mf)
-    p0  = np.array([1.3e15,-9e10])
-    ans = leastsq(func, p0)[0]
-    print(ans)
-    return ans
+def data(coefs_arr, wls, fls):
+    '''coeff is a (norders, npoly) shape array'''
+    flsc = np.zeros_like(fls)
+    for i,coefs in enumerate(coefs_arr):
+        flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+    return flsc
 
+def lnprob(p):
+    '''p is the parameter vector, contains both theta_s and theta_n'''
+    #print(p)
+    temp, logg, vsini, vz = p[:4]
+    if (logg < 0) or (vsini < 0) or (temp < 2300):
+        return -np.inf
+    else:
+        coefs = p[4:]
+        #print(coefs)
+        coefs_arr = coefs.reshape(len(orders),-1)
+
+        wlsz = shift_TRES(vz) 
+
+        flsc = data(coefs_arr, wlsz, fls)
+
+        fs = model(wlsz, temp, logg, vsini)
+
+        chi2 = np.sum((flsc - fs)**2/sigmas**2)
+        return -0.5 * chi2 
+
+def model_and_data(p):
+    '''p is the parameter vector, contains both theta_s and theta_n'''
+    #print(p)
+    temp, logg, vsini, vz = p[:4]
+    coefs = p[4:]
+    #print(coefs)
+    coefs_arr = coefs.reshape(len(orders),-1)
+
+    wlsz = shift_TRES(vz) 
+
+    flsc = data(coefs_arr, wlsz, fls)
+
+    fs = model(wlsz, temp, logg, vsini)
+    return [wlsz,flsc,fs]
+
+def find_chebyshev(wl, f, fl, sigma):
+    func = lambda p : chi(f*Ch(p,domain=[wl[0],wl[-1]])(wl),fl,sigma)
+    ans = leastsq(func, np.zeros((150,)))[0]
+    #print(ans)
+    return ans
+    
 def global_chi2(model_flux):
-    '''Given a model flux, do a global chi2 comparison to the TRES data. This means divide each order by a line to fit first.'''
-    line_coeff = np.zeros((51,2))
-    chi2_list = np.zeros((51,))
-    for i in range(len(model_flux)):
-        print("Order: ",i + 1)
+    '''Given a model flux, do a global chi2 comparison to the TRES data.'''
+    norders = len(model_flux)
+    const_coeff = np.zeros((norders,150))
+    chi2_list = np.zeros((norders,))
+    chiR_list = np.zeros((norders,))
+    for i in range(norders):
+        print("Order: ", orders[i] + 1)
         f = model_flux[i]
-        wl,fl = efile_n[i]
-        sigma = sigmas[i]
+        wl,fl = efile_z[orders[i]]
+        sigma = sigmas[orders[i]]
         #mask all these values
-        z = masks[i]
+        z = masks[orders[i]]
         wl,f,fl,sigma = wl[z],f[z],fl[z],sigma[z]
-        p = find_line(wl,f,fl,sigma)
-        line_coeff[i] = p
-        chi2_list[i] = chi2(f/(p[0] + p[1]*wl),fl,sigma)
+        #p = find_const(wl,f,fl,sigma)
+        p = find_chebyshev(wl,f,fl,sigma)
+        const_coeff[i] = p
+        #chi2_list[i] = chi2(f/p,fl,sigma)
+        chi2_list[i] = chi2(f*Ch(p,domain=[wl[0],wl[-1]])(wl),fl,sigma)
         print(chi2_list[i])
-        print()
-    np.save("line_coeff.npy",line_coeff)
+        chiR_list[i] = chi2_list[i]/len(wl)
+        print(len(wl),chiR_list[i])
+        #print()
+    np.save("const_coeff.npy",const_coeff)
+    np.save("chi2_list.npy", chi2_list)
+    np.save("chiR_list.npy", chiR_list)
     print("Global chi^2", np.sum(chi2_list))
 
-
-
-@np.vectorize
-def calc_chi2(temp,logg):
-    raw_flux = model(temp,logg=logg)
-    pref = find_pref(raw_flux)
-    return chi2(pref * raw_flux)
-
-def chi(f,fl,sigma):
-    '''As always, f is the model flux and fl is the data flux'''
-    #f = model(*p)
-    val = (fl - f)/sigma
-    return val
-
-def chi2(f,fl,sigma):
-    val = np.sum((fl - f)**2/sigma**2)
-    return val
-
-def r(p_cur, p_old):
-    return np.exp(-(chi2(p_cur) - chi2(p_old))/2.)
-
-#def posterior(p):
-#    return likelihood(p)*prior(p)
-#
-#def r(p_cur,p_old):
-#    return posterior(p_cur)/posterior(p_old)
-
-#global p_old
-#p_old = np.array([8.04e-16,0.335])
-
-def run_chain():
-    sequences = []
-    for j in range(10000):
-        print(j)
-        global p_old
-        accept = False
-        p_jump = np.array([np.random.normal(scale=2e-18), 
-            np.random.normal(scale=2e-3)])
-
-        p_new = p_old + p_jump
-        ratio = r(p_new, p_old)
-        print("Ratio ",ratio)
-        if ratio >= 1.0:
-            p_old = p_new
-            accept = True
-        else:
-            u = np.random.uniform()
-            if ratio >= u:
-                p_old = p_new
-                accept = True
-        scale, pedestal = p_old
-        sequences.append([j,ratio,accept,scale,pedestal])
-
-    asciitable.write(sequences,"run_0.dat",names=["j","ratio","accept","scale","pedestal"])
-
 def main():
-    #make_bool_masks()
-    #mod = model(5900)
-    #test_downsample()
-    #compare_sample()
-    #run_chain()
-    #print(calc_chi2(5900,3.5))
-    #print(calc_chi2(5900,4.0))
+    print(lnprob(np.array([6000, 4.0, 40, 30, 1e25,0,0,0,0])))
 
     pass
 

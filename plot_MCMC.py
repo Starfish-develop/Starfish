@@ -1,42 +1,8 @@
-import asciitable
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-#import MCMC
 
-#data1 = asciitable.read("run1.dat")
-#data2 = asciitable.read("run2.dat")
-#data3 = asciitable.read("run3.dat")
-#dataa = asciitable.read("runa.dat")
-#datab = asciitable.read("runb.dat")
-data = asciitable.read("run_0.dat")
-#data_tuple = (data1,data2,data3,dataa,datab,datac)
-
-def plot_vs_j(data):
-    fig, ax = plt.subplots(4,1, sharex=True,figsize=(4,6))
-    ax[0].plot(data['j'],data['scale'])
-    ax[1].plot(data['j'],data['pedestal'])
-    #y_axis = axW.get_yaxis()
-    #SF = matplotlib.ticker.ScalarFormatter()#useOffset=True, useMathText=None, useLocale=None)
-    #SF.set_scientific(True)
-    #y_axis.set_major_formatter(SF)
-    ax[-1].set_xlabel(r'$j$')
-
-    plt.show()
-    #plt.savefig('param_vs_j.eps')
-
-def plot_2d(data):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(data['m'],data['b'],'b',lw=0.2)
-    ax.plot(data['m'],data['b'],"bo")
-    ax.set_xlabel("m")
-    ax.set_ylabel("b")
-    #ax.fill([0,0,0.55,0.55],[0,0.5,0.5,0],hatch="/",fill=False)
-    #ax.annotate("Start",(data['a'][0]-0.09,data['b'][0]-0.01))
-    #ax.annotate("Burn in region",(0.1,0.1))
-    #fig.savefig("2d_burn_in.eps")
-    plt.show()
+flatchain = np.load("flatchain.npy")
+nparams = flatchain.shape[1]
 
 def plot_2d_all():
     A_grid = np.load("A.npy")
@@ -73,55 +39,23 @@ def calc_mean_and_sigma(data):
     print("Acceptance Ratio %.2f" % (len(np.where(data['accept'][burn_in:] == 'True')[0])/len(data['accept'][burn_in:])),)
     return (mean_m,mean_b)
 
-def prob_bad_points(data):
-    burn_in = 10000
-    ms = data["m"][burn_in:]
-    bs = data["b"][burn_in:]
-    Pbs = data["Pb"][burn_in:]
-    Ybs = data["Yb"][burn_in:]
-    Vbs = data["Vb"][burn_in:]
-    N = len(ms)
-    indexes = np.arange(0,len(xi),1)
-    probs = []
-    for i in indexes:
-        foreground = 1./N * np.sum((1-Pbs)/(np.sqrt(2. * np.pi) * sigma[i]) * np.exp(-(yi[i] - ms * xi[i] - bs)**2/(2. * sigma[i]**2)))
-        background = 1./N * np.sum(Pbs/np.sqrt(2. * np.pi * (Vbs + sigma[i]**2)) * np.exp(-(yi[i] - Ybs)**2/(2. * (Vbs + sigma[i]**2))))
-        prob = background/foreground
-        probs.append(prob)
-        #print(i,"%.2e" % prob)
-    plt.semilogy(indexes,probs,"o")
-    plt.ylabel(r"$p(q_i=0)$")
-    plt.xlabel(r"$i$")
-    plt.show()
 
+T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
+#for our case
+Ts = T_points[25:47]
+Tbin_edges = np.diff(Ts)/2 + Ts[:-1]
+loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.0]
 
-def hist_param(data):
-    burn_in = 10000
-    fig, (axm,axb,axP,axY,axV) = plt.subplots(5,1,figsize=(4,7))
-    axm.hist(data["m"][burn_in:],normed=True)
-    axm.set_xlabel("m")
-    axm.set_ylabel("Percentage")
+def hist_param(flatchain):
+    fig, axes = plt.subplots(nrows=nparams,ncols=1,figsize=(8,11))
+    
+    axes[0].hist(flatchain[:,0],Tbin_edges) #temp
+    axes[1].hist(flatchain[:,1],loggbin_edges) #logg
 
-    axb.hist(data["b"][burn_in:],normed=True)
-    axb.set_xlabel("b")
-    axb.set_ylabel("Percentage")
+    for i,ax in enumerate(axes[2:]):
+        ax.hist(flatchain[:,i+2],bins=20)
 
-    axP.hist(data["Pb"][burn_in:],normed=True)
-    axP.set_xlabel("P")
-    axP.set_ylabel("Percentage")
-    axP.locator_params(axis='y',nbins=8)
-
-    axY.hist(data["Yb"][burn_in:],normed=True)
-    axY.set_xlabel("Y")
-    axY.set_ylabel("Percentage")
-    axY.locator_params(axis='y',nbins=8)
-
-    axV.hist(data["Vb"][burn_in:],normed=True)
-    axV.set_xlabel("V")
-    axV.set_ylabel("Percentage")
-    axV.locator_params(axis='y',nbins=8)
-
-    fig.subplots_adjust(hspace=0.5,top=0.95,bottom=0.06)
+    fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
     plt.show()
     #plt.savefig('hist_param.svg')
 
@@ -137,15 +71,11 @@ def joint_hist(data):
     ax.set_ylabel(r"$b$")
     plt.show()
 
-plot_vs_j(data)
+#plot_vs_j(data)
 #calc_mean_and_sigma(datab)
 #hist_param(datab)
 #prob_bad_points(datab)
-#hist_param(data1)
+hist_param(flatchain)
 #plot_2d(datab)
 #joint_hist(dataa)
 #plot_2d_all()
-#for data in data_tuple:
-#    mean_a,mean_b = calc_mean_and_sigma(data)
-#    print(MCMC.chi_sq(mean_a,mean_b,0.1))
-#    print()

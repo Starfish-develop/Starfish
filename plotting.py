@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
 from scipy.integrate import trapz
+from echelle_io import rechelletxt
+from numpy.polynomial import Chebyshev as Ch
 
 def plot_logg_grid():
     fig, ax = plt.subplots(nrows=13,sharex=True,sharey=True,figsize=(11,8))
@@ -247,9 +249,10 @@ def plot_sigmas():
     fig,ax = plt.subplots(nrows=5,ncols=5,figsize=(11,8))
     for i in range(5):
         for j in range(5):
-            order = i*5 + j + 25
+            order = i*5 + j #+ 25
             w,f = m.efile_n[order]            
             sigma = m.sigmas[order]
+            print(len(w),len(sigma))
             ax[i,j].plot(w,sigma)
             ax[i,j].xaxis.set_major_formatter(FSF("%.0f"))
             ax[i,j].locator_params(axis='x',nbins=5)
@@ -257,7 +260,7 @@ def plot_sigmas():
             ax[i,j].annotate("%s" % (order +1), (0.1,0.85), xycoords="axes fraction")
     fig.subplots_adjust(left=0.04,bottom=0.04,top=0.97,right=0.97)
     ax[4,0].set_xlabel(r"$\lambda\quad[\AA]$")
-    plt.show()
+    fig.savefig("plots/sigmas25.png")
 
 def plot_full_model():
     fig,ax = plt.subplots(nrows=5,ncols=5,figsize=(11,8))
@@ -321,34 +324,125 @@ def plot_tilt():
     plt.show()
 
 def test_global_chi2():
-    f_mod = m.model(6500,3.5)
+    f_mod = m.model(6000,logg=4.0,Av=3.7,orders=m.orders)
     m.global_chi2(f_mod)
-    line_coeff = np.load("line_coeff.npy")
-    for i in range(10):
-        fig,ax = plt.subplots(nrows=3,ncols=5,figsize=(11,8))
+    const_coeff = np.load("const_coeff.npy")
+    chiR_list = np.load("chiR_list.npy")
+    for i in range(6): #formerly 10
+        fig,ax = plt.subplots(nrows=2,ncols=5,figsize=(11,8))
         for j in range(5):
-            order = i*5 + j
-            w,f_TRES = m.efile_n[order]
-            f = f_mod[order]
-            sigma = m.sigmas[order]
-            ax[0,j].annotate("%s" % (order +1), (0.4,0.85), xycoords="axes fraction")
-            ax[0,j].plot(w,f_TRES,"b")
-            omask = m.masks[order]
-            ax[0,j].plot(w[-omask],f_TRES[-omask],"r")
+            index = i*5 + j
+            wl,f_TRES = m.efile_z[m.orders[index]]
+            f = f_mod[index]
+            ax[0,j].annotate(r"%s $\chi^2_R=$%.2f" % (m.orders[index]+1, chiR_list[index]), (0.4,0.85), xycoords="axes fraction")
 
-            ax[1,j].plot(w,f)
-            p = line_coeff[order]
-            ax[1,j].plot(w,p[0] + p[1] * w)
+            omask = m.masks[m.orders[index]]
+            p = const_coeff[index]
 
-            ax[2,j].plot(w,f_TRES,"b")
-            ax[2,j].plot(w[-omask],f_TRES[-omask],"g")
-            ax[2,j].plot(w,f/(p[0] + p[1] * w),"r")
+            ax[0,j].plot(wl,f_TRES,"b")
+            ax[0,j].plot(wl[-omask],f_TRES[-omask],"g")
+            ax[0,j].plot(wl,f/p,"r")
+
+            ax[1,j].plot(wl,f_TRES - f/p)
+
             for k in ax[:,j]:
-                k.set_xlim(w[0],w[-1])
+                k.set_xlim(wl[0],wl[-1])
                 k.xaxis.set_major_formatter(FSF("%.0f"))
                 k.locator_params(axis='x',nbins=5)
         fig.savefig("plots/comic_strips_tilt/set%s.png" % (i,))
 
+
+def three_orders():
+    f_mod = m.model(6200,logg=4.0,Av=3.7,orders=m.orders)
+    m.global_chi2(f_mod)
+    const_coeff = np.load("const_coeff.npy")
+    chiR_list = np.load("chiR_list.npy")
+    fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(11,8))
+    for i in range(3):
+        wl,f_TRES = m.efile_z[m.orders[i]]
+        f = f_mod[i]
+        p = const_coeff[i]
+        ax[0,i].annotate(r"%s $\chi^2_R=$%.2f" % (m.orders[i]+1, chiR_list[i]), (0.4,0.85), xycoords="axes fraction")
+        ax[0,i].plot(wl,f_TRES,"b")
+        ax[0,i].plot(wl,f*Ch(p,domain=[wl[0],wl[-1]])(wl),"r")
+
+        ax[1,i].plot(wl,Ch(p,domain=[wl[0],wl[-1]])(wl))
+
+        ax[2,i].plot(wl,f_TRES - f*Ch(p,domain=[wl[0],wl[-1]])(wl),'g')
+        for k in ax[:,i]:
+            k.set_xlim(wl[0],wl[-1])
+            k.xaxis.set_major_formatter(FSF("%.0f"))
+            k.locator_params(axis='x',nbins=5)
+    fig.savefig("plots/three_orders.png")
+
+
+def one_order():
+    f_mod = m.model(6300,logg=4.0,Av=3.7,orders=m.orders)
+    m.global_chi2(f_mod)
+    const_coeff = np.load("const_coeff.npy")
+    chiR_list = np.load("chiR_list.npy")
+    chi2_list = np.load("chi2_list.npy")
+    fig,ax = plt.subplots(nrows=3,ncols=1,figsize=(11,8))
+    i = 0
+    wl,f_TRES = m.efile_z[m.orders[i]]
+
+    f = f_mod[i]
+    p = const_coeff[i]
+    ax[0].annotate(r"%s $\chi^2 =$%.1f $\chi^2_R=$%.2f" % (m.orders[i]+1, chi2_list[i], chiR_list[i]), (0.4,0.85), xycoords="axes fraction")
+    ax[0].plot(wl,f_TRES,"b")
+    ax[0].plot(wl,f*Ch(p,domain=[wl[0],wl[-1]])(wl),"r")
+
+    ax[1].plot(wl,Ch(p,domain=[wl[0],wl[-1]])(wl))
+    residuals = f_TRES - f*Ch(p,domain=[wl[0],wl[-1]])(wl)
+
+    ax[2].plot(wl,residuals,'g')
+    for k in ax:
+        k.set_xlim(wl[0],wl[-1])
+        k.xaxis.set_major_formatter(FSF("%.0f"))
+        k.locator_params(axis='x',nbins=5)
+    fig.savefig("plots/one_order63.png")
+    #histogram of residuals
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot(111)
+    ax2.hist(residuals,bins=20)
+    #plt.show()
+
+def test_chebyshev():
+    #coef = np.array([0.3,0.2,0.6])
+    coef = np.array([1.,0.,0.])
+    myCh = Ch(coef)
+    myCh2 = Ch(coef,domain=[0,3.])
+    xs = np.linspace(0,3.)
+    x0 = np.linspace(-1,1)
+    plt.plot(x0, myCh(x0))
+    plt.plot(xs, myCh2(xs))
+
+    plt.show()
+
+
+
+def plot_GWOri_all_unnormalized():
+    #Load normalized order spectrum
+    efile = rechelletxt("GWOri_f") #has structure len = 51, for each order: [wl,fl]
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    for i in efile:
+        wl,fl = i
+        ax.plot(wl,fl)
+        ax.xaxis.set_major_formatter(FSF("%.0f"))
+        ax.set_xlabel(r"$\lambda\quad[\AA]$")
+        ax.set_ylabel("Counts")
+    fig.savefig("plots/all_flux_calib.png")
+
+
+def plot_order_23():
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    wls,fls,fs = m.model_and_data(np.array([5900,4.0,6.0,30,30,5.5e27,0,0,0]))
+    ax.plot(wls[0],fls[0],"b")
+    ax.plot(wls[0],fs[0],"r")
+    plt.show()
 
 
 
@@ -367,7 +461,12 @@ def main():
     #test_bin()
     #test_downsample()
     #plot_tilt()
-    test_global_chi2()
+    #test_global_chi2()
+    #three_orders()
+    #one_order()
+    #plot_GWOri_all_unnormalized()
+    #test_chebyshev()
+    plot_order_23()
     pass
 
 if __name__=="__main__":
