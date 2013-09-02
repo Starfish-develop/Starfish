@@ -7,7 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import ascii
 import emcee
+import sys
 from model import lnprob
+from emcee.utils import MPIPool
 
 
 #11 dimensional model, 200 walkers
@@ -30,10 +32,15 @@ c4 = np.random.uniform(low=-1, high = 1, size=(nwalkers,))
 
 p0 = np.array([temp,logg,vsini,vz,c0,c1,c2,c3,c4]).T
 
-# Initialize the sampler with the chosen specs.
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=15)#, args=[means, icov])
+pool = MPIPool()
+if not pool.is_master():
+    pool.wait()
+    sys.exit(0)
 
-# Run 100 steps as a burn-in.
+# Initialize the sampler with the chosen specs.
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, pool=pool)
+
+# Burn-in.
 pos, prob, state = sampler.run_mcmc(p0, 100)
 
 # Reset the chain to remove the burn-in samples.
