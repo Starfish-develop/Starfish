@@ -120,9 +120,6 @@ def make_bool_masks(fname):
     np.save("masks_array.npy", masks_array)
     print("Created mask array")
 
-
-spec = rechellenpflat("GWOri_f")
-
 def main():
     #wechelletxt()
     #efile = rechelletxt()
