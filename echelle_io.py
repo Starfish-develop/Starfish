@@ -1,7 +1,7 @@
 #import pyfits as pf
 from astropy.io import fits as pf
 import numpy as np
-import asciitable
+from astropy.io import ascii
 
 #bname = "GWOri_c"
 #bname = "Vega_2012-04-02_12h50m48s_cb.norm.crop.spec"
@@ -88,7 +88,7 @@ def create_sigma_file():
 
 def load_masks():
     '''Loads all of the masking regions. Returns a list that is accesed by start, end = masking_region[order][region]'''
-    data = asciitable.read("masking_regions.dat")
+    data = ascii.read("masking_regions.dat")
     masking_region = []
     for i in range(1,52):
         order_list = []
