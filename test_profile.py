@@ -4,7 +4,7 @@ import pstats
 import model
 
 
-cProfile.run("model.main()","prof_mod5")
+#cProfile.run("model.main()","prof_lnprob")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -12,4 +12,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.9)
 
-display_stats('prof_mod5')
+display_stats('prof_lnprob')
