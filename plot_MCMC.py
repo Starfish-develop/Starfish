@@ -52,24 +52,30 @@ def hist_param(flatchain):
     
     axes[0].hist(flatchain[:,0],Tbin_edges) #temp
     axes[1].hist(flatchain[:,1],loggbin_edges) #logg
+    axes[2].hist(flatchain[:,2],bins=20,range=(35,70)) #vsini
+    axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
+    axes[4].hist(flatchain[:,4],bins=100,range=(8e26,3e27)) #c0
 
-    for i,ax in enumerate(axes[2:]):
-        ax.hist(flatchain[:,i+2],bins=20)
+    for i,ax in enumerate(axes[5:]):
+        ax.hist(flatchain[:,i+5],bins=20,range=(-5,5))
 
     fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
-    plt.show()
-    #plt.savefig('hist_param.svg')
+    #plt.show()
+    plt.savefig('hist_param.png')
 
 
-def joint_hist(data):
-    burn_in = 10000
-    m = data["m"][burn_in:]
-    b = data["b"][burn_in:]
+def joint_hist(p1,p2,**kwargs):
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.hexbin(m,b,gridsize=50)
-    ax.set_xlabel(r"$m$")
-    ax.set_ylabel(r"$b$")
+    ax.hist2d(flatchain[:,p1],flatchain[:,p2],**kwargs)
+    plt.show()
+
+def joint_hist_temp_log():
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.hist2d(flatchain[:,0],flatchain[:,1],bins=[Tbin_edges,loggbin_edges])
+    ax.set_xlabel(r"$T_{\rm eff}\quad(K)$")
+    ax.set_ylabel(r"$\log(g)$")
     plt.show()
 
 #plot_vs_j(data)
@@ -77,6 +83,8 @@ def joint_hist(data):
 #hist_param(datab)
 #prob_bad_points(datab)
 hist_param(flatchain)
+#joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
+#joint_hist(0,4,range=((),()))
 #plot_2d(datab)
 #joint_hist(dataa)
 #plot_2d_all()
