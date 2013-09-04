@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 from echelle_io import rechellenpflat,load_masks
-#from model import lnprob
+from model import model_and_data,lnprob
 
-flatchain = np.load("flatchainO.npy")
-lnchain = np.load("lnprobchainO.npy")
+flatchain = np.load("flatchain.npy")
+lnchain = np.load("lnprobchain.npy")
 nparams = flatchain.shape[1]
 
 #Load normalized order spectrum
-wls, fls = rechellenpflat("GWOri_cf")
+#wls, fls = rechellenpflat("GWOri_cf")
 
 def plot_2d_all():
     A_grid = np.load("A.npy")
@@ -61,14 +61,14 @@ def hist_param(flatchain):
     axes[1].hist(flatchain[:,1],loggbin_edges) #logg
     axes[2].hist(flatchain[:,2],bins=20,range=(35,70)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
-    axes[4].hist(flatchain[:,4],bins=100,range=(8e26,3e27)) #c0
+    axes[4].hist(flatchain[:,4],bins=100) #c0
 
     for i,ax in enumerate(axes[5:]):
-        ax.hist(flatchain[:,i+5],bins=20,range=(-5,5))
+        ax.hist(flatchain[:,i+5],bins=20)
 
     fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
-    #plt.show()
-    plt.savefig('hist_param.png')
+    plt.show()
+    #plt.savefig('hist_param.png')
 
 
 def joint_hist(p1,p2,**kwargs):
@@ -104,8 +104,60 @@ def draw_chebyshev_samples():
         ax.plot(wl, myCh(wl),c=c)
     plt.show()
 
+def plot_data(p):
+    '''plots a random sample of the posterior, model, data, cheb, and residuals'''
+    fig,ax = plt.subplots(nrows=3,ncols=1,figsize=(11,8))
 
-hist_param(flatchain)
+    #all_inds = np.arange(len(flatchain))
+    #ind = np.random.choice(all_inds)
+    #p = flatchain[ind]
+    #p = np.array([5000,2.5,40,30,2.5e27])
+    #lnp = lnchain[ind]
+    lnp = lnprob(p)
+    print(lnp)
+    wlsz,flsc,fs = model_and_data(p)
+    wl = wlsz[0]
+    fl = flsc[0]
+    f = fs[0]
+
+    coefs = p[5:]
+    myCh = Ch(coefs,domain=[wl[0],wl[-1]])
+ 
+    ax[0].plot(wl, fl,"b")
+    ax[0].plot(wl, f,"r")
+
+    ax[1].plot(wl, myCh(wl))
+
+    ax[2].plot(wl, fl - f)
+    plt.show()
+
+def plot_random_data():
+    '''plots a random sample of the posterior, model, data, cheb, and residuals'''
+    fig,ax = plt.subplots(nrows=3,ncols=1,figsize=(11,8))
+
+    all_inds = np.arange(len(flatchain))
+    ind = np.random.choice(all_inds)
+    p = flatchain[ind]
+    lnp = lnchain[ind]
+    print(lnp)
+    wlsz,flsc,fs = model_and_data(p)
+    wl = wlsz[0]
+    fl = flsc[0]
+    f = fs[0]
+
+    coefs = p[5:]
+    myCh = Ch(coefs,domain=[wl[0],wl[-1]])
+ 
+    ax[0].plot(wl, fl,"b")
+    ax[0].plot(wl, f,"r")
+
+    ax[1].plot(wl, myCh(wl))
+
+    ax[2].plot(wl, fl - f)
+    plt.show()
+
+#hist_param(flatchain)
+plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
 #draw_chebyshev_samples()

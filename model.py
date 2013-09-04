@@ -64,7 +64,7 @@ masks = masks[orders]
 
 def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
-    print("Loaded " + fname)
+    #print("Loaded " + fname)
     f = np.load(fname)
     return f
 
@@ -306,7 +306,7 @@ def test_downsample():
 ##################################################
 
 
-def model(wlsz, temp, logg, vsini):
+def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #M = M * M_sun #g
     #R = R * R_sun #cm
@@ -316,7 +316,7 @@ def model(wlsz, temp, logg, vsini):
     #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
 
     #Loads the ENTIRE spectrum, not limited to a specific order
-    f_full = flux(temp, logg)
+    f_full = flux_factor * flux(temp, logg)
 
     model_flux = np.zeros_like(wlsz)
     #Cycle through all the orders in the echelle spectrum
@@ -353,17 +353,17 @@ def data(coefs_arr, wls, fls):
     '''coeff is a (norders, npoly) shape array'''
     flsc = np.zeros_like(fls)
     for i,coefs in enumerate(coefs_arr):
-        flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
 def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz = p[:4]
+    temp, logg, vsini, vz,flux_factor = p[:5]
     if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 4000) or (temp > 6900):
         return -np.inf
     else:
-        coefs = p[4:]
+        coefs = p[5:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -371,9 +371,9 @@ def lnprob(p):
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini)
+        fs = model(wlsz, temp, logg, vsini,flux_factor)
 
-        chi2 = np.sum((flsc - fs)**2/sigmas**2)
+        chi2 = np.sum(((flsc - fs)/sigmas)**2)
         L = -0.5 * chi2
         #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
         prior = 0
@@ -383,8 +383,8 @@ def lnprob(p):
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz = p[:4]
-    coefs = p[4:]
+    temp, logg, vsini, vz,flux_factor = p[:5]
+    coefs = p[5:]
     #print(coefs)
     coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -392,7 +392,7 @@ def model_and_data(p):
 
     flsc = data(coefs_arr, wlsz, fls)
 
-    fs = model(wlsz, temp, logg, vsini)
+    fs = model(wlsz, temp, logg, vsini,flux_factor)
     return [wlsz,flsc,fs]
 
 def find_chebyshev(wl, f, fl, sigma):
