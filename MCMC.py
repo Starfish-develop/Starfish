@@ -14,7 +14,7 @@ from model import lnprob
 
 def main():
     #11 dimensional model, 200 walkers
-    ndim = 6
+    ndim = 7
     nwalkers = 150
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
@@ -25,19 +25,19 @@ def main():
     #Av = np.random.uniform(low=0, high = 8, size=(nwalkers,))
     vsini = np.random.uniform(low=30, high = 70, size=(nwalkers,))
     vz = np.random.uniform(low=25, high = 32, size=(nwalkers,))
-    c0 = np.random.uniform(low=1e27, high = 4e27, size=(nwalkers,))
+    flux_factor = np.random.uniform(low=1e-27, high = 4e-26, size=(nwalkers,))
     c1 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
-    #c2 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
+    c2 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
     #c3 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
     #c4 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
 
-    p0 = np.array([temp,logg,vsini,vz,c0,c1]).T
+    p0 = np.array([temp,logg,vsini,vz,flux_factor,c1,c2]).T
 
     # Initialize the sampler with the chosen specs.
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=4)
 
     # Burn-in.
-    pos, prob, state = sampler.run_mcmc(p0, 50)
+    pos, prob, state = sampler.run_mcmc(p0, 10)
 
     print("Burned in chain")
     # Reset the chain to remove the burn-in samples.
@@ -47,7 +47,7 @@ def main():
     # steps.
     #f = open("chain.dat", "w")
     #f.close()
-    sampler.run_mcmc(pos, 100, rstate0=state)
+    sampler.run_mcmc(pos, 10, rstate0=state)
     #    position = result[0]
     #    f = open("chain.dat", "a")
     #    for k in range(position.shape[0]):

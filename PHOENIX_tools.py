@@ -81,6 +81,7 @@ def load_flux_fits(temp,logg):
     flux_file.close()
     f = f[ind]
     print("Loaded " + rname)
+    #Print Radius and Temperature
     return f
 
 # Interpolation routines
