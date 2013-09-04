@@ -1,9 +1,16 @@
 #!/usr/bin/env python
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.polynomial import Chebyshev as Ch
+from echelle_io import rechellenpflat,load_masks
+#from model import lnprob
 
 flatchain = np.load("flatchain.npy")
+lnchain = np.load("lnprobchain.npy")
 nparams = flatchain.shape[1]
+
+#Load normalized order spectrum
+wls, fls = rechellenpflat("GWOri_cf")
 
 def plot_2d_all():
     A_grid = np.load("A.npy")
@@ -43,7 +50,7 @@ def calc_mean_and_sigma(data):
 
 T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
 #for our case
-Ts = T_points[25:47]
+Ts = T_points[17:47]
 Tbin_edges = np.diff(Ts)/2 + Ts[:-1]
 loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.0]
 
@@ -78,13 +85,27 @@ def joint_hist_temp_log():
     ax.set_ylabel(r"$\log(g)$")
     plt.show()
 
-#plot_vs_j(data)
-#calc_mean_and_sigma(datab)
-#hist_param(datab)
-#prob_bad_points(datab)
-hist_param(flatchain)
+def draw_chebyshev_samples():
+    wl = wls[22]
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    all_inds = np.arange(len(flatchain))
+    inds = np.random.choice(all_inds,size=(10,))
+    ps = flatchain[inds]
+    lnp = lnchain[inds]
+    lnp_min, lnp_max = np.percentile(lnp, [10., 99.])
+    lnp = (lnp - lnp_min) / (lnp_max - lnp_min)
+    lnp[lnp > 1.] = 1.
+    lnp[lnp < 0.] = 0.
+    coefss = ps[:,5:]
+    for i,coefs in enumerate(coefss):
+        myCh = Ch(coefs,domain=[wl[0],wl[-1]])
+        c = (1.-lnp[i], 0., lnp[i])
+        ax.plot(wl, myCh(wl),c=c)
+    plt.show()
+
+
+#hist_param(flatchain)
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
-#plot_2d(datab)
-#joint_hist(dataa)
-#plot_2d_all()
+draw_chebyshev_samples()

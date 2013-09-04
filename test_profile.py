@@ -1,10 +1,12 @@
 import cProfile
 import pstats
 #import trim_PHOENIX
-import model
+#import model
+import MCMC
 
 
-#cProfile.run("model.main()","prof_lnprob")
+
+cProfile.run("MCMC.main()","prof_MCMC_parallel_32")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -12,4 +14,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.9)
 
-display_stats('prof_lnprob')
+display_stats('prof_MCMC_parallel_32')

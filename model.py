@@ -70,6 +70,7 @@ def load_flux(temp,logg):
 
 def flux_interpolator():
     points = np.loadtxt("param_grid_GWOri.txt")
+    print("Loading flux_interpolator")
     len_w = 716665
     fluxes = np.empty((len(points),len_w)) 
     for i in range(len(points)):
@@ -373,7 +374,10 @@ def lnprob(p):
         fs = model(wlsz, temp, logg, vsini)
 
         chi2 = np.sum((flsc - fs)**2/sigmas**2)
-        return -0.5 * chi2 
+        L = -0.5 * chi2
+        prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
+        return L + prior
+        
 
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
