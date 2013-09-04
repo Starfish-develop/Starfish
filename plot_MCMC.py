@@ -5,8 +5,8 @@ from numpy.polynomial import Chebyshev as Ch
 from echelle_io import rechellenpflat,load_masks
 #from model import lnprob
 
-flatchain = np.load("flatchain.npy")
-lnchain = np.load("lnprobchain.npy")
+flatchain = np.load("flatchainO.npy")
+lnchain = np.load("lnprobchainO.npy")
 nparams = flatchain.shape[1]
 
 #Load normalized order spectrum
@@ -105,7 +105,7 @@ def draw_chebyshev_samples():
     plt.show()
 
 
-#hist_param(flatchain)
+hist_param(flatchain)
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
-draw_chebyshev_samples()
+#draw_chebyshev_samples()

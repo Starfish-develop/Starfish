@@ -375,7 +375,8 @@ def lnprob(p):
 
         chi2 = np.sum((flsc - fs)**2/sigmas**2)
         L = -0.5 * chi2
-        prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
+        #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
+        prior = 0
         return L + prior
         
 
