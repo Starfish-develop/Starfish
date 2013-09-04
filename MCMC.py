@@ -45,14 +45,14 @@ def main():
 
     # Starting from the final position in the burn-in chain, sample for 1000
     # steps.
-    f = open("chain.dat", "w")
-    f.close()
-    for result in sampler.run_mcmc(pos, 500, rstate0=state):
-        position = result[0]
-        f = open("chain.dat", "a")
-        for k in range(position.shape[0]):
-            f.write("{0:4d} {1:s}\n".format(k, " ".join(position[k])))
-        f.close()
+    #f = open("chain.dat", "w")
+    #f.close()
+    result in sampler.run_mcmc(pos, 500, rstate0=state):
+    #    position = result[0]
+    #    f = open("chain.dat", "a")
+    #    for k in range(position.shape[0]):
+    #        f.write("{0:4d} {1:s}\n".format(k, " ".join(position[k])))
+    #    f.close()
 
     # Print out the mean acceptance fraction. In general, acceptance_fraction
     # has an entry for each walker so, in this case, it is a 250-dimensional
