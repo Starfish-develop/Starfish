@@ -1,6 +1,6 @@
 import numpy as np
 from echelle_io import rechellenpflat,load_masks
-from scipy.interpolate import interp1d,NearestNDInterpolator
+from scipy.interpolate import interp1d,NearestNDInterpolator,LinearNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
@@ -70,12 +70,13 @@ def load_flux(temp,logg):
 
 def flux_interpolator():
     points = np.loadtxt("param_grid_GWOri.txt")
-    print("Loading flux_interpolator")
     len_w = 716665
     fluxes = np.empty((len(points),len_w)) 
     for i in range(len(points)):
         fluxes[i] = load_flux(points[i][0],points[i][1])
-    flux_intp = NearestNDInterpolator(points, fluxes)
+    #flux_intp = NearestNDInterpolator(points, fluxes)
+    flux_intp = LinearNDInterpolator(points, fluxes)
+    print("Loaded flux_interpolator")
     return flux_intp
 
 flux = flux_interpolator()
@@ -348,6 +349,29 @@ def model(wlsz, temp, logg, vsini, flux_factor):
 
     #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
+
+def degrade_flux(wl,w,f_full):
+
+    vsini=40.
+    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
+    ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
+    w = w_full[ind]
+    f = f_full[ind]
+    #convolve with stellar broadening (sb)
+    k = vsini_ang(np.mean(wl),vsini) #stellar rotation kernel centered at order
+    f_sb = convolve(f, k)
+
+    dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel
+
+    #convolve with filter to resolution of TRES
+    filt = gauss_series(dlam,lam0=np.mean(wl))
+    f_TRES = convolve(f_sb,filt)
+
+    #downsample to TRES bins
+    dsamp = downsample5(w, f_TRES, wl)
+
+    return dsamp
+
 
 def data(coefs_arr, wls, fls):
     '''coeff is a (norders, npoly) shape array'''
