@@ -60,8 +60,8 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams,ncols=1,figsize=(8,11))
     
-    axes[0].hist(flatchain[:,0],Tbin_edges) #temp
-    axes[1].hist(flatchain[:,1],loggbin_edges) #logg
+    axes[0].hist(flatchain[:,0],bins=40) #temp
+    axes[1].hist(flatchain[:,1],bins=40) #logg
     axes[2].hist(flatchain[:,2],bins=20,range=(40,50)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
     axes[4].hist(flatchain[:,4],bins=100) #c0
@@ -278,12 +278,12 @@ def test_hist():
     ax.set_xlim(bins[0],bins[-1])
     plt.show()
 
-#print(len(flatchain))
+print(len(flatchain))
 #hist_param(flatchain[80000:])
-#hist_param(flatchain)
+hist_param(flatchain[299000:])
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
 #draw_chebyshev_samples()
-staircase_plot_thesis(flatchain)
+#staircase_plot_thesis(flatchain)
 #test_hist()

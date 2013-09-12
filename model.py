@@ -75,7 +75,7 @@ def flux_interpolator():
     for i in range(len(points)):
         fluxes[i] = load_flux(points[i][0],points[i][1])
     #flux_intp = NearestNDInterpolator(points, fluxes)
-    flux_intp = LinearNDInterpolator(points, fluxes)
+    flux_intp = LinearNDInterpolator(points, fluxes,fill_value=1.)
     print("Loaded flux_interpolator")
     return flux_intp
 
@@ -454,7 +454,7 @@ def global_chi2(model_flux):
     print("Global chi^2", np.sum(chi2_list))
 
 def main():
-    print(lnprob(np.array([6000, 4.0, 40, 30, 1e25,0,0,0,0])))
+    print(lnprob(np.array([2000, 4.0, 40, 30, 1e25,0,0,0,0])))
 
     pass
 
