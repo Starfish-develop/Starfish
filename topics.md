@@ -54,6 +54,15 @@ How does flux calibration affect the comparison against a normalized continuum?
 
 http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
 
+* Fit Av
+
+
+## Data side
+Get sigma spectrum from IRAF/echelle
+
+Check method against Willie2012 targets: WASP-14 and HAT-P-9
+
+
 ## Odyssey
 
 * How much space do we have? 20G

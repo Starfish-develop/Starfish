@@ -2,6 +2,10 @@ import numpy as np
 import astropy.io.fits as pf
 from astropy.io import ascii
 from scipy.interpolate import interp1d, griddata, NearestNDInterpolator
+from echelle_io import rechellenpflat
+import model as m
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter as FSF
 
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w = wl_file[0].data
@@ -85,22 +89,102 @@ def load_flux_fits(temp,logg):
     return f
 
 # Interpolation routines
-def interpolate_test():
-    f58 = load_flux(5800,4.5)
-    f60 = load_flux(6000,4.5)
+def interpolate_raw_test_temp():
+    wls, fls = rechellenpflat("GWOri_cf")
+    wl = wls[22]
+    ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
+    w = m.w_full[ind2]
+    f58 = load_flux_npy(5800,3.5)[ind2]
+    f59 = load_flux_npy(5900,3.5)[ind2]
+    f60 = load_flux_npy(6000,3.5)[ind2]
+
     bit = np.array([5800,6000])
     f = np.array([f58,f60]).T
     func = interp1d(bit,f)
-    f59 = load_flux(5900,4.5)
     f59i = func(5900)
-    print(np.sqrt(np.sum((f59 - f59i)**2)))
-    #plt.plot(w,f59-f59i)
-    plt.plot(w,f59i)
-    plt.show()
 
-    #Now call func for any values between 5800, 5900, returns the full flux.
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    ax.axhline(0,color="k")
+    ax.plot(w,(f59 - f59i)*100/f59)
+    ax.set_xlabel(r"$\lambda\quad[\AA]$")
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_ylabel("Fractional Error [\%]")
+    fig.savefig("plots/interp_tests/5800_5900_6000_logg3.5.png")
 
-fluxes = flux_interpolator_np()
+def interpolate_raw_test_logg():
+    wls, fls = rechellenpflat("GWOri_cf")
+    wl = wls[22]
+    ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
+    w = m.w_full[ind2]
+    f3 = load_flux_npy(5900,3.0)[ind2]
+    f3_5 = load_flux_npy(5900,3.5)[ind2]
+    f4 = load_flux_npy(5900,4.0)[ind2]
+
+    bit = np.array([3.0,4.0])
+    f = np.array([f3,f4]).T
+    func = interp1d(bit,f)
+    f3_5i = func(3.5)
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    ax.axhline(0,color="k")
+    ax.plot(w,(f3_5 - f3_5i)*100/f3_5)
+    ax.set_xlabel(r"$\lambda\quad[\AA]$")
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_ylabel("Fractional Error [\%]")
+    fig.savefig("plots/interp_tests/5900_logg3_3.5_4.png")
+
+def interpolate_test_temp():
+    wls, fls = rechellenpflat("GWOri_cf")
+    wl = wls[22]
+
+    f58 = load_flux_npy(2400,3.5)
+    f59 = load_flux_npy(2500,3.5)
+    f60 = load_flux_npy(2600,3.5)
+    bit = np.array([2400,2600])
+    f = np.array([f58,f60]).T
+    func = interp1d(bit,f)
+    f59i = func(2500)
+
+    d59 = m.degrade_flux(wl,m.w_full,f59)
+    d59i = m.degrade_flux(wl,m.w_full,f59i)
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    ax.axhline(0,color="k")
+    ax.plot(wl,(d59 - d59i)*100/d59)
+    ax.set_xlabel(r"$\lambda\quad[\AA]$")
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_ylabel("Fractional Error [\%]")
+    fig.savefig("plots/interp_tests/2400_2500_2600_logg3.5_degrade.png")
+
+def interpolate_test_logg():
+    wls, fls = rechellenpflat("GWOri_cf")
+    wl = wls[22]
+
+    f3 = load_flux_npy(2400,3.0)
+    f3_5 = load_flux_npy(2500,3.5)
+    f4 = load_flux_npy(2600,4.0)
+
+    bit = np.array([3.0,4.0])
+    f = np.array([f3,f4]).T
+    func = interp1d(bit,f)
+    f3_5i = func(3.5)
+
+    d3_5 = m.degrade_flux(wl,m.w_full,f3_5)
+    d3_5i = m.degrade_flux(wl,m.w_full,f3_5i)
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    ax.axhline(0,color="k")
+    ax.plot(wl,(d3_5 - d3_5i)*100/d3_5)
+    ax.set_xlabel(r"$\lambda\quad[\AA]$")
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_ylabel("Fractional Error [\%]")
+    fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
+
+
 
 def main():
     #Rewrite Flux
@@ -111,6 +195,8 @@ def main():
     #rewrite_wl()
     #load_npy(5700,4.5)
     #load_fits(5700,4.5)
+    #interpolate_test_temp()
+    interpolate_test_logg()
     pass
 
 

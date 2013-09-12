@@ -3,10 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 from echelle_io import rechellenpflat,load_masks
-from model import model_and_data,lnprob
+from mpl_toolkits.axes_grid1 import ImageGrid
+from matplotlib.ticker import FormatStrFormatter as FSF
 
-flatchain = np.load("flatchain.npy")
-lnchain = np.load("lnprobchain.npy")
+flatchain = np.load("output/flatchain.npy")
+#flatchain = flatchain[80000:]
+lnchain = np.load("output/lnprobchain.npy")
+#lnchain = lnchain[80000:]
 nparams = flatchain.shape[1]
 
 #Load normalized order spectrum
@@ -59,7 +62,7 @@ def hist_param(flatchain):
     
     axes[0].hist(flatchain[:,0],Tbin_edges) #temp
     axes[1].hist(flatchain[:,1],loggbin_edges) #logg
-    axes[2].hist(flatchain[:,2],bins=20,range=(35,70)) #vsini
+    axes[2].hist(flatchain[:,2],bins=20,range=(40,50)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
     axes[4].hist(flatchain[:,4],bins=100) #c0
 
@@ -67,8 +70,8 @@ def hist_param(flatchain):
         ax.hist(flatchain[:,i+5],bins=20)
 
     fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
-    plt.show()
-    #plt.savefig('hist_param.png')
+    #plt.show()
+    plt.savefig('plots/hist_param.png')
 
 
 def joint_hist(p1,p2,**kwargs):
@@ -132,6 +135,7 @@ def plot_data(p):
     plt.show()
 
 def plot_random_data():
+    from model import model_and_data,lnprob
     '''plots a random sample of the posterior, model, data, cheb, and residuals'''
     fig,ax = plt.subplots(nrows=3,ncols=1,figsize=(11,8))
 
@@ -156,8 +160,130 @@ def plot_random_data():
     ax[2].plot(wl, fl - f)
     plt.show()
 
+def staircase_plot(flatchain):
+    '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Create a M x M staircase plot.'''
+    N,M = flatchain.shape
+
+    margin = 0.05
+    bins = [np.array([5350,5450,5550,5650,5750,5850,5950,6050,6150,6250,6350,6450]),np.array([0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.0]),np.linspace(43,52,num=40),np.linspace(26,31,num=40),np.linspace(1.3e-28,2.5e-28,num=40),False,False]
+
+    row_ax = []
+    w = (1. - 2 * margin)/M
+    fig = plt.figure(figsize=(8.5,8.5))
+    for i in range(1,M+1):
+        col_ax = []
+        for j in range(1,i+1):
+            L = margin + (j-1)*w
+            B = 1-i*w - margin
+            ax = fig.add_axes([L,B,w,w])
+            if i != j:
+                xbins = bins[j-1]
+                ybins = bins[i-1]
+                if xbins is False:
+                    low,high = np.percentile(flatchain[:,j-1],[10,82])
+                    xbins = np.linspace(low, high, num=40)
+
+                if ybins is False:
+                    low,high = np.percentile(flatchain[:,i-1],[10,82])
+                    ybins = np.linspace(low, high, num=40)
+
+                ax.hist2d(flatchain[:,j-1],flatchain[:,i-1],bins=[xbins,ybins])
+                ax.locator_params(axis='x',nbins=8)
+                ax.locator_params(axis='y',nbins=8)
+            if i < M:
+                ax.xaxis.set_ticklabels([])
+            else:
+                labels = ax.get_xticklabels() 
+                for label in labels: 
+                    label.set_rotation(50) 
+            if j > 1:
+                ax.yaxis.set_ticklabels([])
+
+            col_ax.append(ax)
+            
+
+        row_ax.append(col_ax)
+
+    plt.show()
+
+def staircase_plot_thesis(flatchain):
+    '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Create a M x M staircase plot.'''
+    flatchain = flatchain[:,0:4]
+    N,M = flatchain.shape
+
+    margin = 0.1
+    bins = [np.array([5350,5450,5550,5650,5750,5850,5950,6050,6150,6250,6350,6450]),np.array([1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25]),np.linspace(43,52,num=40),np.linspace(26,31,num=40)] #,np.linspace(1.3e-28,2.5e-28,num=40),False,False]
+
+    row_ax = []
+    w = (1. - 2 * margin)/M
+    space = 0.05
+
+    fig = plt.figure(figsize=(6.5,6.5))
+    for i in range(1,M+1):
+        col_ax = []
+        for j in range(1,i+1):
+            L = margin + (j-1)*w 
+            B = 1-i*w - margin 
+            ax = fig.add_axes([L,B,w,w])
+            if i != j:
+                xbins = bins[j-1]
+                ybins = bins[i-1]
+                ax.hist2d(flatchain[:,j-1],flatchain[:,i-1],bins=[xbins,ybins])
+                ax.locator_params(axis='x',nbins=8)
+                ax.locator_params(axis='y',nbins=8)
+            
+            if i == j:
+                hbins=bins[i-1]
+                if i < 4:
+                    ax.hist(flatchain[:,i-1],bins=hbins)
+                    ax.set_xlim(hbins[0],hbins[-1])
+                if i==4:
+                    ax.hist(flatchain[:,i-1],bins=hbins,orientation="horizontal")
+                    ax.set_ylim(hbins[0],hbins[-1])
+                
+            if i < M:
+                ax.xaxis.set_ticklabels([])
+
+            else:
+                labels = ax.get_xticklabels() 
+                for label in labels: 
+                    label.set_rotation(50) 
+            if j > 1:
+                ax.yaxis.set_ticklabels([])
+
+            col_ax.append(ax)
+            
+
+        row_ax.append(col_ax)
+    #bottom labels
+    row_ax[-1][0].set_xlabel(r"$T_{\rm eff}$")
+    row_ax[-1][0].xaxis.set_major_formatter(FSF("%.0f"))
+    row_ax[-1][1].set_xlabel(r"$\log g$")
+    row_ax[-1][2].set_xlabel(r"$v \sin i$")
+
+    #side labels
+    row_ax[1][0].set_ylabel(r"$\log g$")
+    row_ax[2][0].set_ylabel(r"$v \sin i$")
+    row_ax[3][0].set_ylabel(r"$v_z$")
+    
+
+    #plt.show()
+    fig.savefig("plots/staircase.eps")
+
+def test_hist():
+    bins = np.array([5350,5450,5550,5650,5750,5850,5950,6050,6150,6250,6350,6450])
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.hist(flatchain[:,0],bins=bins)
+    ax.set_xlim(bins[0],bins[-1])
+    plt.show()
+
+#print(len(flatchain))
+#hist_param(flatchain[80000:])
 #hist_param(flatchain)
-plot_random_data()
+#plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
 #draw_chebyshev_samples()
+staircase_plot_thesis(flatchain)
+#test_hist()
