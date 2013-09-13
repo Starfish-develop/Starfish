@@ -35,7 +35,7 @@ R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
 
-Mg = np.array([5168.7605, 5174.1251, 5185.0479])
+#Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load normalized order spectrum
 wls, fls = rechellenpflat("GWOri_cf")

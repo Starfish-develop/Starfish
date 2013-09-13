@@ -18,16 +18,16 @@ def main():
     nwalkers = 150
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-    temp = np.random.uniform(low=5400, high = 6400, size=(nwalkers,))
-    logg = np.random.uniform(low=2.5, high=4.2, size=(nwalkers,))
+    temp = np.random.uniform(low=5800, high = 6100, size=(nwalkers,))
+    logg = np.random.uniform(low=3.3, high=4.0, size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #Av = np.random.uniform(low=0, high = 8, size=(nwalkers,))
-    vsini = np.random.uniform(low=38, high = 50, size=(nwalkers,))
-    vz = np.random.uniform(low=26, high = 30, size=(nwalkers,))
-    flux_factor = np.random.uniform(low=1e-27, high = 2e-27, size=(nwalkers,))
-    c1 = np.random.uniform(low=-0.05, high = -0.03, size=(nwalkers,))
-    c2 = np.random.uniform(low=0.02, high = 0.04, size=(nwalkers,))
+    vsini = np.random.uniform(low=44, high = 48, size=(nwalkers,))
+    vz = np.random.uniform(low=27, high = 29.5, size=(nwalkers,))
+    flux_factor = np.random.uniform(low=1.5e-28, high = 1.8e-28, size=(nwalkers,))
+    c1 = np.random.uniform(low=-0.045, high = -0.03, size=(nwalkers,))
+    c2 = np.random.uniform(low=0.025, high = 0.03, size=(nwalkers,))
     #c3 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
     #c4 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
 
@@ -37,7 +37,7 @@ def main():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=64)
 
     # Burn-in.
-    pos, prob, state = sampler.run_mcmc(p0, 1000)
+    pos, prob, state = sampler.run_mcmc(p0, 4000)
 
     print("Burned in chain")
     # Reset the chain to remove the burn-in samples.
@@ -47,7 +47,7 @@ def main():
     # steps.
     #f = open("chain.dat", "w")
     #f.close()
-    sampler.run_mcmc(pos, 4000, rstate0=state)
+    sampler.run_mcmc(pos, 10000, rstate0=state)
     #    position = result[0]
     #    f = open("chain.dat", "a")
     #    for k in range(position.shape[0]):
@@ -59,10 +59,10 @@ def main():
     # vector.
     print("Mean acceptance fraction:", np.mean(sampler.acceptance_fraction))
 
-    #write flatchain to file
-    np.save("output/flatchain.npy", sampler.flatchain)
+    #write chain to file
+    np.save("output/chain.npy", sampler.chain)
     #write lnprob to file
-    np.save("output/lnprobchain.npy", sampler.flatlnprobability)
+    np.save("output/lnprobchain.npy", sampler.lnprobability)
 
 if __name__=="__main__":
     main()
