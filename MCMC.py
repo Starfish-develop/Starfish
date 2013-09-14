@@ -9,7 +9,7 @@ from astropy.io import ascii
 import emcee
 import sys
 from model import lnprob
-#from emcee.utils import MPIPool
+from emcee.utils import MPIPool
 
 def main():
     #11 dimensional model, 200 walkers
@@ -32,8 +32,17 @@ def main():
 
     p0 = np.array([temp,logg,vsini,vz,flux_factor,c1,c2]).T
 
+    # Initialize the MPI-based pool used for parallelization.
+    pool = MPIPool()
+    print("Running with MPI")
+
+    if not pool.is_master():
+        # Wait for instructions from the master process.
+        pool.wait()
+        sys.exit(0)
+
     # Initialize the sampler with the chosen specs.
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=64)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, 2000)
