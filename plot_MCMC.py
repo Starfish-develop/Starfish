@@ -306,7 +306,7 @@ def get_acor():
 
 #print(len(flatchain))
 #hist_param(flatchain[590000:])
-#hist_param(flatchain)
+hist_param(flatchain)
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
@@ -314,4 +314,4 @@ def get_acor():
 #staircase_plot_thesis(flatchain[590000:])
 #test_hist()
 #plot_walker_position()
-get_acor()
+#get_acor()
