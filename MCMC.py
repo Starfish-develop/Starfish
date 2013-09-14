@@ -11,7 +11,6 @@ import sys
 from model import lnprob
 #from emcee.utils import MPIPool
 
-
 def main():
     #11 dimensional model, 200 walkers
     ndim = 7
@@ -37,7 +36,7 @@ def main():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=64)
 
     # Burn-in.
-    pos, prob, state = sampler.run_mcmc(p0, 4000)
+    pos, prob, state = sampler.run_mcmc(p0, 500)
 
     print("Burned in chain")
     # Reset the chain to remove the burn-in samples.
@@ -47,7 +46,7 @@ def main():
     # steps.
     #f = open("chain.dat", "w")
     #f.close()
-    sampler.run_mcmc(pos, 10000, rstate0=state)
+    sampler.run_mcmc(pos, 500, rstate0=state)
     #    position = result[0]
     #    f = open("chain.dat", "a")
     #    for k in range(position.shape[0]):

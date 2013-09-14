@@ -6,7 +6,7 @@ import MCMC
 
 
 
-cProfile.run("MCMC.main()","prof_MCMC_parallel_32")
+cProfile.run("MCMC.main()","prof_MCMC_4")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -14,4 +14,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.9)
 
-display_stats('prof_MCMC_parallel_32')
+display_stats('prof_MCMC_4')

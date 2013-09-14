@@ -1,6 +1,6 @@
 import numpy as np
 from echelle_io import rechellenpflat,load_masks
-from scipy.interpolate import interp1d,NearestNDInterpolator,LinearNDInterpolator
+from scipy.interpolate import interp1d,LinearNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
@@ -53,7 +53,8 @@ norder = len(wls)
 #good_orders = [i for i in range(5,18)] + [i for i in range(20,30)] + [i for i in range(31,37)] + [43,46]
 #orders = np.array(good_orders) - 1 #index to 0
 #orders = np.array([21,22,23])
-orders = np.array([22])
+#orders = np.array([22])
+orders = np.array([23])
 
 #Truncate TRES to include only those orders
 wls = wls[orders]
@@ -70,12 +71,14 @@ def load_flux(temp,logg):
 
 def flux_interpolator():
     points = np.loadtxt("param_grid_GWOri.txt")
+    #TODO: make this dynamic, specify param_grid dynamically too
     len_w = 716665
     fluxes = np.empty((len(points),len_w)) 
     for i in range(len(points)):
         fluxes[i] = load_flux(points[i][0],points[i][1])
     #flux_intp = NearestNDInterpolator(points, fluxes)
     flux_intp = LinearNDInterpolator(points, fluxes,fill_value=1.)
+    del fluxes
     print("Loaded flux_interpolator")
     return flux_intp
 
@@ -144,113 +147,9 @@ def gauss_series(dlam,V=6.5,lam0=6500.):
 #Downsample to TRES bins 
 ##################################################
 
-
-def downsample(w_m,f_m,w_TRES):
-    '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to exactly match the TRES wavelength bins. '''
-    spec_interp = interp1d(w_m,f_m,kind="linear")
-
-    @np.vectorize
-    def avg_bin(bin0,bin1):
-        mdl_ind = (w_m > bin0) & (w_m < bin1)
-        wave = np.empty((np.sum(mdl_ind)+2,))
-        flux = np.empty((np.sum(mdl_ind)+2,))
-        wave[0] = bin0
-        wave[-1] = bin1
-        flux[0] = spec_interp(bin0)
-        flux[-1] = spec_interp(bin1)
-        wave[1:-1] = w_m[mdl_ind]
-        flux[1:-1] = f_m[mdl_ind]
-        return trapz(flux,wave)/(bin1-bin0)
-
-    #Determine the bin edges
-    edges = np.empty((len(w_TRES)+1,))
-    difs = np.diff(w_TRES)/2.
-    edges[1:-1] = w_TRES[:-1] + difs
-    edges[0] = w_TRES[0] - difs[0]
-    edges[-1] = w_TRES[-1] + difs[-1]
-    b0s = edges[:-1]
-    b1s = edges[1:]
-
-    samp = avg_bin(b0s,b1s)
-    return(samp)
-
-def downsample2(w_m,f_m,w_TRES):
-    '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to exactly match the TRES wavelength bins. Try this without calling the interpolation routine.'''
-
-    @np.vectorize
-    def avg_bin(bin0,bin1):
-        mdl_ind = (w_m > bin0) & (w_m < bin1)
-        length = np.sum(mdl_ind)+2
-        wave = np.empty((length,))
-        flux = np.empty((length,))
-        wave[0] = bin0
-        wave[-1] = bin1
-        wave[1:-1] = w_m[mdl_ind]
-        flux[1:-1] = f_m[mdl_ind]
-        flux[0] = flux[1]
-        flux[-1] = flux[-2]
-        return trapz(flux,wave)/(bin1-bin0)
-
-    #Determine the bin edges
-    edges = np.empty((len(w_TRES)+1,))
-    difs = np.diff(w_TRES)/2.
-    edges[1:-1] = w_TRES[:-1] + difs
-    edges[0] = w_TRES[0] - difs[0]
-    edges[-1] = w_TRES[-1] + difs[-1]
-    b0s = edges[:-1]
-    b1s = edges[1:]
-
-    return avg_bin(b0s,b1s)
-
-def downsample3(w_m,f_m,w_TRES):
-    '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to exactly match the TRES wavelength bins. Try this only by averaging.'''
-
-    #More time could be saved by splitting up the original array into averageable chunks.
-
-    @np.vectorize
-    def avg_bin(bin0,bin1):
-        return np.average(f_m[(w_m > bin0) & (w_m < bin1)])
-
-    #Determine the bin edges
-    edges = np.empty((len(w_TRES)+1,))
-    difs = np.diff(w_TRES)/2.
-    edges[1:-1] = w_TRES[:-1] + difs
-    edges[0] = w_TRES[0] - difs[0]
-    edges[-1] = w_TRES[-1] + difs[-1]
-    b0s = edges[:-1]
-    b1s = edges[1:]
-
-    return avg_bin(b0s,b1s)
-
-def downsample4(w_m,f_m,w_TRES):
-
-    out_flux = np.zeros_like(w_TRES)
-    len_mod = len(w_m)
-
-    #Determine the bin edges
-    len_TRES = len(w_TRES)
-    edges = np.empty((len_TRES+1,))
-    difs = np.diff(w_TRES)/2.
-    edges[1:-1] = w_TRES[:-1] + difs
-    edges[0] = w_TRES[0] - difs[0]
-    edges[-1] = w_TRES[-1] + difs[-1]
-
-    i_start = np.argwhere((w_m > edges[0]))[0][0] #return the first starting index for the model wavelength array
-
-    edges_i = 1
-    for i in range(len(w_m)):
-        if w_m[i] > edges[edges_i]:
-            i_finish = i - 1
-            out_flux[edges_i - 1] = np.mean(f_m[i_start:i_finish])
-            edges_i += 1
-            i_start = i_finish
-            if edges_i > len_TRES:
-                break
-    return out_flux
-
 ones = np.ones((10,))
 
-def downsample5(w_m,f_m,w_TRES):
+def downsample(w_m,f_m,w_TRES):
     out_flux = np.zeros_like(w_TRES)
     len_mod = len(w_m)
 
@@ -291,21 +190,10 @@ def downsample5(w_m,f_m,w_TRES):
                 break
     return out_flux
 
-def test_downsample():
-    wl,fl = np.loadtxt("GWOri_cn/23.txt",unpack=True)
-    f_full = load_flux(5900,3.5)
-
-    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5 angstroms to be sure.
-    ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
-    w = w_full[ind]
-    f = f_full[ind]
-
-    downsample4(w,f,wl)
 
 ##################################################
 # Model 
 ##################################################
-
 
 def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -340,7 +228,7 @@ def model(wlsz, temp, logg, vsini, flux_factor):
         f_TRES = convolve(f_sb,filt)
 
         #downsample to TRES bins
-        dsamp = downsample5(w, f_TRES, wlz)
+        dsamp = downsample(w, f_TRES, wlz)
 
         #redden spectrum
         #red = dsamp/deredden(wlz,Av,mags=False)
@@ -368,10 +256,9 @@ def degrade_flux(wl,w,f_full):
     f_TRES = convolve(f_sb,filt)
 
     #downsample to TRES bins
-    dsamp = downsample5(w, f_TRES, wl)
+    dsamp = downsample(w, f_TRES, wl)
 
     return dsamp
-
 
 def data(coefs_arr, wls, fls):
     '''coeff is a (norders, npoly) shape array'''
@@ -402,7 +289,6 @@ def lnprob(p):
         #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
         prior = 0
         return L + prior
-        
 
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
@@ -421,41 +307,12 @@ def model_and_data(p):
 
 def find_chebyshev(wl, f, fl, sigma):
     func = lambda p : chi(f*Ch(p,domain=[wl[0],wl[-1]])(wl),fl,sigma)
-    ans = leastsq(func, np.zeros((150,)))[0]
+    ans = leastsq(func, np.zeros((10,)))[0]
     #print(ans)
     return ans
     
-def global_chi2(model_flux):
-    '''Given a model flux, do a global chi2 comparison to the TRES data.'''
-    norders = len(model_flux)
-    const_coeff = np.zeros((norders,150))
-    chi2_list = np.zeros((norders,))
-    chiR_list = np.zeros((norders,))
-    for i in range(norders):
-        print("Order: ", orders[i] + 1)
-        f = model_flux[i]
-        wl,fl = efile_z[orders[i]]
-        sigma = sigmas[orders[i]]
-        #mask all these values
-        z = masks[orders[i]]
-        wl,f,fl,sigma = wl[z],f[z],fl[z],sigma[z]
-        #p = find_const(wl,f,fl,sigma)
-        p = find_chebyshev(wl,f,fl,sigma)
-        const_coeff[i] = p
-        #chi2_list[i] = chi2(f/p,fl,sigma)
-        chi2_list[i] = chi2(f*Ch(p,domain=[wl[0],wl[-1]])(wl),fl,sigma)
-        print(chi2_list[i])
-        chiR_list[i] = chi2_list[i]/len(wl)
-        print(len(wl),chiR_list[i])
-        #print()
-    np.save("const_coeff.npy",const_coeff)
-    np.save("chi2_list.npy", chi2_list)
-    np.save("chiR_list.npy", chiR_list)
-    print("Global chi^2", np.sum(chi2_list))
-
 def main():
-    print(lnprob(np.array([2000, 4.0, 40, 30, 1e25,0,0,0,0])))
-
+    print(lnprob(np.array([5000, 4.0, 40, 30, 1e25,0,0,0,0])))
     pass
 
 if __name__=="__main__":
