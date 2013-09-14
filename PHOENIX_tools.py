@@ -88,6 +88,8 @@ def load_flux_fits(temp,logg):
     #Print Radius and Temperature
     return f
 
+# Write into npz array
+
 # Interpolation routines
 def interpolate_raw_test_temp():
     wls, fls = rechellenpflat("GWOri_cf")

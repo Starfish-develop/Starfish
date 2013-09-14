@@ -77,7 +77,7 @@ def hist_param(flatchain):
 
     fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
     #plt.show()
-    plt.savefig('plots/hist_param_all.png')
+    plt.savefig('plots/hist_param.png')
 
 
 def joint_hist(p1,p2,**kwargs):
