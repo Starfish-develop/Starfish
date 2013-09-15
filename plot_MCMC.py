@@ -68,7 +68,7 @@ def hist_param(flatchain):
     
     axes[0].hist(flatchain[:,0],bins=40) #temp
     axes[1].hist(flatchain[:,1],bins=40) #logg
-    axes[2].hist(flatchain[:,2],bins=40,range=(40,50)) #vsini
+    axes[2].hist(flatchain[:,2],bins=40) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
     axes[4].hist(flatchain[:,4],bins=100) #c0
 

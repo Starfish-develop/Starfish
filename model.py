@@ -54,7 +54,7 @@ norder = len(wls)
 #orders = np.array(good_orders) - 1 #index to 0
 #orders = np.array([21,22,23])
 #orders = np.array([22])
-orders = np.array([23])
+orders = np.array([21])
 
 #Truncate TRES to include only those orders
 wls = wls[orders]
