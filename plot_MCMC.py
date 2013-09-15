@@ -7,14 +7,18 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
-chain = np.load("output/chain.npy")
+#subdir = "order24/"
+subdir = ""
+
+chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
 nsteps = chain.shape[1]
 #Give flatchain, too
 s = chain.shape
 flatchain = chain.reshape(s[0] * s[1], s[2])
 #flatchain = flatchain[80000:]
-lnchain = np.load("output/lnprobchain.npy")
+lnchain = np.load("output/" + subdir + "lnprobchain.npy")
+lnflatchain = lnchain.flatten()
 #lnchain = lnchain[80000:]
 nparams = flatchain.shape[1]
 
@@ -148,8 +152,9 @@ def plot_random_data():
     all_inds = np.arange(len(flatchain))
     ind = np.random.choice(all_inds)
     p = flatchain[ind]
-    lnp = lnchain[ind]
+    lnp = lnflatchain[ind]
     print(lnp)
+    print(p)
     wlsz,flsc,fs = model_and_data(p)
     wl = wlsz[0]
     fl = flsc[0]
