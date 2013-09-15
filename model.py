@@ -38,7 +38,7 @@ AU = 1.4959787066e13 #cm
 #Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load normalized order spectrum
-wls, fls = rechellenpflat("GWOri_cf")
+wls, fls = rechellenpflat("GWOri_cf") #each has shape (51,2299)
 
 sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
 
@@ -52,9 +52,9 @@ norder = len(wls)
 #Numpy array of orders I want to use, indexed to 1
 #good_orders = [i for i in range(5,18)] + [i for i in range(20,30)] + [i for i in range(31,37)] + [43,46]
 #orders = np.array(good_orders) - 1 #index to 0
-#orders = np.array([21,22,23])
-#orders = np.array([22])
-orders = np.array([21])
+orders = np.array([21,22,23])
+#orders = np.array([23])
+#orders = np.array([21])
 
 #Truncate TRES to include only those orders
 wls = wls[orders]
@@ -197,6 +197,8 @@ def downsample(w_m,f_m,w_TRES):
 
 def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+    #wlsz has length norders
+
     #M = M * M_sun #g
     #R = R * R_sun #cm
     #d = d * pc #cm
@@ -209,6 +211,7 @@ def model(wlsz, temp, logg, vsini, flux_factor):
 
     model_flux = np.zeros_like(wlsz)
     #Cycle through all the orders in the echelle spectrum
+    #might be able to np.vectorize this
     for i,wlz in enumerate(wlsz):
         #print("Processing order %s" % (orders[i]+1,))
 
@@ -264,7 +267,10 @@ def data(coefs_arr, wls, fls):
     '''coeff is a (norders, npoly) shape array'''
     flsc = np.zeros_like(fls)
     for i,coefs in enumerate(coefs_arr):
-        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        #do this to keep constant fixed at 1
+        #flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        #do this to allow tweaks to each order
+        flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
 def lnprob(p):
@@ -277,12 +283,13 @@ def lnprob(p):
         coefs = p[5:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
+        print(coefs_arr)
 
         wlsz = shift_TRES(vz) 
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini,flux_factor)
+        fs = model(wlsz, temp, logg, vsini, flux_factor)
 
         chi2 = np.sum(((flsc - fs)/sigmas)**2)
         L = -0.5 * chi2
@@ -295,7 +302,7 @@ def model_and_data(p):
     #print(p)
     temp, logg, vsini, vz,flux_factor = p[:5]
     coefs = p[5:]
-    #print(coefs)
+    print(coefs)
     coefs_arr = coefs.reshape(len(orders),-1)
 
     wlsz = shift_TRES(vz) 
@@ -312,7 +319,7 @@ def find_chebyshev(wl, f, fl, sigma):
     return ans
     
 def main():
-    print(lnprob(np.array([5000, 4.0, 40, 30, 1e25,0,0,0,0])))
+    print(lnprob(np.array([5900, 3.5, 45, 27, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
     pass
 
 if __name__=="__main__":

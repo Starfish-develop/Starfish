@@ -13,7 +13,7 @@ from model import lnprob
 
 def main():
     #11 dimensional model, 200 walkers
-    ndim = 7
+    ndim = 14
     nwalkers = 150
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
@@ -25,12 +25,19 @@ def main():
     vsini = np.random.uniform(low=35, high = 55, size=(nwalkers,))
     vz = np.random.uniform(low=27, high = 29.5, size=(nwalkers,))
     flux_factor = np.random.uniform(low=1.e-28, high = 1.e-27, size=(nwalkers,))
-    c1 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c2 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
+    c1_21 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c2_21 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c0_22 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
+    c1_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c2_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c0_23 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
+    c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c3 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
     #c4 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
 
-    p0 = np.array([temp,logg,vsini,vz,flux_factor,c1,c2]).T
+    p0 = np.array([temp,logg,vsini,vz,flux_factor,c0_21,c1_21,c2_21,c0_22,c1_22,c2_22,c0_23,c1_23,c2_23]).T
 
     # Initialize the MPI-based pool used for parallelization.
     #pool = MPIPool()
