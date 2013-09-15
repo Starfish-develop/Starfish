@@ -9,7 +9,7 @@ from astropy.io import ascii
 import emcee
 import sys
 from model import lnprob
-from emcee.utils import MPIPool
+#from emcee.utils import MPIPool
 
 def main():
     #11 dimensional model, 200 walkers
@@ -26,23 +26,23 @@ def main():
     vz = np.random.uniform(low=27, high = 29.5, size=(nwalkers,))
     flux_factor = np.random.uniform(low=1.e-28, high = 1.e-27, size=(nwalkers,))
     c1 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c2 = np.random.uniform(low=0.1, high = 0.1, size=(nwalkers,))
+    c2 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c3 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
     #c4 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
 
     p0 = np.array([temp,logg,vsini,vz,flux_factor,c1,c2]).T
 
     # Initialize the MPI-based pool used for parallelization.
-    pool = MPIPool()
-    print("Running with MPI")
+    #pool = MPIPool()
+    #print("Running with MPI")
 
-    if not pool.is_master():
-        # Wait for instructions from the master process.
-        pool.wait()
-        sys.exit(0)
+    #if not pool.is_master():
+    #    # Wait for instructions from the master process.
+    #    pool.wait()
+    #    sys.exit(0)
 
     # Initialize the sampler with the chosen specs.
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=64)
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, 2000)

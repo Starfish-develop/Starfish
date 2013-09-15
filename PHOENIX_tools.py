@@ -3,15 +3,15 @@ import astropy.io.fits as pf
 from astropy.io import ascii
 from scipy.interpolate import interp1d, griddata, NearestNDInterpolator
 from echelle_io import rechellenpflat
-import model as m
+#import model as m
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
 
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
-w = wl_file[0].data
+w_full = wl_file[0].data
 wl_file.close()
-ind = (w > 3700.) & (w < 10000.)
-w = w[ind]
+ind = (w_full > 3700.) & (w_full < 10000.)
+w = w_full[ind]
 
 Ts = np.arange(2300,12001,100)
 loggs = np.arange(0.0,6.1,0.5)
@@ -86,6 +86,14 @@ def load_flux_fits(temp,logg):
     f = f[ind]
     print("Loaded " + rname)
     #Print Radius and Temperature
+    return f
+
+def load_flux_full(temp,logg):
+    rname="HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(temp=temp,logg=logg)
+    flux_file = pf.open(rname)
+    f = flux_file[0].data
+    flux_file.close()
+    print("Loaded " + rname)
     return f
 
 # Write into npz array
