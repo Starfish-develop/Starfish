@@ -10,7 +10,6 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 
 base = "/home/ian/.builds/stsci_python-2.12/pysynphot/cdbs/comp/nonhst/"
 filt = fits.open("/home/ian/.builds/stsci_python-2.12/pysynphot/cdbs/comp/nonhst/landolt_v_004_syn.fits")[1].data
-#filt = fits.open("/home/ian/.builds/stsci_python-2.12/pysynphot/cdbs/comp/nonhst/landolt_i_004_syn.fits")[1].data
 wl = filt['WAVELENGTH']
 trans = filt['THROUGHPUT']
 err = filt['ERROR']
@@ -92,9 +91,6 @@ def write_filters():
     for item in filts:
         name,path = item
         create_norm_filter_npy(name,base+path)
-            #["J",],
-            #["H",]
-            #["K",]]
 
 def main():
     #write_filters()
@@ -113,5 +109,3 @@ S(λ) is the dimensionless bandpass throughput function, and the division by hν
 
 For speed, this means we could pre-evaluate the numerator, and scale S such that the integral becomes normalized.
 '''
-
-
