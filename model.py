@@ -4,8 +4,13 @@ from scipy.interpolate import interp1d,LinearNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
-#from deredden import deredden
+from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
+import yaml
+
+f = open('config.yaml')
+config = yaml.load(f)
+f.close()
 
 '''
 Coding convention:
@@ -52,7 +57,8 @@ norder = len(wls)
 #Numpy array of orders I want to use, indexed to 1
 #good_orders = [i for i in range(5,18)] + [i for i in range(20,30)] + [i for i in range(31,37)] + [43,46]
 #orders = np.array(good_orders) - 1 #index to 0
-orders = np.array([21,22,23])
+#orders = np.array([21,22,23])
+orders = np.array(config['orders'])
 #orders = np.array([23])
 #orders = np.array([21])
 
@@ -195,7 +201,7 @@ def downsample(w_m,f_m,w_TRES):
 # Model 
 ##################################################
 
-def model(wlsz, temp, logg, vsini, flux_factor):
+def model(wlsz, temp, logg, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #wlsz has length norders
 
@@ -232,11 +238,11 @@ def model(wlsz, temp, logg, vsini, flux_factor):
 
         #downsample to TRES bins
         dsamp = downsample(w, f_TRES, wlz)
+        red = dsamp/deredden(wlz,Av,mags=False)
 
-        #redden spectrum
-        #red = dsamp/deredden(wlz,Av,mags=False)
+        #If the redenning interpolation is taking a while here, we could save the points for a given redenning and simply multiply each again
 
-        model_flux[i] = dsamp
+        model_flux[i] = red
 
     #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
@@ -276,20 +282,19 @@ def data(coefs_arr, wls, fls):
 def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz,flux_factor = p[:5]
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 4000) or (temp > 6900):
+    temp, logg, vsini, vz, Av, flux_factor = p[:6]
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 4000) or (temp > 6900) or (Av < 0):
         return -np.inf
     else:
-        coefs = p[5:]
+        coefs = p[6:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
-        print(coefs_arr)
 
         wlsz = shift_TRES(vz) 
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini, flux_factor)
+        fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
 
         chi2 = np.sum(((flsc - fs)/sigmas)**2)
         L = -0.5 * chi2
@@ -300,8 +305,8 @@ def lnprob(p):
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz,flux_factor = p[:5]
-    coefs = p[5:]
+    temp, logg, vsini, vz, Av, flux_factor = p[:6]
+    coefs = p[6:]
     print(coefs)
     coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -309,7 +314,7 @@ def model_and_data(p):
 
     flsc = data(coefs_arr, wlsz, fls)
 
-    fs = model(wlsz, temp, logg, vsini,flux_factor)
+    fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
     return [wlsz,flsc,fs]
 
 def find_chebyshev(wl, f, fl, sigma):
@@ -319,7 +324,7 @@ def find_chebyshev(wl, f, fl, sigma):
     return ans
     
 def main():
-    print(lnprob(np.array([5900, 3.5, 45, 27, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
+    print(lnprob(np.array([5905, 3.5, 45, 27, 1.5, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
     pass
 
 if __name__=="__main__":
