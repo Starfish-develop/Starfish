@@ -1,14 +1,14 @@
 import cProfile
 import pstats
 #import trim_PHOENIX
-#import model
+import model
 #import MCMC
 #import synthphot
-import synth_homebrew
+#import synth_homebrew
 
 
 
-cProfile.run("synth_homebrew.main()","prof_home")
+cProfile.run("model.main()","prof_model")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -16,4 +16,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.9)
 
-display_stats('prof_home')
+display_stats('prof_model')

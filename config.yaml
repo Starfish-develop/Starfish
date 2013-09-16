@@ -2,7 +2,7 @@
 orders : [21,22,23]
 
 # MCMC parameters
-ndim : 14
+ndim : 15
 nwalkers : 150
 burn_in : 2000
 iterations : 2000
@@ -10,5 +10,8 @@ MPI : False
 threads : 64
 output_dir : output
 
-
+# Params local for testing
+# threads : 4
+# burn_in : 1
+# iterations : 10
 

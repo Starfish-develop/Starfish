@@ -7,8 +7,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
-#subdir = "order24/"
-subdir = ""
+subdir = "order22/"
+#subdir = ""
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -70,18 +70,18 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams,ncols=1,figsize=(8,11))
     
-    axes[0].hist(flatchain[:,0],bins=40) #temp
-    axes[1].hist(flatchain[:,1],bins=40) #logg
-    axes[2].hist(flatchain[:,2],bins=40) #vsini
+    axes[0].hist(flatchain[:,0],bins=40,range=(5900,6300)) #temp
+    axes[1].hist(flatchain[:,1],bins=40,range=(3.0,4.2)) #logg
+    axes[2].hist(flatchain[:,2],bins=40,range=(40,50)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
-    axes[4].hist(flatchain[:,4],bins=100) #c0
+    axes[4].hist(flatchain[:,4],bins=100,range=(1e-28,2.5e-28)) #c0
 
     for i,ax in enumerate(axes[5:]):
         ax.hist(flatchain[:,i+5],bins=20)
 
     fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
     #plt.show()
-    plt.savefig('plots/hist_param.png')
+    plt.savefig('plots/posteriors/' + subdir + 'hist_param.png')
 
 
 def joint_hist(p1,p2,**kwargs):
