@@ -9,12 +9,19 @@ from astropy.io import ascii
 import emcee
 import sys
 from model import lnprob
+import yaml
+
+confname = sys.argv[1]
+f = open(confname)
+config = yaml.load(f)
+f.close()
+
 #from emcee.utils import MPIPool
 
 def main():
     #11 dimensional model, 200 walkers
-    ndim = 14
-    nwalkers = 150
+    ndim = config['ndim']
+    nwalkers = config['nwalkers']
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
     temp = np.random.uniform(low=5200, high = 6600, size=(nwalkers,))
@@ -34,8 +41,6 @@ def main():
     c0_23 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
     c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    #c3 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
-    #c4 = np.random.uniform(low=-0.01, high = 0.01, size=(nwalkers,))
 
     p0 = np.array([temp,logg,vsini,vz,flux_factor,c0_21,c1_21,c2_21,c0_22,c1_22,c2_22,c0_23,c1_23,c2_23]).T
 
@@ -49,10 +54,10 @@ def main():
     #    sys.exit(0)
 
     # Initialize the sampler with the chosen specs.
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=64)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=config['threads'])
 
     # Burn-in.
-    pos, prob, state = sampler.run_mcmc(p0, 2000)
+    pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
 
     print("Burned in chain")
     # Reset the chain to remove the burn-in samples.
@@ -62,7 +67,7 @@ def main():
     # steps.
     #f = open("chain.dat", "w")
     #f.close()
-    sampler.run_mcmc(pos, 2000, rstate0=state)
+    sampler.run_mcmc(pos, config['iterations'], rstate0=state)
     #    position = result[0]
     #    f = open("chain.dat", "a")
     #    for k in range(position.shape[0]):

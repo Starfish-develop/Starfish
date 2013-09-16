@@ -1,0 +1,14 @@
+# Data parameters
+orders : [21,22,23]
+
+# MCMC parameters
+ndim : 14
+nwalkers : 150
+burn_in : 2000
+iterations : 2000
+MPI : False
+threads : 64
+output_dir : output
+
+
+
