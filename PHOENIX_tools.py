@@ -6,12 +6,14 @@ from echelle_io import rechellenpflat
 #import model as m
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
+import h5py
 
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
 ind = (w_full > 3700.) & (w_full < 10000.)
 w = w_full[ind]
+len_p = len(w)
 
 Ts = np.arange(2300,12001,100)
 loggs = np.arange(0.0,6.1,0.5)
@@ -27,7 +29,29 @@ def write_Ts_loggs():
     ascii.write({"T":T_list, "logg":logg_list} , "param_grid.txt", names=["T","logg"])
 
 
-#T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
+T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
+logg_points = np.arange(0.0,6.1,0.5)
+
+def point_resolver():
+    '''Resolves a continous query in temp, logg to the nearest parameter combo in the PHOENIX grid. All available combinations are listed in param_grid.txt.'''
+    points = np.loadtxt("param_grid_GWOri.txt")
+    pr = NearestNDInterpolator(points,points) #Called as pr(5713, 3.45)
+    return pr
+
+def write_hdf5():
+    '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists, write it. If not, write zeros.'''
+    f = h5py.File("LIB.hdf5","w")
+    dset = f.create_dataset("LIB",(len(T_points),len(logg_points),len_p), dtype="f")
+    for t,temp in enumerate(T_points):
+        for l,logg in enumerate(logg_points):
+            try:
+                flux = load_flux_npy(temp,logg)
+                print("Wrote %s, %s" % (temp,logg))
+            except OSError:
+                print("%s, %s does not exist!" % (temp,logg))
+                flux = np.nan
+            dset[t,l,:] = flux
+
 
 def flux_interpolator():
     points = ascii.read("param_grid_GWOri.txt")
@@ -194,6 +218,7 @@ def interpolate_test_logg():
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
 
+pr = point_resolver()
 
 
 def main():
@@ -206,7 +231,8 @@ def main():
     #load_npy(5700,4.5)
     #load_fits(5700,4.5)
     #interpolate_test_temp()
-    interpolate_test_logg()
+    #interpolate_test_logg()
+    write_hdf5()
     pass
 
 

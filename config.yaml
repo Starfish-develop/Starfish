@@ -7,7 +7,7 @@ nwalkers : 150
 burn_in : 2000
 iterations : 2000
 MPI : False
-threads : 64
+threads : 4
 output_dir : output
 
 # Params local for testing

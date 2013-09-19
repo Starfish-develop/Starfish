@@ -5,10 +5,11 @@ import model
 #import MCMC
 #import synthphot
 #import synth_homebrew
+#import test_multi
 
 
 
-cProfile.run("model.main()","prof_model")
+cProfile.run("model.main()","prof")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
@@ -16,4 +17,4 @@ def display_stats(pfile):
     #p.sort_stats('name').print_stats()
     p.sort_stats('time').print_stats(.9)
 
-display_stats('prof_model')
+display_stats('prof')
