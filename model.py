@@ -6,7 +6,9 @@ from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
 from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
+import h5py
 import yaml
+import gc
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -40,6 +42,10 @@ R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
 
+T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
+logg_points = np.arange(0.0,6.1,0.5)
+
+
 #Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load normalized order spectrum
@@ -51,6 +57,8 @@ masks = np.load("masks_array.npy")
 
 #Load 3700 to 10000 ang wavelength vector
 w_full = np.load("wave_trim.npy")
+len_w = len(w_full)
+zero_flux = np.zeros_like(w_full)
 
 norder = len(wls)
 
@@ -67,6 +75,9 @@ wls = wls[orders]
 fls = fls[orders]
 sigmas = sigmas[orders]
 masks = masks[orders]
+
+#load hdf5 file globally
+LIB = h5py.File('LIB.hdf5','r')['LIB']
 
 
 def load_flux(temp,logg):
@@ -88,7 +99,39 @@ def flux_interpolator():
     print("Loaded flux_interpolator")
     return flux_intp
 
-flux = flux_interpolator()
+
+#Keep out here so memory keeps getting overwritten
+fluxes = np.empty((4, len_w))
+def flux_interpolator_mini(temp, logg):
+    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
+    #Determine T plus and minus 
+    #If the previous check by lnprob was correct, these should always have elements
+    #Determine logg plus and minus
+    i_Tm = np.argwhere(temp >= T_points)[-1][0]
+    Tm = T_points[i_Tm]
+    i_Tp = np.argwhere(temp < T_points)[0][0]
+    Tp = T_points[i_Tp]
+    i_lm = np.argwhere(logg >= logg_points)[-1][0]
+    lm = logg_points[i_lm]
+    i_lp = np.argwhere(logg < logg_points)[0][0]
+    lp = logg_points[i_lp]
+
+    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
+    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
+    for i in range(4):
+    #Load spectra for these points
+        #print(indexes[i])
+        fluxes[i] = LIB[indexes[i]]
+    if np.isnan(fluxes).any():
+    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
+        return zero_flux
+
+    #Interpolate spectra with LinearNDInterpolator
+    flux_intp = LinearNDInterpolator(points,fluxes)
+    new_flux = flux_intp(temp,logg)
+    return new_flux
+
+flux = flux_interpolator_mini
 
 ##################################################
 #Data processing steps

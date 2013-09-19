@@ -7,8 +7,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
-subdir = "order22/"
-#subdir = ""
+#subdir = "order22/"
+subdir = "three/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]

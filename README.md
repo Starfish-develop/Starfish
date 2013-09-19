@@ -5,18 +5,31 @@ Repository for MCMC fitting of TRES T Tauri Spectra
 
 Copyright Ian Czekala 2013
 
-iczekala@cfa.harvard.edu
+`iczekala@cfa.harvard.edu`
+
+# Summary of Approach
+
+We estimate stellar parameters by taking a Bayesian approach to generate a model of the data (and systematic errors) and sample this posterior using the `emcee` implementation of the Markov Chain Monte Carlo ensemble sampler by Goodman and Weare (2010).
 
 ## Parameters
 
 Model parameters
 
-* [Fe/H] -> fixed to solar
-* T_eff
-* log g
-* v sin i for rotational broadening
-* v_z radial velocity
-* Av extinction
+* [Fe/H]: metallicity, fixed to solar
+* T_eff: effective temperature of photosphere
+* log g: surface gravity
+* v sin i: for rotational broadening
+* v_z: radial velocity
+* Av: extinction
+
+"Nuisance" calibration parameters, three Chebyshev coefficients for each order, although this could be arbitarily expanded to more. From testing, we find that three (or four) might be sufficient to encapsulate any systematic residual error from flux-calibration or blaze-removal. In any case, these corrections should be small (less than 5 percent).
+
+Mass has a prior from the sub-millimeter dynamical mass measurement. These parameters are directly related to stellar radius R and distance d through log(g) = log (G M/R^2) and a model-to-observed flux scaling R^2/d^2. The luminosity is given by L = 4 pi F R^2, where F = f_lambda dd lambda is the bolometric flux measured at the stellar surface. Currently our method uses log (g) because this is a natural parameter of the PHOENIX model spectra grid, though a combination of the other parameters could just as easily be used
+
+## Data set
+
+* *Spectra*: High resolution TRES spectrum. 51 orders, R = 48,000 (FWHM = 6.7 km/s) with typical signal to noise of 50 in each resolution element. 
+* *Photometry*: UBVRI, Herbst, Grankin, 2MASS, and other sources. ugriz from Keplercam. Generally, some of infrared points will be contaminated with disk emission.
 
 ## PHOENIX Models
 
@@ -38,6 +51,8 @@ Model parameters
 
 * Fit Av
 * Constraints on individual C_x due to overlap?
+* Normalize all models to 1 solar luminosity
+* Investigate Lejune models
 
 
 ## Data side
@@ -46,6 +61,8 @@ Get sigma spectrum from IRAF/echelle
 Check method against Willie2012 targets: WASP-14 and HAT-P-9
 Read in general spectra (both flux calibrated and un-flux calibrated)
 Be able to deal with un-flux calibrated data from different instruments (ie, TRES)
+
+* Search TRES archive by position for all stars in proposal
 
 
 # How to use memory_profiler
@@ -61,3 +78,68 @@ Bascially, need an easily configurable plotting/running system to select between
 # Better plotting tools necessary
 
 * Drawing random samples from the data
+
+
+# Potential Speedups
+
+* Pre-compute redenning curve at locations of Phoenix model or TRES (doesn't really matter, actually, since a delta v_z shift is at worst going to correspend to a fraction of an angstrom!
+
+* Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
+
+* Try fewer walkers per dimension
+
+* Posterior predictive check: does the model match the data in a qualitative sense? Needs to be a better tool for doing this for multiple orders. Can you select which orders to do this for?
+
+* Easy way to set priors on Chebyshev coefficients
+
+* better way to visualize posteriors and chebyshev coefficients
+
+* way to easily visualize outliers --> where is most of the chi^2 coming from?
+
+# Code Speedups
+
+* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files.
+
+* Easy staircase plot generator (partially done)
+* Rewrite wechelletxt (or a derivative of rechelletxtflatnpy) to write a numpy array directly (rather than loading text files into a numpy array structure, just load this directly)
+* streamline multi-order as a vectorized operation (or rather, rewrite broadening and other operations to take place globally rather than per-order, and only leave the final downsample routine for per-order).
+* use autocorrelation time
+* run multiple chains
+* Fourier transform methods, interpolation methods, for downgrading spectra (ie, convolve with a boxcar, to do sinc interpolation)
+
+# Synthetic photometry comparison
+
+
+# Concerns to worry about
+
+* Pixel spacing changes at 5000 Ang in the PHOENIX model, we need to change the kernel size for the convolution. How much does the kernel actually change across an order? Maybe we can do this as an FFT convolve with the whole spectrum? Likewise, we could 
+* What if we had a single long-slit spectrum, how should we do the convolution?
+* Edge effects with convolution
+* Flux interpolation errors (a systematic spectrum) (see notes + figure from 9/9/13)
+* distribution of interpolation errors (histogram)
+* Are my errors done correctly (weight by blaze?) or should weight by inverse pixel count
+* What is a veiling prior? Hartigan 1991
+* use student t distribution to give less weight to outliers that may be distorting the fit?
+
+
+# Checks against real data
+
+* Empirical spectral libraries: ELOISE?
+* Torres 12 paper: HAT-P-9, WASP-14
+* Real data in HIRES archive from George Herbig
+
+
+# Flux Calibration package
+
+* Get Bayesian hierarchical inference (or just a prior on systematic calibration (how tight should my priors on the Chebyshev coefficients be?)
+* Get "sigma spectrum"
+* Remedy blaze function removal
+
+
+# Beyond TRES
+
+* use Keck/HIRES and Keck/NIRSPEC data (search archive by name or position for our targets) GM Aur exists
+http://www2.keck.hawaii.edu/koa/public/koa.php
+
+
+
