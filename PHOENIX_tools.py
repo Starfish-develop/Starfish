@@ -42,7 +42,7 @@ def write_hdf5():
     '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists, write it. If not, write zeros.'''
     f = h5py.File("LIB.hdf5","w")
     shape = (len(T_points),len(logg_points),len_p)
-    dset = f.create_dataset("LIB",shape,chunks=(1,1,len_p),dtype="f")
+    dset = f.create_dataset("LIB",shape,dtype="f")
     for t,temp in enumerate(T_points):
         for l,logg in enumerate(logg_points):
             try:

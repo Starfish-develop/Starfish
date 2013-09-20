@@ -31,88 +31,88 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * *Spectra*: High resolution TRES spectrum. 51 orders, R = 48,000 (FWHM = 6.7 km/s) with typical signal to noise of 50 in each resolution element. 
 * *Photometry*: UBVRI, Herbst, Grankin, 2MASS, and other sources. ugriz from Keplercam. Generally, some of infrared points will be contaminated with disk emission.
 
-## PHOENIX Models
+# PHOENIX Models
 
-### How to bin?
+* Normalize all models to 1 solar luminosity
+* Investigate Lejune models
+
+### How to bin/downsample?
 
 * np.convolve with a set of np.ones()/len(N)--> running boxcar average. However, this assumes a fixed integer width, which does not correspond to a fixed dispersion width, since there is a break at 5000 AA. However we could use different filters on either side of this break if we wanted. Is the instrumental response simply a Gaussian kernel with a width of R~48,000? (6.7 km/s)?
+* Fourier methods
 
+# TRES Data and Reduction
 
-## TRES Reduction
-
-* Crop out edges 
-	--> imcopy GWOri.fits[6:2304,*] GWOri_crop.fits
+Crop out edges from zero response
+    
+	imcopy GWOri.fits[6:2304,*] GWOri_crop.fits
 
 * Rather than weight by inverse blaze, weight by inverse photon counts?
 * Weight by the sigma spectrum? (will have to do own reduction)
+* Get sigma spectrum from IRAF/echelle
+* Check method against Willie2012 targets: WASP-14 and HAT-P-9
+* Read in general spectra (both flux calibrated and un-flux calibrated)
+* Be able to deal with un-flux calibrated data from different instruments (ie, TRES)
+* Search TRES archive by position for all stars in proposal
+* astropy echelle reader tool
 
+# Code
+
+## Synthetic photometry comparison
+
+* implement it on the full spectrum
 
 ## Fitting multiple orders
 
 * Fit Av
 * Constraints on individual C_x due to overlap?
-* Normalize all models to 1 solar luminosity
-* Investigate Lejune models
+* Bascially, need an easily configurable plotting/running system to select between how many orders to run.
 
 
-## Data side
-Get sigma spectrum from IRAF/echelle
+## How to use memory_profiler
+Put the decorator `@profile` over the function you want to profile
 
-Check method against Willie2012 targets: WASP-14 and HAT-P-9
-Read in general spectra (both flux calibrated and un-flux calibrated)
-Be able to deal with un-flux calibrated data from different instruments (ie, TRES)
-
-* Search TRES archive by position for all stars in proposal
+	python -m memory_profiler model.py
 
 
-# How to use memory_profiler
-python -m memory_profiler model.py
-then just put the decorator @profile over the function you want to profile
 
 
-* properly reading in Chebyshev fit (for astropy)
-http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
+## Desireable plotting tools and output analysis
 
-Bascially, need an easily configurable plotting/running system to select between how many orders to run.
-
-# Better plotting tools necessary
-
-* Drawing random samples from the data
-
-
-# Potential Speedups
-
-* Pre-compute redenning curve at locations of Phoenix model or TRES (doesn't really matter, actually, since a delta v_z shift is at worst going to correspend to a fraction of an angstrom!
-
-* Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
-
-* Try fewer walkers per dimension
-
-* Posterior predictive check: does the model match the data in a qualitative sense? Needs to be a better tool for doing this for multiple orders. Can you select which orders to do this for?
-
-* Easy way to set priors on Chebyshev coefficients
-
-* better way to visualize posteriors and chebyshev coefficients
-
+* Drawing random samples from the data (color code by lnprob value?)
+* Posterior predictive check: does the model match the data in a qualitative sense? Needs to be a better tool for doing this for multiple orders. Can you select which orders to do this for? Plot three orders at once? Reasonably show parameter values, lnprob value.
+* better way to visualize posteriors on Chebyshev coefficients
 * way to easily visualize outliers --> where is most of the chi^2 coming from?
-
-# Code Speedups
-
-* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files.
-
 * Easy staircase plot generator (partially done)
-* Rewrite wechelletxt (or a derivative of rechelletxtflatnpy) to write a numpy array directly (rather than loading text files into a numpy array structure, just load this directly)
-* streamline multi-order as a vectorized operation (or rather, rewrite broadening and other operations to take place globally rather than per-order, and only leave the final downsample routine for per-order).
 * use autocorrelation time
 * run multiple chains
+
+## Functionality improvements
+
+* Easy way to set priors on Chebyshev coefficients
+* Easy way to initialize Chebyshev walker positions
+* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files.
+
+## Potential Speedups
+
+* Pre-compute redenning curve at locations of Phoenix model or TRES (doesn't really matter, actually, since a delta v_z shift is at worst going to correspend to a fraction of an angstrom!
+* Precompute PHOENIX grid to TRES wavepoints? I think we'd still need to do an interpolation.
+* Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
+* Rewrite wechelletxt (or a derivative of rechelletxtflatnpy) to write a numpy array directly (rather than loading text files into a numpy array structure, just load this directly)
+* streamline multi-order as a vectorized operation (or rather, rewrite broadening and other operations to take place globally rather than per-order, and only leave the final downsample routine for per-order).
 * Fourier transform methods, interpolation methods, for downgrading spectra (ie, convolve with a boxcar, to do sinc interpolation)
+* Linearize the PHOENIX model to do a FFT by interpolating with zeros?
 
-# Synthetic photometry comparison
+## Astropy integration
 
+* properly reading in Chebyshev fit (for astropy) http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
 
-# Concerns to worry about
+## Code concerns
 
 * Pixel spacing changes at 5000 Ang in the PHOENIX model, we need to change the kernel size for the convolution. How much does the kernel actually change across an order? Maybe we can do this as an FFT convolve with the whole spectrum? Likewise, we could 
+
+# Method Checks and concerns 
+
 * What if we had a single long-slit spectrum, how should we do the convolution?
 * Edge effects with convolution
 * Flux interpolation errors (a systematic spectrum) (see notes + figure from 9/9/13)
@@ -120,7 +120,6 @@ Bascially, need an easily configurable plotting/running system to select between
 * Are my errors done correctly (weight by blaze?) or should weight by inverse pixel count
 * What is a veiling prior? Hartigan 1991
 * use student t distribution to give less weight to outliers that may be distorting the fit?
-
 
 # Checks against real data
 
