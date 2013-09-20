@@ -70,16 +70,17 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams,ncols=1,figsize=(8,11))
     
-    axes[0].hist(flatchain[:,0],bins=40,range=(5900,6300)) #temp
-    axes[1].hist(flatchain[:,1],bins=40,range=(3.0,4.2)) #logg
+    axes[0].hist(flatchain[:,0],bins=40)#,range=(5900,6300)) #temp
+    axes[1].hist(flatchain[:,1],bins=40)#,range=(3.0,4.2)) #logg
     axes[2].hist(flatchain[:,2],bins=40,range=(40,50)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
-    axes[4].hist(flatchain[:,4],bins=100,range=(1e-28,2.5e-28)) #c0
+    axes[4].hist(flatchain[:,4],bins=50,range=(0,20)) #Av
+    axes[5].hist(flatchain[:,5],bins=50,range=(-5e-27,5e-27)) #fluxfactor
 
-    for i,ax in enumerate(axes[5:]):
-        ax.hist(flatchain[:,i+5],bins=20)
+    for i,ax in enumerate(axes[6:]):
+        ax.hist(flatchain[:,i+6],bins=20)
 
-    fig.subplots_adjust(hspace=0.7,top=0.95,bottom=0.06)
+    fig.subplots_adjust(hspace=0.9,top=0.95,bottom=0.06)
     #plt.show()
     plt.savefig('plots/posteriors/' + subdir + 'hist_param.png')
 
@@ -309,9 +310,9 @@ def get_acor():
         print(acor.acor(chain[:,:,param]))
 
 
-#print(len(flatchain))
+print(len(flatchain))
 #hist_param(flatchain[590000:])
-hist_param(flatchain)
+hist_param(flatchain[100000:])
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))

@@ -326,7 +326,7 @@ def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
     temp, logg, vsini, vz, Av, flux_factor = p[:6]
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 4000) or (temp > 6900) or (Av < 0):
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (Av < 0):
         return -np.inf
     else:
         coefs = p[6:]
