@@ -45,13 +45,14 @@ def main():
     if config['MPI']:
         from emcee.utils import MPIPool
         # Initialize the MPI-based pool used for parallelization.
-        pool = MPIPool()
+        pool = MPIPool(debug=True)
         print("Running with MPI")
 
         if not pool.is_master():
-        #    # Wait for instructions from the master process.
+        #   Wait for instructions from the master process.
             pool.wait()
-            sys.exit(0)
+            print("Exiting Process")
+            sys.exit(0) #why kill the process, only to respawn later? Maybe this is at the very end of the run.
 
         # Initialize the sampler with the chosen specs.
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)

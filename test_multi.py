@@ -1,5 +1,6 @@
 #import sharedmem as shm
 import multiprocessing as mp
+from multiprocessing.sharedctypes import Value, Array
 import ctypes
 import numpy as np
 
@@ -11,10 +12,6 @@ shape = (180,500,1000)
 def create_shared_data():
     #sdata = shm.empty(shape)
     #sdata[:] = np.random.normal(size=shape)[:]
-    shared_array_base = mp.Array(ctypes.c_double, shape[0]*shape[1]*shape[2])
-    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-    shared_array = shared_array.reshape(*shape)
-    shared_array = np.random.normal(size=shape)
     # 100 = 1527 Mb
     # 180 = 2747 Mb
 
@@ -40,18 +37,20 @@ def process_serial():
     results = list(map(process_function, np.arange(N)))
     return results
 
-def process_parallel():
+def process_parallel(pool):
     print("Processing parallel")
     results = list(pool.map(process_function, np.arange(N)))
     return results
 
-# A thread pool of P processes
-#pool = mp.Pool(4)
 
 def main():
     #create_data()
-    process_serial()
+    #process_serial()
     #process_parallel()
+    number = Value('i', 7, lock=False)
+    # A thread pool of P processes
+    pool = mp.Pool(4)
+    process_parallel(pool)
     pass
 
 if __name__=="__main__":
