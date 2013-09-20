@@ -22,13 +22,13 @@ def main():
     nwalkers = config['nwalkers']
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-    temp = np.random.uniform(low=5200, high = 6600, size=(nwalkers,))
-    logg = np.random.uniform(low=2.5, high=4.2, size=(nwalkers,))
+    temp = np.random.uniform(low=5500, high = 6300, size=(nwalkers,))
+    logg = np.random.uniform(low=3.0, high=3.7, size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
-    Av = np.random.uniform(low=0, high = 2, size=(nwalkers,))
     vsini = np.random.uniform(low=35, high = 55, size=(nwalkers,))
     vz = np.random.uniform(low=27, high = 29.5, size=(nwalkers,))
+    Av = np.random.uniform(low=1, high = 5, size=(nwalkers,))
     flux_factor = np.random.uniform(low=1.e-28, high = 1.e-27, size=(nwalkers,))
     c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
     c1_21 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
