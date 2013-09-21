@@ -6,9 +6,8 @@ from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
 from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
-import h5py
+#import h5py
 import yaml
-import gc
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -77,7 +76,7 @@ sigmas = sigmas[orders]
 masks = masks[orders]
 
 #load hdf5 file globally
-LIB = h5py.File('LIB.hdf5','r')['LIB']
+#LIB = h5py.File('LIB.hdf5','r')['LIB']
 
 
 def load_flux(temp,logg):
@@ -101,37 +100,37 @@ def flux_interpolator():
 
 
 #Keep out here so memory keeps getting overwritten
-fluxes = np.empty((4, len_w))
-def flux_interpolator_mini(temp, logg):
-    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
-    #Determine T plus and minus 
-    #If the previous check by lnprob was correct, these should always have elements
-    #Determine logg plus and minus
-    i_Tm = np.argwhere(temp >= T_points)[-1][0]
-    Tm = T_points[i_Tm]
-    i_Tp = np.argwhere(temp < T_points)[0][0]
-    Tp = T_points[i_Tp]
-    i_lm = np.argwhere(logg >= logg_points)[-1][0]
-    lm = logg_points[i_lm]
-    i_lp = np.argwhere(logg < logg_points)[0][0]
-    lp = logg_points[i_lp]
+#fluxes = np.empty((4, len_w))
+#def flux_interpolator_mini(temp, logg):
+#    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
+#    #Determine T plus and minus 
+#    #If the previous check by lnprob was correct, these should always have elements
+#    #Determine logg plus and minus
+#    i_Tm = np.argwhere(temp >= T_points)[-1][0]
+#    Tm = T_points[i_Tm]
+#    i_Tp = np.argwhere(temp < T_points)[0][0]
+#    Tp = T_points[i_Tp]
+#    i_lm = np.argwhere(logg >= logg_points)[-1][0]
+#    lm = logg_points[i_lm]
+#    i_lp = np.argwhere(logg < logg_points)[0][0]
+#    lp = logg_points[i_lp]
+#
+#    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
+#    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
+#    for i in range(4):
+#    #Load spectra for these points
+#        #print(indexes[i])
+#        fluxes[i] = LIB[indexes[i]]
+#    if np.isnan(fluxes).any():
+#    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
+#        return zero_flux
 
-    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
-    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
-    for i in range(4):
-    #Load spectra for these points
-        #print(indexes[i])
-        fluxes[i] = LIB[indexes[i]]
-    if np.isnan(fluxes).any():
-    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
-        return zero_flux
-
-    #Interpolate spectra with LinearNDInterpolator
-    flux_intp = LinearNDInterpolator(points,fluxes)
-    new_flux = flux_intp(temp,logg)
-    return new_flux
-
-flux = flux_interpolator_mini
+#    #Interpolate spectra with LinearNDInterpolator
+#    flux_intp = LinearNDInterpolator(points,fluxes)
+#    new_flux = flux_intp(temp,logg)
+#    return new_flux
+#
+flux = flux_interpolator()
 
 ##################################################
 #Data processing steps
@@ -244,7 +243,7 @@ def downsample(w_m,f_m,w_TRES):
 # Model 
 ##################################################
 
-def model(wlsz, temp, logg, vsini, Av, flux_factor):
+def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #wlsz has length norders
 
@@ -281,11 +280,11 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
 
         #downsample to TRES bins
         dsamp = downsample(w, f_TRES, wlz)
-        red = dsamp/deredden(wlz,Av,mags=False)
+        #red = dsamp/deredden(wlz,Av,mags=False)
 
         #If the redenning interpolation is taking a while here, we could save the points for a given redenning and simply multiply each again
 
-        model_flux[i] = red
+        model_flux[i] = dsamp
 
     #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
@@ -317,19 +316,19 @@ def data(coefs_arr, wls, fls):
     flsc = np.zeros_like(fls)
     for i,coefs in enumerate(coefs_arr):
         #do this to keep constant fixed at 1
-        #flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
         #do this to allow tweaks to each order
-        flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        #flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
 def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, Av, flux_factor = p[:6]
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (Av < 0):
+    temp, logg, vsini, vz, flux_factor = p[:5]
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
         return -np.inf
     else:
-        coefs = p[6:]
+        coefs = p[5:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -337,7 +336,7 @@ def lnprob(p):
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
+        fs = model(wlsz, temp, logg, vsini, flux_factor)
 
         chi2 = np.sum(((flsc - fs)/sigmas)**2)
         L = -0.5 * chi2
@@ -348,8 +347,8 @@ def lnprob(p):
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, Av, flux_factor = p[:6]
-    coefs = p[6:]
+    temp, logg, vsini, vz, flux_factor = p[:5]
+    coefs = p[5:]
     print(coefs)
     coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -357,7 +356,7 @@ def model_and_data(p):
 
     flsc = data(coefs_arr, wlsz, fls)
 
-    fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
+    fs = model(wlsz, temp, logg, vsini, flux_factor)
     return [wlsz,flsc,fs]
 
 def find_chebyshev(wl, f, fl, sigma):
@@ -367,7 +366,7 @@ def find_chebyshev(wl, f, fl, sigma):
     return ans
     
 def main():
-    print(lnprob(np.array([5905, 3.5, 45, 27, 1.5, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
+    #print(lnprob(np.array([5905, 3.5, 45, 27, 1.5, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
     pass
 
 if __name__=="__main__":
