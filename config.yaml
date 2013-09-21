@@ -1,11 +1,11 @@
 # Data parameters
-orders : [21,22,23]
+orders : [22]
 
 # MCMC parameters
-ndim : 15
-nwalkers : 30
-burn_in : 1
-iterations : 1
+ndim : 7
+nwalkers : 128
+burn_in : 200
+iterations : 200
 MPI : True
 threads : 64
 output_dir : output
