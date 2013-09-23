@@ -37,6 +37,10 @@ def write_Ts_loggs():
 
 T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
 logg_points = np.arange(0.0,6.1,0.5)
+#shorten for ease of use
+T_points = T_points[16:-25]
+logg_points = logg_points[2:-2]
+
 
 def point_resolver():
     '''Resolves a continous query in temp, logg to the nearest parameter combo in the PHOENIX grid. All available combinations are listed in param_grid.txt.'''
@@ -151,18 +155,13 @@ def create_TRES_grid():
 
 def create_grid_parallel():
     '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists, write it. If not, write nan.'''
-    f = h5py.File("LIB_TRES.hdf5","w")
+    f = h5py.File("LIB_GWOri.hdf5","w")
     shape = (len(T_points),len(logg_points),len(wave_grid))
     dset = f.create_dataset("LIB",shape,dtype="f")
 
     # A thread pool of P processes
     pool = mp.Pool(4)
 
-    #map to key pair (t,l, temp, logg)
-
-    #param_combos = np.empty(shape[:-1])
-    #param_combos[:,] = np.arange(len(T_points))
-    #param_combos[:,
     param_combos = []
     var_combos = []
     for t,temp in enumerate(T_points):
@@ -189,6 +188,7 @@ def process_spectrum(pars):
         print("%s, %s does not exist!" % (temp,logg))
         bdflux = np.nan
     return bdflux
+
 
 
 # Interpolation routines
@@ -289,9 +289,8 @@ def interpolate_test_logg():
 
 pr = point_resolver()
 
-fl = load_flux_full(5900,3.5)
 
-output = create_grid_parallel()
+
 
 def main():
     #Rewrite Flux
@@ -305,6 +304,7 @@ def main():
     #interpolate_test_temp()
     #interpolate_test_logg()
     #write_hdf5()
+    create_grid_parallel()
     pass
 
 

@@ -4,6 +4,7 @@ from scipy.interpolate import interp1d,LinearNDInterpolator
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
+from scipy.special import j1
 from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
 import h5py
@@ -43,6 +44,9 @@ AU = 1.4959787066e13 #cm
 
 T_points = np.array([2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7200,7400,7600,7800,8000,8200,8400,8600,8800,9000,9200,9400,9600,9800,10000,10200,10400,10600,10800,11000,11200,11400,11600,11800,12000])
 logg_points = np.arange(0.0,6.1,0.5)
+#shorten for ease of use
+T_points = T_points[16:-25]
+logg_points = logg_points[2:-2]
 
 
 #Mg = np.array([5168.7605, 5174.1251, 5185.0479])
@@ -78,8 +82,9 @@ sigmas = sigmas[orders]
 masks = masks[orders]
 
 #load hdf5 file globally
-LIB = h5py.File('LIB.hdf5','r')['LIB']
+LIB = h5py.File('LIB_GWOri.hdf5','r')['LIB']
 
+grid = np.load("wave_grid_2kms.npy")
 
 def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
@@ -101,9 +106,30 @@ def flux_interpolator():
     print("Loaded flux_interpolator")
     return flux_intp
 
+def flux_interpolator_hdf5():
+    param_combos = []
+    var_combos = []
+    for t,temp in enumerate(T_points):
+        for l,logg in enumerate(logg_points):
+            param_combos.append([t,l])
+            var_combos.append([temp,logg])
+    num_spec = len(param_combos)
+    points = np.array(var_combos)
+    fluxes = np.empty((num_spec, len(grid)))
+    for i in range(num_spec):
+        t,l = param_combos[i]
+        fluxes[i] = LIB[t,l]
+    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=np.nan)
+    return flux_intp
+
+
+    
+#    for i in range(len(ponts)):
+
+
 
 #Keep out here so memory keeps getting overwritten
-fluxes = np.empty((4, len_w))
+fluxes = np.empty((4, len(grid)))
 def flux_interpolator_mini(temp, logg):
     '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
     #Determine T plus and minus 
@@ -133,7 +159,7 @@ def flux_interpolator_mini(temp, logg):
     new_flux = flux_intp(temp,logg)
     return new_flux
 
-flux = flux_interpolator_mini
+flux = flux_interpolator_hdf5()
 
 ##################################################
 #Data processing steps
@@ -160,6 +186,15 @@ def vsini_ang(lam0,vsini,dlam=0.01,epsilon=0.6):
     c2 = epsilon/(2. * lamL * (1 - epsilon/3.))
     series = c1 * np.sqrt(1. - (lam/lamL)**2) + c2 * (1. - (lam/lamL)**2)**2
     return series/np.sum(series)
+
+@np.vectorize
+def G(s,vL):
+    '''vL in km/s. Gray pg 475'''
+    if s != 0:
+        ub = 2. * np.pi * vL * s
+        return j1(ub)/ub - 3 * np.cos(ub)/(2 * ub**2) + 3. * np.sin(ub)/(2* ub**3)
+    else:
+        return 1.
 
 
 ##################################################
@@ -247,7 +282,7 @@ def downsample(w_m,f_m,w_TRES):
 # Model 
 ##################################################
 
-def model(wlsz, temp, logg, vsini, flux_factor):
+def old_model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #wlsz has length norders
 
@@ -292,6 +327,40 @@ def model(wlsz, temp, logg, vsini, flux_factor):
 
     #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
+
+
+def model(wlsz, temp, logg, vsini, flux_factor):
+    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+    #wlsz has length norders
+
+    #M = M * M_sun #g
+    #R = R * R_sun #cm
+    #d = d * pc #cm
+
+    #logg = np.log10(G * M / R**2)
+    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
+
+    #Loads the ENTIRE spectrum, not limited to a specific order
+    f_full = flux_factor * flux(temp, logg)
+
+    #model_flux = np.zeros_like(wlsz)
+    #Take FFT of f_grid
+    out = np.fft.fft(np.fft.fftshift(f_full))
+    print(out)
+    #these two will be constant for the grid
+    N = len(f_full)
+    freqs = np.fft.fftshift(np.fft.fftfreq(N,d=2.)) #2km/s spacing
+    #query spectral rotation profile
+    sb = G(freqs,vsini)
+    tout = out * sb
+    print(tout)
+    blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
+    print(blended)
+    f = interp1d(grid,blended,kind='linear')
+    fs = f(wlsz)
+
+    return fs
+
 
 def degrade_flux(wl,w,f_full):
 
@@ -369,9 +438,10 @@ def find_chebyshev(wl, f, fl, sigma):
     #print(ans)
     return ans
     
+mod_flux = model(wls, 5900, 3.5, 40, 1.0)
 def main():
     #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-28, -0.02,0.025])))
-    #mod_flux = model(wls, 5900, 3.5, 0.1, 1.0)
+    #mod_flux = model(wls, 5900, 3.5, 40, 1.0)
     pass
 
 if __name__=="__main__":
