@@ -35,6 +35,7 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 * Normalize all models to 1 solar luminosity
 * Investigate Lejune models
+* Get BT-Settl models from France Allard's website
 
 ### How to bin/downsample?
 

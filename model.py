@@ -6,7 +6,7 @@ from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
 from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
-#import h5py
+import h5py
 import yaml
 
 f = open('config.yaml')
@@ -48,7 +48,9 @@ logg_points = np.arange(0.0,6.1,0.5)
 #Mg = np.array([5168.7605, 5174.1251, 5185.0479])
 
 #Load normalized order spectrum
-wls, fls = rechellenpflat("GWOri_cf") #each has shape (51,2299)
+#wls, fls = rechellenpflat("GWOri_cf") #each has shape (51,2299)
+wls = np.load("GWOri_cf_wls.npy")
+fls = np.load("GWOri_cf_fls.npy")
 
 sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
 
@@ -76,7 +78,7 @@ sigmas = sigmas[orders]
 masks = masks[orders]
 
 #load hdf5 file globally
-#LIB = h5py.File('LIB.hdf5','r')['LIB']
+LIB = h5py.File('LIB.hdf5','r')['LIB']
 
 
 def load_flux(temp,logg):
@@ -86,7 +88,8 @@ def load_flux(temp,logg):
     return f
 
 def flux_interpolator():
-    points = np.loadtxt("param_grid_GWOri.txt")
+    #points = np.loadtxt("param_grid_GWOri.txt")
+    points = np.loadtxt("param_grid_interp_test.txt")
     #TODO: make this dynamic, specify param_grid dynamically too
     len_w = 716665
     fluxes = np.empty((len(points),len_w)) 
@@ -100,37 +103,37 @@ def flux_interpolator():
 
 
 #Keep out here so memory keeps getting overwritten
-#fluxes = np.empty((4, len_w))
-#def flux_interpolator_mini(temp, logg):
-#    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
-#    #Determine T plus and minus 
-#    #If the previous check by lnprob was correct, these should always have elements
-#    #Determine logg plus and minus
-#    i_Tm = np.argwhere(temp >= T_points)[-1][0]
-#    Tm = T_points[i_Tm]
-#    i_Tp = np.argwhere(temp < T_points)[0][0]
-#    Tp = T_points[i_Tp]
-#    i_lm = np.argwhere(logg >= logg_points)[-1][0]
-#    lm = logg_points[i_lm]
-#    i_lp = np.argwhere(logg < logg_points)[0][0]
-#    lp = logg_points[i_lp]
-#
-#    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
-#    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
-#    for i in range(4):
-#    #Load spectra for these points
-#        #print(indexes[i])
-#        fluxes[i] = LIB[indexes[i]]
-#    if np.isnan(fluxes).any():
-#    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
-#        return zero_flux
+fluxes = np.empty((4, len_w))
+def flux_interpolator_mini(temp, logg):
+    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
+    #Determine T plus and minus 
+    #If the previous check by lnprob was correct, these should always have elements
+    #Determine logg plus and minus
+    i_Tm = np.argwhere(temp >= T_points)[-1][0]
+    Tm = T_points[i_Tm]
+    i_Tp = np.argwhere(temp < T_points)[0][0]
+    Tp = T_points[i_Tp]
+    i_lm = np.argwhere(logg >= logg_points)[-1][0]
+    lm = logg_points[i_lm]
+    i_lp = np.argwhere(logg < logg_points)[0][0]
+    lp = logg_points[i_lp]
 
-#    #Interpolate spectra with LinearNDInterpolator
-#    flux_intp = LinearNDInterpolator(points,fluxes)
-#    new_flux = flux_intp(temp,logg)
-#    return new_flux
-#
-flux = flux_interpolator()
+    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
+    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
+    for i in range(4):
+    #Load spectra for these points
+        #print(indexes[i])
+        fluxes[i] = LIB[indexes[i]]
+    if np.isnan(fluxes).any():
+    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
+        return zero_flux
+
+    #Interpolate spectra with LinearNDInterpolator
+    flux_intp = LinearNDInterpolator(points,fluxes)
+    new_flux = flux_intp(temp,logg)
+    return new_flux
+
+flux = flux_interpolator_mini
 
 ##################################################
 #Data processing steps
@@ -166,6 +169,7 @@ def vsini_ang(lam0,vsini,dlam=0.01,epsilon=0.6):
 def shift_vz(lam_source, vz):
     '''Given the source wavelength, lam_sounce, return the observed wavelength based upon a radial velocity vz in km/s. Negative velocities are towards the observer (blueshift).'''
     lam_observe = lam_source * np.sqrt((c_kms + vz)/(c_kms - vz))
+    #TODO: when applied to full spectrum, this sqrt is repeated
     return lam_observe
 
 
@@ -183,7 +187,7 @@ def gauss_kernel(dlam,V=6.8,lam0=6500.):
     sigma = V/2.355 * 1e13 #A/s
     return c_ang/lam0 * 1/(sigma * np.sqrt(2*np.pi)) * np.exp( - (c_ang*dlam/lam0)**2/(2. * sigma**2))
 
-def gauss_series(dlam,V=6.5,lam0=6500.):
+def gauss_series(dlam,V=6.8,lam0=6500.):
     '''sampled from +/- 3sigma at dlam. V is the FWHM in km/s'''
     sigma_l = V/(2.355 * 3e5) * 6500. #A
     wl = karray(0., 4*sigma_l,dlam)
@@ -366,7 +370,8 @@ def find_chebyshev(wl, f, fl, sigma):
     return ans
     
 def main():
-    #print(lnprob(np.array([5905, 3.5, 45, 27, 1.5, 1e-28, 1.0,-0.02,0.025, 1.,-0.04,0.03, 1,-0.046,0.036])))
+    #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-28, -0.02,0.025])))
+    #mod_flux = model(wls, 5900, 3.5, 0.1, 1.0)
     pass
 
 if __name__=="__main__":

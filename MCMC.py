@@ -77,6 +77,9 @@ def main():
     #        f.write("{0:4d} {1:s}\n".format(k, " ".join(position[k])))
     #    f.close()
 
+    if config['MPI']:
+        pool.close()
+
     # Print out the mean acceptance fraction. In general, acceptance_fraction
     # has an entry for each walker so, in this case, it is a 250-dimensional
     # vector.
