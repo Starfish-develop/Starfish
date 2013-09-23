@@ -1,14 +1,14 @@
 import cProfile
 import pstats
 #import trim_PHOENIX
-#import model
+import model
 #import MCMC
 #import synthphot
 #import synth_homebrew
 #import test_multi
-import fft_interpolate
+#import fft_interpolate
 
-cProfile.run("fft_interpolate.main()","prof")
+cProfile.run("model.main()","prof")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
