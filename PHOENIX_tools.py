@@ -7,13 +7,19 @@ from echelle_io import rechellenpflat
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
 import h5py
+from fft_interpolate import downsample,convolve_gauss
+import multiprocessing as mp
 
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
-ind = (w_full > 3700.) & (w_full < 10000.)
+ind = (w_full > 3000.) & (w_full < 12000.)
 w = w_full[ind]
 len_p = len(w)
+
+wave_grid = np.load('wave_grid_2kms.npy')
+
+L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 
 Ts = np.arange(2300,12001,100)
 loggs = np.arange(0.0,6.1,0.5)
@@ -113,15 +119,77 @@ def load_flux_fits(temp,logg):
     #Print Radius and Temperature
     return f
 
-def load_flux_full(temp,logg):
+def load_flux_full(temp,logg,norm=False):
     rname="HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(temp=temp,logg=logg)
     flux_file = pf.open(rname)
     f = flux_file[0].data
+    L = flux_file[0].header['PHXLUM'] #W
+    if norm:
+        f = f * (L_sun/L)
+        print("Normalized luminosity to 1 L_sun")
     flux_file.close()
     print("Loaded " + rname)
     return f
 
-# Write into npz array
+def create_TRES_grid():
+    '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists, write it. If not, write zeros.'''
+    f = h5py.File("LIB_TRES.hdf5","w")
+    shape = (len(T_points),len(logg_points),len(wave_grid))
+    dset = f.create_dataset("LIB",shape,dtype="f")
+    for t,temp in enumerate(T_points):
+        for l,logg in enumerate(logg_points):
+            try:
+                flux = load_flux_full(temp,logg,True)[ind]
+                #regrid to 2km/s spaced grid
+                dflux = downsample(w,flux,wave_grid)
+                bdflux = convolve_gauss(wave_grid,dflux)
+                print("Finished %s, %s" % (temp,logg))
+            except OSError:
+                print("%s, %s does not exist!" % (temp,logg))
+                bdflux = np.nan
+            dset[t,l,:] = bdflux
+
+def create_grid_parallel():
+    '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists, write it. If not, write nan.'''
+    f = h5py.File("LIB_TRES.hdf5","w")
+    shape = (len(T_points),len(logg_points),len(wave_grid))
+    dset = f.create_dataset("LIB",shape,dtype="f")
+
+    # A thread pool of P processes
+    pool = mp.Pool(4)
+
+    #map to key pair (t,l, temp, logg)
+
+    #param_combos = np.empty(shape[:-1])
+    #param_combos[:,] = np.arange(len(T_points))
+    #param_combos[:,
+    param_combos = []
+    var_combos = []
+    for t,temp in enumerate(T_points):
+        for l,logg in enumerate(logg_points):
+            param_combos.append([t,l])
+            var_combos.append([temp,logg])
+
+    spec_gen = pool.map(process_spectrum, var_combos)
+    for i in range(len(param_combos)):
+        t,l = param_combos[i]
+        dset[t,l,:] = spec_gen[i]
+
+    f.close()
+
+def process_spectrum(pars):
+    temp,logg = pars
+    try:
+        flux = load_flux_full(temp,logg,True)[ind]
+        #regrid to 2km/s spaced grid
+        dflux = downsample(w,flux,wave_grid)
+        bdflux = convolve_gauss(wave_grid,dflux)
+        print("Finished %s, %s" % (temp,logg))
+    except OSError:
+        print("%s, %s does not exist!" % (temp,logg))
+        bdflux = np.nan
+    return bdflux
+
 
 # Interpolation routines
 def interpolate_raw_test_temp():
@@ -221,6 +289,9 @@ def interpolate_test_logg():
 
 pr = point_resolver()
 
+fl = load_flux_full(5900,3.5)
+
+output = create_grid_parallel()
 
 def main():
     #Rewrite Flux
@@ -233,7 +304,7 @@ def main():
     #load_fits(5700,4.5)
     #interpolate_test_temp()
     #interpolate_test_logg()
-    write_hdf5()
+    #write_hdf5()
     pass
 
 
