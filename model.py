@@ -48,10 +48,6 @@ logg_points = np.arange(0.0,6.1,0.5)
 T_points = T_points[16:-25]
 logg_points = logg_points[2:-2]
 
-
-#Mg = np.array([5168.7605, 5174.1251, 5185.0479])
-
-#Load normalized order spectrum
 #wls, fls = rechellenpflat("GWOri_cf") #each has shape (51,2299)
 wls = np.load("GWOri_cf_wls.npy")
 fls = np.load("GWOri_cf_fls.npy")
@@ -60,20 +56,9 @@ sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each ord
 
 masks = np.load("masks_array.npy")
 
-#Load 3700 to 10000 ang wavelength vector
-w_full = np.load("wave_trim.npy")
-len_w = len(w_full)
-zero_flux = np.zeros_like(w_full)
-
 norder = len(wls)
 
-#Numpy array of orders I want to use, indexed to 1
-#good_orders = [i for i in range(5,18)] + [i for i in range(20,30)] + [i for i in range(31,37)] + [43,46]
-#orders = np.array(good_orders) - 1 #index to 0
-#orders = np.array([21,22,23])
 orders = np.array(config['orders'])
-#orders = np.array([23])
-#orders = np.array([21])
 
 #Truncate TRES to include only those orders
 wls = wls[orders]
@@ -81,10 +66,10 @@ fls = fls[orders]
 sigmas = sigmas[orders]
 masks = masks[orders]
 
-#load hdf5 file globally
+#load hdf5 file of PHOENIX grid globally
 LIB = h5py.File('LIB_GWOri.hdf5','r')['LIB']
 
-grid = np.load("wave_grid_2kms.npy")
+wave_grid = np.load("wave_grid_2kms.npy")
 
 def load_flux(temp,logg):
     fname="HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(temp=temp,logg=logg)
@@ -115,21 +100,16 @@ def flux_interpolator_hdf5():
             var_combos.append([temp,logg])
     num_spec = len(param_combos)
     points = np.array(var_combos)
-    fluxes = np.empty((num_spec, len(grid)))
+    fluxes = np.empty((num_spec, len(wave_grid)))
     for i in range(num_spec):
         t,l = param_combos[i]
         fluxes[i] = LIB[t,l]
     flux_intp = LinearNDInterpolator(points, fluxes, fill_value=np.nan)
+    print("Loaded HDF5 interpolator")
     return flux_intp
 
-
-    
-#    for i in range(len(ponts)):
-
-
-
 #Keep out here so memory keeps getting overwritten
-fluxes = np.empty((4, len(grid)))
+fluxes = np.empty((4, len(wave_grid)))
 def flux_interpolator_mini(temp, logg):
     '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
     #Determine T plus and minus 
@@ -328,7 +308,8 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
     #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
     return model_flux
 
-
+#Constant for all models
+ss = np.fft.fftfreq(len(wave_grid),d=2.) #2km/s spacing for wave_grid
 def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #wlsz has length norders
@@ -343,23 +324,19 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     #Loads the ENTIRE spectrum, not limited to a specific order
     f_full = flux_factor * flux(temp, logg)
 
-    #model_flux = np.zeros_like(wlsz)
     #Take FFT of f_grid
-    out = np.fft.fft(np.fft.fftshift(f_full))
-    print(out)
-    #these two will be constant for the grid
-    N = len(f_full)
-    freqs = np.fft.fftshift(np.fft.fftfreq(N,d=2.)) #2km/s spacing
-    #query spectral rotation profile
-    sb = G(freqs,vsini)
-    tout = out * sb
-    print(tout)
-    blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
-    print(blended)
-    f = interp1d(grid,blended,kind='linear')
-    fs = f(wlsz)
+    FF = np.fft.fft(np.fft.fftshift(f_full))
 
-    return fs
+    #find stellar broadening response
+    ss[0] = 0.01 #junk so we don't get a divide by zero error
+    ub = 2. * np.pi * vsini * ss
+    sb = j1(ub)/ub - 3 * np.cos(ub)/(2 * ub**2) + 3. * np.sin(ub)/(2* ub**3)
+    #Find zeroth frequency, set to zero separately
+    sb[0] = 1.
+    tout = FF * sb
+    blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
+    f = interp1d(wave_grid,blended,kind='linear') #do linear interpolation to TRES pixels
+    return f(wlsz)
 
 
 def degrade_flux(wl,w,f_full):
@@ -404,8 +381,9 @@ def lnprob(p):
         coefs = p[5:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
-
-        wlsz = shift_TRES(vz) 
+        
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms + vz)/(c_kms - vz))
 
         flsc = data(coefs_arr, wlsz, fls)
 
@@ -438,10 +416,9 @@ def find_chebyshev(wl, f, fl, sigma):
     #print(ans)
     return ans
     
-mod_flux = model(wls, 5900, 3.5, 40, 1.0)
 def main():
-    #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-28, -0.02,0.025])))
-    #mod_flux = model(wls, 5900, 3.5, 40, 1.0)
+    print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02,0.025])))
+    #mod_flux = model(wls, 5905, 3.5, 40, 1.0)
     pass
 
 if __name__=="__main__":

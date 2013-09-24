@@ -45,7 +45,7 @@ def main():
     if config['MPI']:
         from emcee.utils import MPIPool
         # Initialize the MPI-based pool used for parallelization.
-        pool = MPIPool(debug=True)
+        pool = MPIPool()
         print("Running with MPI")
 
         if not pool.is_master():
