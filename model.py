@@ -66,8 +66,6 @@ fls = fls[orders]
 sigmas = sigmas[orders]
 masks = masks[orders]
 
-#load hdf5 file of PHOENIX grid globally
-LIB = h5py.File('LIB_GWOri.hdf5','r')['LIB']
 
 wave_grid = np.load("wave_grid_2kms.npy")
 
@@ -77,21 +75,10 @@ def load_flux(temp,logg):
     f = np.load(fname)
     return f
 
-def flux_interpolator():
-    #points = np.loadtxt("param_grid_GWOri.txt")
-    points = np.loadtxt("param_grid_interp_test.txt")
-    #TODO: make this dynamic, specify param_grid dynamically too
-    len_w = 716665
-    fluxes = np.empty((len(points),len_w)) 
-    for i in range(len(points)):
-        fluxes[i] = load_flux(points[i][0],points[i][1])
-    #flux_intp = NearestNDInterpolator(points, fluxes)
-    flux_intp = LinearNDInterpolator(points, fluxes,fill_value=1.)
-    del fluxes
-    print("Loaded flux_interpolator")
-    return flux_intp
-
 def flux_interpolator_hdf5():
+    #load hdf5 file of PHOENIX grid 
+    fhdf5 = h5py.File('LIB_GWOri.hdf5','r')
+    LIB = fhdf5['LIB']
     param_combos = []
     var_combos = []
     for t,temp in enumerate(T_points):
@@ -104,40 +91,10 @@ def flux_interpolator_hdf5():
     for i in range(num_spec):
         t,l = param_combos[i]
         fluxes[i] = LIB[t,l]
-    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=np.nan)
+    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
     print("Loaded HDF5 interpolator")
+    fhdf5.close()
     return flux_intp
-
-#Keep out here so memory keeps getting overwritten
-fluxes = np.empty((4, len(wave_grid)))
-def flux_interpolator_mini(temp, logg):
-    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
-    #Determine T plus and minus 
-    #If the previous check by lnprob was correct, these should always have elements
-    #Determine logg plus and minus
-    i_Tm = np.argwhere(temp >= T_points)[-1][0]
-    Tm = T_points[i_Tm]
-    i_Tp = np.argwhere(temp < T_points)[0][0]
-    Tp = T_points[i_Tp]
-    i_lm = np.argwhere(logg >= logg_points)[-1][0]
-    lm = logg_points[i_lm]
-    i_lp = np.argwhere(logg < logg_points)[0][0]
-    lp = logg_points[i_lp]
-
-    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
-    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
-    for i in range(4):
-    #Load spectra for these points
-        #print(indexes[i])
-        fluxes[i] = LIB[indexes[i]]
-    if np.isnan(fluxes).any():
-    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
-        return zero_flux
-
-    #Interpolate spectra with LinearNDInterpolator
-    flux_intp = LinearNDInterpolator(points,fluxes)
-    new_flux = flux_intp(temp,logg)
-    return new_flux
 
 flux = flux_interpolator_hdf5()
 
@@ -331,7 +288,7 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     ss[0] = 0.01 #junk so we don't get a divide by zero error
     ub = 2. * np.pi * vsini * ss
     sb = j1(ub)/ub - 3 * np.cos(ub)/(2 * ub**2) + 3. * np.sin(ub)/(2* ub**3)
-    #Find zeroth frequency, set to zero separately
+    #set zeroth frequency to 1 separately (DC term)
     sb[0] = 1.
     tout = FF * sb
     blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
