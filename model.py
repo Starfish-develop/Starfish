@@ -95,6 +95,8 @@ def flux_interpolator_hdf5():
     flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
     print("Loaded HDF5 interpolator")
     fhdf5.close()
+    del fluxes
+    gc.collect()
     return flux_intp
 
 flux = flux_interpolator_hdf5()
