@@ -21,6 +21,23 @@ def main():
     ndim = config['ndim']
     nwalkers = config['nwalkers']
 
+    if config['MPI']:
+        from emcee.utils import MPIPool
+        # Initialize the MPI-based pool used for parallelization.
+        pool = MPIPool(debug=True)
+        print("Running with MPI")
+
+        if not pool.is_master():
+        #   Wait for instructions from the master process.
+            pool.wait()
+            sys.exit(0) #this is at the very end of the run.
+
+        # Initialize the sampler with the chosen specs.
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)
+
+    else:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=config['threads'])
+
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
     temp = np.random.uniform(low=5500, high = 6300, size=(nwalkers,))
     logg = np.random.uniform(low=3.0, high=3.7, size=(nwalkers,))
@@ -41,23 +58,6 @@ def main():
     #c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
 
     p0 = np.array([temp,logg,vsini,vz,flux_factor,c1_21,c2_21]).T#,c0_22,c1_22,c2_22,c0_23,c1_23,c2_23]).T
-
-    if config['MPI']:
-        from emcee.utils import MPIPool
-        # Initialize the MPI-based pool used for parallelization.
-        pool = MPIPool(debug=True)
-        print("Running with MPI")
-
-        if not pool.is_master():
-        #   Wait for instructions from the master process.
-            pool.wait()
-            sys.exit(0) #this is at the very end of the run.
-
-        # Initialize the sampler with the chosen specs.
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)
-
-    else:
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=config['threads'])
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])

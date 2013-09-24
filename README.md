@@ -37,11 +37,6 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * Investigate Lejune models
 * Get BT-Settl models from France Allard's website
 
-### How to bin/downsample?
-
-* np.convolve with a set of np.ones()/len(N)--> running boxcar average. However, this assumes a fixed integer width, which does not correspond to a fixed dispersion width, since there is a break at 5000 AA. However we could use different filters on either side of this break if we wanted. Is the instrumental response simply a Gaussian kernel with a width of R~48,000? (6.7 km/s)?
-* Fourier methods
-
 # TRES Data and Reduction
 
 Crop out edges from zero response
@@ -55,7 +50,7 @@ Crop out edges from zero response
 * Read in general spectra (both flux calibrated and un-flux calibrated)
 * Be able to deal with un-flux calibrated data from different instruments (ie, TRES)
 * Search TRES archive by position for all stars in proposal
-* astropy echelle reader tool
+* astropy echelle reader tool: properly reading in Chebyshev fit (for astropy) http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
 
 # Code
 
@@ -65,17 +60,17 @@ Crop out edges from zero response
 
 ## Fitting multiple orders
 
-* Fit Av
+* Fit Av, create samples at TRES grid positions
 * Constraints on individual C_x due to overlap?
 * Bascially, need an easily configurable plotting/running system to select between how many orders to run.
+* Easy way to set priors on Chebyshev coefficients
+* Easy way to initialize Chebyshev walker positions
 
 
 ## How to use memory_profiler
 Put the decorator `@profile` over the function you want to profile
 
 	python -m memory_profiler model.py
-
-
 
 
 ## Desireable plotting tools and output analysis
@@ -90,32 +85,19 @@ Put the decorator `@profile` over the function you want to profile
 
 ## Functionality improvements
 
-* Easy way to set priors on Chebyshev coefficients
-* Easy way to initialize Chebyshev walker positions
 * Better configuration files on Odyssey, launching multiple jobs at once: .yaml files.
 
 ## Potential Speedups
 
-* Pre-compute redenning curve at locations of Phoenix model or TRES (doesn't really matter, actually, since a delta v_z shift is at worst going to correspend to a fraction of an angstrom!
-* Precompute PHOENIX grid to TRES wavepoints? I think we'd still need to do an interpolation.
 * Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
-* Rewrite wechelletxt (or a derivative of rechelletxtflatnpy) to write a numpy array directly (rather than loading text files into a numpy array structure, just load this directly)
-* streamline multi-order as a vectorized operation (or rather, rewrite broadening and other operations to take place globally rather than per-order, and only leave the final downsample routine for per-order).
-* Fourier transform methods, interpolation methods, for downgrading spectra (ie, convolve with a boxcar, to do sinc interpolation)
-* Linearize the PHOENIX model to do a FFT by interpolating with zeros?
-
-## Astropy integration
-
-* properly reading in Chebyshev fit (for astropy) http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
+* Be so bold as to interpolate the Fourier transform?
 
 ## Code concerns
 
-* Pixel spacing changes at 5000 Ang in the PHOENIX model, we need to change the kernel size for the convolution. How much does the kernel actually change across an order? Maybe we can do this as an FFT convolve with the whole spectrum? Likewise, we could 
+* What does frequency response of linear interpolation do to the spectrum? How bad is it?
 
 # Method Checks and concerns 
 
-* What if we had a single long-slit spectrum, how should we do the convolution?
-* Edge effects with convolution
 * Flux interpolation errors (a systematic spectrum) (see notes + figure from 9/9/13)
 * distribution of interpolation errors (histogram)
 * Are my errors done correctly (weight by blaze?) or should weight by inverse pixel count
