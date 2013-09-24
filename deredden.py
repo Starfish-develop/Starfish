@@ -7,7 +7,8 @@
 #
 # made composite extinction curves for different Av 
 #			regimes: at higher Av, use McClure 2009 model, but at 
-#			lower Av can use the Rv = 3.1 (DISM) Mathis 1990 model
+#			lower Av can use the Rv = 3.1 (DISM) Mathis 1990 model. 
+#           the McClure 2009 model switches at Ak = 1
 #==============================================================================
 
 from astropy.io import ascii
