@@ -4,6 +4,7 @@ from scipy.integrate import trapz
 import matplotlib.pyplot as plt
 import model as m
 from scipy.special import hyp0f1,struve,j1
+import gc
 
 c_kms = 2.99792458e5 #km s^-1
 
@@ -143,6 +144,26 @@ def sinc_interpolate(wl_TRES):
 #sinc_interpolate(6610.02)
 
 
+#wave_grid = np.load("wave_grid_2kms.npy")
+ss = np.fft.fftfreq(len(grid),d=2.) #2km/s spacing for wave_grid
+ss[0] = 0.01 #junk so we don't get a divide by zero error
+def repeat_fft():
+    #Take FFT of f_grid
+    #FF = np.fft.fft(np.fft.fftshift(f_grid))
+
+    #find stellar broadening response
+    #ub = 2. * np.pi * 40. * ss
+    #sb = j1(ub)/ub - 3 * np.cos(ub)/(2 * ub**2) + 3. * np.sin(ub)/(2* ub**3)
+    #set zeroth frequency to 1 separately (DC term)
+    #sb[0] = 1.
+    #tout = FF * sb
+    #blended = np.absolute(np.fft.fftshift(np.fft.ifft(FF))) #remove tiny complex component
+    f = interp1d(grid,f_grid,kind='linear') #do linear interpolation to TRES pixels
+    flux = f(m.wls)
+    del f
+    gc.collect()
+    return flux
+
 
 
 def linear_interpolate():
@@ -179,7 +200,10 @@ def main():
     #plt.show()
     #linear_interpolate() # linear interpolate is faster, 0.041
     #grid_interp() # 0.046
-    plot_gray()
+    #plot_gray()
+    for i in range(20000):
+        print(i)
+        repeat_fft()
 
 
 if __name__=="__main__":
