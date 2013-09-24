@@ -9,6 +9,7 @@ from deredden import deredden
 from numpy.polynomial import Chebyshev as Ch
 import h5py
 import yaml
+import gc
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -293,7 +294,10 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     tout = FF * sb
     blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
     f = interp1d(wave_grid,blended,kind='linear') #do linear interpolation to TRES pixels
-    return f(wlsz)
+    result = f(wlsz)
+    del f
+    gc.collect() #necessary to prevent memory leak!
+    return result
 
 
 def degrade_flux(wl,w,f_full):
@@ -374,6 +378,8 @@ def find_chebyshev(wl, f, fl, sigma):
     return ans
     
 def main():
+    #for i in range(200):
+    #    print("Iteration", i)
     print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02,0.025])))
     #mod_flux = model(wls, 5905, 3.5, 40, 1.0)
     pass
