@@ -13,7 +13,7 @@ import multiprocessing as mp
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
-ind = (w_full > 3000.) & (w_full < 12000.)
+ind = (w_full > 3000.) & (w_full < 12000.) #this corresponds shortest U and longest z band
 w = w_full[ind]
 len_p = len(w)
 
