@@ -100,3 +100,49 @@ def downsample4(w_m,f_m,w_TRES):
             if edges_i > len_TRES:
                 break
     return out_flux
+
+
+#Keep out here so memory keeps getting overwritten
+fluxes = np.empty((4, len(wave_grid)))
+def flux_interpolator_mini(temp, logg):
+    '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg = 0.0 - 6.0, so we do not need to check that here.'''
+    #Determine T plus and minus 
+    #If the previous check by lnprob was correct, these should always have elements
+    #Determine logg plus and minus
+    i_Tm = np.argwhere(temp >= T_points)[-1][0]
+    Tm = T_points[i_Tm]
+    i_Tp = np.argwhere(temp < T_points)[0][0]
+    Tp = T_points[i_Tp]
+    i_lm = np.argwhere(logg >= logg_points)[-1][0]
+    lm = logg_points[i_lm]
+    i_lp = np.argwhere(logg < logg_points)[0][0]
+    lp = logg_points[i_lp]
+
+    indexes =[(i_Tm,i_lm),(i_Tm,i_lp),(i_Tp,i_lm),(i_Tp,i_lp)]
+    points = np.array([(Tm,lm),(Tm,lp),(Tp,lm),(Tp,lp)])
+    for i in range(4):
+    #Load spectra for these points
+        #print(indexes[i])
+        fluxes[i] = LIB[indexes[i]]
+    if np.isnan(fluxes).any():
+    #If outside the defined grid (demarcated in the hdf5 object by nan's) just return 0s
+        return zero_flux
+
+    #Interpolate spectra with LinearNDInterpolator
+    flux_intp = LinearNDInterpolator(points,fluxes)
+    new_flux = flux_intp(temp,logg)
+    return new_flux
+
+def flux_interpolator():
+    #points = np.loadtxt("param_grid_GWOri.txt")
+    points = np.loadtxt("param_grid_interp_test.txt")
+    #TODO: make this dynamic, specify param_grid dynamically too
+    len_w = 716665
+    fluxes = np.empty((len(points),len_w)) 
+    for i in range(len(points)):
+        fluxes[i] = load_flux(points[i][0],points[i][1])
+    #flux_intp = NearestNDInterpolator(points, fluxes)
+    flux_intp = LinearNDInterpolator(points, fluxes,fill_value=1.)
+    del fluxes
+    print("Loaded flux_interpolator")
+    return flux_intp
