@@ -7,17 +7,22 @@ from echelle_io import rechellenpflat
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
 import h5py
-from fft_interpolate import downsample,convolve_gauss
+#from fft_interpolate import downsample,convolve_gauss
 import multiprocessing as mp
+from numpy.fft import fft,ifft,fftfreq,fftshift,ifftshift
+from scipy.signal import hann,kaiser,boxcar
+from sinc_interpolate import Sinc_w
 
+c_kms = 2.99792458e5 #km s^-1
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
 ind = (w_full > 3000.) & (w_full < 12000.) #this corresponds shortest U and longest z band
+global w
 w = w_full[ind]
 len_p = len(w)
 
-wave_grid = np.load('wave_grid_2kms.npy')
+wave_grid = np.load('wave_grid_2.77kms.npy')
 
 L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 
@@ -287,9 +292,133 @@ def interpolate_test_logg():
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
 
-pr = point_resolver()
+
+wls = np.load("GWOri_cf_wls.npy")
+fls = np.load("GWOri_cf_fls.npy")
+
+def compare_PHOENIX_TRES_spacing():
+    fig = plt.figure(figsize=(8,4))
+    ax = fig.add_subplot(111)
+    wave_TRES = trunc_tres()
+    #index as percentage of full grid
+    #ind = (wave_grid > wave_TRES[0]) & (wave_grid < wave_TRES[-1])
+    #w_grid = wave_grid[ind]
+    #w_pixels = np.arange(0,len(w_grid),1)/len(w_grid)
+    #ax.plot(w_grid[:-1], v(w_grid[:-1],w_grid[1:]),label="Constant V")
+
+    #t_pixels = np.arange(0,len(wave_TRES),1)/len(wave_TRES)
+    #linear = np.linspace(wave_TRES[0],wave_TRES[-1])
+    #l_pixels = np.arange(0,len(linear),1)/len(linear)
+
+    ax.plot(wave_TRES[:-1], v(wave_TRES[:-1],wave_TRES[1:]),"g", label="TRES")
+    ax.axhline(2.5)
+    #ax.plot(linear[:-1], v(linear[:-1],linear[1:]),label="Linear")
+
+    ax.set_xlabel(r"$\lambda$ [\AA]")
+    ax.set_ylabel(r"$\Delta v$ [km/s]")
+    ax.legend(loc='best')
+    ax.set_ylim(2.2,2.8)
+    #plt.show()
+    fig.savefig("plots/pixel_spacing_v.png")
+
+v = lambda ls, lo: c_kms * (lo**2 - ls**2)/(ls**2 + lo**2)
+v = np.vectorize(v)
+
+def trunc_tres():
+    wl = wls[0]
+    for i in range(1,51):
+        ind = (wls[i] > wl[-1])
+        wl = np.append(wl, wls[i][ind])
+    return wl
+
+def PHOENIX_5000(temp,logg):
+    '''Interpolate the entire PHOENIX spectrum to 0.06 spacing in anticipation of sinc interpolation.'''
+    global w
+    f_full = load_flux_full(temp,logg,True)[ind]
+    #take all points longer than 5000 ang
+    ind3 = (w < 5000)
+    f_3 = f_full[ind3]
+    w_3 = w[ind3]
+    ind5 = (w >= 5000) & (w < 10000)
+    f_5 = f_full[ind5]
+    w_5 = w[ind5]
+    ind10 = (w >= 10000)
+    f_10 = f_full[ind10]
+    w_10 = w[ind10]
+    
+    #for 5000
+    N = len(f_5)
+    if N % 2 == 0:
+        print("Even")
+    else:
+        print("Odd")
+
+    out = fft(ifftshift(f_5))
+    freqs = fftfreq(N,d=0.01) # spacing, Ang
+    d = freqs[1]
+    
+    zeros_5 = np.zeros((333332,))
+
+    w_50 = ifftshift(w_5)[0] #must do this to get the zeroth wavelength
+
+    wout = ifftshift(hann(len(out))) * out
+    #since even, 
+    nyq = N/2
+    t_pack = np.concatenate((wout[:nyq+1],zeros_5,wout[nyq+1:]))
+
+    scale_factor = len(t_pack)/N
+    f_restored5 = scale_factor * fftshift(ifft(t_pack))
+    w_restored5 = fftshift(fftfreq(len(t_pack),d=d)) + w_50
+    print(w_restored5[10] - w_restored5[9])
 
 
+    #for 10000
+    N = len(f_10)
+    if N % 2 == 0:
+        print("Even")
+    else:
+        print("Odd")
+
+    out = fft(ifftshift(f_10))
+    freqs = fftfreq(N,d=0.02) # spacing, Ang
+    d = freqs[1]
+    
+    zeros_10 = np.zeros((233332,))
+
+    w_10_0 = ifftshift(w_10)[0] #must do this to get the zeroth wavelength
+
+    wout = ifftshift(hann(len(out))) * out
+    #since even, 
+    nyq = N/2
+    t_pack = np.concatenate((wout[:nyq+1],zeros_10,wout[nyq+1:]))
+
+    scale_factor = len(t_pack)/N
+    f_restored10 = scale_factor * fftshift(ifft(t_pack))
+    w_restored10 = fftshift(fftfreq(len(t_pack),d=d)) + w_10_0
+    print("Match up", w_3[-1], w_restored5[0],w_restored5[-1],w_restored10[0])
+    
+    w_all = np.concatenate((w_3,w_restored5,w_restored10))
+    f_all = np.concatenate((f_3,f_restored5,f_restored10))
+
+    np.save("w_all.npy",w_all)
+    np.save("f_all.npy",f_all)
+
+    plt.plot(w_all, f_all)
+    plt.plot(w, f_full, "r.")
+    plt.axvline(5000)
+    plt.axvline(10000)
+    plt.show()
+
+wave_grid = np.load("wave_grid_0.35kms.npy")
+def do_sinc_interp(temp,logg):
+    f_full = load_flux_full(temp,logg,True)[ind]
+    global w
+    intp = Sinc_w(w,f_full,a=5,window='kaiser')
+    f_kms = list(map(intp,wave_grid))
+    np.save("f_kms.npy",f_kms)
+    plt.plot(wave_grid, f_kms)
+    plt.show()
+    
 
 
 def main():
@@ -304,7 +433,10 @@ def main():
     #interpolate_test_temp()
     #interpolate_test_logg()
     #write_hdf5()
-    create_grid_parallel()
+    #create_grid_parallel()
+    #compare_PHOENIX_TRES_spacing()
+    #PHOENIX_5000(5900,3.5)
+    do_sinc_interp(5900,3.5)
     pass
 
 

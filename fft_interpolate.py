@@ -1,37 +1,35 @@
 import numpy as np
+import sys
 from scipy.interpolate import interp1d,UnivariateSpline,griddata
 from scipy.integrate import trapz
 import matplotlib.pyplot as plt
 import model as m
 from scipy.special import hyp0f1,struve,j1
+#import PHOENIX_tools as pt
 import gc
 
 c_kms = 2.99792458e5 #km s^-1
-
-#f_lam = pt.load_flux_full(5900,3.5)
-# pt.w_full wavelength array
-#ind = (pt.w_full > 2990.) & (pt.w_full < 10010.)
-#w = pt.w_full[ind]
-#f_lam = f_lam[ind]
-
-#intp = interp1d(pt.w, f_lam, kind="cubic")
 
 def calc_lam_grid(v=1.,start=3700.,end=10000):
     '''Returns a grid evenly spaced in velocity'''
     size = 600000 #this number just has to be bigger than the final array
     lam_grid = np.zeros((size,))
-    lam = start
     i = 0
-    lam_grid[i] = lam
-    while (lam < end) and (i < size - 1):
-        lam_new = lam * np.sqrt((c_kms + v)/(c_kms - v))
+    lam_grid[i] = start
+    vel = np.sqrt((c_kms + v)/(c_kms - v))
+    while (lam_grid[i] < end) and (i < size - 1):
+        lam_new = lam_grid[i] * vel
         i += 1
         lam_grid[i] = lam_new
-        lam = lam_new
     return lam_grid[np.nonzero(lam_grid)][:-1]
 
 #grid = calc_lam_grid(2.,start=3050.,end=11232.) #chosen to correspond to min U filter and max z filter
-#np.save('wave_grid_2kms.npy',grid)
+#wave_grid = np.load('wave_grid_2kms.npy')
+wave_grid = calc_lam_grid(0.35, start=3050., end=11232.)
+np.save('wave_grid_0.35kms.npy',wave_grid)
+#Truncate wave_grid to Dave's order
+#wave_grid = wave_grid[(wave_grid > 5122) & (wave_grid < 5218)]
+
 
 ones = np.ones((10,))
 def downsample(w_m,f_m,w_TRES):
@@ -75,36 +73,11 @@ def downsample(w_m,f_m,w_TRES):
                 break
     return out_flux
 
-#f_grid = downsample(w, f_lam, grid)
-
-#truncate to 5165 to 5190
-#ind = (w > 5165) & (w < 5190)
-#ind2 = (grid > 5165) & (grid < 5190)
-#plt.plot(w[ind],f_lam[ind])
-#plt.plot(grid[ind2], f_grid[ind2])
-#plt.show()
-
-grid = np.load("grid.npy")
-f_grid = np.load("f_grid.npy")
-#
-####Take FFT of f_grid
-#out = np.fft.fft(np.fft.fftshift(f_grid))
-#N = len(f_grid)
-#freqs = np.fft.fftfreq(N,d=2)
-#print(freqs)
-#
-#plt.plot(np.real(freqs),out)
-#plt.plot(freqs,np.imag(out))
-#plt.show()
 
 @np.vectorize
 def gauss_taper(s,sigma=2.89):
     '''This is the FT of a gaussian w/ this sigma. Sigma in km/s'''
     return np.exp(-2 * np.pi**2 * sigma*2 * s**2)
-#
-#taper = gauss_taper(freqs)
-#tout = out * taper
-#blended = np.fft.fftshift(np.fft.ifft(tout))
 
 def convolve_gauss(wl,fl,sigma=2.89,spacing=2.):
     ##Take FFT of f_grid
@@ -116,68 +89,35 @@ def convolve_gauss(wl,fl,sigma=2.89,spacing=2.):
     blended = np.fft.fftshift(np.fft.ifft(tout))
     return np.absolute(blended) #remove tiny complex component
 
-#ind = (grid > 5165) & (grid < 5190)
-#
-#plt.plot(grid[ind], f_grid[ind])
-#plt.plot(grid[ind], np.abs(blended[ind]))
+def linear_interpolate():
+    f = interp1d(wave_grid,f_grid_blend,kind='linear')
+    return f(m.wls[0])
+
+#Interpolate the raw PHOENIX spectrum to the wave_grid resolution
+#f_grid = UnivariateSpline(w_full, f_full)(wave_grid)
+#Convolve with instrumental profile
+#f_grid_blend = convolve_gauss(wave_grid, f_grid, spacing=0.7)
+
+#Downsample both to the TRES resolution
+#f_full_TRES = downsample(w_full, f_full, m.wls[0])
+
+#plt.plot(w_full, f_TRES)
+#plt.plot(wave_grid, f_grid_blend)
 #plt.show()
 
-#Now, do since interpolation to the TRES pixels on the blended spectrum
+#Frequency responses Plot
+#1) 
 
-#Take TRES pixel, call that the center of sinc, then sample it at +/- the other pixels in the grid
-def sinc_interpolate(wl_TRES):
-    ind = np.argwhere(wl_TRES > grid)[-1][0]
-    ind2 = ind + 1
-    print(grid[ind])
-    print(grid[ind2])
-    frac = (wl_TRES - grid[ind])/(grid[ind2] - grid[ind])
-    print(frac)
-    spacing = 2 #km/s
-    veloc_grid = np.arange(-48.,51,spacing) - frac * spacing
-    print(veloc_grid)
-    #convert wl spacing to velocity spacing
-    sinc_pts = 0.5 * np.sinc(0.5 * veloc_grid)
-    print(sinc_pts,trapz(sinc_pts,veloc_grid))
-    print("Interpolated flux",np.sum(sinc_pts * f_grid[ind - 25: ind + 25]))
-    print("Neighboring flux", f_grid[ind], f_grid[ind2])
+@np.vectorize
+def lanczos_kernel(x, a=2):
+    if np.abs(x) < a:
+        return np.sinc(np.pi * x) * np.sinc(np.pi * x / a)
+    else:
+        return 0.
 
-#sinc_interpolate(6610.02)
-
-
-#wave_grid = np.load("wave_grid_2kms.npy")
-ss = np.fft.fftfreq(len(grid),d=2.) #2km/s spacing for wave_grid
-ss[0] = 0.01 #junk so we don't get a divide by zero error
-def repeat_fft():
-    #Take FFT of f_grid
-    #FF = np.fft.fft(np.fft.fftshift(f_grid))
-
-    #find stellar broadening response
-    #ub = 2. * np.pi * 40. * ss
-    #sb = j1(ub)/ub - 3 * np.cos(ub)/(2 * ub**2) + 3. * np.sin(ub)/(2* ub**3)
-    #set zeroth frequency to 1 separately (DC term)
-    #sb[0] = 1.
-    #tout = FF * sb
-    #blended = np.absolute(np.fft.fftshift(np.fft.ifft(FF))) #remove tiny complex component
-    f = interp1d(grid,f_grid,kind='linear') #do linear interpolation to TRES pixels
-    flux = f(m.wls)
-    del f
-    gc.collect()
-    return flux
-
-
-
-def linear_interpolate():
-    f = interp1d(grid,blended,kind='linear')
-    return f(m.wls)
 
 def grid_interp():
     return griddata(grid,blended,m.wls,method='linear')
-
-
-#def G(s,vL,eps=0.6):
-#    k = 2. * np.pi * s * vL
-#    k2 = k**2
-#    return 1./(vL * (1 - eps/3.)) * ( 2 * (1 - eps)/np.pi * (1.5708 * vL * hyp0f1(2, -0.25 * k2) + np.exp(-0.5j * np.pi)/s * (struve(1, -k) - struve(1,k))) + eps/(np.pi * s * k2) * (np.sin(k) - k * (np.cos(k) + 0.5 * k * np.sin(k))) + eps/2.)
 
 def G(s,vL):
     '''vL in km/s. Gray pg 475'''
@@ -195,16 +135,7 @@ def plot_gray():
     plt.show()
 
 def main():
-    #plt.plot(m.wls[0],np.load("mod_flux.npy")[0])
-    #plt.plot(m.wls[0],linear_interpolate())
-    #plt.show()
-    #linear_interpolate() # linear interpolate is faster, 0.041
-    #grid_interp() # 0.046
-    #plot_gray()
-    for i in range(20000):
-        print(i)
-        repeat_fft()
-
+    pass
 
 if __name__=="__main__":
     main()
@@ -234,3 +165,24 @@ if __name__=="__main__":
 #    print("Interpolated value",np.sum(sinc_pts * flux_pts))
 #    print("Neighboring value", ys[ind], ys[ind2])
 #    return(sinc_pts,flux_pts)
+
+#Now, do since interpolation to the TRES pixels on the blended spectrum
+
+##Take TRES pixel, call that the center of sinc, then sample it at +/- the other pixels in the grid
+#def sinc_interpolate(wl_TRES):
+#    ind = np.argwhere(wl_TRES > grid)[-1][0]
+#    ind2 = ind + 1
+#    print(grid[ind])
+#    print(grid[ind2])
+#    frac = (wl_TRES - grid[ind])/(grid[ind2] - grid[ind])
+#    print(frac)
+#    spacing = 2 #km/s
+#    veloc_grid = np.arange(-48.,51,spacing) - frac * spacing
+#    print(veloc_grid)
+#    #convert wl spacing to velocity spacing
+#    sinc_pts = 0.5 * np.sinc(0.5 * veloc_grid)
+#    print(sinc_pts,trapz(sinc_pts,veloc_grid))
+#    print("Interpolated flux",np.sum(sinc_pts * f_grid[ind - 25: ind + 25]))
+#    print("Neighboring flux", f_grid[ind], f_grid[ind2])
+
+#sinc_interpolate(6610.02)

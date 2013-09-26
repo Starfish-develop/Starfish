@@ -5,7 +5,7 @@ from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq,fmin
 from scipy.special import j1
-from deredden import deredden
+from deredden import av_points
 from numpy.polynomial import Chebyshev as Ch
 import h5py
 import yaml
@@ -164,8 +164,8 @@ def gauss_kernel(dlam,V=6.8,lam0=6500.):
 
 def gauss_series(dlam,V=6.8,lam0=6500.):
     '''sampled from +/- 3sigma at dlam. V is the FWHM in km/s'''
-    sigma_l = V/(2.355 * 3e5) * 6500. #A
-    wl = karray(0., 4*sigma_l,dlam)
+    sigma_l = V/(2.355 * c_kms) * lam0 #A
+    wl = karray(0., 6*sigma_l,dlam)
     gk = gauss_kernel(wl)
     return gk/np.sum(gk)
 
@@ -270,7 +270,8 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
 
 #Constant for all models
 ss = np.fft.fftfreq(len(wave_grid),d=2.) #2km/s spacing for wave_grid
-def model(wlsz, temp, logg, vsini, flux_factor):
+av_grid = av_points(wave_grid)
+def model(wlsz, temp, logg, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`. `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
     #wlsz has length norders
 
@@ -295,11 +296,17 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     sb[0] = 1.
     tout = FF * sb
     blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
+
+    #redden spectrum
+    red = result/(Av * av_grid)
+
+    #do synthetic photometry to compare to points
+
     f = interp1d(wave_grid,blended,kind='linear') #do linear interpolation to TRES pixels
     result = f(wlsz)
     del f
     gc.collect() #necessary to prevent memory leak!
-    return result
+    return red
 
 
 def degrade_flux(wl,w,f_full):
@@ -329,19 +336,19 @@ def data(coefs_arr, wls, fls):
     flsc = np.zeros_like(fls)
     for i,coefs in enumerate(coefs_arr):
         #do this to keep constant fixed at 1
-        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        #flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
         #do this to allow tweaks to each order
-        #flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        flsc[i] = Ch(coefs,domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
 def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, flux_factor = p[:5]
+    temp, logg, vsini, vz, Av, flux_factor = p[:6]
     if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
         return -np.inf
     else:
-        coefs = p[5:]
+        coefs = p[6:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders),-1)
         
@@ -350,7 +357,7 @@ def lnprob(p):
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini, flux_factor)
+        fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
 
         chi2 = np.sum(((flsc - fs)/sigmas)**2)
         L = -0.5 * chi2
@@ -361,8 +368,8 @@ def lnprob(p):
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, flux_factor = p[:5]
-    coefs = p[5:]
+    temp, logg, vsini, vz, Av, flux_factor = p[:6]
+    coefs = p[6:]
     print(coefs)
     coefs_arr = coefs.reshape(len(orders),-1)
 
@@ -370,7 +377,7 @@ def model_and_data(p):
 
     flsc = data(coefs_arr, wlsz, fls)
 
-    fs = model(wlsz, temp, logg, vsini, flux_factor)
+    fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
     return [wlsz,flsc,fs]
 
 def find_chebyshev(wl, f, fl, sigma):

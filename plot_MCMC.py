@@ -8,7 +8,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "three/"
+subdir = "order22FFT/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -74,11 +74,11 @@ def hist_param(flatchain):
     axes[1].hist(flatchain[:,1],bins=40)#,range=(3.0,4.2)) #logg
     axes[2].hist(flatchain[:,2],bins=40,range=(40,50)) #vsini
     axes[3].hist(flatchain[:,3],bins=50,range=(25,32)) #vz
-    axes[4].hist(flatchain[:,4],bins=50,range=(0,20)) #Av
-    axes[5].hist(flatchain[:,5],bins=50,range=(-5e-27,5e-27)) #fluxfactor
+    #axes[4].hist(flatchain[:,4],bins=50,range=(0,20)) #Av
+    #axes[5].hist(flatchain[:,5],bins=50,range=(-5e-27,5e-27)) #fluxfactor
 
-    for i,ax in enumerate(axes[6:]):
-        ax.hist(flatchain[:,i+6],bins=20)
+    for i,ax in enumerate(axes[4:]):
+        ax.hist(flatchain[:,i+4],bins=20)
 
     fig.subplots_adjust(hspace=0.9,top=0.95,bottom=0.06)
     #plt.show()
@@ -311,7 +311,6 @@ def get_acor():
 
 
 print(len(flatchain))
-#hist_param(flatchain[590000:])
 hist_param(flatchain[100000:])
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
