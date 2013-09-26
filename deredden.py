@@ -22,6 +22,7 @@ A1 = data['A1'] #Mathis Law
 A2 = data['A2'] # Valid 0.3 < Ak < 1
 A3 = data['A3'] # Valid 1 < Ak < 7
 
+#what is Av_me? An arbitrary cutoff assumed by Sean?
 
 def deredden(wl, Av, thres=None, mags=True):
     '''Takes in wavelength array in angstroms. Valid between 1200 A and 1e8 A.'''
@@ -69,6 +70,13 @@ def deredden(wl, Av, thres=None, mags=True):
         return 10.**(0.4*Alambda)
 
     # to convert to flux, raise 10^(0.4 * Alambda)
+
+def av_points(wl):
+    '''call this, get grid. multiply grid by Av to get redenning at that wavelength.'''
+    AK_AV = 1/9.03
+    Alambda_func = interp1d(awl,AK_AV*A1,kind='linear')
+    return Alambda_func(wl)
+
 
 def plot_curve():
     '''To test implementation'''

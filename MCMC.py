@@ -16,6 +16,12 @@ f = open(confname)
 config = yaml.load(f)
 f.close()
 
+def generate_nuisance_params():
+    '''convenience method for generating walker starting positions for nuisance parameters'''
+    norders = len(config['orders'])
+    #determine as (norder, ncoeff) array, aka (norder, -1) then reshape as necessary
+    pass
+
 
 def main():
     ndim = config['ndim']

@@ -91,6 +91,7 @@ Put the decorator `@profile` over the function you want to profile
 
 * Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
 * Be so bold as to interpolate the Fourier transform?
+* Fine tune garbage collection (debugging?): http://docs.python.org/2/library/gc.html#gc.garbage
 
 ## Code concerns
 
@@ -124,4 +125,9 @@ Put the decorator `@profile` over the function you want to profile
 http://www2.keck.hawaii.edu/koa/public/koa.php
 
 
+# MISC
 
+* What about using PyMC: http://pymc-devs.github.io/pymc/
+* Setting up Gibbs sampling for coefficients
+* Read about index arrays: http://docs.scipy.org/doc/numpy/user/basics.indexing.html
+* Tweak Lanczos interpolator by following doc conventions of scipy.interpolate.interp1d
