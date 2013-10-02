@@ -96,6 +96,7 @@ Put the decorator `@profile` over the function you want to profile
 ## Code concerns
 
 * What does frequency response of linear interpolation do to the spectrum? How bad is it?
+* Conserve equal signal to noise per resolution element? (Or the same S/N per resolution element as before). (Deal with this when we get our data).
 
 # Method Checks and concerns 
 
@@ -104,6 +105,7 @@ Put the decorator `@profile` over the function you want to profile
 * Are my errors done correctly (weight by blaze?) or should weight by inverse pixel count
 * What is a veiling prior? Hartigan 1991
 * use student t distribution to give less weight to outliers that may be distorting the fit?
+* Try seeding random spectra (derived from models) to see if parameters are recovered at various S/N via Doppman and Jaffey, sec 4.1
 
 # Checks against real data
 
@@ -131,3 +133,5 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 * Setting up Gibbs sampling for coefficients
 * Read about index arrays: http://docs.scipy.org/doc/numpy/user/basics.indexing.html
 * Tweak Lanczos interpolator by following doc conventions of scipy.interpolate.interp1d
+* try FFTW
+* or at least write an intelligent padding routine
