@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  2 OCT 2013 18:56
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  2 OCT 2013 20:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -444,7 +444,7 @@ blpdfTeX warning (ext4): destination with the same identifier (name{Hfootnote.1
 }) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.14 \end{thebibliography}
+l.24 \end{thebibliography}
                           )
 Package atveryend Info: Empty hook `BeforeClearDocument' on input line 235.
  [6]
@@ -457,10 +457,10 @@ Package rerunfilecheck Info: File `paper.out' has not changed.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 235.
  ) 
 Here is how much of TeX's memory you used:
- 7483 strings out of 493311
- 103155 string characters out of 6143650
- 205716 words of memory out of 5000000
- 10788 multiletter control sequences out of 15000+600000
+ 7487 strings out of 493311
+ 103208 string characters out of 6143650
+ 206282 words of memory out of 5000000
+ 10791 multiletter control sequences out of 15000+600000
  18005 words of font info for 70 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
  34i,14n,28p,1349b,359s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -476,10 +476,10 @@ dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texmf-dist/fonts/type1
 usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texmf-dist/fonts/ty
 pe1/public/amsfonts/cm/cmtt10.pfb>
-Output written on paper.pdf (6 pages, 178029 bytes).
+Output written on paper.pdf (6 pages, 178868 bytes).
 PDF statistics:
- 161 PDF objects out of 1000 (max. 8388607)
- 137 compressed objects within 2 object streams
- 47 named destinations out of 1000 (max. 500000)
+ 165 PDF objects out of 1000 (max. 8388607)
+ 141 compressed objects within 2 object streams
+ 48 named destinations out of 1000 (max. 500000)
  25 words of extra memory for PDF output out of 10000 (max. 10000000)
 

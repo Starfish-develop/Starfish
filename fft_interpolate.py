@@ -1,14 +1,20 @@
 import numpy as np
-import sys
-from scipy.interpolate import interp1d,UnivariateSpline,griddata
-from scipy.integrate import trapz
+from scipy.interpolate import interp1d,InterpolatedUnivariateSpline,griddata
 import matplotlib.pyplot as plt
 import model as m
 from scipy.special import hyp0f1,struve,j1
-#import PHOENIX_tools as pt
-import gc
+import PHOENIX_tools as pt
 
 c_kms = 2.99792458e5 #km s^-1
+
+f_full = pt.load_flux_full(5900,3.5,True)
+w_full = pt.w_full
+#Truncate to Dave's order
+#ind = (w_full > 5122) & (w_full < 5218)
+ind = (w_full > 3000) & (w_full < 12000.6)
+w_full = w_full[ind]
+f_full = f_full[ind]
+
 
 def calc_lam_grid(v=1.,start=3700.,end=10000):
     '''Returns a grid evenly spaced in velocity'''
@@ -24,55 +30,13 @@ def calc_lam_grid(v=1.,start=3700.,end=10000):
     return lam_grid[np.nonzero(lam_grid)][:-1]
 
 #grid = calc_lam_grid(2.,start=3050.,end=11232.) #chosen to correspond to min U filter and max z filter
-#wave_grid = np.load('wave_grid_2kms.npy')
-wave_grid = calc_lam_grid(0.35, start=3050., end=11232.)
-np.save('wave_grid_0.35kms.npy',wave_grid)
+#wave_grid = calc_lam_grid(0.35, start=3050., end=11232.) #this spacing encapsulates the maximal velocity resolution of the PHOENIX grid, and corresponds to Delta lambda = 0.006 Ang at 5000 Ang.
+
+#np.save('wave_grid_0.35kms.npy',wave_grid)
 #Truncate wave_grid to Dave's order
-#wave_grid = wave_grid[(wave_grid > 5122) & (wave_grid < 5218)]
-
-
-ones = np.ones((10,))
-def downsample(w_m,f_m,w_TRES):
-    out_flux = np.zeros_like(w_TRES)
-    len_mod = len(w_m)
-
-    #Determine the TRES bin edges
-    len_TRES = len(w_TRES)
-    edges = np.empty((len_TRES+1,))
-    difs = np.diff(w_TRES)/2.
-    edges[1:-1] = w_TRES[:-1] + difs
-    edges[0] = w_TRES[0] - difs[0]
-    edges[-1] = w_TRES[-1] + difs[-1]
-
-    #Determine PHOENIX bin edges
-    Pedges = np.empty((len_mod+1,))
-    Pdifs = np.diff(w_m)/2.
-    Pedges[1:-1] = w_m[:-1] + Pdifs
-    Pedges[0] = w_m[0] - Pdifs[0]
-    Pedges[-1] = w_m[-1] + Pdifs[-1]
-
-    i_start = np.argwhere((edges[0] < Pedges))[0][0] - 1 #return the first starting index for the model wavelength edges array (Pedges)
-
-    edges_i = 1
-    left_weight = (Pedges[i_start + 1] - edges[0])/(Pedges[i_start + 1] - Pedges[i_start])
-
-    for i in range(len_mod+1):
-
-        if Pedges[i] > edges[edges_i]:
-            right_weight = (edges[edges_i] - Pedges[i - 1])/(Pedges[i] - Pedges[i - 1])
-            weights = ones[:(i - i_start)].copy()
-            weights[0] = left_weight
-            weights[-1] = right_weight
-
-            out_flux[edges_i - 1] = np.average(f_m[i_start:i],weights=weights)
-
-            edges_i += 1
-            i_start = i - 1
-            left_weight = 1. - right_weight
-            if edges_i > len_TRES:
-                break
-    return out_flux
-
+wave_grid = np.load('wave_grid_0.35kms.npy')[:-1]
+wave_grid = wave_grid[(wave_grid > 5165) & (wave_grid < 5190)]
+np.save('wave_grid_trunc.npy',wave_grid)
 
 @np.vectorize
 def gauss_taper(s,sigma=2.89):
@@ -83,30 +47,27 @@ def convolve_gauss(wl,fl,sigma=2.89,spacing=2.):
     ##Take FFT of f_grid
     out = np.fft.fft(np.fft.fftshift(fl))
     N = len(fl)
-    freqs = np.fft.fftfreq(N,d=spacing) #2km/s spacing
+    freqs = np.fft.fftfreq(N,d=spacing) 
     taper = gauss_taper(freqs,sigma)
     tout = out * taper
     blended = np.fft.fftshift(np.fft.ifft(tout))
     return np.absolute(blended) #remove tiny complex component
 
-def linear_interpolate():
-    f = interp1d(wave_grid,f_grid_blend,kind='linear')
-    return f(m.wls[0])
+def IUS(w,f,wl):
+    f = InterpolatedUnivariateSpline(w,f)
+    return f(wl)
 
-#Interpolate the raw PHOENIX spectrum to the wave_grid resolution
-#f_grid = UnivariateSpline(w_full, f_full)(wave_grid)
-#Convolve with instrumental profile
-#f_grid_blend = convolve_gauss(wave_grid, f_grid, spacing=0.7)
-
-#Downsample both to the TRES resolution
-#f_full_TRES = downsample(w_full, f_full, m.wls[0])
-
-#plt.plot(w_full, f_TRES)
-#plt.plot(wave_grid, f_grid_blend)
-#plt.show()
-
-#Frequency responses Plot
-#1) 
+def plot_interpolated():
+    f_grid = IUS(w_full, f_full, wave_grid)
+    np.save('f_grid.npy',f_grid)
+    print("Calculated flux_grid")
+    print("Length flux grid",len(f_grid))
+    f_grid6 = convolve_gauss(wave_grid, f_grid,spacing=0.35)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(wave_grid,f_grid)
+    #ax.plot(m.wls[0], IUS(wave_grid, f_grid6, m.wls[0]),"o")
+    plt.show()
 
 @np.vectorize
 def lanczos_kernel(x, a=2):
@@ -114,7 +75,6 @@ def lanczos_kernel(x, a=2):
         return np.sinc(np.pi * x) * np.sinc(np.pi * x / a)
     else:
         return 0.
-
 
 def grid_interp():
     return griddata(grid,blended,m.wls,method='linear')
@@ -135,6 +95,7 @@ def plot_gray():
     plt.show()
 
 def main():
+    plot_interpolated()
     pass
 
 if __name__=="__main__":

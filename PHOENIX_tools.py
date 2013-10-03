@@ -22,7 +22,7 @@ global w
 w = w_full[ind]
 len_p = len(w)
 
-wave_grid = np.load('wave_grid_2.77kms.npy')
+#wave_grid = np.load('wave_grid_2.77kms.npy')
 
 L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 
