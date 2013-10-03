@@ -1,5 +1,15 @@
-\begin{thebibliography}{2}
+\begin{thebibliography}{3}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{{Astropy Collaboration} {et~al.}(2013){Astropy Collaboration},
+  {Robitaille}, {Tollerud}, {Greenfield}, {Droettboom}, {Bray}, {Aldcroft},
+  {Davis}, {Ginsburg}, {Price-Whelan}, {Kerzendorf}, {Conley}, {Crighton},
+  {Barbary}, {Muna}, {Ferguson}, {Grollier}, {Parikh}, {Nair}, {Unther},
+  {Deil}, {Woillez}, {Conseil}, {Kramer}, {Turner}, {Singer}, {Fox}, {Weaver},
+  {Zabalza}, {Edwards}, {Azalee Bostroem}, {Burke}, {Casey}, {Crawford},
+  {Dencheva}, {Ely}, {Jenness}, {Labrie}, {Lian Lim}, {Pierfederici},
+  {Pontzen}, {Ptak}, {Refsdal}, {Servillat}, \& {Streicher}}]{art+13}
+{Astropy Collaboration} {et~al.} 2013, \aap, 558, A33
 
 \bibitem[{{Eisenstein} {et~al.}(2006){Eisenstein}, {Liebert}, {Harris},
   {Kleinman}, {Nitta}, {Silvestri}, {Anderson}, {Barentine}, {Brewington},

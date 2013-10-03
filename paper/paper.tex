@@ -170,7 +170,7 @@ The analytic multi-dimensional Gaussian integral with linear term \citep{sgd+09}
   p(\vstar | \vD) &= \int \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar) \right ) \dd \vc\\
   p(\vstar | \vD) &= \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A} \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^\trans {\bm A}^{-1} \vec{B} + g \right )}
 \end{align}
-This result means that for any given set of parameters $\vstar$, we only need to calculate $\vec{B}(\vstar)$ and $g(\vstar)$; ${\bm A}(\vD)$ can be computed once and stored for the remainder of the MCMC run.
+This result means that for any given set of parameters $\vstar$, we only need to calculate $\vec{B}(\vstar)$ and $g(\vstar)$; ${\bm A}(\vD)$ can be computed once and stored for the remainder of the MCMC run. We have also reduced the dimensionality of our posterior space from $150+$ parameters ($\sim 6$ stellar parameters plus 3 Chebyshev coefficients for each of 51 echelle orders) to $\sim 6$, which will enable more rapid convergence of the Markov chain.
 
 \subsection{Including Gaussian priors on nuisance parameters}
 In order to constrain the degree of ``re-fluxing'' to be consistent with an independent determination of the systematic error floor in flux-calibration (for example, 20\%), we can add Gaussian priors that limit the coefficient of each Chebyshev polynomial to within a percentage of no correction. For example, we might wish to limit the multiplicative linear term $c_1$ to within an amplitude of $\pm 0.2$.
@@ -213,10 +213,10 @@ The result is the posterior probability function for our stellar parameters $\vt
   p(\vstar | \vD) = \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A}^\prime \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^{\prime\trans} {\bm A}^{\prime -1} \vec{B}^\prime + g^\prime \right )} p(\vstar)
 }
 \end{equation}
-
+If we increase the permissible degree of re-fluxing by increasing $\sigma_i$, this will have the effect of smearing out or widening the posterior on a given $\vstar$.
 
 \acknowledgments
-IC would like to graciously acknowledge Gregory Green, Doug Finkbeiner, and Daniel Eisenstein for many fruitful discussions about statistics and spectroscopy. 
+IC would like to graciously acknowledge Gregory Green, Doug Finkbeiner, and Daniel Eisenstein for many fruitful discussions about statistics and spectroscopy. This research made use of Astropy, a community-developed core Python package for Astronomy \citep{art+13}.
 
 %\appendix
 %
