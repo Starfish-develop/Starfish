@@ -11,6 +11,8 @@ import h5py
 import yaml
 import gc
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
+import pyfftw
+import matplotlib.pyplot as plt
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -292,6 +294,12 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
 #Constant for all models
 ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
 av_grid = av_points(wave_grid)
+f_full = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+FF = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+blended = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+blended_real = pyfftw.n_byte_align_empty(196608, 16, "float64")
+fft_object = pyfftw.FFTW(f_full, FF)
+ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
 def model(wlsz, temp, logg, vsini, Av, flux_factor):
@@ -308,27 +316,30 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
 
     #Loads the ENTIRE spectrum, not limited to a specific order
-    f_full = flux_factor * flux(temp, logg)
+    f_full[:] = flux_factor * flux(temp, logg)
 
     #Take FFT of f_grid
-    FF = fft(f_full)
+    fft_object()
 
-    #find stellar broadening response
     ss[0] = 0.01 #junk so we don't get a divide by zero error
     ub = 2. * np.pi * vsini * ss
     sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
     #set zeroth frequency to 1 separately (DC term)
     sb[0] = 1.
-    tout = FF * sb
-    blended = np.absolute(ifft(tout)) #remove tiny complex component
 
+    FF[:] *= sb #institute velocity taper
+
+    #do ifft
+    ifft_object()
+
+    blended_real[:] = np.absolute(blended) #remove tiny complex component
 
     #redden spectrum
     #red = blended / (Av * av_grid)
     #print(red)
     #do synthetic photometry to compare to points
 
-    f = InterpolatedUnivariateSpline(wave_grid, blended)
+    f = InterpolatedUnivariateSpline(wave_grid, blended_real)
     fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels
     result = np.reshape(fresult,(norder,-1))
     del f
@@ -414,8 +425,8 @@ def main():
     #for i in range(200):
     #    print("Iteration", i)
     #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
-
-    mod_flux = model(wls, 5905, 3.5, 40, 27, 1)
+    for i in range(10):
+        model(wls, 5905, 3.5, 40, 27, 1)
     pass
 
 
