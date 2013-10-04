@@ -19,5 +19,35 @@ def test_chebyshev():
     plt.show()
 
 
-test_chebyshev()
+#test_chebyshev()
+
+
+xs = np.arange(2299)
+T0 = np.ones_like(xs)
+
+Ch1 = Ch([0,1], domain=[0,2298])
+T1 = Ch1(xs)
+
+Ch2 = Ch([0,0,1],domain=[0,2298])
+T2 = Ch2(xs)
+
+Ch3 = Ch([0,0,0,1],domain=[0,2298])
+T3 = Ch3(xs)
+
+T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
+TT = np.einsum("in,jn->ijn",T,T)
+
+wls = np.load("GWOri_cf_wls.npy")[22]
+fls = np.load("GWOri_cf_fls.npy")[22]
+
+sigmas = np.load("sigmas.npy")[22] #has shape (51, 2299), a sigma array for each order
+
+all = TT*wls*fls
+A = np.sum(all,axis=-1)
+
+#plt.plot(xs,T0)
+#plt.plot(xs,T1)
+#plt.plot(xs,T2)
+#plt.plot(xs,T3)
+#plt.show()
 

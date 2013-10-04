@@ -6,7 +6,7 @@ orders : [22]
 # MCMC parameters
 ndim : 7
 nwalkers : 128
-burn_in : 2000
+burn_in : 4000
 iterations : 2000
 MPI : True
 threads : 4
