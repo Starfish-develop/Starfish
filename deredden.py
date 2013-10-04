@@ -28,37 +28,37 @@ def deredden(wl, Av, thres=None, mags=True):
     '''Takes in wavelength array in angstroms. Valid between 1200 A and 1e8 A.'''
     #- thresholds for different extinction curve regimes
     if thres is not None:
-        Av_lo = thresh 
+        Av_lo = thresh
     else:
         Av_lo = 0.0
 
     Av_me = 2.325 #McClure 2009 threshold: AK = 0.3
 
     if (Av_lo >= Av_me):
-        Av_lo = 0.0	
+        Av_lo = 0.0
 
     Av_hi = 7.75 #McClure 2009 threshold: AK = 1.0
 
     if (Av >= Av_hi):
-      AA   = A3
-      AvAk = 7.75
+        AA = A3
+        AvAk = 7.75
 
     if (Av >= Av_me) and (Av < Av_hi):
-      AA   = A2
-      AvAk = 7.75
+        AA = A2
+        AvAk = 7.75
 
     if (Av >= Av_lo) and (Av < Av_me):
-      AA   = A2
-      AvAk = 7.75
+        AA = A2
+        AvAk = 7.75
 
     if (Av < Av_lo):
-      AA   = A1
-      AvAk = 9.03
+        AA = A1
+        AvAk = 9.03
 
-    AK_AV = 1./AvAk
+    AK_AV = 1. / AvAk
 
     #interpolate extinction curve onto input wavelength grid
-    Alambda_func = interp1d(awl,Av*AK_AV*AA)
+    Alambda_func = interp1d(awl, Av * AK_AV * AA)
     Alambda = Alambda_func(wl)
 
     # - return the extinction at input wavelengths
@@ -67,14 +67,15 @@ def deredden(wl, Av, thres=None, mags=True):
     if mags:
         return Alambda
     else:
-        return 10.**(0.4*Alambda)
+        return 10. ** (0.4 * Alambda)
 
-    # to convert to flux, raise 10^(0.4 * Alambda)
+        # to convert to flux, raise 10^(0.4 * Alambda)
+
 
 def av_points(wl):
     '''call this, get grid. multiply grid by Av to get redenning at that wavelength.'''
-    AK_AV = 1/9.03
-    Alambda_func = interp1d(awl,AK_AV*A1,kind='linear')
+    AK_AV = 1 / 9.03
+    Alambda_func = interp1d(awl, AK_AV * A1, kind='linear')
     return Alambda_func(wl)
 
 
@@ -82,10 +83,10 @@ def plot_curve():
     '''To test implementation'''
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    wl = np.linspace(1.3e3,1e4,num=300)
-    ax.plot(wl,deredden(wl,.2,mags=False))
-    ax.plot(wl,deredden(wl,1.0,mags=False))
-    ax.plot(wl,deredden(wl,2.0,mags=False))
+    wl = np.linspace(1.3e3, 1e4, num=300)
+    ax.plot(wl, deredden(wl, .2, mags=False))
+    ax.plot(wl, deredden(wl, 1.0, mags=False))
+    ax.plot(wl, deredden(wl, 2.0, mags=False))
     ax.set_xlabel(r"$\lambda\quad[\AA]$")
     ax.set_ylabel(r"$A_\lambda$")
     plt.show()
@@ -96,5 +97,5 @@ def main():
     pass
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
