@@ -378,10 +378,20 @@ def data(coefs_arr, wls, fls):
     flsc = np.zeros_like(fls)
     for i, coefs in enumerate(coefs_arr):
         #do this to keep constant fixed at 1
-        #flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
         #do this to allow tweaks to each order
-        flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
+        #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
     return flsc
+
+def calc_A(xs,n_c):
+    '''Given a pixel array and number of Chebyshev coefficients, calculate the A matrix'''
+    #For each x in xs,
+    pass
+
+
+def marg_data():
+    '''Do the same thing as `data` function before, but now analytically marginalize over nuisance coefficients.'''
+    pass
 
 
 def lnprob(p):
@@ -427,7 +437,10 @@ def model_and_data(p):
 def main():
     #for i in range(200):
     #    print("Iteration", i)
-    #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
+    print(flux(7005,6.1))
+    print(model(wls,7005,6.1,40,1e-27))
+    print(lnprob(np.array([7005, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
+    print(lnprob(np.array([5905, 3.5, 40, 27, 1e-27, -0.02, 0.025])))
 
     pass
 
