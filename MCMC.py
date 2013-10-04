@@ -16,6 +16,7 @@ f = open(confname)
 config = yaml.load(f)
 f.close()
 
+
 def generate_nuisance_params():
     '''convenience method for generating walker starting positions for nuisance parameters'''
     norders = len(config['orders'])
@@ -39,23 +40,23 @@ def main():
             sys.exit(0) #this is at the very end of the run.
 
         # Initialize the sampler with the chosen specs.
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,pool=pool)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, pool=pool)
 
     else:
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,threads=config['threads'])
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=config['threads'])
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-    temp = np.random.uniform(low=5500, high = 6300, size=(nwalkers,))
+    temp = np.random.uniform(low=5500, high=6300, size=(nwalkers,))
     logg = np.random.uniform(low=3.0, high=3.7, size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
-    vsini = np.random.uniform(low=35, high = 55, size=(nwalkers,))
-    vz = np.random.uniform(low=27, high = 29.5, size=(nwalkers,))
+    vsini = np.random.uniform(low=35, high=55, size=(nwalkers,))
+    vz = np.random.uniform(low=27, high=29.5, size=(nwalkers,))
     #Av = np.random.uniform(low=1, high = 5, size=(nwalkers,))
-    flux_factor = np.random.uniform(low=1.e-28, high = 1.e-27, size=(nwalkers,))
+    flux_factor = np.random.uniform(low=1.e-28, high=1.e-27, size=(nwalkers,))
     #c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
-    c1_21 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c2_21 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c1_21 = np.random.uniform(low=-0.1, high=0.1, size=(nwalkers,))
+    c2_21 = np.random.uniform(low=-0.1, high=0.1, size=(nwalkers,))
     #c0_22 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
     #c1_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c2_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
@@ -63,7 +64,7 @@ def main():
     #c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
 
-    p0 = np.array([temp,logg,vsini,vz,flux_factor,c1_21,c2_21]).T#,c0_22,c1_22,c2_22,c0_23,c1_23,c2_23]).T
+    p0 = np.array([temp, logg, vsini, vz, flux_factor, c1_21, c2_21]).T#,c0_22,c1_22,c2_22,c0_23,c1_23,c2_23]).T
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
@@ -96,5 +97,6 @@ def main():
     #write lnprob to file
     np.save("output/lnprobchain.npy", sampler.lnprobability)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

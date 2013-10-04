@@ -6,7 +6,7 @@ import numpy as np
 
 #Create a giant fake block of data
 
-shape = (180,500,1000)
+shape = (180, 500, 1000)
 
 #@profile
 def create_shared_data():
@@ -19,23 +19,27 @@ def create_shared_data():
     return shared_array
 
 #@profile
-def create_data(): 
+def create_data():
     data = np.random.normal(size=shape)
     print("Created data")
     return data
+
 
 data = create_shared_data()
 #data = create_data()
 N = 1028
 
+
 def process_function(prefactor):#, data = data):
     print("Processing %s" % prefactor)
     return np.sum(prefactor * data)
+
 
 def process_serial():
     print("Processing serial")
     results = list(map(process_function, np.arange(N)))
     return results
+
 
 def process_parallel(pool):
     print("Processing parallel")
@@ -53,6 +57,7 @@ def main():
     process_parallel(pool)
     pass
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
 
