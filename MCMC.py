@@ -11,7 +11,7 @@ import sys
 from model import lnprob
 import yaml
 
-confname = sys.argv[1]
+confname = 'config.yaml' #sys.argv[1]
 f = open(confname)
 config = yaml.load(f)
 f.close()
