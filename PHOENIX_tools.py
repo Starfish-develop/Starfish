@@ -14,7 +14,7 @@ c_kms = 2.99792458e5 #km s^-1
 wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
-ind = (w_full > 3000.) & (w_full < 12000.) #this corresponds to some extra space around the
+ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
 # shortest U and longest z band
 global w
 w = w_full[ind]
@@ -66,12 +66,14 @@ def create_wave_grid(v=1., start=3700., end=10000):
     return lam_grid[np.nonzero(lam_grid)][:-1]
 
 def create_fine_and_coarse_wave_grid():
-    wave_grid_fine = create_wave_grid(0.35, start=3050., end=11232.1)
-    wave_grid_coarse = create_wave_grid(2., start=3050., end=11232.1)
-    np.save('wave_grid_0.35kms.npy',wave_grid_fine)
+    wave_grid_coarse = create_wave_grid(2., start=3050., end=11322.2) #chosen for 3 * 2**16 = 196608
+    wave_grid_fine = create_wave_grid(0.35, start=3050., end=12089.65) # chosen for 9 * 2 **17 = 1179648
+
     np.save('wave_grid_2kms.npy',wave_grid_coarse)
-    print(len(wave_grid_fine))
+    np.save('wave_grid_0.35kms.npy',wave_grid_fine)
     print(len(wave_grid_coarse))
+    print(len(wave_grid_fine))
+
 
 def point_resolver():
     '''Resolves a continous query in temp, logg to the nearest parameter combo in the PHOENIX grid. All available
@@ -197,13 +199,11 @@ def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
     #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline
     interp_P = InterpolatedUnivariateSpline(w,f)
     f_grid = interp_P(wg_fine)
-    print("Resampled to 0.35km/s grid")
 
     #Fourier Transform
     out = fft(f_grid)
     #The frequencies (cycles/km) corresponding to each point
     freqs = fftfreq(len(f_grid), d=wg_fine_d)
-    print("Completed FFT")
 
     #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space (corresponding to FWHM 6.8km/s)
     taper = np.exp(-2 * np.pi ** 2 * sigma * 2 * freqs ** 2)
@@ -212,17 +212,15 @@ def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
     #Take the broadened spectrum back to wavelength space
     f_grid6 = ifft(tout)
     print("Total of imaginary components", np.sum(np.abs(np.imag(f_grid6))))
-    print("Reverted back to f_grid6")
 
     #Resample the broadened spectrum to a uniform coarse grid
     interp_6 = InterpolatedUnivariateSpline(wg_fine,np.abs(f_grid6))
     f_grid6_coarse = interp_6(wg_coarse)
-    print("Interpolated to coarse_grid")
 
     return f_grid6_coarse
 
 
-def create_grid_parallel():
+def create_grid_parallel(ncores):
     '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists,
     write it. If not, write nan.'''
     f = h5py.File("LIB_2kms.hdf5", "w")
@@ -230,7 +228,7 @@ def create_grid_parallel():
     dset = f.create_dataset("LIB", shape, dtype="f")
 
     # A thread pool of P processes
-    pool = mp.Pool(10)
+    pool = mp.Pool(ncores)
 
     param_combos = []
     var_combos = []
@@ -505,7 +503,7 @@ def main():
     #PHOENIX_5000(5900,3.5)
     #@do_sinc_interp(5900, 3.5)
     #create_fine_and_coarse_wave_grid()
-    create_grid_parallel()
+    create_grid_parallel(4)
     pass
 
 

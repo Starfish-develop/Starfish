@@ -1,6 +1,6 @@
 import numpy as np
 from echelle_io import rechellenpflat, load_masks
-from scipy.interpolate import interp1d, LinearNDInterpolator
+from scipy.interpolate import interp1d, LinearNDInterpolator,InterpolatedUnivariateSpline
 from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
 from scipy.optimize import leastsq, fmin
@@ -10,6 +10,7 @@ from numpy.polynomial import Chebyshev as Ch
 import h5py
 import yaml
 import gc
+from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -61,9 +62,8 @@ sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each ord
 
 masks = np.load("masks_array.npy")
 
-norder = len(wls)
-
 orders = np.array(config['orders'])
+norder = len(orders)
 
 #Truncate TRES to include only those orders
 wls = wls[orders]
@@ -85,7 +85,7 @@ def load_flux(temp, logg):
 
 def flux_interpolator_hdf5():
     #load hdf5 file of PHOENIX grid 
-    fhdf5 = h5py.File('LIB_GWOri.hdf5', 'r')
+    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
     LIB = fhdf5['LIB']
     param_combos = []
     var_combos = []
@@ -311,7 +311,7 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     f_full = flux_factor * flux(temp, logg)
 
     #Take FFT of f_grid
-    FF = np.fft.fft(np.fft.fftshift(f_full))
+    FF = fft(f_full)
 
     #find stellar broadening response
     ss[0] = 0.01 #junk so we don't get a divide by zero error
@@ -320,18 +320,20 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     #set zeroth frequency to 1 separately (DC term)
     sb[0] = 1.
     tout = FF * sb
-    blended = np.absolute(np.fft.fftshift(np.fft.ifft(tout))) #remove tiny complex component
+    blended = np.absolute(ifft(tout)) #remove tiny complex component
+
 
     #redden spectrum
-    red = result / (Av * av_grid)
-
+    #red = blended / (Av * av_grid)
+    #print(red)
     #do synthetic photometry to compare to points
 
-    f = interp1d(wave_grid, blended, kind='linear') #do linear interpolation to TRES pixels
-    result = f(wlsz)
+    f = InterpolatedUnivariateSpline(wave_grid, blended)
+    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels
+    result = np.reshape(fresult,(norder,-1))
     del f
     gc.collect() #necessary to prevent memory leak!
-    return red
+    return result
 
 
 def degrade_flux(wl, w, f_full):
@@ -408,19 +410,12 @@ def model_and_data(p):
     fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
     return [wlsz, flsc, fs]
 
-
-def find_chebyshev(wl, f, fl, sigma):
-    func = lambda p: chi(f * Ch(p, domain=[wl[0], wl[-1]])(wl), fl, sigma)
-    ans = leastsq(func, np.zeros((10,)))[0]
-    #print(ans)
-    return ans
-
-
 def main():
     #for i in range(200):
     #    print("Iteration", i)
-    print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
-    #mod_flux = model(wls, 5905, 3.5, 40, 1.0)
+    #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
+
+    mod_flux = model(wls, 5905, 3.5, 40, 27, 1)
     pass
 
 
