@@ -8,7 +8,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "order22FFT/"
+subdir = "order23FFT/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -24,44 +24,6 @@ nparams = flatchain.shape[1]
 
 #Load normalized order spectrum
 #wls, fls = rechellenpflat("GWOri_cf")
-
-def plot_2d_all():
-    A_grid = np.load("A.npy")
-    B_grid = np.load("B.npy")
-    L = np.load("L.npy")
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    CS = ax.contour(A_grid, B_grid, L)
-    ax.clabel(CS, inline=1, fontsize=10, fmt='%2.0f')
-    ax.plot(dataa['a'], dataa['b'], 'b', lw=0.2)
-    ax.plot(dataa['a'], dataa['b'], "bo", label="A")
-    ax.plot(datab['a'], datab['b'], 'g', lw=0.2)
-    ax.plot(datab['a'], datab['b'], "go", label="B")
-    ax.plot(datac['a'], datac['b'], 'r', lw=0.2)
-    ax.plot(datac['a'], datac['b'], "ro", label="C")
-    ax.set_xlabel("a")
-    ax.set_ylabel("b")
-    ax.legend(loc="lower right")
-    fig.savefig("2d_all.eps")
-
-
-def calc_mean_and_sigma(data):
-    burn_in = 10000
-    mean_m = np.mean(data["m"][burn_in:])
-    mean_b = np.mean(data["b"][burn_in:])
-    mean_P = np.mean(data["Pb"][burn_in:])
-    mean_Y = np.mean(data["Yb"][burn_in:])
-    mean_V = np.mean(data["Vb"][burn_in:])
-    sigma_m = np.std(data["m"][burn_in:])
-    sigma_b = np.std(data["b"][burn_in:])
-
-    print("m = %.3f +- %.3f" % (mean_m, sigma_m))
-    print("b = %.3f +- %.3f" % (mean_b, sigma_b))
-    print(mean_P, mean_Y, mean_V)
-    print("Acceptance Ratio %.2f" % (
-    len(np.where(data['accept'][burn_in:] == 'True')[0]) / len(data['accept'][burn_in:])), )
-    return (mean_m, mean_b)
-
 
 T_points = np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
@@ -332,7 +294,7 @@ def get_acor():
 
 
 print(len(flatchain))
-hist_param(flatchain[100000:])
+hist_param(flatchain)
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
