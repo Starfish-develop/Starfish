@@ -92,6 +92,7 @@ Put the decorator `@profile` over the function you want to profile
 * Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
 * Be so bold as to interpolate the Fourier transform?
 * Fine tune garbage collection (debugging?): http://docs.python.org/2/library/gc.html#gc.garbage
+* Option to limit range of data FFT'ing or loading (via interpolator?) when doing less than all the orders. Option to flux-interpolator?
 
 ## Code concerns
 
