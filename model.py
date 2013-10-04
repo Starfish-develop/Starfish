@@ -11,8 +11,7 @@ import h5py
 import yaml
 import gc
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
-import pyfftw
-import matplotlib.pyplot as plt
+#import pyfftw
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -294,15 +293,15 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
 #Constant for all models
 ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
 av_grid = av_points(wave_grid)
-f_full = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-FF = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-blended = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-blended_real = pyfftw.n_byte_align_empty(196608, 16, "float64")
-fft_object = pyfftw.FFTW(f_full, FF)
-ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
+#f_full = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+#FF = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+#blended = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
+#blended_real = pyfftw.n_byte_align_empty(196608, 16, "float64")
+#fft_object = pyfftw.FFTW(f_full, FF)
+#ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, vsini, Av, flux_factor):
+def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -316,10 +315,12 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
 
     #Loads the ENTIRE spectrum, not limited to a specific order
-    f_full[:] = flux_factor * flux(temp, logg)
+    #f_full[:] = flux_factor * flux(temp, logg)
+    f_full = flux_factor * flux(temp, logg)
 
     #Take FFT of f_grid
-    fft_object()
+    FF = fft(f_full)
+    #fft_object()
 
     ss[0] = 0.01 #junk so we don't get a divide by zero error
     ub = 2. * np.pi * vsini * ss
@@ -327,12 +328,14 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     #set zeroth frequency to 1 separately (DC term)
     sb[0] = 1.
 
-    FF[:] *= sb #institute velocity taper
+    #FF[:] *= sb #institute velocity taper
+    FF *= sb
 
     #do ifft
-    ifft_object()
+    #ifft_object()
+    blended_real = np.abs(ifft(FF))
 
-    blended_real[:] = np.absolute(blended) #remove tiny complex component
+    #blended_real[:] = np.absolute(blended) #remove tiny complex component
 
     #redden spectrum
     #red = blended / (Av * av_grid)
@@ -384,11 +387,11 @@ def data(coefs_arr, wls, fls):
 def lnprob(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, Av, flux_factor = p[:6]
+    temp, logg, vsini, vz, flux_factor = p[:5]
     if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
         return -np.inf
     else:
-        coefs = p[6:]
+        coefs = p[5:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders), -1)
 
@@ -397,7 +400,7 @@ def lnprob(p):
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
+        fs = model(wlsz, temp, logg, vsini, flux_factor)
 
         chi2 = np.sum(((flsc - fs) / sigmas) ** 2)
         L = -0.5 * chi2
@@ -425,8 +428,7 @@ def main():
     #for i in range(200):
     #    print("Iteration", i)
     #print(lnprob(np.array([5905, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
-    for i in range(10):
-        model(wls, 5905, 3.5, 40, 27, 1)
+
     pass
 
 
