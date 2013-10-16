@@ -4,44 +4,44 @@ The top-level auxiliary file: paper.aux
 The style file: hapj.bst
 Database file #1: disks.bib
 Reallocated wiz_functions (elt_size=8) to 6000 items from 3000.
-You've used 3 entries,
+You've used 9 entries,
             3002 wiz_defined-function locations,
-            672 strings with 6115 characters,
-and the built_in function-call counts, 2976 in all, are:
-= -- 217
-> -- 342
-< -- 0
-+ -- 134
-- -- 131
-* -- 326
-:= -- 568
-add.period$ -- 3
-call.type$ -- 3
-change.case$ -- 76
-chr.to.int$ -- 3
-cite$ -- 3
-duplicate$ -- 57
-empty$ -- 95
-format.name$ -- 140
-if$ -- 526
+            710 strings with 7628 characters,
+and the built_in function-call counts, 6598 in all, are:
+= -- 508
+> -- 676
+< -- 2
++ -- 258
+- -- 249
+* -- 674
+:= -- 1255
+add.period$ -- 9
+call.type$ -- 9
+change.case$ -- 150
+chr.to.int$ -- 9
+cite$ -- 9
+duplicate$ -- 174
+empty$ -- 257
+format.name$ -- 280
+if$ -- 1200
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 3
-newline$ -- 13
-num.names$ -- 12
-pop$ -- 80
+missing$ -- 8
+newline$ -- 31
+num.names$ -- 36
+pop$ -- 160
 preamble$ -- 1
-purify$ -- 76
+purify$ -- 149
 quote$ -- 0
-skip$ -- 48
+skip$ -- 133
 stack$ -- 0
-substring$ -- 50
+substring$ -- 155
 swap$ -- 0
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 24
+type$ -- 78
 warning$ -- 0
-while$ -- 9
+while$ -- 30
 width$ -- 0
-write$ -- 34
+write$ -- 96

@@ -1,5 +1,11 @@
-\begin{thebibliography}{3}
+\begin{thebibliography}{9}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{{Akeret} {et~al.}(2013){Akeret}, {Seehars}, {Amara}, {Refregier}, \&
+  {Csillaghy}}]{asa+13}
+{Akeret}, J., {Seehars}, S., {Amara}, A., {Refregier}, A., \& {Csillaghy}, A.
+  2013, {CosmoHammer: Cosmological parameter estimation with the MCMC Hammer},
+  1212.1721, astrophysics Source Code Library
 
 \bibitem[{{Astropy Collaboration} {et~al.}(2013){Astropy Collaboration},
   {Robitaille}, {Tollerud}, {Greenfield}, {Droettboom}, {Bray}, {Aldcroft},
@@ -11,14 +17,38 @@
   {Pontzen}, {Ptak}, {Refsdal}, {Servillat}, \& {Streicher}}]{art+13}
 {Astropy Collaboration} {et~al.} 2013, \aap, 558, A33
 
+\bibitem[{{Buchhave} {et~al.}(2012){Buchhave}, {Latham}, {Johansen},
+  {Bizzarro}, {Torres}, {Rowe}, {Batalha}, {Borucki}, {Brugamyer}, {Caldwell},
+  {Bryson}, {Ciardi}, {Cochran}, {Endl}, {Esquerdo}, {Ford}, {Geary},
+  {Gilliland}, {Hansen}, {Isaacson}, {Laird}, {Lucas}, {Marcy}, {Morse},
+  {Robertson}, {Shporer}, {Stefanik}, {Still}, \& {Quinn}}]{blj+12}
+{Buchhave}, L.~A. {et~al.} 2012, \nat, 486, 375
+
 \bibitem[{{Eisenstein} {et~al.}(2006){Eisenstein}, {Liebert}, {Harris},
   {Kleinman}, {Nitta}, {Silvestri}, {Anderson}, {Barentine}, {Brewington},
   {Brinkmann}, {Harvanek}, {Krzesi{\'n}ski}, {Neilsen}, {Long}, {Schneider}, \&
   {Snedden}}]{elh+06}
 {Eisenstein}, D.~J. {et~al.} 2006, \apjs, 167, 40, arXiv:astro-ph/0606700
 
+\bibitem[{{Foreman-Mackey} {et~al.}(2012){Foreman-Mackey}, {Hogg}, {Lang}, \&
+  {Goodman}}]{fhl+12}
+{Foreman-Mackey}, D., {Hogg}, D.~W., {Lang}, D., \& {Goodman}, J. 2012, ArXiv
+  e-prints, 1202.3665
+
+\bibitem[{Goodman \& Weare(2010)}]{gw10}
+Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
+  Computational Science, 5, 65
+
 \bibitem[{Stoof {et~al.}(2009)Stoof, Gubbels, \& Dickerscheid}]{sgd+09}
 Stoof, H.~T., Gubbels, K.~B., \& Dickerscheid, D.~B. 2009, {Ultracold quantum
   fields} (Springer)
+
+\bibitem[{{Torres} {et~al.}(2012){Torres}, {Fischer}, {Sozzetti}, {Buchhave},
+  {Winn}, {Holman}, \& {Carter}}]{tfs+12}
+{Torres}, G., {Fischer}, D.~A., {Sozzetti}, A., {Buchhave}, L.~A., {Winn},
+  J.~N., {Holman}, M.~J., \& {Carter}, J.~A. 2012, \apj, 757, 161, 1208.1268
+
+\bibitem[{{Valenti} \& {Piskunov}(1996)}]{vp96}
+{Valenti}, J.~A., \& {Piskunov}, N. 1996, \aaps, 118, 595
 
 \end{thebibliography}

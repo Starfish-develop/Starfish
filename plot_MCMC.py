@@ -266,6 +266,68 @@ def staircase_plot_thesis(flatchain):
     #plt.show()
     fig.savefig("plots/staircase.eps")
 
+def staircase_plot_proposal(flatchain):
+    '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Plot only the T_eff vs. log g'''
+
+
+    #Do a 2D histogram, get values
+    #Set a standard deviation, encloses 63%, 97, 99 or whatever.
+
+    margin = 0.1
+    bins = [np.linspace(5800, 6200, num=30), np.linspace(3.20, 3.85, num=30)] #left most edges of bins except [-1], which is right edge
+    margin = 0.05
+
+    fig = plt.figure(figsize=(6.5, 6.5))
+
+    H = np.histogramdd(flatchain[:,0:2],bins=bins)
+    H_mod = H[0] #2D array with hist on bins
+    Hshape = H_mod.shape
+
+    #flatten array
+    H_flat = H_mod.flatten()
+
+    #do argsort, cumsum, find values
+    args = np.argsort(H_flat)[::-1]
+    iargs = np.argsort(args)
+
+    print(args)
+
+    H_sort = H_flat[args] #this array is ranked from highest pixel to lowest pixel
+    stdvs = np.cumsum(H_sort)/np.sum(H_sort) #the array so we go outwards from the most dense point to the least, and normalize
+
+    print(stdvs)
+
+    sig_bounds = np.array([0.6827, 0.9545 , 0.9973])
+
+    #find all values where stdvs < sig_bounds
+    sig_1 = stdvs <= sig_bounds[0] #darkest color
+    sig_2 = (stdvs > sig_bounds[0]) & (stdvs <= sig_bounds[1])
+    sig_3 = (stdvs > sig_bounds[1]) & (stdvs <= sig_bounds[2])
+    sig_4 = (stdvs > sig_bounds[2]) #lightest color or white
+    print(sig_1,sig_2,sig_3,sig_4)
+
+    colors = np.array([(215, 48, 31),(252, 141, 89),(253, 204, 138),(254, 240, 217)])/256. #goes from darkest to lightest
+    #colors = np.array([(43,140,190),(166,189,219),(236,231,242),(256,256,256)])/256.
+    #colors = np.array([(227, 74, 51),(253, 187, 132),(254, 232, 200),(256, 256, 256)])/256. #goes from darkest to lightest
+
+    H_plot = np.empty((len(H_sort),3))
+
+    H_plot[sig_1[iargs]] = colors[0]
+    H_plot[sig_2[iargs]] = colors[1]
+    H_plot[sig_3[iargs]] = colors[2]
+    H_plot[sig_4[iargs]] = colors[3]
+
+    H_plot = H_plot.reshape(np.append(Hshape,3))
+
+    ax = fig.add_subplot(111)
+    ax.imshow(H_plot,origin='lower',extent=[bins[0][0],bins[0][-1],bins[1][0],bins[1][-1]],aspect='auto',interpolation='none')
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_xlabel(r"$T_{\rm eff}$")
+    ax.set_ylabel(r"$\log g$")
+
+
+    #plt.show()
+    fig.savefig("plots/staircase_mini.eps")
 
 def test_hist():
     bins = np.array([5350, 5450, 5550, 5650, 5750, 5850, 5950, 6050, 6150, 6250, 6350, 6450])
@@ -293,13 +355,14 @@ def get_acor():
         print(acor.acor(chain[:, :, param]))
 
 
-print(len(flatchain))
-hist_param(flatchain)
+#print(len(flatchain))
+#hist_param(flatchain)
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
 #draw_chebyshev_samples()
 #staircase_plot_thesis(flatchain[590000:])
+staircase_plot_proposal(flatchain)
 #test_hist()
 #plot_walker_position()
 #get_acor()

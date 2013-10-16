@@ -393,8 +393,57 @@ def marg_data():
     '''Do the same thing as `data` function before, but now analytically marginalize over nuisance coefficients.'''
     pass
 
+#Make this automatically detected
+xs = np.arange(2299)
+T0 = np.ones_like(xs)
+Ch1 = Ch([0,1], domain=[0,2298])
+T1 = Ch1(xs)
+Ch2 = Ch([0,0,1],domain=[0,2298])
+T2 = Ch2(xs)
+Ch3 = Ch([0,0,0,1],domain=[0,2298])
+T3 = Ch3(xs)
+T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
+T = np.array([T0])
+TT = np.einsum("in,jn->ijn",T,T)
+mu = np.array([1,0,0,0])
+sigmac = 0.2
+D = sigmac**(-2) * np.eye(4)
+Dmu = np.einsum("ij,j->j",D,mu)
+muDmu = np.einsum("j,j->",mu,Dmu)
 
 def lnprob(p):
+    '''New lnprob, no nuisance coeffs'''
+    temp, logg, vsini, vz, flux_factor = p
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
+        return -np.inf
+    else:
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        fmods = model(wlsz, temp, logg, vsini, flux_factor)
+
+        a= fmods**2/sigmas**2
+        A = np.einsum("in,jkn->ijk",a,TT)
+        Ap = A + D
+        detA = np.array(list(map(np.linalg.det, Ap)))
+        invA = np.array(list(map(np.linalg.inv, Ap)))
+
+        b = fmods * fls / sigmas**2
+        B = np.einsum("in,jn->ij",b,T)
+        Bp = B + Dmu
+
+        g = -0.5 * fls**2/sigmas**2
+        G = np.einsum("ij->i",g)
+        Gp = G - 0.5 * muDmu
+
+        invAB = np.einsum("ijk,ik->ij",invA,Bp)
+        BAB = np.einsum("ij,ij->i",Bp,invAB)
+
+        lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp)
+
+        return lnp
+
+
+def lnprob_old(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
     temp, logg, vsini, vz, flux_factor = p[:5]
@@ -437,10 +486,15 @@ def model_and_data(p):
 def main():
     #for i in range(200):
     #    print("Iteration", i)
-    print(flux(7005,6.1))
-    print(model(wls,7005,6.1,40,1e-27))
-    print(lnprob(np.array([7005, 3.5, 45, 27, 1e-27, -0.02, 0.025])))
-    print(lnprob(np.array([5905, 3.5, 40, 27, 1e-27, -0.02, 0.025])))
+    #print(flux(7005,6.1))
+    #print(model(wls,7005,6.1,40,1e-27))
+    #print(lnprob_old(np.array([5905, 3.5, 40, 27, 2e-27, 0, 0])))
+    F = 2.52e-27
+    #print(lnprob(np.array([5905, 3.5, 40, 27,0.83 * F])))
+    print(lnprob(np.array([5905, 3.5, 40, 27, F])))
+    #print(lnprob(np.array([5905, 3.5, 40, 27,1.2 * F])))
+    #print(lnprob(np.array([5905, 3.5, 40, 27,2e-25])))
+
 
     pass
 

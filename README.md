@@ -126,13 +126,11 @@ Put the decorator `@profile` over the function you want to profile
 
 * use Keck/HIRES and Keck/NIRSPEC data (search archive by name or position for our targets) GM Aur exists
 http://www2.keck.hawaii.edu/koa/public/koa.php
-
+* Make a tool to collect all the targets into an astrotable that is easily sortable and can query to output targets in RA/DEC and move easily between them.
 
 # MISC
 
 * What about using PyMC: http://pymc-devs.github.io/pymc/
 * Setting up Gibbs sampling for coefficients
 * Read about index arrays: http://docs.scipy.org/doc/numpy/user/basics.indexing.html
-* Tweak Lanczos interpolator by following doc conventions of scipy.interpolate.interp1d
 * try FFTW
-* or at least write an intelligent padding routine
