@@ -227,6 +227,16 @@ Comparison to main sequence stars of HAT-P-9, and WASP-14, from the TRES archive
 
 Comparisons using HIRES data?
 
+\section{Processing TRES Data}
+We flux calibrate TRES data, but because the reduction pipeline does not produce a ``sigma spectrum,'' we instead use the Poisson errors on each pixel. By taking the raw, still-blazed spectrum, in units of ``counts,'' we can find the Signal-to-Noise ratio by,
+\begin{equation}
+  S/N = \sqrt{ {\rm cts}}
+\end{equation}
+then the Noise-to-Signal ratio is the inverse of this
+\begin{equation}
+  N/S = \frac{1}{\sqrt{ {\rm cts}}}
+\end{equation}
+then the errors on the flux-calibrated spectrum (in ergs/s/A/cm2) is simply the flux spectrum multiplied by N/S. 
 
 \acknowledgments
 IC would like to graciously acknowledge Gregory Green, Doug Finkbeiner, and Daniel Eisenstein for many fruitful discussions about statistics and spectroscopy. This research made use of Astropy, a community-developed core Python package for Astronomy \citep{art+13}.

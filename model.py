@@ -1,9 +1,6 @@
 import numpy as np
-from echelle_io import rechellenpflat, load_masks
 from scipy.interpolate import interp1d, LinearNDInterpolator,InterpolatedUnivariateSpline
-from scipy.integrate import trapz
 from scipy.ndimage.filters import convolve
-from scipy.optimize import leastsq, fmin
 from scipy.special import j1
 from deredden import av_points
 from numpy.polynomial import Chebyshev as Ch
@@ -55,13 +52,11 @@ logg_points = np.arange(0.0, 6.1, 0.5)
 T_points = T_points[16:-25]
 logg_points = logg_points[2:-2]
 
-#wls, fls = rechellenpflat("GWOri_cf") #each has shape (51,2299)
-wls = np.load("GWOri_cf_wls.npy")
-fls = np.load("GWOri_cf_fls.npy")
-
-sigmas = np.load("sigmas.npy") #has shape (51, 2299), a sigma array for each order
-
-masks = np.load("masks_array.npy")
+base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
+wls = np.load(base + "wls.npy")
+fls = np.load(base + "fls.npy")
+sigmas = np.load(base + "sigma.npy")
+masks = np.load(base + "mask.npy")
 
 orders = np.array(config['orders'])
 norder = len(orders)
@@ -72,8 +67,9 @@ fls = fls[orders]
 sigmas = sigmas[orders]
 masks = masks[orders]
 
-wave_grid = np.load("wave_grid_2kms.npy")
+len_wl = len(wls[0])
 
+wave_grid = np.load("wave_grid_2kms.npy")
 
 def load_flux(temp, logg):
     fname = "HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0" \
@@ -383,27 +379,15 @@ def data(coefs_arr, wls, fls):
         #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
-def calc_A(xs,n_c):
-    '''Given a pixel array and number of Chebyshev coefficients, calculate the A matrix'''
-    #For each x in xs,
-    pass
-
-
-def marg_data():
-    '''Do the same thing as `data` function before, but now analytically marginalize over nuisance coefficients.'''
-    pass
-
-#Make this automatically detected
-xs = np.arange(2299)
+xs = np.arange(len_wl)
 T0 = np.ones_like(xs)
-Ch1 = Ch([0,1], domain=[0,2298])
+Ch1 = Ch([0,1], domain=[0,len_wl-1])
 T1 = Ch1(xs)
-Ch2 = Ch([0,0,1],domain=[0,2298])
+Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
 T2 = Ch2(xs)
-Ch3 = Ch([0,0,0,1],domain=[0,2298])
+Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
 T3 = Ch3(xs)
 T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
-T = np.array([T0])
 TT = np.einsum("in,jn->ijn",T,T)
 mu = np.array([1,0,0,0])
 sigmac = 0.2
@@ -484,14 +468,10 @@ def model_and_data(p):
     return [wlsz, flsc, fs]
 
 def main():
-    #for i in range(200):
-    #    print("Iteration", i)
-    #print(flux(7005,6.1))
     #print(model(wls,7005,6.1,40,1e-27))
-    #print(lnprob_old(np.array([5905, 3.5, 40, 27, 2e-27, 0, 0])))
-    F = 2.52e-27
+    F = 8e-28
     #print(lnprob(np.array([5905, 3.5, 40, 27,0.83 * F])))
-    print(lnprob(np.array([5905, 3.5, 40, 27, F])))
+    print(lnprob(np.array([6000, 3.5, 40, 100, F])))
     #print(lnprob(np.array([5905, 3.5, 40, 27,1.2 * F])))
     #print(lnprob(np.array([5905, 3.5, 40, 27,2e-25])))
 
