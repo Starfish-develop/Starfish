@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """
-Sample the discretized grid using emcee.
+Sample using emcee.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from astropy.io import ascii
 import emcee
 import sys
 from model import lnprob
@@ -46,14 +44,14 @@ def main():
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=config['threads'])
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-    temp = np.random.uniform(low=5800, high=6200, size=(nwalkers,))
-    logg = np.random.uniform(low=3.2, high=4.0, size=(nwalkers,))
+    temp = np.random.uniform(low=5500, high=6500, size=(nwalkers,))
+    logg = np.random.uniform(low=3.0, high=4.0, size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
-    vsini = np.random.uniform(low=42, high=45, size=(nwalkers,))
-    vz = np.random.uniform(low=28, high=29., size=(nwalkers,))
+    vsini = np.random.uniform(low=20, high=60, size=(nwalkers,))
+    vz = np.random.uniform(low=-50, high=50., size=(nwalkers,))
     #Av = np.random.uniform(low=1, high = 5, size=(nwalkers,))
-    flux_factor = np.random.uniform(low=1.e-27, high=2.e-27, size=(nwalkers,))
+    flux_factor = np.random.uniform(low=1.e-27, high=1.e-28, size=(nwalkers,))
     #c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
     #c1_21 = np.random.uniform(low=-0.05, high=-0.03, size=(nwalkers,))
     #c2_21 = np.random.uniform(low=-0.1, high=0.1, size=(nwalkers,))
