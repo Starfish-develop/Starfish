@@ -2,13 +2,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
-from echelle_io import rechellenpflat, load_masks
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "allgood/"
+subdir = "LkCa15/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -39,12 +38,12 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams, ncols=1, figsize=(8, 11))
 
-    axes[0].hist(flatchain[:, 0], bins=40)#,range=(5900,6300)) #temp
-    axes[1].hist(flatchain[:, 1], bins=40)#,range=(3.0,4.2)) #logg
-    axes[2].hist(flatchain[:, 2], bins=40)#, range=(40, 50)) #vsini
-    axes[3].hist(flatchain[:, 3], bins=50)#, range=(25, 32)) #vz
+    axes[0].hist(flatchain[:, 0], bins=40, range=(4200,4900)) #temp
+    axes[1].hist(flatchain[:, 1], bins=40, range=(4.0,4.5)) #logg
+    axes[2].hist(flatchain[:, 2], bins=40, range=(10, 20)) #vsini
+    axes[3].hist(flatchain[:, 3], bins=50, range=(70, 90)) #vz
     #axes[4].hist(flatchain[:,4],bins=50,range=(0,20)) #Av
-    axes[4].hist(flatchain[:,4],bins=50) #fluxfactor
+    axes[4].hist(flatchain[:,4],bins=50, range=(1e-28,1e-27)) #fluxfactor
 
     #for i, ax in enumerate(axes[4:]):
     #    ax.hist(flatchain[:, i + 4], bins=20)
