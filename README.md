@@ -108,19 +108,25 @@ Put the decorator `@profile` over the function you want to profile
 * use student t distribution to give less weight to outliers that may be distorting the fit?
 * Try seeding random spectra (derived from models) to see if parameters are recovered at various S/N via Doppman and Jaffey, sec 4.1
 
+# Alternative methods for normalization
+
+* actually sample c0, c1, c2, c3 for each and every order (start walkers at the coeffs that maximize chi^2 for each order
+* do this but multiplying the data and sigma, not the model
+* do c0 ( 1 + c1 + c2 + c3), marginalize over all
+* do c0 ( 1 + c1 + c2 + c3), marginalize over c1+, sample in c0
+* do c0, but in a hierarchical fashion.
+
 # Checks against real data
 
 * Empirical spectral libraries: ELOISE?
 * Torres 12 paper: HAT-P-9, WASP-14
 * Real data in HIRES archive from George Herbig
 
-
 # Flux Calibration package
 
 * Get Bayesian hierarchical inference (or just a prior on systematic calibration (how tight should my priors on the Chebyshev coefficients be?)
 * Get "sigma spectrum"
 * Remedy blaze function removal
-
 
 # Beyond TRES
 

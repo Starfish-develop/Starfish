@@ -74,9 +74,14 @@ def deredden(wl, Av, thres=None, mags=True):
 
 def av_points(wl):
     '''call this, get grid. multiply grid by Av to get redenning at that wavelength.'''
-    AK_AV = 1 / 9.03
-    Alambda_func = interp1d(awl, AK_AV * A1, kind='linear')
+    AK_AV = 1 / 7.75
+    Alambda_func = interp1d(awl, AK_AV * A2, kind='linear')
     return Alambda_func(wl)
+
+def create_red_grid(wl):
+    avs = av_points(wl)
+    np.save('red_grid.npy',avs)
+
 
 
 def plot_curve():
@@ -87,13 +92,17 @@ def plot_curve():
     ax.plot(wl, deredden(wl, .2, mags=False))
     ax.plot(wl, deredden(wl, 1.0, mags=False))
     ax.plot(wl, deredden(wl, 2.0, mags=False))
+    avs = av_points(wl)
+    ax.plot(wl, 10**(0.4 * avs), "k")
     ax.set_xlabel(r"$\lambda\quad[\AA]$")
     ax.set_ylabel(r"$A_\lambda$")
     plt.show()
 
 
 def main():
-    plot_curve()
+    #plot_curve()
+    wls = np.load('wave_grid_2kms.npy')
+    create_red_grid(wls)
     pass
 
 

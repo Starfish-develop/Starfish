@@ -2,7 +2,6 @@ import numpy as np
 from scipy.interpolate import interp1d, LinearNDInterpolator,InterpolatedUnivariateSpline
 from scipy.ndimage.filters import convolve
 from scipy.special import j1
-from deredden import av_points
 from numpy.polynomial import Chebyshev as Ch
 import h5py
 import yaml
@@ -57,6 +56,7 @@ wls = np.load(base + "wls.npy")
 fls = np.load(base + "fls.npy")
 sigmas = np.load(base + "sigma.npy")
 masks = np.load(base + "mask.npy")
+red_grid = np.load('red_grid.npy')
 
 orders = np.array(config['orders'])
 norder = len(orders)
@@ -288,7 +288,7 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
 
 #Constant for all models
 ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
-av_grid = av_points(wave_grid)
+
 #f_full = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
 #FF = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
 #blended = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
@@ -297,7 +297,7 @@ av_grid = av_points(wave_grid)
 #ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, vsini, flux_factor):
+def model(wlsz, temp, logg, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -334,11 +334,11 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     #blended_real[:] = np.absolute(blended) #remove tiny complex component
 
     #redden spectrum
-    #red = blended / (Av * av_grid)
-    #print(red)
+    red = blended_real / 10**(0.4 * Av * red_grid)
+
     #do synthetic photometry to compare to points
 
-    f = InterpolatedUnivariateSpline(wave_grid, blended_real)
+    f = InterpolatedUnivariateSpline(wave_grid, red)
     fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels
     result = np.reshape(fresult,(norder,-1))
     del f
@@ -397,13 +397,13 @@ muDmu = np.einsum("j,j->",mu,Dmu)
 
 def lnprob(p):
     '''New lnprob, no nuisance coeffs'''
-    temp, logg, vsini, vz, flux_factor = p
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
+    temp, logg, vsini, vz, Av, flux_factor = p
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (Av < 0):
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, vsini, flux_factor)
+        fmods = model(wlsz, temp, logg, vsini, Av, flux_factor)
 
         a= fmods**2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
@@ -471,7 +471,7 @@ def main():
     #print(model(wls,7005,6.1,40,1e-27))
     F = 8e-28
     #print(lnprob(np.array([5905, 3.5, 40, 27,0.83 * F])))
-    print(lnprob(np.array([6000, 3.5, 40, 100, F])))
+    print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
     #print(lnprob(np.array([5905, 3.5, 40, 27,1.2 * F])))
     #print(lnprob(np.array([5905, 3.5, 40, 27,2e-25])))
 
