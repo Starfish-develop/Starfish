@@ -53,8 +53,10 @@ logg_points = logg_points[2:-2]
 
 base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
 wls = np.load(base + "wls.npy")
-fls = np.load(base + "fls.npy")
-sigmas = np.load(base + "sigma.npy")
+#fls = np.load(base + "fls.npy")
+fls = np.load("fls_fake.npy")
+#sigmas = np.load(base + "sigma.npy")
+sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + "mask.npy")
 red_grid = np.load('red_grid.npy')
 
@@ -467,14 +469,29 @@ def model_and_data(p):
     fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
     return [wlsz, flsc, fs]
 
+def generate_fake_data(temp, logg, vsini, vz, Av, flux_factor):
+    '''Generate an echelle-like spectrum to test method'''
+    wlsz = shift_TRES(vz)
+    fls_fake = model(wlsz, temp, logg, vsini, Av, flux_factor)
+    avg = np.percentile(fls_fake, 50)
+    print(avg)
+
+    #func = lambda x: np.random.normal(loc=0,scale=x)
+    #noise = np.array(list(map(func,sigmas)))
+    noise = np.random.normal(loc=0, scale=(avg/25.),size=fls_fake.shape)
+    fls_fake += noise
+    np.save('fls_fake.npy',fls_fake)
+    np.save('sigmas_fake.npy',noise)
+    pass
+
 def main():
     #print(model(wls,7005,6.1,40,1e-27))
-    F = 8e-28
+    #F = 8e-28
     #print(lnprob(np.array([5905, 3.5, 40, 27,0.83 * F])))
-    print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
-    #print(lnprob(np.array([5905, 3.5, 40, 27,1.2 * F])))
-    #print(lnprob(np.array([5905, 3.5, 40, 27,2e-25])))
+    #print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
 
+    #generate_fake_data(6000,3.5, 15, 15, 1.0, 1e-27)
+    print(lnprob(np.array([6000,3.5,15,15,1.0,1e-27])))
 
     pass
 
