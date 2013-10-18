@@ -53,10 +53,10 @@ logg_points = logg_points[2:-2]
 
 base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
 wls = np.load(base + "wls.npy")
-#fls = np.load(base + "fls.npy")
-fls = np.load("fls_fake.npy")
-#sigmas = np.load(base + "sigma.npy")
-sigmas = np.load('sigmas_fake.npy')
+fls = np.load(base + "fls.npy")
+#fls = np.load("fls_fake.npy")
+sigmas = 1.2 * np.load(base + "sigma.npy")
+#sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + "mask.npy")
 red_grid = np.load('red_grid.npy')
 
