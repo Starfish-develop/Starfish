@@ -58,7 +58,7 @@ fls = np.load(base + "fls.npy")
 sigmas = 1.2 * np.load(base + "sigma.npy")
 #sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + "mask.npy")
-red_grid = np.load('red_grid.npy')
+
 
 orders = np.array(config['orders'])
 norder = len(orders)
@@ -72,6 +72,14 @@ masks = masks[orders]
 len_wl = len(wls[0])
 
 wave_grid = np.load("wave_grid_2kms.npy")
+
+wl_min = wls[0,0] - 5.0
+wl_max = wls[-1,-1] + 5.0
+
+#Truncate wave_grid and red_grid
+ind = (wave_grid > wl_min) & (wave_grid < wl_max)
+wave_grid = wave_grid[ind]
+red_grid = np.load('red_grid.npy')[ind]
 
 def load_flux(temp, logg):
     fname = "HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0" \
@@ -97,7 +105,7 @@ def flux_interpolator_hdf5():
     fluxes = np.empty((num_spec, len(wave_grid)))
     for i in range(num_spec):
         t, l = param_combos[i]
-        fluxes[i] = LIB[t, l]
+        fluxes[i] = LIB[t, l][ind]
     flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
     print("Loaded HDF5 interpolator")
     fhdf5.close()
@@ -299,7 +307,7 @@ ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
 #ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, vsini, Av, flux_factor):
+def model(wlsz, temp, logg, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -336,7 +344,8 @@ def model(wlsz, temp, logg, vsini, Av, flux_factor):
     #blended_real[:] = np.absolute(blended) #remove tiny complex component
 
     #redden spectrum
-    red = blended_real / 10**(0.4 * Av * red_grid)
+    #red = blended_real / 10**(0.4 * Av * red_grid)
+    red = blended_real
 
     #do synthetic photometry to compare to points
 
@@ -491,7 +500,8 @@ def main():
     #print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
 
     #generate_fake_data(6000,3.5, 15, 15, 1.0, 1e-27)
-    print(lnprob(np.array([6000,3.5,15,15,1.0,1e-27])))
+    print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
+    #model(wls, temp, logg, vsini, flux_factor)
 
     pass
 
