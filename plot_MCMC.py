@@ -7,7 +7,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "LkCa15/"
+subdir = "LkCa15/order23/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]

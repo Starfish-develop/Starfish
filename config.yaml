@@ -4,10 +4,10 @@
 orders : [22]
 
 # MCMC parameters
-ndim : 6
+ndim : 8
 nwalkers : 64
-burn_in : 4000
-iterations : 2000
+burn_in : 500
+iterations : 100
 MPI : True
 threads : 4
 output_dir : output
