@@ -6,7 +6,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "LkCa15/order23/lnprob_old/"
+subdir = "LkCa15/order23/lnprob/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -348,50 +348,31 @@ def test_hist():
     x2 = np.random.normal(0,3,size=(10000,))
     data = np.array([x1,x2]).T #same format as flatchain
 
-    #plt.hexbin(data[:,0],data[:,1],gridsize=50)
-    #plt.xlabel(r"$x_1$")
-    #plt.ylabel(r"$x_2$")
-    #plt.show()
-
+    #Auto-center
     #Determine bins based upon mean and std-dev preliminarily
     Hp,binsp = np.histogramdd(data)
     Hp = Hp/np.max(Hp)
     max = np.unravel_index(np.argmax(Hp),dims=Hp.shape)
-    print(binsp)
-    print(max)
+
     mu_x1 = np.average(binsp[0][max[0]:max[0]+1])
     mu_x2 = np.average(binsp[1][max[1]:max[1]+1])
     print(mu_x1,mu_x2)
+    std_x1 = np.std(data[:,0])
+    std_x2 = np.std(data[:,1])
+    print(std_x1, std_x2)
 
-
-
-    bins = [np.linspace(-5,5,num=20),np.linspace(-5,5,num=20)]
+    #Re-calculated bins based upon mu and std_dev
+    bins = [np.linspace(mu_x1 - 4 * std_x1, mu_x1 + 4 * std_x1,num=20),
+            np.linspace(mu_x2 - 4 * std_x2, mu_x2 + 4 * std_x2,num=20)]
 
     H,bins = np.histogramdd(data,bins=bins)
     #Scale H to max
     H = H/np.max(H)
-    print(H)
-    print(bins[0])
-    print(bins[1])
-
     Hshape = H.shape
 
     #flatten array
     H_flat = H.flatten()
 
-    #do argsort, cumsum, find values
-    #args = np.argsort(H_flat)[::-1]
-    #iargs = np.argsort(args)
-
-    #print(args)
-
-    #H_sort = H_flat[args] #this array is ranked from highest pixel to lowest pixel
-    #stdvs = np.cumsum(H_sort) / np.sum(
-    #    H_sort) #the array so we go outwards from the most dense point to the least, and normalize
-
-    #print(stdvs)
-
-    #sig_bounds = np.array([0.6827, 0.9545, 0.9973])
     sig_heights = np.array([0.0111,0.135, 0.607])
 
     #find all values where stdvs < sig_heights
@@ -401,10 +382,7 @@ def test_hist():
     sig_1 = (H_flat > sig_heights[2]) #lightest color or white
     #print(sig_1,sig_2,sig_3,sig_4)
 
-    colors = np.array(
-        [(215, 48, 31), (252, 141, 89), (253, 204, 138), (254, 240, 217)]) / 256. #goes from darkest to lightest
-    #colors = np.array([(43,140,190),(166,189,219),(236,231,242),(256,256,256)])/256.
-    #colors = np.array([(227, 74, 51),(253, 187, 132),(254, 232, 200),(256, 256, 256)])/256. #goes from darkest to lightest
+    colors = np.array([(215, 48, 31), (252, 141, 89), (253, 204, 138), (254, 240, 217)]) / 256. #from dark to light
 
     H_plot = np.empty((len(H_flat), 3))
 
@@ -415,13 +393,32 @@ def test_hist():
 
     H_plot = H_plot.reshape(np.append(Hshape, 3))
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.imshow(H_plot, origin='lower', aspect='auto',interpolation='none', extent=[bins[1][0], bins[1][-1], bins[0][0], bins[0][-1]])
+    fig = plt.figure(figsize=(3, 3))
+
+    L = 0.17
+    w_center = 0.6
+    B = 0.17
+    w_side = 0.15
+    w_sep = 0.01
+
+    ax_center = fig.add_axes([L, B, w_center, w_center])
+    ax_center.imshow(H_plot, origin='lower', aspect='auto',interpolation='none', extent=[bins[1][0], bins[1][-1], bins[0][0], bins[0][-1]])
+
+    ax_top = fig.add_axes([L, B + w_center + w_sep, w_center, w_side])
+    ax_top.hist(data[:,1],bins=bins[1],color='w')
+    ax_top.set_xlim(bins[1][0],bins[1][-1])
+    ax_top.xaxis.set_ticklabels([])
+    ax_top.yaxis.set_ticklabels([])
+
+    ax_side = fig.add_axes([L + w_center + w_sep, B, w_side, w_center])
+    ax_side.hist(data[:, 0], bins=bins[0],orientation='horizontal',color='w')
+    ax_side.set_ylim(bins[0][0], bins[0][-1])
+    ax_side.xaxis.set_ticklabels([])
+    ax_side.yaxis.set_ticklabels([])
     #ax.contour(H,levels=sig_heights, extent=[bins[1][0], bins[1][-1], bins[0][0], bins[0][-1]])
     #ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax.set_xlabel(r"$x_2$")
-    ax.set_ylabel(r"$x_1$")
+    ax_center.set_xlabel(r"$x_2$")
+    ax_center.set_ylabel(r"$x_1$")
     plt.show()
 
 
@@ -443,8 +440,8 @@ def get_acor():
 
 
 #print(len(flatchain))
-#hist_param(flatchain)
-plot_random_data()
+hist_param(flatchain)
+#plot_random_data()
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
