@@ -55,7 +55,7 @@ base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
 wls = np.load(base + "wls.npy")
 fls = np.load(base + "fls.npy")
 #fls = np.load("fls_fake.npy")
-sigmas = 1.2 * np.load(base + "sigma.npy")
+sigmas = 3 * np.load(base + "sigma.npy")
 #sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + "mask.npy")
 
