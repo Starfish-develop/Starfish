@@ -6,7 +6,7 @@ Sample using emcee.
 import numpy as np
 import emcee
 import sys
-from model import lnprob #_old as lnprob
+from model import lnprob_old as lnprob
 import yaml
 
 confname = 'config.yaml' #sys.argv[1]
@@ -44,14 +44,14 @@ def main():
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=config['threads'])
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-    temp = np.random.uniform(low=4500, high=5000, size=(nwalkers,))
-    logg = np.random.uniform(low=3.5, high=4.2, size=(nwalkers,))
+    temp = np.random.uniform(low=4800, high=5000, size=(nwalkers,))
+    logg = np.random.uniform(low=3.9, high=4.3, size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
-    vsini = np.random.uniform(low=13, high=18, size=(nwalkers,))
-    vz = np.random.uniform(low=80, high=90, size=(nwalkers,))
+    vsini = np.random.uniform(low=14, high=18, size=(nwalkers,))
+    vz = np.random.uniform(low=85, high=90, size=(nwalkers,))
     #Av = np.random.uniform(low=0.7, high = 1.5, size=(nwalkers,))
-    flux_factor = np.random.uniform(low=1e-28, high=6e-28, size=(nwalkers,))
+    flux_factor = np.random.uniform(low=1e-28, high=1.5e-28, size=(nwalkers,))
     #c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
     #c1_21 = np.random.uniform(low=-0.05, high=-0.03, size=(nwalkers,))
     #c2_21 = np.random.uniform(low=-0.1, high=0.1, size=(nwalkers,))
@@ -60,11 +60,11 @@ def main():
     #c2_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c0_23 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
 
-    #c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    #c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    #c3_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    c3_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
 
-    p0 = np.array([temp, logg, vsini, vz, flux_factor]).T #, c1_23, c2_23, c3_23 ]).T
+    p0 = np.array([temp, logg, vsini, vz, flux_factor, c1_23, c2_23, c3_23 ]).T
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
