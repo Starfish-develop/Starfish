@@ -117,24 +117,32 @@ def plot_data(p):
 
 
 def plot_random_data():
-    from model import model_and_data, lnprob
+    from model import model_and_data,lnprob_old
 
     '''plots a random sample of the posterior, model, data, cheb, and residuals'''
     fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8))
 
     all_inds = np.arange(len(flatchain))
     ind = np.random.choice(all_inds)
+
     p = flatchain[ind]
     lnp = lnflatchain[ind]
-    print(lnp)
-    print(p)
+
     wlsz, flsc, fs = model_and_data(p)
     wl = wlsz[0]
     fl = flsc[0]
     f = fs[0]
 
+    lnp_calc = lnprob_old(p)
+
+    print("lnprob", lnp)
+    print("chi^2_red", -2. * lnp/len(wl))
+    print("lnpcalc", lnp_calc)
+    print("chi^2_calc", -2 * lnp_calc/len(wl))
+    print("Parameters", p)
+
     coefs = p[5:]
-    myCh = Ch(coefs, domain=[wl[0], wl[-1]])
+    myCh = Ch(np.append([1], coefs), domain=[wl[0], wl[-1]])
 
     ax[0].plot(wl, fl, "b")
     ax[0].plot(wl, f, "r")
@@ -430,7 +438,8 @@ def get_acor():
 
 
 #print(len(flatchain))
-hist_param(flatchain)
+#hist_param(flatchain)
+plot_random_data()
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))

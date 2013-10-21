@@ -55,7 +55,7 @@ base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
 wls = np.load(base + "wls.npy")
 fls = np.load(base + "fls.npy")
 #fls = np.load("fls_fake.npy")
-sigmas = 3 * np.load(base + "sigma.npy")
+sigmas = 3.8 * np.load(base + "sigma.npy")
 #sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + "mask.npy")
 
@@ -466,8 +466,8 @@ def lnprob_old(p):
 def model_and_data(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
-    temp, logg, vsini, vz, Av, flux_factor = p[:6]
-    coefs = p[6:]
+    temp, logg, vsini, vz, flux_factor = p[:5]
+    coefs = p[5:]
     print(coefs)
     coefs_arr = coefs.reshape(len(orders), -1)
 
@@ -475,7 +475,7 @@ def model_and_data(p):
 
     flsc = data(coefs_arr, wlsz, fls)
 
-    fs = model(wlsz, temp, logg, vsini, Av, flux_factor)
+    fs = model(wlsz, temp, logg, vsini, flux_factor)
     return [wlsz, flsc, fs]
 
 def generate_fake_data(temp, logg, vsini, vz, Av, flux_factor):
