@@ -408,13 +408,13 @@ muDmu = np.einsum("j,j->",mu,Dmu)
 
 def lnprob(p):
     '''New lnprob, no nuisance coeffs'''
-    temp, logg, vsini, vz, Av, flux_factor = p
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (Av < 0):
+    temp, logg, vsini, vz, flux_factor = p
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000):# or (Av < 0):
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, vsini, flux_factor)
 
         a= fmods**2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
@@ -501,6 +501,7 @@ def main():
 
     #generate_fake_data(6000,3.5, 15, 15, 1.0, 1e-27)
     print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
+    print(lnprob(np.array([6000, 3.5, 15, 15, 1e-27])))
     #model(wls, temp, logg, vsini, flux_factor)
 
     pass

@@ -118,9 +118,10 @@ def plot_data(p):
 
 def plot_random_data():
     from model import model_and_data,lnprob_old
+    import model as m
 
     '''plots a random sample of the posterior, model, data, cheb, and residuals'''
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8))
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8, 6),sharex=True)
 
     all_inds = np.arange(len(flatchain))
     ind = np.random.choice(all_inds)
@@ -132,6 +133,7 @@ def plot_random_data():
     wl = wlsz[0]
     fl = flsc[0]
     f = fs[0]
+    sigma = m.sigmas[0]
 
     lnp_calc = lnprob_old(p)
 
@@ -146,10 +148,13 @@ def plot_random_data():
 
     ax[0].plot(wl, fl, "b")
     ax[0].plot(wl, f, "r")
+    ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
 
     ax[1].plot(wl, myCh(wl))
 
     ax[2].plot(wl, fl - f)
+    ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
+    ax[2].set_xlim(wl[0],wl[-1])
     plt.show()
 
 

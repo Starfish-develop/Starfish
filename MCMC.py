@@ -6,7 +6,7 @@ Sample using emcee.
 import numpy as np
 import emcee
 import sys
-from model import lnprob_old as lnprob
+from model import lnprob #_old as lnprob
 import yaml
 
 confname = 'config.yaml' #sys.argv[1]
@@ -59,11 +59,12 @@ def main():
     #c1_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c2_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
     #c0_23 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
-    c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c3_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
 
-    p0 = np.array([temp, logg, vsini, vz, flux_factor, c1_23, c2_23, c3_23 ]).T
+    #c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    #c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+    #c3_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
+
+    p0 = np.array([temp, logg, vsini, vz, flux_factor]).T #, c1_23, c2_23, c3_23 ]).T
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
