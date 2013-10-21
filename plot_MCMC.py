@@ -6,7 +6,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "LkCa15/order23/lnprob/"
+subdir = "LkCa15/order23/lnprob_old/sig6/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -342,11 +342,8 @@ def staircase_plot_proposal(flatchain):
     #plt.show()
     fig.savefig("plots/staircase_mini.eps")
 
-def test_hist():
-    #get histogram routine working correctly.
-    x1 = np.random.normal(0,1,size=(10000,))
-    x2 = np.random.normal(0,3,size=(10000,))
-    data = np.array([x1,x2]).T #same format as flatchain
+def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$"):
+    '''Data comes as a N,D array, where N is the number of samples and D=2. The first column goes on the x-axis and the second column goes on the y-axis.'''
 
     #Auto-center
     #Determine bins based upon mean and std-dev preliminarily
@@ -392,33 +389,39 @@ def test_hist():
     H_plot[sig_4] = colors[3]
 
     H_plot = H_plot.reshape(np.append(Hshape, 3))
+    H_plot = np.transpose(H_plot, axes=(1,0,2))
 
     fig = plt.figure(figsize=(3, 3))
 
-    L = 0.17
+    L = 0.19
     w_center = 0.6
-    B = 0.17
+    B = 0.19
     w_side = 0.15
     w_sep = 0.01
 
     ax_center = fig.add_axes([L, B, w_center, w_center])
-    ax_center.imshow(H_plot, origin='lower', aspect='auto',interpolation='none', extent=[bins[1][0], bins[1][-1], bins[0][0], bins[0][-1]])
+    ax_center.imshow(H_plot, origin='lower', aspect='auto',interpolation='none', extent=[bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]])
 
     ax_top = fig.add_axes([L, B + w_center + w_sep, w_center, w_side])
-    ax_top.hist(data[:,1],bins=bins[1],color='w')
-    ax_top.set_xlim(bins[1][0],bins[1][-1])
+    ax_top.hist(data[:,0],bins=bins[0],color='w')
+    ax_top.set_xlim(bins[0][0],bins[0][-1])
     ax_top.xaxis.set_ticklabels([])
     ax_top.yaxis.set_ticklabels([])
 
     ax_side = fig.add_axes([L + w_center + w_sep, B, w_side, w_center])
-    ax_side.hist(data[:, 0], bins=bins[0],orientation='horizontal',color='w')
-    ax_side.set_ylim(bins[0][0], bins[0][-1])
+    ax_side.hist(data[:, 1], bins=bins[1],orientation='horizontal',color='w')
+    ax_side.set_ylim(bins[1][0], bins[1][-1])
     ax_side.xaxis.set_ticklabels([])
     ax_side.yaxis.set_ticklabels([])
     #ax.contour(H,levels=sig_heights, extent=[bins[1][0], bins[1][-1], bins[0][0], bins[0][-1]])
     #ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax_center.set_xlabel(r"$x_2$")
-    ax_center.set_ylabel(r"$x_1$")
+    ax_center.set_xlabel(label1)
+    ax_center.set_ylabel(label2)
+
+    ax_center.xaxis.set_major_formatter(FSF("%.0f"))
+    xlabels = ax_center.get_xticklabels()
+    for label in xlabels:
+        label.set_rotation(50)
     plt.show()
 
 
@@ -451,3 +454,8 @@ hist_param(flatchain)
 #test_hist()
 #plot_walker_position()
 #get_acor()
+
+x1 = np.random.normal(0,1,size=(10000,))
+x2 = np.random.normal(0,3,size=(10000,))
+data = np.array([x1,x2]).T #same format as flatchain
+mini_hist(flatchain[:,0:2],r"$T_{\rm eff}$",r"$\log g$")
