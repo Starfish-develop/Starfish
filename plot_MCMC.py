@@ -37,8 +37,8 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams, ncols=1, figsize=(8, 11))
 
-    axes[0].hist(flatchain[:, 0], bins=50)#, range=(4200,4900)) #temp
-    axes[1].hist(flatchain[:, 1], bins=50)#, range=(4.0,4.5)) #logg
+    axes[0].hist(flatchain[:, 0], bins=50, range=(4800,4900)) #temp
+    axes[1].hist(flatchain[:, 1], bins=50, range=(4.0,4.2)) #logg
     axes[2].hist(flatchain[:, 2], bins=50)#, range=(10, 20)) #vsini
     axes[3].hist(flatchain[:, 3], bins=50)#, range=(70, 90)) #vz
     axes[4].hist(flatchain[:,4],bins=50)#,range=(0,20)) #Av
@@ -339,6 +339,18 @@ def test_hist():
     #plt.xlabel(r"$x_1$")
     #plt.ylabel(r"$x_2$")
     #plt.show()
+
+    #Determine bins based upon mean and std-dev preliminarily
+    Hp,binsp = np.histogramdd(data)
+    Hp = Hp/np.max(Hp)
+    max = np.unravel_index(np.argmax(Hp),dims=Hp.shape)
+    print(binsp)
+    print(max)
+    mu_x1 = np.average(binsp[0][max[0]:max[0]+1])
+    mu_x2 = np.average(binsp[1][max[1]:max[1]+1])
+    print(mu_x1,mu_x2)
+
+
 
     bins = [np.linspace(-5,5,num=20),np.linspace(-5,5,num=20)]
 
