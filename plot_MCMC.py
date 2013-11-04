@@ -6,7 +6,7 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 
 #subdir = "order22/"
-subdir = "LkCa15/order23/lnprob_old/sig6/"
+subdir = "LkCa15/order23/lnprob_old/sig10/"
 
 chain = np.load("output/" + subdir + "chain.npy")
 nwalkers = chain.shape[0]
@@ -37,8 +37,8 @@ loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75
 def hist_param(flatchain):
     fig, axes = plt.subplots(nrows=nparams, ncols=1, figsize=(8, 11))
 
-    axes[0].hist(flatchain[:, 0], bins=50, range=(4800,4900)) #temp
-    axes[1].hist(flatchain[:, 1], bins=50, range=(4.0,4.2)) #logg
+    axes[0].hist(flatchain[:, 0], bins=50)# range=(4800,4900)) #temp
+    axes[1].hist(flatchain[:, 1], bins=50)# range=(4.0,4.2)) #logg
     axes[2].hist(flatchain[:, 2], bins=50)#, range=(10, 20)) #vsini
     axes[3].hist(flatchain[:, 3], bins=50)#, range=(70, 90)) #vz
     axes[4].hist(flatchain[:,4],bins=50)#,range=(0,20)) #Av
@@ -342,25 +342,26 @@ def staircase_plot_proposal(flatchain):
     #plt.show()
     fig.savefig("plots/staircase_mini.eps")
 
-def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$"):
+def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$",bins=None):
     '''Data comes as a N,D array, where N is the number of samples and D=2. The first column goes on the x-axis and the second column goes on the y-axis.'''
 
-    #Auto-center
-    #Determine bins based upon mean and std-dev preliminarily
-    Hp,binsp = np.histogramdd(data)
-    Hp = Hp/np.max(Hp)
-    max = np.unravel_index(np.argmax(Hp),dims=Hp.shape)
+    if bins==None:
+        #Auto-center
+        #Determine bins based upon mean and std-dev preliminarily
+        Hp,binsp = np.histogramdd(data)
+        Hp = Hp/np.max(Hp)
+        max = np.unravel_index(np.argmax(Hp),dims=Hp.shape)
 
-    mu_x1 = np.average(binsp[0][max[0]:max[0]+1])
-    mu_x2 = np.average(binsp[1][max[1]:max[1]+1])
-    print(mu_x1,mu_x2)
-    std_x1 = np.std(data[:,0])
-    std_x2 = np.std(data[:,1])
-    print(std_x1, std_x2)
+        mu_x1 = np.average(binsp[0][max[0]:max[0]+1])
+        mu_x2 = np.average(binsp[1][max[1]:max[1]+1])
+        print(mu_x1,mu_x2)
+        std_x1 = np.std(data[:,0])
+        std_x2 = np.std(data[:,1])
+        print(std_x1, std_x2)
 
-    #Re-calculated bins based upon mu and std_dev
-    bins = [np.linspace(mu_x1 - 4 * std_x1, mu_x1 + 4 * std_x1,num=20),
-            np.linspace(mu_x2 - 4 * std_x2, mu_x2 + 4 * std_x2,num=20)]
+        #Re-calculated bins based upon mu and std_dev
+        bins = [np.linspace(mu_x1 - 4 * std_x1, mu_x1 + 4 * std_x1,num=20),
+                np.linspace(mu_x2 - 4 * std_x2, mu_x2 + 4 * std_x2,num=20)]
 
     H,bins = np.histogramdd(data,bins=bins)
     #Scale H to max
@@ -393,9 +394,9 @@ def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$"):
 
     fig = plt.figure(figsize=(3, 3))
 
-    L = 0.19
+    L = 0.20
     w_center = 0.6
-    B = 0.19
+    B = 0.20
     w_side = 0.15
     w_sep = 0.01
 
@@ -422,7 +423,8 @@ def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$"):
     xlabels = ax_center.get_xticklabels()
     for label in xlabels:
         label.set_rotation(50)
-    plt.show()
+    fig.savefig('plots/staircase_mini.eps')
+
 
 
 def plot_walker_position():
@@ -443,8 +445,8 @@ def get_acor():
 
 
 #print(len(flatchain))
-hist_param(flatchain)
-#plot_random_data()
+#hist_param(flatchain)
+plot_random_data()
 #plot_random_data()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
@@ -455,7 +457,7 @@ hist_param(flatchain)
 #plot_walker_position()
 #get_acor()
 
-x1 = np.random.normal(0,1,size=(10000,))
-x2 = np.random.normal(0,3,size=(10000,))
-data = np.array([x1,x2]).T #same format as flatchain
-mini_hist(flatchain[:,0:2],r"$T_{\rm eff}$",r"$\log g$")
+#x1 = np.random.normal(0,1,size=(10000,))
+#x2 = np.random.normal(0,3,size=(10000,))
+#data = np.array([x1,x2]).T #same format as flatchain
+#mini_hist(flatchain[:,0:2],r"$T_{\rm eff}$",r"$\log g$",bins=[np.linspace(4750,4950,num=30),np.linspace(4.0,4.4,num=30)])
