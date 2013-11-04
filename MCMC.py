@@ -6,6 +6,8 @@ Sample using emcee.
 import numpy as np
 import emcee
 import sys
+import os
+import shutil
 from model import lnprob_old as lnprob
 import yaml
 
@@ -14,13 +16,13 @@ f = open(confname)
 config = yaml.load(f)
 f.close()
 
+outdir = 'output/' + config['name'] + '/'
 
 def generate_nuisance_params():
     '''convenience method for generating walker starting positions for nuisance parameters'''
     norders = len(config['orders'])
     #determine as (norder, ncoeff) array, aka (norder, -1) then reshape as necessary
     pass
-
 
 def main():
     ndim = config['ndim']
@@ -42,6 +44,18 @@ def main():
 
     else:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=config['threads'])
+
+    ### Do creation of directories here ###
+    #Create necessary output directories using os.mkdir, if it does not exist
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+        print("Created output directory", outdir)
+    else:
+        print(outdir, "already exists, overwriting.")
+
+    #Copy config.yaml and SLURM script to this directory
+    shutil.copy('config.yaml',outdir + 'config.yaml')
+    shutil.copy('run',outdir + 'run')
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
     temp = np.random.uniform(low=4800, high=5000, size=(nwalkers,))
@@ -93,9 +107,15 @@ def main():
     print("Mean acceptance fraction:", np.mean(sampler.acceptance_fraction))
 
     #write chain to file
-    np.save("output/chain.npy", sampler.chain)
+    np.save(outdir + "chain.npy", sampler.chain)
     #write lnprob to file
-    np.save("output/lnprobchain.npy", sampler.lnprobability)
+    np.save(outdir + "lnprobchain.npy", sampler.lnprobability)
+
+    ### if config['plots'] == True, Call routines to make plots of output ###
+    #Histograms of parameters
+    #Walker positions as function of step position
+    #Samples from the posterior overlaid with the data
+
 
 
 if __name__ == "__main__":

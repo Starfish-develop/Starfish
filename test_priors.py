@@ -31,7 +31,7 @@ def p(F):
     int_func = lambda x: pJ(F, x)
     return quad(int_func,0,np.inf)[0]
 
-fDs = np.random.normal(loc=10.,scale=0.5,size=(200,))
+fDs = np.random.normal(loc=10.,scale=2.,size=(10,))
 mean = np.mean(fDs)
 print(mean)
 #plt.hist(fDs)
