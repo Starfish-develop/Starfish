@@ -47,17 +47,25 @@ T_points = np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
 logg_points = np.arange(0.0, 6.1, 0.5)
-#shorten for ease of use
-T_points = T_points[16:-25]
-logg_points = logg_points[2:-2]
+Z_points = np.array([-0.5, 0.0, 0.5])
 
-base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-wls = np.load(base + "wls.npy")
-fls = np.load(base + "fls.npy")
+#Limit grid size to relevant region
+grid_params = config['grid_params']
+T_low, T_high = grid_params['temp_range']
+T_points = T_points[(T_points > T_low) & (T_points < T_high)]
+g_low, g_high = grid_params['logg_range']
+logg_points = logg_points[(logg_points > g_low) & (logg_points < g_high)]
+Z_low, Z_high = grid_params['Z_range']
+Z_points = Z_points[(Z_points > Z_low) & (Z_points < Z_high)]
+print("Limited PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
+
+base = 'data/' + config['dataset']
+wls = np.load(base + ".wls.npy")
+fls = np.load(base + ".fls.npy")
 #fls = np.load("fls_fake.npy")
-sigmas = 10 * np.load(base + "sigma.npy") #3.8 gives chi^2_red = 1
+sigmas = 10 * np.load(base + ".sigma.npy") #3.8 gives chi^2_red = 1
 #sigmas = np.load('sigmas_fake.npy')
-masks = np.load(base + "mask.npy")
+masks = np.load(base + ".mask.npy")
 
 
 orders = np.array(config['orders'])
@@ -76,22 +84,37 @@ wave_grid = np.load("wave_grid_2kms.npy")
 wl_min = wls[0,0] - 5.0
 wl_max = wls[-1,-1] + 5.0
 
-#Truncate wave_grid and red_grid
+#Truncate wave_grid and red_grid to include only the regions neccessary for fitting orders.
 ind = (wave_grid > wl_min) & (wave_grid < wl_max)
 wave_grid = wave_grid[ind]
 red_grid = np.load('red_grid.npy')[ind]
 
-def load_flux(temp, logg):
-    fname = "HiResNpy/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0" \
-            ".PHOENIX-ACES-AGSS-COND-2011-HiRes.npy".format(
-        temp=temp, logg=logg)
-    #print("Loaded " + fname)
-    f = np.load(fname)
-    return f
-
-
 def flux_interpolator_hdf5():
     #load hdf5 file of PHOENIX grid 
+    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
+    LIB = fhdf5['LIB']
+    param_combos = []
+    var_combos = []
+    for t, temp in enumerate(T_points):
+        for l, logg in enumerate(logg_points):
+            for z, Z in enumerate(Z_points):
+                param_combos.append([t, l, z])
+                var_combos.append([temp, logg, Z])
+    num_spec = len(param_combos)
+    points = np.array(var_combos)
+    fluxes = np.empty((num_spec, len(wave_grid)))
+    for i in range(num_spec):
+        t, l, z = param_combos[i]
+        fluxes[i] = LIB[t, l, z][ind]
+    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
+    print("Loaded HDF5 interpolator")
+    fhdf5.close()
+    del fluxes
+    gc.collect()
+    return flux_intp
+
+def flux_interpolator_hdf5_Z0():
+    #load hdf5 file of PHOENIX grid
     fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
     LIB = fhdf5['LIB']
     param_combos = []
@@ -307,7 +330,7 @@ ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
 #ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, vsini, flux_factor):
+def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -322,7 +345,7 @@ def model(wlsz, temp, logg, vsini, flux_factor):
 
     #Loads the ENTIRE spectrum, not limited to a specific order
     #f_full[:] = flux_factor * flux(temp, logg)
-    f_full = flux_factor * flux(temp, logg)
+    f_full = flux_factor * flux(temp, logg, Z)
 
     #Take FFT of f_grid
     FF = fft(f_full)
@@ -344,8 +367,8 @@ def model(wlsz, temp, logg, vsini, flux_factor):
     #blended_real[:] = np.absolute(blended) #remove tiny complex component
 
     #redden spectrum
-    #red = blended_real / 10**(0.4 * Av * red_grid)
-    red = blended_real
+    red = blended_real / 10**(0.4 * Av * red_grid)
+    #red = blended_real
 
     #do synthetic photometry to compare to points
 
@@ -408,13 +431,13 @@ muDmu = np.einsum("j,j->",mu,Dmu)
 
 def lnprob(p):
     '''New lnprob, no nuisance coeffs'''
-    temp, logg, vsini, vz, flux_factor = p
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000):# or (Av < 0):
+    temp, logg, Z, vsini, vz, Av, flux_factor = p
+    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (np.abs(Z) >= 0.5):# or (Av < 0):
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, vsini, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         a= fmods**2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
@@ -478,20 +501,36 @@ def model_and_data(p):
     fs = model(wlsz, temp, logg, vsini, flux_factor)
     return [wlsz, flsc, fs]
 
-def generate_fake_data(temp, logg, vsini, vz, Av, flux_factor):
-    '''Generate an echelle-like spectrum to test method'''
+def generate_fake_data(SNR, temp, logg, Z, vsini, Av, vz, flux_factor):
+    import os
+    '''Generate an echelle-like spectrum to test method. SNR is quoted per-resolution element,
+    and so is converted to per-pixel via the formula on 10/31/13. The sigma is created at the Poisson level only.'''
+    SNR_pix = SNR/1.65 #convert to per-pixel for TRES
     wlsz = shift_TRES(vz)
-    fls_fake = model(wlsz, temp, logg, vsini, Av, flux_factor)
-    avg = np.percentile(fls_fake, 50)
-    print(avg)
+    fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+    ind_avg = (wlsz[22] > 5175.) & (wlsz[22] < 5182)
+    avg = np.average(fls_fake[22][ind_avg])
+    sigmas = fls_fake/SNR_pix
 
     #func = lambda x: np.random.normal(loc=0,scale=x)
     #noise = np.array(list(map(func,sigmas)))
-    noise = np.random.normal(loc=0, scale=(avg/25.),size=fls_fake.shape)
-    fls_fake += noise
-    np.save('fls_fake.npy',fls_fake)
-    np.save('sigmas_fake.npy',noise)
-    pass
+    noise = np.random.normal(loc=0, scale=sigmas, size=fls_fake.shape)
+    fls_noise = fls_fake + noise
+    mask = np.ones_like(fls_noise, dtype='bool')
+
+    basedir = 'data/Fake/%.0f/' % SNR #create in a subfolder that has the SNR labelled
+    #Create necessary output directories using os.mkdir, if it does not exist
+    if not os.path.exists(basedir):
+        os.mkdir(basedir)
+        print("Created output directory", basedir)
+    else:
+        print(basedir, "already exists, overwriting.")
+    base = basedir + 'Fake'
+    np.save(base + '.wls.npy',wlsz)
+    np.save(base + '.fls.npy', fls_noise)
+    np.save(base + '.true.fls.npy',fls_fake)
+    np.save(base + '.sigma.npy',noise)
+    np.save(base + '.mask.npy', mask)
 
 def main():
     #print(model(wls,7005,6.1,40,1e-27))
@@ -500,10 +539,14 @@ def main():
     #print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
 
     #generate_fake_data(6000,3.5, 15, 15, 1.0, 1e-27)
-    print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
-    print(lnprob(np.array([6000, 3.5, 15, 15, 1e-27])))
+    #print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
+    #print(lnprob(np.array([6000, 3.5, 15, 15, 1e-27])))
     #model(wls, temp, logg, vsini, flux_factor)
-
+    fake_params = (5900., 3.5, 0.0, 5., 0.0, 2.0, 1e-10)
+    #generate_fake_data(30., *fake_params)
+    #generate_fake_data(50., *fake_params)
+    #generate_fake_data(70., *fake_params)
+    #generate_fake_data(100., *fake_params)
     pass
 
 

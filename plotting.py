@@ -2,12 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
+import yaml
 
-base = '/home/ian/Grad/Research/Disks/TRES_spectra/LkCa15/b/LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-wls = np.load(base + "wls.npy")
-fls = np.load(base + "fls.npy")
-sigmas = np.load(base + "sigma.npy")
-masks = np.load(base + "mask.npy")
+f = open('config.yaml')
+config = yaml.load(f)
+f.close()
+
+base = 'data/' + config['dataset']
+wls = np.load(base + ".wls.npy")
+fls = np.load(base + ".fls.npy")
+fls_true = np.load(base + ".true.fls.npy")
+sigmas = np.load(base + ".sigma.npy")
+masks = np.load(base + ".mask.npy")
+
+lkbase = 'data/LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec'
+lkwls = np.load(lkbase + ".wls.npy")
+lkfls = np.load(lkbase + ".fls.npy")
+#lkfls_true = np.load(lkbase + ".true.fls.npy")
+lksigmas = np.load(lkbase + ".sigma.npy")
+lkmasks = np.load(lkbase + ".mask.npy")
+
 
 def plot_logg_grid():
     fig, ax = plt.subplots(nrows=13, sharex=True, sharey=True, figsize=(11, 8))
@@ -200,16 +214,16 @@ def plot_GWOri_all_unnormalized():
     fig.savefig("plots/all_flux_calib.png")
 
 def plot_order_23():
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    wls, fls, fs = m.model_and_data(np.array([5900, 4.0, 6.0, 30, 30, 5.5e27, 0, 0, 0]))
-    ax.plot(wls[0], fls[0], "b")
-    ax.plot(wls[0], fs[0], "r")
+    fig, ax = plt.subplots(nrows=2,figsize=(11, 8), sharex=True)
+    ax[0].plot(wls[22], fls[22], "b")
+    ax[0].plot(wls[22], fls_true[22], "r")
+    ax[1].plot(lkwls[22], lkfls[22], "b")
     plt.show()
 
 
 def main():
-    plot_comic_strip()
+    #plot_comic_strip()
+    plot_order_23()
     pass
 
 

@@ -2,13 +2,13 @@ import numpy as np
 import astropy.io.fits as pf
 from astropy.io import ascii
 from scipy.interpolate import interp1d, griddata, NearestNDInterpolator
-from echelle_io import rechellenpflat
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
 import h5py
 import multiprocessing as mp
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.integrate import trapz,simps
 import pyfftw
 
 c_kms = 2.99792458e5 #km s^-1
@@ -25,6 +25,10 @@ wave_grid_fine = np.load('wave_grid_0.35kms.npy')
 wave_grid_coarse = np.load('wave_grid_2kms.npy')
 
 L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
+R_sun = 6.955e10 #cm
+
+F_sun = L_sun/(4 * np.pi * R_sun**2) #bolometric flux of the Sun measured at the surface
+print(F_sun)
 
 Ts = np.arange(2300, 12001, 100)
 loggs = np.arange(0.0, 6.1, 0.5)
@@ -47,11 +51,15 @@ T_points = np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
 logg_points = np.arange(0.0, 6.1, 0.5)
+Z_points = ['-0.5','-0.0','+0.5']
+
 #shorten for ease of use
-T_points = T_points[16:-25]
-logg_points = logg_points[2:-2]
+#T_points = T_points[16:-25]
+#logg_points = logg_points[2:-2]
+
 print("T_points", T_points)
 print("logg_points", logg_points)
+print("Z_points", Z_points)
 
 def create_wave_grid(v=1., start=3700., end=10000):
     '''Returns a grid evenly spaced in velocity'''
@@ -174,7 +182,27 @@ def load_flux_fits(temp, logg):
     return f
 
 
-def load_flux_full(temp, logg, norm=False):
+def load_flux_full(temp, logg, Z, norm=False):
+    '''Load a raw PHOENIX spectrum based upon temp, logg, and Z. '''
+
+    rname = "HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
+            ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
+
+    flux_file = pf.open(rname)
+    f = flux_file[0].data
+    #L = flux_file[0].header['PHXLUM'] #erg/s
+
+    if norm:
+        f *= 1e-8
+        F_bol = trapz(f, w_full)
+        f = f * (F_sun / F_bol)
+        print("Normalized %s, %s, %s, bolometric flux to 1 F_sun" % (temp, logg, Z))
+        #this also means that the bolometric luminosity is always 1 L_sun
+    flux_file.close()
+    print("Loaded " + rname)
+    return f
+
+def load_flux_full_Z0(temp, logg, norm=False):
     rname = "HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0" \
             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(
         temp=temp, logg=logg)
@@ -220,8 +248,32 @@ def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
 
     return f_grid6_coarse
 
-
 def create_grid_parallel(ncores):
+    '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists,
+    write it. If not, write nan. Each spectrum is normalized to the bolometric flux at the surface of the Sun.'''
+    f = h5py.File("LIB_2kms.hdf5", "w")
+    shape = (len(T_points), len(logg_points), len(Z_points), len(wave_grid_coarse))
+    dset = f.create_dataset("LIB", shape, dtype="f")
+
+    # A thread pool of P processes
+    pool = mp.Pool(ncores)
+
+    param_combos = []
+    var_combos = []
+    for t, temp in enumerate(T_points):
+        for l, logg in enumerate(logg_points):
+            for z, Z in enumerate(Z_points):
+                param_combos.append([t, l, z])
+                var_combos.append([temp, logg, Z])
+
+    spec_gen = list(pool.map(process_spectrum, var_combos))
+    for i in range(len(param_combos)):
+        t, l, z = param_combos[i]
+        dset[t, l, z, :] = spec_gen[i]
+
+    f.close()
+
+def create_grid_parallel_Z0(ncores):
     '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists,
     write it. If not, write nan.'''
     f = h5py.File("LIB_2kms.hdf5", "w")
@@ -238,7 +290,7 @@ def create_grid_parallel(ncores):
             param_combos.append([t, l])
             var_combos.append([temp, logg])
 
-    spec_gen = list(pool.map(process_spectrum, var_combos))
+    spec_gen = list(pool.map(process_spectrum_Z0, var_combos))
     for i in range(len(param_combos)):
         t, l = param_combos[i]
         dset[t, l, :] = spec_gen[i]
@@ -246,6 +298,17 @@ def create_grid_parallel(ncores):
     f.close()
 
 def process_spectrum(pars):
+    temp, logg, Z = pars
+    try:
+        f = load_flux_full(temp, logg, Z, True)[ind]
+        flux = resample_and_convolve(f,wave_grid_fine,wave_grid_coarse)
+        print("Finished %s, %s, %s" % (temp, logg, Z))
+    except OSError:
+        print("%s, %s, %s does not exist!" % (temp, logg, Z))
+        flux = np.nan
+    return flux
+
+def process_spectrum_Z0(pars):
     temp, logg = pars
     try:
         f = load_flux_full(temp, logg, True)[ind]
@@ -261,7 +324,9 @@ def process_spectrum(pars):
 
 # Interpolation routines
 def interpolate_raw_test_temp():
-    wls, fls = rechellenpflat("GWOri_cf")
+    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
+    wls = np.load(base + "wls.npy")
+    fls = np.load(base + "fls.npy")
     wl = wls[22]
     ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
     w = m.w_full[ind2]
@@ -285,7 +350,10 @@ def interpolate_raw_test_temp():
 
 
 def interpolate_raw_test_logg():
-    wls, fls = rechellenpflat("GWOri_cf")
+    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
+    wls = np.load(base + "wls.npy")
+    fls = np.load(base + "fls.npy")
+
     wl = wls[22]
     ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
     w = m.w_full[ind2]
@@ -309,8 +377,9 @@ def interpolate_raw_test_logg():
 
 
 def interpolate_test_temp():
-    wls, fls = rechellenpflat("GWOri_cf")
-    wl = wls[22]
+    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
+    wls = np.load(base + "wls.npy")
+    fls = np.load(base + "fls.npy")
 
     f58 = load_flux_npy(2400, 3.5)
     f59 = load_flux_npy(2500, 3.5)
@@ -334,7 +403,10 @@ def interpolate_test_temp():
 
 
 def interpolate_test_logg():
-    wls, fls = rechellenpflat("GWOri_cf")
+    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
+    wls = np.load(base + "wls.npy")
+    fls = np.load(base + "fls.npy")
+
     wl = wls[22]
 
     f3 = load_flux_npy(2400, 3.0)
@@ -357,11 +429,6 @@ def interpolate_test_logg():
     ax.xaxis.set_major_formatter(FSF("%.0f"))
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
-
-
-wls = np.load("GWOri_cf_wls.npy")
-fls = np.load("GWOri_cf_fls.npy")
-
 
 def compare_PHOENIX_TRES_spacing():
     fig = plt.figure(figsize=(8, 4))
@@ -488,6 +555,11 @@ def do_sinc_interp(temp, logg):
     plt.plot(wave_grid, f_kms)
     plt.show()
 
+def test_integrate():
+    f_full = load_flux_full(5900,3.5,"-0.0")
+    #w_full
+    print(trapz(f_full*1e-8, w_full))
+    print(simps(f_full*1e-8, w_full))
 
 def main():
     #Rewrite Flux
@@ -506,8 +578,13 @@ def main():
     #PHOENIX_5000(5900,3.5)
     #@do_sinc_interp(5900, 3.5)
     #create_fine_and_coarse_wave_grid()
+
+    #return load_flux_full(5900,3.5,'-0.5',norm=True)
     create_grid_parallel(4)
-    pass
+    #create_grid_parallel(1)
+
+    #load_flux_full(3400, 1.0, '+0.5', norm=True)
+    #test_integrate()
 
 
 if __name__ == "__main__":
