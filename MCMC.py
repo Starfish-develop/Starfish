@@ -64,7 +64,7 @@ def main():
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
     wr = config['walker_ranges']
     temp = np.random.uniform(low=wr['temp'][0], high=wr['temp'][1], size=(nwalkers,))
-    logg = np.random.uniform(low=wr['logg'][0], high=wr['temp'][1], size=(nwalkers,))
+    logg = np.random.uniform(low=wr['logg'][0], high=wr['logg'][1], size=(nwalkers,))
     Z = np.random.uniform(low=wr['Z'][0], high=wr['Z'][1], size=(nwalkers,))
     #M = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
     #R = np.random.uniform(low=0.1, high = 10, size=(nwalkers,))
@@ -72,19 +72,9 @@ def main():
     vz = np.random.uniform(low=wr['vz'][0], high=wr['vz'][1], size=(nwalkers,))
     Av = np.random.uniform(low=wr['Av'][0], high = wr['Av'][1], size=(nwalkers,))
     flux_factor = np.random.uniform(low=wr['flux_factor'][0], high=wr['flux_factor'][1], size=(nwalkers,))
-    #c0_21 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
-    #c1_21 = np.random.uniform(low=-0.05, high=-0.03, size=(nwalkers,))
-    #c2_21 = np.random.uniform(low=-0.1, high=0.1, size=(nwalkers,))
-    #c0_22 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
-    #c1_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    #c2_22 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    #c0_23 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
+    c0 = np.random.uniform(low=0.9, high = 1.1, size=(nwalkers,))
 
-    c1_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c2_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-    c3_23 = np.random.uniform(low=-0.1, high = 0.1, size=(nwalkers,))
-
-    p0 = np.array([temp, logg, Z, vsini, Av, vz, flux_factor, c1_23, c2_23, c3_23 ]).T
+    p0 = np.array([temp, logg, Z, vsini, vz, Av, flux_factor, c0]).T
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
