@@ -4,6 +4,7 @@ import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
+import model as m
 
 #subdir = "order22/"
 subdir = "LkCa15/order23/lnprob_old/sig10/"
@@ -88,31 +89,33 @@ def draw_chebyshev_samples():
     plt.show()
 
 
-def plot_data(p):
-    '''plots a random sample of the posterior, model, data, cheb, and residuals'''
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8))
+def plot_data_and_residuals():
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
 
-    #all_inds = np.arange(len(flatchain))
-    #ind = np.random.choice(all_inds)
-    #p = flatchain[ind]
-    #p = np.array([5000,2.5,40,30,2.5e27])
-    #lnp = lnchain[ind]
-    lnp = lnprob(p)
-    print(lnp)
-    wlsz, flsc, fs = model_and_data(p)
-    wl = wlsz[0]
-    fl = flsc[0]
-    f = fs[0]
+    wl = m.wls[0]
+    fl = m.fls[0]
+    sigma = m.sigmas[0]
 
-    coefs = p[5:]
-    myCh = Ch(coefs, domain=[wl[0], wl[-1]])
+    wlsz = m.shift_TRES(2.)
+    f = m.model(wlsz, 5900., 3.5, 0.0, 5., 0.0, 1e-10)[0]
+
+    #coefs = p[m.config['nparams']:]
+    #coefs_arr = coefs.reshape(m.config.len(orders), -1)
+    #print(coefs_arr)
 
     ax[0].plot(wl, fl, "b")
     ax[0].plot(wl, f, "r")
+    ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
 
-    ax[1].plot(wl, myCh(wl))
 
     ax[2].plot(wl, fl - f)
+    ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
+    ax[2].set_xlim(wl[0],wl[-1])
+    plt.show()
+
+    plt.hist(sigma)
+    plt.show()
+    plt.hist(fl-f)
     plt.show()
 
 
@@ -446,8 +449,9 @@ def get_acor():
 
 #print(len(flatchain))
 #hist_param(flatchain)
-plot_random_data()
 #plot_random_data()
+#plot_random_data()
+plot_data_and_residuals()
 #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
 #joint_hist(0,4,range=((),()))
 #draw_chebyshev_samples()

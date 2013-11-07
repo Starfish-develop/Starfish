@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
 import yaml
+import PHOENIX_tools as pt
+import h5py
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -214,10 +216,20 @@ def plot_GWOri_all_unnormalized():
     fig.savefig("plots/all_flux_calib.png")
 
 def plot_order_23():
-    fig, ax = plt.subplots(nrows=2,figsize=(11, 8), sharex=True)
-    ax[0].plot(wls[22], fls[22], "b")
-    ax[0].plot(wls[22], fls_true[22], "r")
-    ax[1].plot(lkwls[22], lkfls[22], "b")
+    fig, ax = plt.subplots(nrows=3,figsize=(11, 8), sharex=True)
+    #ax[0].plot(wls[22], fls[22], "b")
+    #ax[0].plot(wls[22], fls_true[22], "r")
+    #ax[1].plot(lkwls[22], lkfls[22], "b")
+    flux = m.flux(6000, 3.5, 0.49)
+    ax[0].plot(m.wave_grid, flux)
+    flux_pt = pt.load_flux_full(6000, 3.5, "+0.5", norm=True)[pt.ind]
+    wave_pt = pt.w
+    ax[1].plot(wave_pt, flux_pt)
+    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
+    LIB = fhdf5['LIB']
+    wave_grid = np.load("wave_grid_2kms.npy")
+    ax[2].plot(wave_grid, LIB[36,7,2])
+    print(pt.T_points[36], pt.logg_points[7])
     plt.show()
 
 
