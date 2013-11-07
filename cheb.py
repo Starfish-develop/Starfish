@@ -43,12 +43,12 @@ c = np.array([1,0,0,0])
 
 orders = [21,22]
 
-wls = np.load("GWOri_cf_wls.npy")[orders]
-fls = np.load("GWOri_cf_fls.npy")[orders]
+wls = m.wls
+fls = m.fls
 
-sigmas = np.load("sigmas.npy")[orders] #has shape (51, 2299), a sigma array for each order
+sigmas = m.sigmas #has shape (51, 2299), a sigma array for each order
 
-fmods = m.model(wls,6001,3.5,42,2.1e-28)
+fmods = m.model(wls, 6001,3.5,0.0, 3, 0.0, 1e-10)
 #fls = m.model(wls,6020,3.6,40,2e-27)
 
 TT = np.einsum("in,jn->ijn",T,T)
@@ -91,7 +91,7 @@ Ac = np.einsum("ijk,k->ij",A,c)
 cAc = np.einsum("j,ij->i",c,Ac)
 Bc = np.einsum("ij,j->i",B,c)
 
-#to obtain the original, unnormalized P given c
+#to obtain the original, unnormalized, unmarginalized P given c
 print("Unmarginalized",np.sum(-0.5 * cAc + Bc + G))
 
 #plt.plot(xs,T0)

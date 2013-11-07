@@ -9,16 +9,19 @@ name : internal  #internal tests
 #
 
 # Data parameters
-orders : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50]
+#orders : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50]
 #orders : [4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,30,31,32,33,34,35,42,45]
-#orders : [22]
+orders : [22]
 #dataset : LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec
 dataset : Fake/50/Fake
 
 # Model parameters
-lnprob : lnprob
-# lnprob : lnprop_old
-# lnprob : lnprob_marginal
+# lnprob : lnprob
+# lnprob : lnprob_gaussian  #Gaussian priors
+# lnprob : lnprob_gaussian_marg #Gaussian priors, marginalized
+# lnprob : lnprob_lognormal
+lnprob : lnprob_lognormal_marg
+# lnprob : lnprob_classic
 
 
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
@@ -29,6 +32,7 @@ grid_params :
     Z_range : [-0.6, 0.6] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
+nparams : 7
 ndim : 8
 nwalkers : 64
 burn_in : 3000

@@ -51,19 +51,26 @@ Z_points = np.array([-0.5, 0.0, 0.5])
 
 #Limit grid size to relevant region
 grid_params = config['grid_params']
+
 T_low, T_high = grid_params['temp_range']
-T_points = T_points[(T_points > T_low) & (T_points < T_high)]
+T_ind = (T_points > T_low) & (T_points < T_high)
+T_points = T_points[T_ind]
+T_arg = np.where(T_ind)[0]
+
 g_low, g_high = grid_params['logg_range']
-logg_points = logg_points[(logg_points > g_low) & (logg_points < g_high)]
+logg_ind = (logg_points > g_low) & (logg_points < g_high)
+logg_points = logg_points[logg_ind]
+logg_arg = np.where(logg_ind)[0]
+
 Z_low, Z_high = grid_params['Z_range']
-Z_points = Z_points[(Z_points > Z_low) & (Z_points < Z_high)]
-print("Limited PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
+#Z_points = Z_points[(Z_points > Z_low) & (Z_points < Z_high)]
+print("Limiting PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
 
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
 #fls = np.load("fls_fake.npy")
-sigmas = 10 * np.load(base + ".sigma.npy") #3.8 gives chi^2_red = 1
+sigmas = np.load(base + ".sigma.npy") #3.8 gives chi^2_red = 1
 #sigmas = np.load('sigmas_fake.npy')
 masks = np.load(base + ".mask.npy")
 
@@ -95,13 +102,15 @@ def flux_interpolator_hdf5():
     LIB = fhdf5['LIB']
     param_combos = []
     var_combos = []
-    for t, temp in enumerate(T_points):
-        for l, logg in enumerate(logg_points):
+    for ti in range(len(T_points)):
+        for li in range(len(logg_points)):
             for z, Z in enumerate(Z_points):
-                param_combos.append([t, l, z])
-                var_combos.append([temp, logg, Z])
+                param_combos.append([T_arg[ti], logg_arg[li], z])
+                var_combos.append([T_points[ti], logg_points[li], Z])
+    #print(param_combos)
     num_spec = len(param_combos)
     points = np.array(var_combos)
+    #print(points)
     fluxes = np.empty((num_spec, len(wave_grid)))
     for i in range(num_spec):
         t, l, z = param_combos[i]
@@ -192,7 +201,7 @@ def shift_vz(lam_source, vz):
     return lam_observe
 
 
-def shift_TRES(vz):
+def shift_TRES(vz, wls=wls):
     wlsz = shift_vz(wls, vz)
     return wlsz
 
@@ -413,23 +422,24 @@ def data(coefs_arr, wls, fls):
         #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
-xs = np.arange(len_wl)
-T0 = np.ones_like(xs)
-Ch1 = Ch([0,1], domain=[0,len_wl-1])
-T1 = Ch1(xs)
-Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
-T2 = Ch2(xs)
-Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
-T3 = Ch3(xs)
-T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
-TT = np.einsum("in,jn->ijn",T,T)
-mu = np.array([1,0,0,0])
-sigmac = 0.2
-D = sigmac**(-2) * np.eye(4)
-Dmu = np.einsum("ij,j->j",D,mu)
-muDmu = np.einsum("j,j->",mu,Dmu)
+if (config['lnprob'] == "lnprob_gaussian") or (config['lnprob'] == 'lnprob_gaussian_marg'):
+    xs = np.arange(len_wl)
+    T0 = np.ones_like(xs)
+    Ch1 = Ch([0,1], domain=[0,len_wl-1])
+    T1 = Ch1(xs)
+    Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
+    T2 = Ch2(xs)
+    Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
+    T3 = Ch3(xs)
+    T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
+    TT = np.einsum("in,jn->ijn",T,T)
+    mu = np.array([1,0,0,0])
+    sigmac = 0.2
+    D = sigmac**(-2) * np.eye(4)
+    Dmu = np.einsum("ij,j->j",D,mu)
+    muDmu = np.einsum("j,j->",mu,Dmu)
 
-def lnprob(p):
+def lnprob_gaussian_marg(p):
     '''New lnprob, no nuisance coeffs'''
     temp, logg, Z, vsini, vz, Av, flux_factor = p
     if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (np.abs(Z) >= 0.5):# or (Av < 0):
@@ -460,24 +470,126 @@ def lnprob(p):
 
         return lnp
 
+if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg'):
+    xs = np.arange(len_wl)
+    Ch1 = Ch([0,1], domain=[0,len_wl-1])
+    T1 = Ch1(xs)
+    Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
+    T2 = Ch2(xs)
+    Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
+    T3 = Ch3(xs)
+    T = np.array([T1,T2,T3]) #multiply this by the flux and sigma vector for each order
+    TT = np.einsum("in,jn->ijn",T,T)
+    mu = np.array([0,0,0])
+    sigmac = 0.2
+    sigmac0 = 2
+    D = sigmac**(-2) * np.eye(3)
+    Dmu = np.einsum("ij,j->j",D,mu)
+    muDmu = np.einsum("j,j->",mu,Dmu)
 
-def lnprob_old(p):
-    '''p is the parameter vector, contains both theta_s and theta_n'''
-    #print(p)
-    temp, logg, vsini, vz, flux_factor = p[:5]
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000): #or (Av < 0):
+def lnprob_lognormal(p):
+    '''Sample only in c0's  '''
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+        #if the call is outside of the loaded grid.
         return -np.inf
     else:
-        coefs = p[5:]
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+        coefs = p[config['nparams']:]
+        # reshape to (norders, 4)
+        coefs_arr = coefs.reshape(len(orders), -1)
+        c0s = coefs_arr[:,0] #length norders
+        cns = coefs_arr[:,1:] #shape (norders, 3)
+
+        fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
+        fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
+
+        a= fm2c2/sigmas**2
+        A = np.einsum("in,jkn->ijk",a,TT)
+        Ap = A + D
+        detA = np.array(list(map(np.linalg.det, Ap)))
+        invA = np.array(list(map(np.linalg.inv, Ap)))
+
+        b = (-fm2c2 + fdfmc0) / sigmas**2
+        B = np.einsum("in,jn->ij",b,T)
+        Bp = B + Dmu
+
+        g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
+        G = np.einsum("ij->i",g)
+        Gp = G - 0.5 * muDmu
+
+        invAB = np.einsum("ijk,ik->ij",invA,Bp)
+        BAB = np.einsum("ij,ij->i",Bp,invAB)
+
+        Ac = np.einsum("ijk,ik->ij",Ap,cns)
+        cAc = np.einsum("ij,ij->",cns,Ac)
+        Bc = np.einsum("ij,ij->",Bp,cns)
+
+        #to obtain the original, unnormalized, unmarginalized P given c
+        #addition of lognormal prior
+        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
+
+        return lnp
+
+def lnprob_lognormal_marg(p):
+    '''Sample only in c0's  '''
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+        #if the call is outside of the loaded grid.
+        return -np.inf
+    else:
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+        c0s = p[config['nparams']:]
+
+        fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
+        fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
+
+        a= fm2c2/sigmas**2
+        A = np.einsum("in,jkn->ijk",a,TT)
+        Ap = A + D
+        detA = np.array(list(map(np.linalg.det, Ap)))
+        invA = np.array(list(map(np.linalg.inv, Ap)))
+
+        b = (-fm2c2 + fdfmc0) / sigmas**2
+        B = np.einsum("in,jn->ij",b,T)
+        Bp = B + Dmu
+
+        g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
+        G = np.einsum("ij->i",g)
+        Gp = G - 0.5 * muDmu
+
+        invAB = np.einsum("ijk,ik->ij",invA,Bp)
+        BAB = np.einsum("ij,ij->i",Bp,invAB)
+
+        #addition of lognormal prior
+        lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
+
+        return lnp
+
+def lnprob_classic(p):
+    '''p is the parameter vector, contains both theta_s and theta_n'''
+    #print(p)
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+        return -np.inf
+    else:
+        coefs = p[config['nparams']:]
         #print(coefs)
         coefs_arr = coefs.reshape(len(orders), -1)
+        print(coefs_arr)
 
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
 
         flsc = data(coefs_arr, wlsz, fls)
 
-        fs = model(wlsz, temp, logg, vsini, flux_factor)
+        fs = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         chi2 = np.sum(((flsc - fs) / sigmas) ** 2)
         L = -0.5 * chi2
@@ -501,16 +613,21 @@ def model_and_data(p):
     fs = model(wlsz, temp, logg, vsini, flux_factor)
     return [wlsz, flsc, fs]
 
-def generate_fake_data(SNR, temp, logg, Z, vsini, Av, vz, flux_factor):
+def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     import os
     '''Generate an echelle-like spectrum to test method. SNR is quoted per-resolution element,
     and so is converted to per-pixel via the formula on 10/31/13. The sigma is created at the Poisson level only.'''
     SNR_pix = SNR/1.65 #convert to per-pixel for TRES
-    wlsz = shift_TRES(vz)
-    fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
-    ind_avg = (wlsz[22] > 5175.) & (wlsz[22] < 5182)
-    avg = np.average(fls_fake[22][ind_avg])
+
+    #use LkCa15 wl grid, shifted
+    LkCa15_wls = np.load('data/LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec.wls.npy')
+
+    #When running this, also need to set config['orders'] = all
+    wlsz = shift_TRES(vz, wls=LkCa15_wls)
+    fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) #create flux on a shifted grid
     sigmas = fls_fake/SNR_pix
+
+    print("Generated data with SNR:{SNR:}, temp:{temp:}, logg:{logg:}, Z:{Z:}, vsini:{vsini:}, vz: {vz:}, Av:{Av:}, flux-factor:{ff:}".format(SNR=SNR, temp=temp, logg=logg, Z=Z, vsini=vsini, vz = vz, Av=Av, ff=flux_factor))
 
     #func = lambda x: np.random.normal(loc=0,scale=x)
     #noise = np.array(list(map(func,sigmas)))
@@ -526,7 +643,7 @@ def generate_fake_data(SNR, temp, logg, Z, vsini, Av, vz, flux_factor):
     else:
         print(basedir, "already exists, overwriting.")
     base = basedir + 'Fake'
-    np.save(base + '.wls.npy',wlsz)
+    np.save(base + '.wls.npy',LkCa15_wls) #write original, unshifted grid
     np.save(base + '.fls.npy', fls_noise)
     np.save(base + '.true.fls.npy',fls_fake)
     np.save(base + '.sigma.npy',noise)
@@ -542,11 +659,14 @@ def main():
     #print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
     #print(lnprob(np.array([6000, 3.5, 15, 15, 1e-27])))
     #model(wls, temp, logg, vsini, flux_factor)
-    fake_params = (5900., 3.5, 0.0, 5., 0.0, 2.0, 1e-10)
+    #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
     #generate_fake_data(70., *fake_params)
     #generate_fake_data(100., *fake_params)
+    print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
+    print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0, 0, 0])))
+    print(lnprob_classic(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0, 0, 0])))
     pass
 
 

@@ -33,7 +33,6 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 # PHOENIX Models
 
-* Normalize all models to 1 solar luminosity
 * Investigate Lejune models
 * Get BT-Settl models from France Allard's website
 
@@ -69,13 +68,6 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 * for a 5% measurement in mass, we improve T_eff, log g, R estimates by XX amount.
 
-## Fits to metallicity
-
-* download grid, rewrite load_flux routine
-* remake HDF5 grid, upload to Odyssey. 
-
-
-
 ## Desireable plotting tools and output analysis
 
 * Drawing random samples from the data (color code by lnprob value?)
@@ -85,10 +77,13 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * Easy staircase plot generator (partially done)
 * use autocorrelation time, and plots for each walker
 * automatically generate outputs of histograms and charts, summarized in a directory that is unique for each run.
+* Easily configure plot_MCMC.py to work within the directory, after a run
+* Automatically run and generate webpages after SLURM job is completed (during?)
+* Change all files to use config from arguments, but in the case that the argument is blank `(len(sys.argv) < 1)`? then use `config.yaml`.
 
 ## Error analysis
 
-* Generate fake spectrum by adding in random Gaussian noise following 10/31/13. This would be good to do first to determine a statistical uncertainty floor
+* This would be good to do first to determine a statistical uncertainty floor
 * Find regions of spectrum that are poorly modelled after Mann 2013, comparison with many different best-fit spectra.
 * Histograms of residuals of fits, tests to determine if Gaussian, Lorentzian, or student-t distributions would be the best fit
 * color-code the level of sigma that is due to each level of error: Poisson, systematic, flux-calibration
@@ -99,14 +94,13 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 ## Functionality improvements
 
-* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files.
+* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files. Job arrays and environment variables for a suite of tests at different starting positions? Otherwise, probably better to use individual runs.
 
 ## Potential Speedups
 
 * Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
 * Be so bold as to interpolate the Fourier transform?
 * Fine tune garbage collection (debugging?): http://docs.python.org/2/library/gc.html#gc.garbage
-* Option to limit range of data FFT'ing or loading (via interpolator?) when doing less than all the orders. Option to flux-interpolator?
 * Move back to pyFFTW
 
 # Method Checks and concerns 
@@ -114,22 +108,6 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * Flux interpolation errors (a systematic spectrum) (see notes + figure from 9/9/13)
 * distribution of interpolation errors (histogram)
 * What is a veiling prior? Hartigan 1991
-* Try seeding random spectra (derived from models) to see if parameters are recovered at various S/N via Doppman and Jaffey, sec 4.1
-
-# Alternative methods for normalization
-
-* actually sample c0, c1, c2, c3 for each and every order (start walkers at the coeffs that maximize chi^2 for each order
-* do this but multiplying the data and sigma, not the model
-* do c0 ( 1 + c1 + c2 + c3), marginalize over all
-* do c0 ( 1 + c1 + c2 + c3), marginalize over c1+, sample in c0
-* do c0, but in a hierarchical fashion.
-* from the final parameters, create an inverse flux calibration.
-
-# Checks against real data
-
-* Empirical spectral libraries: ELOISE?
-* Torres 12 paper: HAT-P-9, WASP-14
-* Real data in HIRES archive from George Herbig
 
 # Beyond TRES
 
@@ -137,6 +115,7 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 http://www2.keck.hawaii.edu/koa/public/koa.php
 * Make a tool to collect all the targets into an astrotable that is easily sortable and can query to output targets in RA/DEC and move easily between them.
 * For knowledge purposes, try synthesizing a spectrum using the model atmosphere provided. This might be harder than I currently imagine.
+* ELOISE spectral library
 
 # MISC
 
@@ -150,8 +129,12 @@ Crop out edges from zero response for TRES data
 
 
 * astropy echelle reader tool: properly reading in Chebyshev fit (for astropy) http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?specwcs
+* an animated diagram of age tracks in the HR diagram for my talk? Put on webpage?
 
 ## How to use memory_profiler
 Put the decorator `@profile` over the function you want to profile
 
 	python -m memory_profiler model.py
+
+
+
