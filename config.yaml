@@ -1,5 +1,5 @@
 # Output parameters
-name : internal  #internal tests
+name : internal_SNR_50_Order22  #internal tests
 
 ##### Comments #####
 # This run is to test internal consistency of parameters.
@@ -23,6 +23,8 @@ dataset : Fake/50/Fake
 lnprob : lnprob_lognormal_marg
 # lnprob : lnprob_classic
 
+sigmac : 0.2
+sigmac0 : 0.2
 
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
@@ -36,8 +38,8 @@ nparams : 7
 ndim : 8
 nwalkers : 64
 burn_in : 3000
-iterations : 1000
-MPI : False
+iterations : 3000
+MPI : True
 threads : 4
 output_dir : output
 

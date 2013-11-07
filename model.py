@@ -84,6 +84,9 @@ fls = fls[orders]
 sigmas = sigmas[orders]
 masks = masks[orders]
 
+sigmac = config['sigmac']
+sigmac0 = config['sigmac0']
+
 len_wl = len(wls[0])
 
 wave_grid = np.load("wave_grid_2kms.npy")
@@ -422,22 +425,34 @@ def data(coefs_arr, wls, fls):
         #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
     return flsc
 
+xs = np.arange(len_wl)
+T0 = np.ones_like(xs)
+Ch1 = Ch([0,1], domain=[0,len_wl-1])
+T1 = Ch1(xs)
+Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
+T2 = Ch2(xs)
+Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
+T3 = Ch3(xs)
+
 if (config['lnprob'] == "lnprob_gaussian") or (config['lnprob'] == 'lnprob_gaussian_marg'):
-    xs = np.arange(len_wl)
-    T0 = np.ones_like(xs)
-    Ch1 = Ch([0,1], domain=[0,len_wl-1])
-    T1 = Ch1(xs)
-    Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
-    T2 = Ch2(xs)
-    Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
-    T3 = Ch3(xs)
-    T = np.array([T0,T1,T2,T3]) #multiply this by the flux and sigma vector for each order
+    T = np.array([T0,T1,T2,T3])
     TT = np.einsum("in,jn->ijn",T,T)
     mu = np.array([1,0,0,0])
-    sigmac = 0.2
     D = sigmac**(-2) * np.eye(4)
     Dmu = np.einsum("ij,j->j",D,mu)
     muDmu = np.einsum("j,j->",mu,Dmu)
+
+if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg'):
+    T = np.array([T1,T2,T3])
+    TT = np.einsum("in,jn->ijn",T,T)
+    mu = np.array([0,0,0])
+    D = sigmac**(-2) * np.eye(3)
+    Dmu = np.einsum("ij,j->j",D,mu)
+    muDmu = np.einsum("j,j->",mu,Dmu)
+
+############################################################
+# Various lnprob functions
+############################################################
 
 def lnprob_gaussian_marg(p):
     '''New lnprob, no nuisance coeffs'''
@@ -469,23 +484,6 @@ def lnprob_gaussian_marg(p):
         lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp)
 
         return lnp
-
-if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg'):
-    xs = np.arange(len_wl)
-    Ch1 = Ch([0,1], domain=[0,len_wl-1])
-    T1 = Ch1(xs)
-    Ch2 = Ch([0,0,1],domain=[0,len_wl-1])
-    T2 = Ch2(xs)
-    Ch3 = Ch([0,0,0,1],domain=[0,len_wl-1])
-    T3 = Ch3(xs)
-    T = np.array([T1,T2,T3]) #multiply this by the flux and sigma vector for each order
-    TT = np.einsum("in,jn->ijn",T,T)
-    mu = np.array([0,0,0])
-    sigmac = 0.2
-    sigmac0 = 2
-    D = sigmac**(-2) * np.eye(3)
-    Dmu = np.einsum("ij,j->j",D,mu)
-    muDmu = np.einsum("j,j->",mu,Dmu)
 
 def lnprob_lognormal(p):
     '''Sample only in c0's  '''
@@ -569,7 +567,6 @@ def lnprob_lognormal_marg(p):
 
         #addition of lognormal prior
         lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
-
         return lnp
 
 def lnprob_classic(p):
@@ -597,22 +594,6 @@ def lnprob_classic(p):
         prior = 0
         return L + prior
 
-
-def model_and_data(p):
-    '''p is the parameter vector, contains both theta_s and theta_n'''
-    #print(p)
-    temp, logg, vsini, vz, flux_factor = p[:5]
-    coefs = p[5:]
-    print(coefs)
-    coefs_arr = coefs.reshape(len(orders), -1)
-
-    wlsz = shift_TRES(vz)
-
-    flsc = data(coefs_arr, wlsz, fls)
-
-    fs = model(wlsz, temp, logg, vsini, flux_factor)
-    return [wlsz, flsc, fs]
-
 def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     import os
     '''Generate an echelle-like spectrum to test method. SNR is quoted per-resolution element,
@@ -627,7 +608,9 @@ def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) #create flux on a shifted grid
     sigmas = fls_fake/SNR_pix
 
-    print("Generated data with SNR:{SNR:}, temp:{temp:}, logg:{logg:}, Z:{Z:}, vsini:{vsini:}, vz: {vz:}, Av:{Av:}, flux-factor:{ff:}".format(SNR=SNR, temp=temp, logg=logg, Z=Z, vsini=vsini, vz = vz, Av=Av, ff=flux_factor))
+    print("Generated data with SNR:{SNR:}, temp:{temp:}, logg:{logg:}, Z:{Z:}, "
+        "vsini:{vsini:}, vz: {vz:}, Av:{Av:}, flux-factor:{ff:}".format(SNR=SNR, temp=temp,
+        logg=logg, Z=Z, vsini=vsini, vz = vz, Av=Av, ff=flux_factor))
 
     #func = lambda x: np.random.normal(loc=0,scale=x)
     #noise = np.array(list(map(func,sigmas)))
@@ -650,23 +633,16 @@ def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     np.save(base + '.mask.npy', mask)
 
 def main():
-    #print(model(wls,7005,6.1,40,1e-27))
-    #F = 8e-28
-    #print(lnprob(np.array([5905, 3.5, 40, 27,0.83 * F])))
-    #print(lnprob(np.array([6000, 3.5, 40, 100, 1.0, F])))
 
-    #generate_fake_data(6000,3.5, 15, 15, 1.0, 1e-27)
-    #print(lnprob_old(np.array([6000, 3.5, 15, 15, 1e-27, 0, 0, 0])))
-    #print(lnprob(np.array([6000, 3.5, 15, 15, 1e-27])))
-    #model(wls, temp, logg, vsini, flux_factor)
     #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
     #generate_fake_data(70., *fake_params)
     #generate_fake_data(100., *fake_params)
-    print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
-    print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0, 0, 0])))
-    print(lnprob_classic(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0, 0, 0])))
+
+    #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
+    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0, 0, 0])))
+    #print(lnprob_classic(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0, 0, 0])))
     pass
 
 
