@@ -17,18 +17,7 @@ wr = config['walker_ranges']
 nparams = config['nparams']
 norders = len(config['orders'])
 
-chain = np.load("output/" + config['name'] + "/chain.npy")
-nwalkers = chain.shape[0]
-nsteps = chain.shape[1]
 
-#Give flatchain, too
-s = chain.shape
-flatchain = chain.reshape(s[0] * s[1], s[2])
-#flatchain = flatchain[80000:]
-lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
-lnflatchain = lnchain.flatten()
-
-ndim_chain = flatchain.shape[1]
 
 #Load normalized order spectrum
 #wls, fls = rechellenpflat("GWOri_cf")
@@ -57,7 +46,7 @@ def auto_hist_param_linspace(flatchain):
     axes[6].hist(flatchain[:,6], bins=np.linspace(wr['flux_factor'][0],wr['flux_factor'][1], num=40))#, range=(1e-28,1e-27)) #fluxfactor
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
-    plt.savefig('output/' + config['name'] + '/hist_param.png')
+    plt.savefig(config['output_dir'] + '/' + config['name'] + '/hist_param.png')
 
 def auto_hist_param(flatchain):
     '''Just a simple histogram with no care about bin number, sizes, or location.'''
@@ -76,13 +65,13 @@ def auto_hist_param(flatchain):
         axes[i].set_xlabel(labels[i])
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
-    plt.savefig('output/' + config['name'] + '/hist_param.png')
+    plt.savefig(config['output_dir'] + '/' + config['name'] + '/hist_param.png')
 
 
 def hist_nuisance_param(flatchain):
     #make a nuisance directory
     #Create necessary output directories using os.mkdir, if it does not exist
-    nuisance_dir = "output/" + config['name'] + '/nuisance/'
+    nuisance_dir = config['output_dir'] + "/" + config['name'] + '/nuisance/'
     if not os.path.exists(nuisance_dir):
         os.mkdir(nuisance_dir)
         print("Created output directory", nuisance_dir)
@@ -501,9 +490,22 @@ def get_acor():
 
 
 def main():
+    chain = np.load("output/" + config['name'] + "/chain.npy")
+    nwalkers = chain.shape[0]
+    nsteps = chain.shape[1]
+
+    #Give flatchain, too
+    s = chain.shape
+    flatchain = chain.reshape(s[0] * s[1], s[2])
+    #flatchain = flatchain[80000:]
+    lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
+    lnflatchain = lnchain.flatten()
+
+    ndim_chain = flatchain.shape[1]
+
     #print(len(flatchain))
-    auto_hist_param(flatchain)
-    hist_nuisance_param(flatchain)
+    #auto_hist_param(flatchain)
+    #hist_nuisance_param(flatchain)
     #plot_random_data()
     #plot_random_data()
     #plot_data_and_residuals()
