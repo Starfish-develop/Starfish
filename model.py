@@ -457,7 +457,8 @@ if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_logn
 def lnprob_gaussian_marg(p):
     '''New lnprob, no nuisance coeffs'''
     temp, logg, Z, vsini, vz, Av, flux_factor = p
-    if (logg < 0) or (logg > 6.0) or (vsini < 0) or (temp < 2300) or (temp > 10000) or (np.abs(Z) >= 0.5):# or (Av < 0):
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
+            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
         return -np.inf
     else:
         #shift TRES wavelengths
@@ -488,7 +489,8 @@ def lnprob_gaussian_marg(p):
 def lnprob_lognormal(p):
     '''Sample only in c0's  '''
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
+            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
@@ -535,7 +537,8 @@ def lnprob_lognormal(p):
 def lnprob_lognormal_marg(p):
     '''Sample only in c0's  '''
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
+        or (np.abs(Z) >= 0.5) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
@@ -573,7 +576,8 @@ def lnprob_classic(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) or (np.abs(Z) >= 0.5):# or (Av < 0):
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
+            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
         return -np.inf
     else:
         coefs = p[config['nparams']:]

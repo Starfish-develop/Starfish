@@ -5,21 +5,30 @@ from numpy.polynomial import Chebyshev as Ch
 from matplotlib.ticker import FormatStrFormatter as FSF
 import acor
 import model as m
+import yaml
+import os
 
-#subdir = "order22/"
-subdir = "LkCa15/order23/lnprob_old/sig10/"
+confname = 'config.yaml' #sys.argv[1]
+f = open(confname)
+config = yaml.load(f)
+f.close()
 
-chain = np.load("output/" + subdir + "chain.npy")
+wr = config['walker_ranges']
+nparams = config['nparams']
+norders = len(config['orders'])
+
+chain = np.load("output/" + config['name'] + "/chain.npy")
 nwalkers = chain.shape[0]
 nsteps = chain.shape[1]
+
 #Give flatchain, too
 s = chain.shape
 flatchain = chain.reshape(s[0] * s[1], s[2])
 #flatchain = flatchain[80000:]
-lnchain = np.load("output/" + subdir + "lnprobchain.npy")
+lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
 lnflatchain = lnchain.flatten()
-#lnchain = lnchain[80000:]
-nparams = flatchain.shape[1]
+
+ndim_chain = flatchain.shape[1]
 
 #Load normalized order spectrum
 #wls, fls = rechellenpflat("GWOri_cf")
@@ -35,22 +44,66 @@ Tbin_edges = np.diff(Ts) / 2 + Ts[:-1]
 loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.0]
 
 
-def hist_param(flatchain):
-    fig, axes = plt.subplots(nrows=nparams, ncols=1, figsize=(8, 11))
+def auto_hist_param_linspace(flatchain):
+    fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
+    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$A_v$ (mag)", r"$R^2/d^2$" ]
 
-    axes[0].hist(flatchain[:, 0], bins=50)# range=(4800,4900)) #temp
-    axes[1].hist(flatchain[:, 1], bins=50)# range=(4.0,4.2)) #logg
-    axes[2].hist(flatchain[:, 2], bins=50)#, range=(10, 20)) #vsini
-    axes[3].hist(flatchain[:, 3], bins=50)#, range=(70, 90)) #vz
-    axes[4].hist(flatchain[:,4],bins=50)#,range=(0,20)) #Av
-    #axes[5].hist(flatchain[:,5],bins=50)#, range=(1e-28,1e-27)) #fluxfactor
-
-    for i, ax in enumerate(axes[5:]):
-        ax.hist(flatchain[:, i + 5], bins=20)
+    axes[0].hist(flatchain[:, 0], bins=np.linspace(wr['temp'][0],wr['temp'][1],num=40)) #temp
+    axes[1].hist(flatchain[:, 1], bins=np.linspace(wr['logg'][0],wr['logg'][1],num=40)) #logg
+    axes[2].hist(flatchain[:, 2], bins=np.linspace(wr['Z'][0],wr['Z'],num=40)) #Z
+    axes[3].hist(flatchain[:, 3], bins=np.linspace(wr['vsini'][0], wr['vsin'][1],num=40)) #vsini
+    axes[4].hist(flatchain[:, 4], bins=np.linspace(wr['vz'][0], wr['vz'][1],num=40)) #vz
+    axes[5].hist(flatchain[:,5], bins=np.linspace(wr['Av'][0], wr['Av'][1],num=40)) # Av
+    axes[6].hist(flatchain[:,6], bins=np.linspace(wr['flux_factor'][0],wr['flux_factor'][1], num=40))#, range=(1e-28,1e-27)) #fluxfactor
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
-    #plt.show()
-    plt.savefig('plots/posteriors/' + subdir + 'hist_param.png')
+    plt.savefig('output/' + config['name'] + '/hist_param.png')
+
+def auto_hist_param(flatchain):
+    '''Just a simple histogram with no care about bin number, sizes, or location.'''
+    fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
+    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$A_v$ (mag)", r"$R^2/d^2$" ]
+
+    axes[0].hist(flatchain[:, 0]) #temp
+    axes[1].hist(flatchain[:, 1]) #logg
+    axes[2].hist(flatchain[:, 2]) #Z
+    axes[3].hist(flatchain[:, 3]) #vsini
+    axes[4].hist(flatchain[:, 4]) #vz
+    axes[5].hist(flatchain[:,5]) # Av
+    axes[6].hist(flatchain[:,6]) #fluxfactor
+
+    for i in range(7):
+        axes[i].set_xlabel(labels[i])
+
+    fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
+    plt.savefig('output/' + config['name'] + '/hist_param.png')
+
+
+def hist_nuisance_param(flatchain):
+    #make a nuisance directory
+    #Create necessary output directories using os.mkdir, if it does not exist
+    nuisance_dir = "output/" + config['name'] + '/nuisance/'
+    if not os.path.exists(nuisance_dir):
+        os.mkdir(nuisance_dir)
+        print("Created output directory", nuisance_dir)
+    else:
+        print(nuisance_dir, "already exists, overwriting.")
+
+    cs = flatchain[:,nparams:]
+    print(cs.shape)
+
+    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+        for i in range(norders):
+            HEAD = i * 4
+            fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(8, 11))
+            axes[0].hist(cs[:,HEAD + 0])
+            axes[1].hist(cs[:,HEAD + 1])
+            axes[2].hist(cs[:,HEAD + 2])
+            axes[3].hist(cs[:,HEAD + 3])
+            fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
+
+    if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+        pass
 
 
 def joint_hist(p1, p2, **kwargs):
@@ -447,21 +500,26 @@ def get_acor():
         print(acor.acor(chain[:, :, param]))
 
 
-#print(len(flatchain))
-#hist_param(flatchain)
-#plot_random_data()
-#plot_random_data()
-plot_data_and_residuals()
-#joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
-#joint_hist(0,4,range=((),()))
-#draw_chebyshev_samples()
-#staircase_plot_thesis(flatchain[590000:])
-#staircase_plot_proposal(flatchain)
-#test_hist()
-#plot_walker_position()
-#get_acor()
+def main():
+    #print(len(flatchain))
+    auto_hist_param(flatchain)
+    hist_nuisance_param(flatchain)
+    #plot_random_data()
+    #plot_random_data()
+    #plot_data_and_residuals()
+    #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
+    #joint_hist(0,4,range=((),()))
+    #draw_chebyshev_samples()
+    #staircase_plot_thesis(flatchain[590000:])
+    #staircase_plot_proposal(flatchain)
+    #test_hist()
+    #plot_walker_position()
+    #get_acor()
 
-#x1 = np.random.normal(0,1,size=(10000,))
-#x2 = np.random.normal(0,3,size=(10000,))
-#data = np.array([x1,x2]).T #same format as flatchain
-#mini_hist(flatchain[:,0:2],r"$T_{\rm eff}$",r"$\log g$",bins=[np.linspace(4750,4950,num=30),np.linspace(4.0,4.4,num=30)])
+    #x1 = np.random.normal(0,1,size=(10000,))
+    #x2 = np.random.normal(0,3,size=(10000,))
+    #data = np.array([x1,x2]).T #same format as flatchain
+    #mini_hist(flatchain[:,0:2],r"$T_{\rm eff}$",r"$\log g$",bins=[np.linspace(4750,4950,num=30),np.linspace(4.0,4.4,num=30)])
+
+if __name__=="__main__":
+    main()
