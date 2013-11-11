@@ -68,14 +68,14 @@ def main():
     ### Do creation of directories here ###
     #Create necessary output directories using os.mkdir, if it does not exist
     if not os.path.exists(outdir):
-        os.mkdir(outdir)
+        os.makedirs(outdir, exist_ok=True)
         print("Created output directory", outdir)
     else:
         print(outdir, "already exists, overwriting.")
 
     #Copy config.yaml and SLURM script to this directory
-    shutil.copy('config.yaml',outdir + 'config.yaml')
-    shutil.copy('run',outdir + 'run')
+    shutil.copy('config.yaml', outdir + 'config.yaml')
+    shutil.copy('run', outdir + 'run')
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
 
@@ -130,7 +130,6 @@ def main():
     #Histograms of parameters
     #Walker positions as function of step position
     #Samples from the posterior overlaid with the data
-
 
 
 if __name__ == "__main__":
