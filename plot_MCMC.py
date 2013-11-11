@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 from matplotlib.ticker import FormatStrFormatter as FSF
-import acor
+#import acor
 import model as m
 import yaml
 import os
@@ -484,9 +484,9 @@ def plot_walker_position():
         fig.savefig("plots/walkers/{:0>2.0f}.png".format(param))
 
 
-def get_acor():
-    for param in range(nparams):
-        print(acor.acor(chain[:, :, param]))
+#def get_acor():
+#    for param in range(nparams):
+#        print(acor.acor(chain[:, :, param]))
 
 
 def main():
