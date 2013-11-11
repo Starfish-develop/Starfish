@@ -116,6 +116,7 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 * Make a tool to collect all the targets into an astrotable that is easily sortable and can query to output targets in RA/DEC and move easily between them.
 * For knowledge purposes, try synthesizing a spectrum using the model atmosphere provided. This might be harder than I currently imagine.
 * ELOISE spectral library
+* GNIRS spectral library: http://www.gemini.edu/sciops/instruments/nearir-resources?q=node/11594
 
 # MISC
 
@@ -135,6 +136,17 @@ Crop out edges from zero response for TRES data
 Put the decorator `@profile` over the function you want to profile
 
 	python -m memory_profiler model.py
+
+# Stellar parameter papers
+
+* Dong 2013 LAMOST v. KIC
+* Mann et al 2013, Masking out bad regions using weights that are systematically bad, and quoting intrinsic errors and systematic errors separately.
+* Tkachenko: Denoising. Regions chosen due to metal lines, problems with H beta.
+* Tkachenko: Spectrum analysis of Kepler target stars
+* Chaplin: All kepler stars done by astroseismology. TRES script to see if these have been observed. Fundamental parameter estimation.
+* Meszaros: SDSS-III APOGEE, describes APOGEE pipeline
+* Kurusowa: how line profiles can trace gas
+* Alaca: accretion properties using X-shooter
 
 
 
