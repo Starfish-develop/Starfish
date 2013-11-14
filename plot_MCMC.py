@@ -18,21 +18,6 @@ nparams = config['nparams']
 norders = len(config['orders'])
 
 
-
-#Load normalized order spectrum
-#wls, fls = rechellenpflat("GWOri_cf")
-
-T_points = np.array(
-    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
-     4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
-     6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
-#for our case
-Ts = T_points[17:47]
-Tbin_edges = np.diff(Ts) / 2 + Ts[:-1]
-loggbin_edges = [0.0, 0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75, 6.0]
-
-
 def auto_hist_param_linspace(flatchain):
     fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
     labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$A_v$ (mag)", r"$R^2/d^2$" ]
@@ -66,7 +51,6 @@ def auto_hist_param(flatchain):
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
     plt.savefig(config['output_dir'] + '/' + config['name'] + '/hist_param.png')
-
 
 def hist_nuisance_param(flatchain):
     #make a nuisance directory
@@ -129,6 +113,68 @@ def draw_chebyshev_samples():
         c = (1. - lnp[i], 0., lnp[i])
         ax.plot(wl, myCh(wl), c=c)
     plt.show()
+
+def visualize_draws(flatchain, lnflatchain, sample_num=10):
+    visualize_dir = config['output_dir'] + "/" + config['name'] + '/visualize/'
+    if not os.path.exists(visualize_dir):
+        os.mkdir(visualize_dir)
+        print("Created output directory", visualize_dir)
+    else:
+        print(visualize_dir, "already exists, overwriting.")
+
+    all_inds = np.arange(len(flatchain))
+
+    for i in range(sample_num):
+        #For each sample from the posterior
+
+        if not os.path.exists(sample_dir):
+            os.mkdir(sample_dir)
+
+        #Choose a random sample from the chain
+        ind = np.random.choice(all_inds)
+        p = flatchain[ind]
+        lnp = lnflatchain[ind]
+        sample_dir = visualize_dir + 'sample{i:0>2.0f}/'.format(i=i)
+        #write p and lnp to a file in sample dir
+        f = open('params.txt',"w")
+        f.write("Parameters: %s \n" % (p,))
+        f.write("lnp: %s \n" % (lnp,))
+        f.close()
+
+        #Get wavelength, flux, and sigmas
+        wl = m.wls[order]
+        fl = m.fls[order]
+        sigma = m.sigmas[order]
+
+        #Reproduce the model spectrum for that parameter combo
+        wlsz = m.shift_TRES(2.)
+        f = m.model(wlsz, 5900., 3.5, 0.0, 5., 0.0, 1e-10)[order]
+
+        for order in config['orders']:
+            fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
+
+
+
+            #coefs = p[m.config['nparams']:]
+            #coefs_arr = coefs.reshape(m.config.len(orders), -1)
+            #print(coefs_arr)
+
+            ax[0].plot(wl, fl, "b")
+            ax[0].plot(wl, f, "r")
+            ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
+
+
+            ax[2].plot(wl, fl - f)
+            ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
+            ax[2].set_xlim(wl[0],wl[-1])
+            plt.show()
+
+            plt.hist(sigma)
+            plt.show()
+            plt.hist(fl-f)
+            plt.show()
+
+
 
 
 def plot_data_and_residuals():
@@ -490,6 +536,7 @@ def plot_walker_position():
 
 
 def main():
+    #What to do if you're just running this based off of config
     chain = np.load("output/" + config['name'] + "/chain.npy")
     nwalkers = chain.shape[0]
     nsteps = chain.shape[1]
@@ -500,12 +547,11 @@ def main():
     #flatchain = flatchain[80000:]
     lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
     lnflatchain = lnchain.flatten()
-
     ndim_chain = flatchain.shape[1]
 
-    #print(len(flatchain))
-    #auto_hist_param(flatchain)
-    #hist_nuisance_param(flatchain)
+    auto_hist_param(flatchain)
+    hist_nuisance_param(flatchain)
+    visualize_draws(flatchain)
     #plot_random_data()
     #plot_random_data()
     #plot_data_and_residuals()
