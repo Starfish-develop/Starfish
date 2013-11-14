@@ -147,6 +147,7 @@ Put the decorator `@profile` over the function you want to profile
 * Meszaros: SDSS-III APOGEE, describes APOGEE pipeline
 * Kurusowa: how line profiles can trace gas
 * Alaca: accretion properties using X-shooter
+* Buchhave 2012 has parameters for many KOI's. We can access all the TRES data easily.
 
 
 
