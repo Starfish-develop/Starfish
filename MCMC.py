@@ -14,7 +14,10 @@ import importlib
 import model
 import plot_MCMC
 
-confname = 'config.yaml' #sys.argv[1]
+if len(sys.argv) > 1:
+    confname= sys.argv[1]
+else:
+    confname = 'config.yaml'
 f = open(confname)
 config = yaml.load(f)
 f.close()
@@ -25,7 +28,10 @@ ncoeff = config['ncoeff']
 norders = len(config['orders'])
 wr = config['walker_ranges']
 
-ndim = config['nparams'] + ncoeff * norders
+if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+    ndim = config['nparams'] + norders
+if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+    ndim = config['nparams'] + ncoeff * norders
 
 lnprob = getattr(model, config['lnprob'])
 
@@ -51,7 +57,7 @@ def main():
     if config['MPI']:
         from emcee.utils import MPIPool
         # Initialize the MPI-based pool used for parallelization.
-        pool = MPIPool()
+        pool = MPIPool(debug=True)
         print("Running with MPI")
 
         if not pool.is_master():

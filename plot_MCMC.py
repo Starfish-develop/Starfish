@@ -7,8 +7,12 @@ from matplotlib.ticker import FormatStrFormatter as FSF
 import model as m
 import yaml
 import os
+import sys
 
-confname = 'config.yaml' #sys.argv[1]
+if len(sys.argv) > 1:
+    confname= sys.argv[1]
+else:
+    confname = 'config.yaml'
 f = open(confname)
 config = yaml.load(f)
 f.close()
@@ -173,8 +177,6 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
             plt.show()
             plt.hist(fl-f)
             plt.show()
-
-
 
 
 def plot_data_and_residuals():
