@@ -6,10 +6,15 @@ from numpy.polynomial import Chebyshev as Ch
 import h5py
 import yaml
 import gc
+import sys
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 #import pyfftw
 
-f = open('config.yaml')
+if len(sys.argv) > 1:
+    confname= sys.argv[1]
+else:
+    confname = 'config.yaml'
+f = open(confname)
 config = yaml.load(f)
 f.close()
 
@@ -503,6 +508,8 @@ def lnprob_lognormal(p):
         coefs_arr = coefs.reshape(len(orders), -1)
         c0s = coefs_arr[:,0] #length norders
         cns = coefs_arr[:,1:] #shape (norders, 3)
+        #This does correctly unpack the coefficients into c0s, cns by order 11/17/13
+
 
         fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
         fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
@@ -645,7 +652,7 @@ def main():
     #generate_fake_data(100., *fake_params)
 
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
-    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0, 0, 0])))
+    print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0.8, 0.01, 0.02, 0.03, 0.9, 0.1, 0.2, 0.3, 1.0, 1, 2, 3])))
     #print(lnprob_classic(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0, 0, 0])))
     pass
 
