@@ -67,7 +67,6 @@ def hist_nuisance_param(flatchain):
         print(nuisance_dir, "already exists, overwriting.")
 
     cs = flatchain[:,nparams:]
-    print(cs.shape)
 
     if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
         for i in range(norders):
@@ -119,6 +118,10 @@ def draw_chebyshev_samples():
     plt.show()
 
 def visualize_draws(flatchain, lnflatchain, sample_num=10):
+    '''Currently only implemented for the un-marginalized probability functions.'''
+
+    #TODO: expand to marginalized distributions by drawing from the conditionals (we can also display conditional prob function)
+
     visualize_dir = config['output_dir'] + "/" + config['name'] + '/visualize/'
     if not os.path.exists(visualize_dir):
         os.mkdir(visualize_dir)
@@ -130,7 +133,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
     for i in range(sample_num):
         #For each sample from the posterior
-
+        sample_dir = visualize_dir + 'sample{i:0>2.0f}/'.format(i=i)
         if not os.path.exists(sample_dir):
             os.mkdir(sample_dir)
 
@@ -138,45 +141,55 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         ind = np.random.choice(all_inds)
         p = flatchain[ind]
         lnp = lnflatchain[ind]
-        sample_dir = visualize_dir + 'sample{i:0>2.0f}/'.format(i=i)
+
         #write p and lnp to a file in sample dir
-        f = open('params.txt',"w")
+        f = open(sample_dir + 'params.txt',"w")
         f.write("Parameters: %s \n" % (p,))
         f.write("lnp: %s \n" % (lnp,))
         f.close()
 
         #Get wavelength, flux, and sigmas
-        wl = m.wls[order]
-        fl = m.fls[order]
-        sigma = m.sigmas[order]
+        wls = m.wls
+        fls = m.fls
+        sigmas = m.sigmas
 
         #Reproduce the model spectrum for that parameter combo
-        wlsz = m.shift_TRES(2.)
-        f = m.model(wlsz, 5900., 3.5, 0.0, 5., 0.0, 1e-10)[order]
+        ks, fs = m.model_p(p)
 
-        for order in config['orders']:
-            fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
+        for j in range(norders):
+            #fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
+            ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
+            ax1 = plt.subplot2grid((3,2), (1,0),colspan=2)
+            ax2 = plt.subplot2grid((3,2), (2,0))
+            ax3 = plt.subplot2grid((3,2), (2,1))
 
-
+            wl = wls[j]
+            fl = fls[j]
+            sigma = sigmas[j]
+            f = fs[j]
+            k = ks[j]
 
             #coefs = p[m.config['nparams']:]
             #coefs_arr = coefs.reshape(m.config.len(orders), -1)
             #print(coefs_arr)
 
-            ax[0].plot(wl, fl, "b")
-            ax[0].plot(wl, f, "r")
-            ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
+            ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
+            ax0.plot(wl, fl, "b")
+            ax0.plot(wl, f, "r")
+            ax0.set_xlim(wl[0],wl[-1])
 
+            ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
+            ax1.plot(wl, fl - f)
+            ax1.set_xlim(wl[0],wl[-1])
 
-            ax[2].plot(wl, fl - f)
-            ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
-            ax[2].set_xlim(wl[0],wl[-1])
-            plt.show()
+            ax2.plot(wl,k)
 
-            plt.hist(sigma)
-            plt.show()
-            plt.hist(fl-f)
-            plt.show()
+            plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
+
+            #plt.hist(sigma)
+            #plt.show()
+            #plt.hist(fl-f)
+            #plt.show()
 
 
 def plot_data_and_residuals():
@@ -544,16 +557,19 @@ def main():
     nsteps = chain.shape[1]
 
     #Give flatchain, too
-    s = chain.shape
-    flatchain = chain.reshape(s[0] * s[1], s[2])
+    #s = chain.shape
+    #flatchain = chain.reshape(s[0] * s[1], s[2])
+
     #flatchain = flatchain[80000:]
-    lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
-    lnflatchain = lnchain.flatten()
+    #lnchain = np.load("output/" + config['name'] + "/lnprobchain.npy")
+    #lnflatchain = lnchain.flatten()
+    flatchain = np.load("output/" + config['name'] + "/flatchain.npy")
+    lnflatchain = np.load("output/" + config['name'] + "/flatlnprobchain.npy")
     ndim_chain = flatchain.shape[1]
 
     auto_hist_param(flatchain)
     hist_nuisance_param(flatchain)
-    visualize_draws(flatchain)
+    visualize_draws(flatchain, lnflatchain)
     #plot_random_data()
     #plot_random_data()
     #plot_data_and_residuals()

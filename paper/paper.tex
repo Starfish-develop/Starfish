@@ -32,7 +32,7 @@
 \title{A Bayesian method for inference of fundamental stellar parameters}
 \author{\today{}\\
 \medskip
-Ian~Czekala\altaffilmark{1} and Sean M. Andrews\altaffilmark{1}
+Ian~Czekala\altaffilmark{1} et al.
 %Author2\altaffilmark{2},
 }
 
@@ -54,7 +54,8 @@ Ian~Czekala\altaffilmark{1} and Sean M. Andrews\altaffilmark{1}
 
 \section{Introduction}
 
-Other methods of stellar parameter inference: SPC\citep{blj+12}, MOOG, SME \citep{vp96}.
+The fundamental parameters of stars, such as mass, luminosity, effective photospheric temperature, surface gravity, and metallicity are of supreme interest in astrophysics, for a wide variety of reasons. Exoplanet properties are found relative to the properties of the host star, and have important implications for models of planet formation. The properties are also important to the study of disks, for the incident radiation field sets photoevaporation, influences disk dispersal. 
+Many methods exist for determination of stellar parameters: SPC \citep{blj+12}, MOOG, SME \citep{vp96}, and these are robust for FKG stars, where there is a well-defined continuum and the stars are ``normal.'' However, for many young T-Tauri stars, the spectrum is contaminated by accretion, veiling, and fractional star spot coverage, which can be a nuisance and cause systematic errors if traditional techniques are used.
 
 \section{The model}
 
@@ -63,223 +64,224 @@ To summarize our model, we use Bayes rule to design a posterior probability func
   \overbrace{p(\vt | \vD)}^{\rm posterior} \propto \underbrace{p(\vD | \vt)}_{\rm likelihood} \; \overbrace{p(\vt)}^{\rm prior}
   \label{eqn:posterior}
 \end{equation}
-where the parameter vector is comprised of both stellar parameters and calibration parameters $\vt = \{\vstar, \vN \}$. Stellar parameters include $\vstar = \{T_{\rm eff}, \log(g), v \sin i, v_z, A_v \}$ while the data vector $\vD = \fD(\lambda)$ represents the a high resolution spectrum. In our immediate case of our companion paper, this is a 51-order echelle spectrum from TRES at a resolution of $R=48,000$ ($6.8\;{\rm km/s}$) and spanning the full optical range.
+where the parameter vector is comprised of both stellar parameters and calibration parameters $\vt = \{\vstar, \vN \}$. Stellar parameters include $\vstar = \{T_{\rm eff}, \log(g), [{\rm Fe}/{\rm H}], v \sin i, v_z, A_v, R_\star^2/d^2 \}$ while the data vector $\vD = \fD(\lambda)$ represents a high resolution spectrum. For demonstration purposes in this paper, we use a 51-order echelle spectrum from the \emph{TRES} spectrograph at a resolution of $R=48,000$ ($6.8\;{\rm km/s}$), which spans the full optical range ($3800-9000$\AA), though our technique is applicable to any high resolution optical/near-IR spectrum.
 
-Although per-pixel photon counting errors are Poisson, we can safely assume that we have enough counts that we are in the Gaussian limit. Then our likelihood function becomes a pixel-by-pixel $\chi^2$ comparison between the data spectrum $\fD$, and the model spectrum $\fM$, summed over the wavelength axis.\footnote{We must necessarily mask certain wavelength regions of the T Tauri spectra that are contaminated (one might also say ``made more interesting'') by the astrophysical realities of accretion or stellar spots (such as the Balmer lines, which are in emission).  We also accept the assumption that rotation or accretion onto the star does not fundamentally alter the structure of the model atmosphere that generates the model spectrum and that a spectral comparison of the ``clean'' regions of the spectrum is valid.} 
+Although per-pixel photon counting errors are Poisson, we can safely assume that we have enough counts that we are in the Gaussian limit, although see the discussion in \S\ref{sec:residuals}. Then our likelihood function becomes a pixel-by-pixel $\chi^2$ comparison between the data spectrum $\fD$, and the model spectrum $\fM$, summed over the wavelength axis. 
 \begin{equation}
  p(\vD | \vt) = {\cal L} \propto \exp \left(-\frac{\chi^2}{2} \right)
 \end{equation}
-
 \begin{equation}
   \chi^2 = \sum_\lambda \left [\frac{ \fD(\lambda) - k(\lambda | \vN) \fM(\lambda | \vstar) }{\sigma(\lambda)} \right ]^2
 \end{equation}
-In the future, we could modify our likelihood function to use a Student-t statistic instead of a Gaussian, such that it would be more robust in the presence of outlier pixels, however this does not seem necessary at the moment. To start, we will assume flat priors on $\vstar$ and $\vN$ and then relax this assumption later. Then the logarithm of our posterior probability function is then
+With flat priors on $\vstar$ and $\vN$ (an assumption we will later relax) the logarithm of our posterior probability function is then
 \begin{equation}
   \ln \bigl [p(\vt | \vD) \bigr] \propto - \frac{1}{2} \sum_\lambda \left [\frac{ \fD(\lambda) - k(\lambda | \vN) \fM(\lambda | \vstar) }{\sigma(\lambda)} \right ]^2
   \label{eqn:lnprob}
 \end{equation}
-To generate a model spectrum given a set of parameters $\fM(\vt)$, a model spectrum is created by linearly interpolating between grid points of a high-resolution PHOENIX model stellar spectra ($R = 500,000$), rotationally broadened, instrumentally broadened, Doppler shifted, extinction corrected, and downsampled to the exact pixels of the TRES spectrum. $\sigma(\lambda)$ is the RMS scatter of the continuum (measured in a line-free region) inversely scaled by the blaze function in each order, to account for Poisson photon counting errors. For some data reduction pipelines, a per-pixel ``sigma spectrum'' that accounts for spectral extraction errors due to night sky line contamination or low signal to noise is available, and should be used instead. The prefactor $k(\lambda | \vN)$ is a systematic error term that aims to account for errors in the blaze-correction or flux-calibration. In our case, $\vN = \{c_0, c_1, \ldots, c_N\}$ are a set of 4 Chebyshev polynomial coefficients for each order. This amounts to a ``re-fluxing'' of the model following the techniques of \citet{elh+06}. Additionally, we can add priors to limit the degree of re-fluxing (for example 20\%) to be consistent with a systematic noise floor for flux-calibration determined independently through calibration tests on TRES using standard stars. We scale the model and introduce non-physical warps rather than attempt to re-flux the data since this operation would also need to re-scale the noise, and the $\chi^2$ would be complicated function of $k$.
+To generate a model spectrum given a set of parameters $\fM(\vt)$, a model spectrum is created by linearly interpolating in $T_{\rm eff}, \log(g), [{\rm Fe}/{\rm H}]$ space between grid points of instrumentally broadened, oversampled PHOENIX model stellar spectra, rotationally broadened using Fourier techniques, Doppler shifted, extinction corrected, and downsampled using spline interpolation to the exact pixels of the TRES spectrum. 
+
+$\sigma(\lambda)$ is the Poisson photon counting errors. For some data reduction pipelines, a per-pixel ``sigma spectrum'' that accounts for spectral extraction errors due to night sky line contamination or low signal to noise is available, and should be used instead. For more discussion of the noise sources beyond statistical Poisson errors, see \S\ref{sec:residuals}.
+
+The prefactor $k(\lambda | \vN)$ is a calibration functionm that aims to account for errors in the blaze-correction or flux-calibration by multiplying the model by a polynomial. The parameters describing this function are the coefficients of the polynomial. This approach of accounting for large-scale calibration errors in the spectrum is more justified than the traditional approach of normalizing to the stellar continuum. From a flux-calibration experiment where we observed spectrophotometric standards BD+28 and BD+25 multiple times, we calibrated the dispersion in (Figure?) flux-calibration function, or IRAF's ``sensitivity function.'' These tests revealed that the largest source of error in flux-calibration was actually in the overall magnitude of individual order, this could be due to slit losses, poor correction due to parallactic angle, or scattered light within the instrument. These corrections are smaller than 10\%. But more importantly, the corrections in the higher order terms (ie, the shape of the bandpass calibration for each order) are small ($\lesssim 3\%$). As described in \S\ref{sec:priors}, we can set priors on these coefficients. This will be the optimal mode of operation for our model. However, there exists a wealth of archival data that is un-fluxcalibrated, since its primary purpose was for radial velocity determination of FGK stars, to which it is easy to normalize to a continuum. In this case, the scatter amongst the calibration can be as large as a factor of 2x. This prior information on the calibration parameters motivates our choice of functional parameterization for the nuisance parameters in \S\ref{sec:nuisance}. 
 
 \subsection{Nuisance parameters}
-In order to understand the effects of the $k(\lambda | \vN)$ term, we now consider its effects on just one order. The first four Chebyshev polynomials are 
+\label{sec:nuisance}
+In our case, $\vN = \{c_0, c_1, \ldots, c_N\}$ are a set of 4 Chebyshev polynomial coefficients for each order. This amounts to a ``re-fluxing'' of the model following the techniques of \citet{elh+06}. We apply the re-fluxing to the model rather than attempt to re-flux the data since this operation would also need to re-scale the noise, making $\chi^2$ a complicated function of $k$.
+
+
+In order to understand the effects of the $k(\lambda | \vN)$ term, we now consider its effects on just one order of the 51-order echelle spectrum. The first four Chebyshev polynomials are 
 \begin{align*}
   T_0(x) &= 1\\
   T_1(x) &= x\\
   T_2(x) &= 2 x^2 - 1\\
   T_3(x) &= 4 x^3 - 3x\\
 \end{align*}
-In our implementation, we map the full range of a specific order $\lambda \in [\lambda_{\rm min}, \lambda_{\rm max}]$ to $x \in [-1, 1]$ (or we can map pixel number). Then, for a given set of Chebyshev coefficients, $\vN = \vc = \{ c_0, c_1, c_2, \ldots, c_N \}$, we have 
-
+In our implementation, we map the full pixel range of a specific order $\lambda \in [\lambda_{\rm min}, \lambda_{\rm max}]$ to $x \in [-1, 1]$. By mapping pixel number in a given order, rather than wavelength, we are insensitive to wavelength shifts of the model. Then, for a given set of Chebyshev coefficients, $\vN = \{ c_0, c_1, c_2, \ldots, c_N \}$, we have 
 \begin{align}
-  k(\lambda | \vN) &= c_0 T_0(\lambda) + c_1 T_1(\lambda) + \ldots + c_N T_N(\lambda) \\
-  k(\lambda | \vN) &= \sum^N_{i = 0} c_i T_i(\lambda)
+  k(\lambda | \vN) &= c_0 T_0(\lambda) \left [1 + c_1 T_1(\lambda) + \ldots + c_N T_N(\lambda) \right ]\\
+  k(\lambda | \vN) &= c_0 \left [1 + \sum^N_{i = 1} c_i T_i(\lambda) \right ]
+  \label{eqn:k_new}
+\end{align}
+When applied to scale the model flux $\fM$, this becomes
+\begin{align}
+  k(\lambda | \vN) \fM &=  \left [1 + \sum^N_{i = 1} c_i T_i(\lambda) \right ] (c_0 \fM)\\
+  k(\lambda | \vN) \fM &= c_0 \fM + c_1 T_1 (c_0 \fM) + \ldots + c_N T_N (c_0 \fM)
 \end{align}
 
-using this, we can rewrite Equation~\ref{eqn:lnprob} as 
+This functional form of $k$ allows $c_0$ to scale by large amounts while the higher order terms (denoted by $c_n$) are perturbations on top of the \emph{scaled} model ($c_0 \fM$). However, see \S\ref{sec:gaussian_simplification} for an alternative model when perturbations are small. We can rewrite Equation~\ref{eqn:lnprob} as 
 \begin{equation}
-  \ln \bigl [p(\vt | \vD) \bigr] \propto - \frac{1}{2} \sum_\lambda \left [\frac{\fD(\lambda) - \bigl [ \sum^N_{i = 0} c_i T_i(\lambda) \bigr ]\fM(\lambda | \vstar)  }{\sigma(\lambda)} \right ]^2
+  \ln \bigl [p(\vt | \vD) \bigr] \propto - \frac{1}{2} \sum_\lambda \left [\frac{\fD(\lambda) - \bigl [1 + \sum^N_{i = 1} c_i T_i(\lambda) \bigr ] c_0 \fM(\lambda | \vstar)  }{\sigma(\lambda)} \right ]^2
   \label{eqn:lnprob2}
 \end{equation}
-To simplify the following discussion, we consider just one wavelength $\lambda_i$ and then generalize this to a sum over $\lambda$ later. If we expand out the square in Equation~\ref{eqn:lnprob2}, then for a given $\lambda_i$ we have
+To simplify the following discussion, we consider a single wavelength $\lambda_i$ and then generalize this to a sum over $\lambda$ later. If we expand out the square in Equation~\ref{eqn:lnprob2}, then for a given $\lambda_i$ we have
 \begin{equation}
- \ln \bigl [p(\vt | \lambda_i) \bigr] \propto -\frac{1}{2 \sigma^2} \bigl [ \fD^2 - 2 \fD \fM \sum_n c_n T_n + \fM^2 \sum_n \sum_m c_n T_n c_m T_m \bigr ]
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto -\frac{1}{2 \sigma^2} \left [ \fD^2 - 2 \fD c_0 \fM \left [1+ \sum_{i=1}^N c_i T_i \right ]+ c_0^2 \fM^2 \left [1 + \sum_{i=1}^N c_i T_i \right ]^2 \right ]
  \label{eqn:lnprob_lambda}
  \end{equation}
- where $\sigma$, $\fD$, $\fM$, and $T_{n,m}$ are all evaluated at $\lambda_i$
+where $\sigma$, $\fD$, $\fM$, and $T_{n,m}$ are all evaluated at $\lambda_i$. We can further expand this to
+\begin{equation}
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto - \frac{1}{2 \sigma^2} \left [ \fD^2 - 2 \fD c_0 \fM \left [1+ \sum_{i=1}^N c_i T_i \right ]+ c_0^2 \fM^2 \left [1 + 2 \sum_{i=1}^N c_i T_i + \sum_{i=1}^N \sum_{j=1}^N c_i T_i c_j T_j \right ] \right ]
+  \label{eqn:expanded}
+ \end{equation}
 
 To simplify this math, we can rewrite the Chebyshev coefficients and polynomials as column vectors $\vc$ and $\vec{T}(\lambda)$, respectively
 \begin{equation}
   \vc = 
   \begin{bmatrix}
-    c_0\\
     c_1\\
+    c_2\\
     \vdots\\
     c_N
   \end{bmatrix}
   \hspace{3cm}
 \vec{T}(\lambda) = 
 \begin{bmatrix}
-T_0(\lambda)\\
 T_1(\lambda)\\
+T_2(\lambda)\\
 \vdots\\
 T_N(\lambda)\\
 \end{bmatrix}
 \end{equation}
-
 then 
 \begin{equation}
-  k(\lambda | \vN) = \sum^N_{i = 0} c_i T_i = \vec{T}^\trans \cdot \vc
+  k(\lambda | \vN) = c_0 \left [ 1 + \sum^N_{i = 0} c_i T_i \right ] = c_0 \left[ 1+ \vec{T}^\trans \cdot \vc \right]
 \end{equation}
 If we let 
 \begin{equation}
   {\bm W}(\lambda) = \vec{T} \cdot \vec{T}^\trans = 
   \begin{bmatrix}
-T_0 T_0 & T_0 T_1 &  \hdots & T_0 T_N \\
-T_1 T_0 & T_1 T_1 &  \hdots & T_1 T_N \\
+T_1 T_1 & T_1 T_2 &  \hdots & T_1 T_N \\
+T_2 T_1 & T_2 T_2 &  \hdots & T_2 T_N \\
 \vdots  & \vdots  &  \ddots & \vdots \\
-T_N T_0 & T_N T_1 &  \hdots & T_N T_N \\
+T_N T_1 & T_N T_2 &  \hdots & T_N T_N \\
   \end{bmatrix}
 \end{equation}
 then we have
 \begin{equation}
-  \sum_n \sum_m c_n T_n c_m T_m = \vc^\trans \cdot {\bm W} \cdot \vc
+  \sum_{i =1}^N \sum_{j=1}^N c_i T_i c_j T_j = \vc^\trans \cdot {\bm W} \cdot \vc
 \end{equation}
-and we can rewrite Equation~\ref{eqn:lnprob_lambda} as 
+We can rewrite Equation~\ref{eqn:expanded} quadratically in $\vc$ as
 \begin{equation}
-  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto -\frac{1}{2 \sigma^2} \bigl [ \fD^2 - 2 \fD \fM\, \vec{T}^\trans \vc \; + \fM^2 \, \vc^\trans {\bm W}  \vc \bigr ]
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto - \frac{1}{2 \sigma^2} \left [ \fD^2 - 2 \fD c_0 \fM \left [1+ \sum_{i=1}^N c_i T_i \right ]+ c_0^2 \fM^2 \left [1 + 2 \sum_{i=1}^N c_i T_i + \sum_{i=1}^N \sum_{j=1}^N c_i T_i c_j T_j \right ] \right ]
+ \end{equation}
+\begin{equation}
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto - \frac{1}{2} \frac{c_0^2 \fM^2}{\sigma^2} \sum_{i=1}^N \sum_{j=1}^N c_i T_i c_j T_j + \left (\frac{- c_0^2 \fM^2 + c_0 \fD \fM}{\sigma^2} \right ) \sum_{i=1}^N c_i T_i  -  \left( \frac{c_0^2 \fM^2 - 2 c_0 \fD \fM + \fD^2}{2 \sigma^2} \right)
+\end{equation}
+\begin{equation}
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto - \frac{1}{2} \frac{c_0^2 \fM^2}{\sigma^2}  \vc^\trans {\bm W} \vc + \left (\frac{- c_0^2 \fM^2 + c_0 \fD \fM}{\sigma^2} \right ) \vec{T}^\trans \vc -  \left( \frac{c_0^2 \fM^2 - 2 c_0 \fD \fM + \fD^2}{2 \sigma^2} \right)
 \end{equation}
 
 Because matrix multiplication is associative, we can sum ${\bm W(\lambda)}$ and $\vec{T}^\trans(\lambda)$ across all $\lambda$, and define
 \begin{align}
-  {\bm A} &= \sum_\lambda \frac{\fM^2(\lambda|\vstar)}{\sigma^2(\lambda)} {\bm W}(\lambda)\\
-  \vec{B}^\trans(\vstar) &= \sum_\lambda \frac{\fD(\lambda) \fM(\lambda | \vstar) }{\sigma^2(\lambda)} \vec{T}^\trans(\lambda)\\
-  g(\vstar) &= -\frac{1}{2} \sum_\lambda \frac{\fD(\lambda)}{\sigma^2(\lambda)}\\
+  {\bm A} &= c_0^2 \sum_{\lambda} \frac{\fM^2(\lambda)}{\sigma^2(\lambda)} {\bm W}(\lambda) \\
+  \vec{B} &= \sum_{\lambda} \frac{-\fM^2(\lambda) c_0^2 + \fD(\lambda) \fM (\lambda) c_0}{\sigma^2(\lambda)} \vec{T}(\lambda)\\
+  g &= -\frac{1}{2} \sum_{\lambda} \frac{c_0^2 \fM^2(\lambda) - 2 c_0 \fD(\lambda) \fM(\lambda) + \fD^2(\lambda)}{\sigma^2(\lambda)} 
 \end{align}
-Now we can rewrite Equation~\ref{eqn:lnprob2} as 
-\begin{equation}
-  \ln \bigl (p(\vstar, \vN | \vD) \bigr) \propto - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar)
+Where ${\bm A}$, $\vec{B}$, and $g$ are each a function of $\vstar$, $\vN$, and $\vD$. Now we can rewrite Equation~\ref{eqn:lnprob2} as 
+\begin{align}
+  \ln \bigl [p(\vstar, \vN | \vD) \bigr] &\propto - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans \vc + g\\
+  p(\vt | \vD) = p(\vstar, \vN | \vD) &\propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans \vc + g \right )
   \label{eqn:lnprob_matrix}
-\end{equation}
-where remember $\vN = \{c_0, c_1, \ldots, c_N \}$. Now we have
+\end{align}
+Here we have the full posterior probability distribution defined in Equation~\ref{eqn:posterior}, assuming flat priors. This posterior is a function of both the stellar parameters $\vstar$ and the nuisance parameters $\vN$. Generally, we are most interested in the stellar parameters after they have been marginalized over the nuisance parameters. This marginalization encapsulates the uncertainty due to the inference on the nuisance parameters. Because this probability function is a multi-dimensional Gaussian in the higher order Chebyshev coefficients $\vc = \{c_1, c_2, \ldots, c_N \}$, we can do this marginalization analytically, and then sample from the marginalized distribution. 
 \begin{equation}
-  \boxed{
-  p(\vt | \vD) = p(\vstar, \vN | \vD) \propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar) \right )
-}
-  \label{eqn:posterior_vec}
-\end{equation}
-This is one of the \texttt{lnprob} options to sample in, provided you are interested in the results of the Chebyshev coefficients. However, because this is a multi-dimensional Gaussian in the Chebyshev coefficients and the parameters we are most interested in are $\vstar$, we can analytically marginalize out the nuisance parameters
-\begin{equation}
-  p(\vstar | \vD) = \int p(\vstar, \vN | \vD) \dd \vN
+  p(\vstar, c_0 | \vD) = \int p(\vstar, c_0, \vc\; | \vD) \dd \vc
 \end{equation}
 The analytic multi-dimensional Gaussian integral with linear term \citep{sgd+09} yields 
 \begin{align}
-  p(\vstar | \vD) &= \int \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar) \right ) \dd \vc\\
-  p(\vstar | \vD) &= \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A} \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^\trans {\bm A}^{-1} \vec{B} + g \right )}
+  p(\vstar, c_0 | \vD) &\propto \int \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans \vc + g \right ) \dd \vc\\
+  p(\vstar, c_0 | \vD) &\propto \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A} \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^\trans {\bm A}^{-1} \vec{B} + g \right )}
 \end{align}
-This result means that for any given set of parameters $\vstar$, we only need to calculate $\vec{B}(\vstar)$ and $g(\vstar)$; ${\bm A}(\vD)$ can be computed once and stored for the remainder of the MCMC run. We have also reduced the dimensionality of our posterior space from $150+$ parameters ($\sim 6$ stellar parameters plus 3 Chebyshev coefficients for each of 51 echelle orders) to $\sim 6$, which will enable more rapid convergence of the Markov chain.
+Where $N$ is the number of Chebyshev coefficients marginalized over, in our case $N=3$. By doing this marginalization we have reduced the dimensionality of our posterior space from $200+$ parameters ($\sim 7$ stellar parameters plus 3 Chebyshev coefficients for each of 51 echelle orders) to $\sim 60$ ($\sim 7$ stellar parameters and one $c_0$ for each of the 51 echelle orders). This enables a dramatic speedup in the MCMC sampling. For flux-calibrated spectra where the variation in $c_0$ is expected to be small (less than XX\%), we can approximate $k$ in a different manner which allows marginalization over the $c_0$ coefficients as well, reducing the dimensionality of the space to only the $\sim 7$ stellar parameters. This approach is detailed in \S\ref{sec:gaussian_simplification}.
 
 \subsection{Including Gaussian priors on nuisance parameters}
-In order to constrain the degree of ``re-fluxing'' to be consistent with an independent determination of the systematic error floor in flux-calibration (for example, 20\%), we can add Gaussian priors that limit the coefficient of each Chebyshev polynomial to within a percentage of no correction. For example, we might wish to limit the multiplicative linear term $c_1$ to within an amplitude of $\pm 0.2$.
-
-This corresponds to a prior on the nuisance parameters of
+\label{sec:priors}
+Using this formalism, it is possible to incorporate prior knowledge about the degree of necessary ``re-fluxing'' through priors on the nuisance parameters. From our flux-calibration experiment, we determined that the overall scaling could range by 10\%, while the higher order corrections were less than 3\%. Because $c_0$ is a scale factor, it should be equally probable to scale up by a factor of two as it is to scale down by a factor of two. This means we should be using a log-normal prior on $c_0$
+\begin{align}
+  p(c_0) &= \frac{1}{\sqrt{2 \pi} \sigma_{c_0} c_0} \exp \left( -\frac{(\ln c_0)^2}{2 \sigma_{c_0}^2} \right) \\
+  \ln p(c_0) &= \ln \left( \frac{1}{\sqrt{2 \pi} \sigma_{c_0} c_0} \right) - \frac{(\ln c_0)^2}{2 \sigma_{c_0}^2}
+\end{align}
+centered on $c_0 = 1$. Because the higher order polynomial terms are perturbations on the scaled model ($c_0 f$), we assume Gaussian priors centered about 0
 \begin{equation}
-  p(\vN) \propto \exp \left ( -\frac{1}{2} (\vc - \vec{\mu})^\trans {\bm D} (\vc - \vec{\mu}) \right )
+  p(c_n) = \frac{1}{\sqrt{2 \pi} \sigma_{c_n}} \exp \left( - \frac{c_n^2}{2 \sigma_{c_n^2}} \right)
+\end{equation}
+which we can express in vector form as
+\begin{equation}
+  p(\vc\;) \propto \exp \left ( -\frac{1}{2} (\vc - \vec{\mu})^\trans {\bm D} (\vc - \vec{\mu}) \right )
   \label{eqn:nuisance_prior} 
 \end{equation}
 where 
 \begin{equation}
   {\bm D} = 
   \begin{bmatrix}
-    \sigma_0^{-2} & 0 & \hdots & 0 \\
-    0 & \sigma_1^{-2} & \hdots & 0 \\
+    \sigma_1^{-2} & 0 & \hdots & 0 \\
+    0 & \sigma_2^{-2} & \hdots & 0 \\
     \vdots & \vdots & \ddots & 0 \\
     0 & 0 & \hdots & \sigma_N^{-2} \\
   \end{bmatrix}
 \end{equation}
-$\sigma_i$ represents the width of the Gaussian prior on the i-th Chebyshev coefficient. We can rewrite Equation~\ref{eqn:posterior} with priors as
-\begin{align}
-  p(\vstar, \vN | \vD) &\propto p( \vD | \vstar, \vN) p(\vN) p(\vstar)\\
-  p(\vstar, \vN | \vD) &\propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar) \right )  \exp \left ( -\frac{1}{2} (\vc - \vec{\mu})^\trans {\bm D} (\vc - \vec{\mu}) \right ) p(\vstar)
+and $\sigma_i$ represents the width of the Gaussian prior on the i-th Chebyshev coefficient, in our case $\sigma_i = \sigma_{c_n} \approx 0.03$. $\vec{\mu}$ is the mean of the Gaussian prior, in nearly all cases we expect to set this to $\vec{\mu} = \{0, 0, \ldots, 0\}$, unless we have prior knowledge that the flux-calibration is systematically warped in one direction. Now, we can write Equation~\ref{eqn:posterior} with priors as
+\begin{equation}
+  p(\vstar, \vN | \vD) = p(\vstar, c_0, \vc\; | \vD) \propto p( \vD | \vstar, c_0, \vc\; ) p(\vc\;) p(\vstar) p(c_0) 
+\end{equation}
+\begin{equation}
+  p(\vstar, \vN | \vD) \propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A} \vc + \vec{B}^\trans(\vstar) \vc + g(\vstar) \right )  \exp \left ( -\frac{1}{2} (\vc - \vec{\mu})^\trans {\bm D} (\vc - \vec{\mu}) \right ) p(\vstar) p(c_0)
   \label{eqn:posterior_prior}
-\end{align}
-we can expand and rearrange the argument of Equation~\ref{eqn:nuisance_prior} to a similar form 
+\end{equation}
+we can expand and rearrange the argument of Equation~\ref{eqn:nuisance_prior} to a similar form that is quadratic in $\vc$
 \begin{align}
   -\frac{1}{2} (\vc - \vec{\mu})^\trans {\bm D} (\vc - \vec{\mu}) &= \frac{1}{2}\left ( -\vc^\trans {\bm D} \vc + \vc^\trans {\bm D} \vec{\mu} + \vec{\mu}^\trans {\bm D} \vc - \vec{\mu}^\trans {\bm D} \vec{\mu} \right )\\
   &= -\frac{1}{2} \vc^\trans {\bm D} \vc + ({\bm D} \vec{\mu})^\trans \vc - \frac{1}{2} \vec{\mu}^\trans {\bm D} \vec{\mu}
 \end{align}
 then we can rewrite
 \begin{align}
-  {\bm A}^\prime({\bm D}) &= \sum_\lambda \frac{\fM^2(\lambda|\vstar)}{\sigma^2(\lambda)} {\bm W}(\lambda) + {\bm D}\\
-  \vec{B}^{\prime\trans}(\vstar | \vec{\mu}, {\bm D}) &= \sum_\lambda \frac{\fD(\lambda)\fM(\lambda | \vstar)}{\sigma^2(\lambda)} \vec{T}^\trans(\lambda) + ({\bm D} \vec{\mu})^\trans \\
-  g^\prime(\vstar | \vec{\mu}, {\bm D}) &= -\frac{1}{2} \sum_\lambda \frac{\fD(\lambda)}{\sigma^2(\lambda)}- \frac{1}{2} \vec{\mu}^\trans {\bm D} \vec{\mu}\\
+  {\bm A}^\prime &= {\bm A} + {\bm D}\\
+  \vec{B}^\prime &= \vec{B} + ({\bm D} \vec{\mu})^\trans\\
+  g^\prime &= g - \frac{1}{2} \vec{\mu}^\trans {\bm D} \vec{\mu} 
 \end{align}
-The result is the posterior probability function for our stellar parameters $\vt$ that has already been marginalized over the nuisance parameters with Gaussian priors.
-\begin{equation}
-  \boxed{
-  p(\vstar | \vD) = \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A}^\prime \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^{\prime\trans} {\bm A}^{\prime -1} \vec{B}^\prime + g^\prime \right )} p(\vstar)
+in the case that $\vec{\mu} = \{0, 0, \ldots, 0\}$, there is only a non-zero correction to ${\bm A}$. The full posterior probability distribution is then
+ \begin{equation}
+   \boxed{
+  p(\vstar, \vN | \vD) = p(\vstar, c_0, \vc\;) \propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A}^\prime \vc + \vec{B}^{\prime \trans} \vc + g^\prime \right ) p(\vstar) p(c_0) p(\vc)
 }
 \end{equation}
-If we increase the permissible degree of re-fluxing by increasing $\sigma_i$, this will have the effect of smearing out or widening the posterior on a given $\vstar$.
+This probability function appears in the code as \texttt{lnprob\_lognormal} and has $\sim 7$ stellar dimensions and $\sim 200$ nuisance dimensions.
+
+Using the previous multi-dimensional integral, we can marginalize over the $\vc$ including the Gaussian priors
+\begin{equation}
+  \boxed{
+  p(\vstar, c_0 | \vD) \propto \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A}^\prime \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^{\prime\trans} {\bm A}^{\prime -1} \vec{B}^\prime + g^\prime \right )} p(\vstar) p(c_0)
+}
+\end{equation}
+where $N$ is the number of Chebyshev coefficients marginalized over, in our case $N=3$. This probability function appears in the code as \texttt{lnprob\_lognormal\_marg} and has $\sim 7$ stellar dimensions and $\sim 50$ nuisance dimensions. If we increase the permissible degree of re-fluxing by increasing $\sigma_i$, this will have the effect of smearing out or widening the posterior on a given $\vstar$.
+
+
 
 \subsection{Sampling a un-flux calibrated model}
-The previously derived formalism works well in the case where the correction to $c_0$ is small in each order and can be approximated by a Gaussian. In reality, the correct formulation of $k(\lambda | \vN)$ to use is 
-\begin{equation}
-  k(\lambda | \vN) = c_0 T_0(\lambda) \left [1 + {c_1}^\prime T_1(\lambda) + \ldots + {c_N}^\prime T_N(\lambda) \right ]
-  \label{eqn:k_new}
-\end{equation}
-When applied to scale the model flux $\fM$, this becomes
-\begin{equation}
-  k(\lambda | \vN) \fM = c_0 \fM + {c_1}^\prime T_1 (c_0 \fM) + \ldots + {c_N}^\prime T_N (c_0 \fM)
-\end{equation}
-Now, $c_0$ is allowed to scale by large amounts while the higher order terms (denoted by $c_n$) are perturbations on top of the \emph{scaled} function. Previously, the higher order terms were only perturbations on the original, unscaled function, and if the $c_0$ term was large, then this gave an incorrect scaling. The correct priors to have on these small perturbations are Gaussian centered around 0
-\begin{equation}
-  p({c_n}^\prime) = \frac{1}{\sqrt{2 \pi} \sigma_{c_n}} \exp \left( - \frac{c_n^{\prime 2}}{2 \sigma_{ {c_n}^\prime}^2} \right)
-\end{equation}
-Because $c_0$ is a scale factor, it should be equally probable to scale up by a factor of two as it is to scale down by a factor of two. This means we should be using a log-normal prior on $c_0$
-\begin{equation}
-  p(c_0) = \frac{1}{\sqrt{2 \pi} \sigma_{c_0} c_0} \exp \left( -\frac{(\ln c_0)^2}{2 \sigma_{c_0}^2} \right) 
-\end{equation}
-instead of a Gaussian prior. 
-
-To gain insight, we can re-express this new version of $k$ in the original form as 
-\begin{equation}
-   k(\lambda | \vN) = c_0 T_0 + c_1 T_1 + \ldots + c_N T_N
-\end{equation}
-where $c_1 = c_0 {c_1}^\prime T_0$ and $c_N = c_0 {c_N}^\prime T_0$. Thus, if there needs to be a large perturbation in $c_0$, then there must also be a large perturbation in $c_n$. The prior on $c_1$ is now a product of a log-normal prior on $c_0$ and a Gaussian prior on ${c_1}^\prime$, which is not analytically tractable. Therefore, in the case of large perturbations, it is better to use Equation~\ref{eqn:k_new} and use a log-normal prior on $c_0$. When we use the original framework, we are saying that perturbations in $c_0$ are small enough that we can approximate the log-normal prior on $c_0$ as Gaussian and that the priors on $c_n$ can also be correctly approximated by a Gaussian. From tests, the original framework gives acceptable accuracy (using $\sigma_{c_n} = 0.05$) if the corrections in $c_0$ are $\sigma_{c_0} \leq 0.35$, or the one-sigma deviation of $c_0$ is between $0.7 \leq c_0 \leq 1.42$. Beyond this, one should switch to this framework, for example to correct for un-flux calibrated data.
-
-From a flux-calibration experiment where we observed spectrophotometric standards BD+28 and BD+25 multiple times, we calibrated the dispersion in (Figure?) flux-calibration function, or IRAF's ``sensitivity function.''   However, tests show that this effect is in fact small.
-
 This invalidates the previous section on normalization. However, for corrections of less than XX\%, this approximation is better than XX\% accurate.
 
 For the flux-calibration exercise, the overall spread in $c_0$ across all orders should not be more than $\sigma_{c_0} \leq 2$, or the one-sigma deviation of $c_0$ is between $0.125 \leq c_0 \leq 8.0$.
 
-Unfortunately, using this more correct formalism means that we can no longer analytically marginalize over $c_0$, we must sample in this parameter. We can, however, still analytically marginalize over the ${c_n}^\prime$ as before. 
-
-\begin{align}
-  {\bm A}_{ij} &= \frac{c_0^2 \fM^2}{\sigma^2} W_{ij}\\
-  B_i &= \frac{-\fM^2 c_0^2 + \fD \fM c_0}{\sigma^2} T_i\\
-  g & = -\frac{1}{2 \sigma^2} (\fM^2 c_0^2 - 2 \fD \fM c_0 + \fD^2)
-\end{align}
-and then 
-\begin{equation}
-  {\bm A}_{ij}^{-1} = \frac{\sigma^2}{\fM^2 c_0^2} W^{-1}_{ij}
-\end{equation}
-then, following the same integration as before, we have
-\begin{equation}
-  p(\vstar,c_0 | \vD) \propto \frac{1}{c_0^N} \sqrt{ \frac{(2 \pi)^N}{ {\rm det} |A_{\rm old}|}} \exp \left( -\frac{\fM^2 c_0^2}{\sigma^2} + \frac{\fM \fD}{\sigma^2} (T_i W^{-1}_{ij} T_j + 1 ) c_0 - \frac{\fD^2}{2 \sigma^2}  (T_i W^{-1}_{ij} T_j + 1 )\right)
-\end{equation}
-and then we can put our log-normal prior on $c_0$. Where $N$ is the number of higher order terms, in our case $N=3$. This function is not able to be integrated analytically, and so two-step marginalization is not feasible.
-
-
 The plot in plots/priortests shows that the log-normal prior is the correct choice. Since we care most about the inference on F, we want to know that the choice on prior of $c_0$ is not biasing the final outcome, while a Gaussian prior might if $\sigma_{c_0}$ was large. How to quantify this error and create a dividing line? For 5\% error? In peak? Do these plots need to be in the paper?
  
-Compare distributions by doing a K-S test on the cumulative distributions?
+Compare distributions by doing a K-S test on the cumulative distributions between Gaussian and Log-normal?
 
 \subsection{Hierarchical modelling}
 Can have a $c_1$, etc, that are marginalized over but we sample $c_0$ in a hierarchical manner which informs the overall flux-level.
 
 \subsection{Sampling with emcee}
 Citation to DFM \citep{fhl+12}, GW \citep{gw10}, and CosmoHAMMER \citep{asa+13}.
+
+\subsection{Noise, Masking, Residuals, and Alternative likelihood functions}
+\label{sec:residuals}
+In the future, we could modify our likelihood function to use a Student-t statistic instead of a Gaussian, such that it would be more robust in the presence of outlier pixels, however this does not seem necessary at the moment. 
+
+We must necessarily mask certain wavelength regions of the T Tauri spectra that are contaminated (one might also say ``made more interesting'') by the astrophysical realities of accretion or stellar spots (such as the Balmer lines, which are in emission).  We also accept the assumption that rotation or accretion onto the star does not fundamentally alter the structure of the model atmosphere that generates the model spectrum and that a spectral comparison of the ``clean'' regions of the spectrum is valid.
+
+Section on how to choose masked regions, testing the PHOENIX grid to see where the derivative is highest and thus gives the best leverage on stellar parameters.
+
+Section on interpolation errors.
+
 
 \section{Validation tests}
 Comparison to main sequence stars of HAT-P-9, and WASP-14, from the TRES archive \citep{tfs+12}.
@@ -300,10 +302,90 @@ then the errors on the flux-calibrated spectrum (in ergs/s/A/cm2) is simply the 
 \acknowledgments
 IC would like to graciously acknowledge Gregory Green, Doug Finkbeiner, and Daniel Eisenstein for many fruitful discussions about statistics and spectroscopy. This research made use of Astropy, a community-developed core Python package for Astronomy \citep{art+13}.
 
-%\appendix
-%
-%\section{}
-%
+\appendix
+
+\section{Simplification for small $c_0$ perturbations}
+\label{sec:gaussian_simplification}
+If the correction in $c_0$ is small, we can use an alternate formulation of $k$ and put Gaussian priors on all nuisance parameters. This allows analytic marginalization over all nuisance parameters (including $c_0$), and reduces the dimensionality of the posterior to only the $\sim 7$ stellar parameters, $\vstar$.
+
+\begin{align}
+  k(\lambda | \vN) &= c_0 T_0(\lambda) + c_1 T_1(\lambda) + \ldots + c_N T_N(\lambda) \\
+  k(\lambda | \vN) &= \sum^N_{i = 0} c_i T_i(\lambda)
+\end{align}
+Following \S\ref{sec:nuisance}
+\begin{equation}
+  \ln \bigl [p(\vt | \vD) \bigr] \propto - \frac{1}{2} \sum_\lambda \left [\frac{\fD(\lambda) - \bigl [ \sum^N_{i = 0} c_i T_i(\lambda) \bigr ]\fM(\lambda | \vstar)  }{\sigma(\lambda)} \right ]^2
+\end{equation}
+\begin{equation}
+ \ln \bigl [p(\vt | \lambda_i) \bigr] \propto -\frac{1}{2 \sigma^2} \bigl [ \fD^2 - 2 \fD \fM \sum_n c_n T_n + \fM^2 \sum_n \sum_m c_n T_n c_m T_m \bigr ]
+ \end{equation}
+Now the column vectors $\vc$ and $\vec{T}(\lambda)$ include $c_0$ as well
+\begin{equation}
+  \vc = 
+  \begin{bmatrix}
+    c_0\\
+    c_1\\
+    \vdots\\
+    c_N
+  \end{bmatrix}
+  \hspace{3cm}
+\vec{T}(\lambda) = 
+\begin{bmatrix}
+T_0(\lambda)\\
+T_1(\lambda)\\
+\vdots\\
+T_N(\lambda)\\
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+  k(\lambda | \vN) = \sum^N_{i = 0} c_i T_i = \vec{T}^\trans \cdot \vc
+\end{equation}
+\begin{equation}
+  {\bm W}(\lambda) = \vec{T} \cdot \vec{T}^\trans = 
+  \begin{bmatrix}
+T_0 T_0 & T_0 T_1 &  \hdots & T_0 T_N \\
+T_1 T_0 & T_1 T_1 &  \hdots & T_1 T_N \\
+\vdots  & \vdots  &  \ddots & \vdots \\
+T_N T_0 & T_N T_1 &  \hdots & T_N T_N \\
+  \end{bmatrix}
+\end{equation}
+\begin{equation}
+  \sum_n \sum_m c_n T_n c_m T_m = \vc^\trans \cdot {\bm W} \cdot \vc
+\end{equation}
+\begin{equation}
+  \ln \bigl [p(\vt | \lambda_i) \bigr] \propto -\frac{1}{2 \sigma^2} \bigl [ \fD^2 - 2 \fD \fM\, \vec{T}^\trans \vc \; + \fM^2 \, \vc^\trans {\bm W}  \vc \bigr ]
+\end{equation}
+\begin{align}
+  {\bm A} &= \sum_\lambda \frac{\fM^2(\lambda)}{\sigma^2(\lambda)} {\bm W}(\lambda)\\
+  \vec{B}^\trans &= \sum_\lambda \frac{\fD(\lambda) \fM(\lambda) }{\sigma^2(\lambda)} \vec{T}^\trans(\lambda)\\
+  g &= -\frac{1}{2} \sum_\lambda \frac{\fD(\lambda)}{\sigma^2(\lambda)}\\
+\end{align}
+Where ${\bm A}$, $\vec{B}$, and $g$ are each a function of $\vstar$, $\vN$, and $\vD$. If we include Gaussian priors, then we have 
+\begin{align}
+  {\bm A}^\prime &= {\bm A} + {\bm D}\\
+  \vec{B}^\prime &= \vec{B} + ({\bm D} \vec{\mu})^\trans\\
+  g^\prime &= g - \frac{1}{2} \vec{\mu}^\trans {\bm D} \vec{\mu} 
+\end{align}
+where now ${\bm D}$ and $\vec{\mu}$ include $c_0$ as well. The main difference from before is that now the prior on $c_0$ is now Gaussian instead of log-normal. This is acceptable as long as $\sigma_{c_0}$ is small ($< XX\%$), otherwise this will bias the correction factor. This also means that we will usually have $\vec{\mu} = \{1, 0, \ldots, 0\}$. The full posterior probability function becomes
+ \begin{equation}
+   \boxed{
+  p(\vstar, \vN | \vD) = p(\vstar, \vc\;) \propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A}^\prime \vc + \vec{B}^{\prime \trans} \vc + g^\prime \right ) p(\vstar) p(\vc)
+}
+\end{equation}
+
+Using the previous multi-dimensional integral, we can marginalize over all $\vc$ including the Gaussian priors
+\begin{equation}
+  \boxed{
+  p(\vstar | \vD) \propto \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A}^\prime \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^{\prime\trans} {\bm A}^{\prime -1} \vec{B}^\prime + g^\prime \right )} p(\vstar) 
+}
+\end{equation}
+
+To gain insight, we can re-express this new version of $k$ in the original form as 
+\begin{equation}
+   k(\lambda | \vN) = c_0 T_0 + c_1 T_1 + \ldots + c_N T_N
+\end{equation}
+where $c_1 = c_0 {c_1}^\prime T_0$ and $c_N = c_0 {c_N}^\prime T_0$. Thus, if there needs to be a large perturbation in $c_0$, then there must also be a large perturbation in $c_n$. The prior on $c_1$ is now a product of a log-normal prior on $c_0$ and a Gaussian prior on ${c_1}^\prime$, which is not analytically tractable. Therefore, in the case of large perturbations, it is better to use Equation~ and use a log-normal prior on $c_0$. When we use the original framework, we are saying that perturbations in $c_0$ are small enough that we can approximate the log-normal prior on $c_0$ as Gaussian and that the priors on $c_n$ can also be correctly approximated by a Gaussian. From tests, the original framework gives acceptable accuracy (using $\sigma_{c_n} = 0.05$) if the corrections in $c_0$ are $\sigma_{c_0} \leq 0.35$, or the one-sigma deviation of $c_0$ is between $0.7 \leq c_0 \leq 1.42$. Beyond this, one should switch to this framework, for example to correct for un-flux calibrated data.
+
 %\begin{deluxetable}{ll}
 %\tablecaption{\label{table:} Title}
 %\tablehead{\colhead{Col1} & \colhead{Col2}}
