@@ -23,7 +23,7 @@ norders = len(config['orders'])
 
 
 def auto_hist_param_linspace(flatchain):
-    fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
+    fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(6, 6))
     labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$A_v$ (mag)", r"$R^2/d^2$" ]
 
     axes[0].hist(flatchain[:, 0], bins=np.linspace(wr['temp'][0],wr['temp'][1],num=40)) #temp
@@ -71,8 +71,9 @@ def hist_nuisance_param(flatchain):
     if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
         for i in range(norders):
             HEAD = i * 4
-            fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(8, 11))
+            fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(6, 6))
             axes[0].hist(cs[:,HEAD + 0])
+            axes[0].set_title("%s" % (config['orders'][i]+1,) )
             axes[1].hist(cs[:,HEAD + 1])
             axes[2].hist(cs[:,HEAD + 2])
             axes[3].hist(cs[:,HEAD + 3])
@@ -148,6 +149,10 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         f.write("lnp: %s \n" % (lnp,))
         f.close()
 
+        #also write to numpy objects
+        np.save(sample_dir + "p.npy", p)
+        np.save(sample_dir + "lnp.npy", lnp)
+
         #Get wavelength, flux, and sigmas
         wls = m.wls
         fls = m.fls
@@ -159,6 +164,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         for j in range(norders):
             #fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
             ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
+            ax0.set_title("%s" % (config['orders'][j]+1,))
             ax1 = plt.subplot2grid((3,2), (1,0),colspan=2)
             ax2 = plt.subplot2grid((3,2), (2,0))
             ax3 = plt.subplot2grid((3,2), (2,1))
@@ -179,17 +185,15 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
             ax0.set_xlim(wl[0],wl[-1])
 
             ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
-            ax1.plot(wl, fl - f)
+            residuals = fl - f
+            ax1.plot(wl, residuals)
             ax1.set_xlim(wl[0],wl[-1])
 
             ax2.plot(wl,k)
+            ax3.hist(residuals)
+
 
             plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
-
-            #plt.hist(sigma)
-            #plt.show()
-            #plt.hist(fl-f)
-            #plt.show()
 
 
 def plot_data_and_residuals():
