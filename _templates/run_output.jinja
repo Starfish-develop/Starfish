@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}" />
+</head>
+
+<body>
+<h1> {{ title }} </h1>
+
+
+<h2>Stellar Parameters</h2>
+<img src= {{ hist_param }} width=800 />
+
+<h2> config.yaml values</h2>
+<div>
+<dl>
+{% for key,value in config|dictsort %}
+    <dt><strong> {{ key|e }}</strong></dt>
+    <dd>{{ value|e }}</dd>
+{% endfor %}
+</dl>
+</div>
+
+<h2>Nuisance Parameters</h2>
+<div>
+{% for image in nuisance_images %}
+<img src= {{ image }} width=400 />
+{% endfor %}
+</div>
+
+<h2>Visualizations</h2>
+<div>
+{% for key,list in sample_dict|dictsort %}
+    <h3> {{ key|e }} </h3>
+    {% for image in list|sort %}
+        <img src= {{ image }} width=400 />
+    {% endfor %}
+{% endfor %}
+</div>
+
+
+</body>
+</html>

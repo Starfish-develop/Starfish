@@ -97,6 +97,9 @@ def main():
     cs = generate_nuisance_params()
 
     p0 = np.vstack((np.array([temp, logg, Z, vsini, vz, Av, flux_factor]), cs)).T #Stack cs onto the end
+    print(p0.shape)
+    print(p0)
+    sys.exit(0)
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
