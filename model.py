@@ -396,6 +396,32 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     gc.collect() #necessary to prevent memory leak!
     return result
 
+def model_p(p):
+    '''Post processing routine that can take all parameter values and return the model.
+    Actual sampling does not require the use of this method since it is slow.'''
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+
+    wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+    coefs = p[config['nparams']:]
+    # reshape to (norders, 4)
+    coefs_arr = coefs.reshape(len(orders), -1)
+    c0s = coefs_arr[:,0] #length norders
+    cns = coefs_arr[:,1:] #shape (norders, 3)
+
+    #now create polynomials for each order, and multiply through fls
+    #print("c0s.shape", c0s.shape)
+    #print("cns.shape", cns.shape)
+    #print("T.shape", T.shape)
+
+    Tc = np.einsum("jk,ij->ik", T,cns)
+    #print("Tc.shape",Tc.shape)
+    k = np.einsum("i,ij->ij",c0s, 1 + Tc)
+    #print("k.shape",k.shape)
+    #print("fmods.shape",fmods.shape)
+    refluxed = k * fmods
+    return [k, refluxed]
 
 def degrade_flux(wl, w, f_full):
     vsini = 40.
@@ -517,8 +543,6 @@ def lnprob_lognormal(p):
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
         Ap = A + D
-        detA = np.array(list(map(np.linalg.det, Ap)))
-        invA = np.array(list(map(np.linalg.inv, Ap)))
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
@@ -527,9 +551,6 @@ def lnprob_lognormal(p):
         g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
-
-        invAB = np.einsum("ijk,ik->ij",invA,Bp)
-        BAB = np.einsum("ij,ij->i",Bp,invAB)
 
         Ac = np.einsum("ijk,ik->ij",Ap,cns)
         cAc = np.einsum("ij,ij->",cns,Ac)
@@ -652,7 +673,9 @@ def main():
     #generate_fake_data(100., *fake_params)
 
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
-    print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0.8, 0.01, 0.02, 0.03, 0.9, 0.1, 0.2, 0.3, 1.0, 1, 2, 3])))
+    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.00, 0.00, 0.00, 1, 0, 0, 0, 1.0, 0, 0, 0])))
+    print(lnprob_lognormal(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
+    model_p(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0]))
     #print(lnprob_classic(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 0, 0, 0])))
     pass
 

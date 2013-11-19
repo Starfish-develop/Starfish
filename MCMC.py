@@ -80,7 +80,7 @@ def main():
         print(outdir, "already exists, overwriting.")
 
     #Copy config.yaml and SLURM script to this directory
-    shutil.copy('config.yaml', outdir + 'config.yaml')
+    shutil.copy(confname, outdir + confname)
     shutil.copy('run', outdir + 'run')
 
     # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
@@ -128,14 +128,20 @@ def main():
     np.save(outdir + "chain.npy", sampler.chain)
     #write lnprob to file
     np.save(outdir + "lnprobchain.npy", sampler.lnprobability)
+    #write flatchain to file
+    np.save(outdir + "flatchain.npy", sampler.flatchain)
+    #write flatlnprob to file
+    np.save(outdir + "flatlnprobchain.npy", sampler.flatlnprobability)
+
+
 
     ### if config['plots'] == True, Call routines to make plots of output ###
     if config['plots'] == True:
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)
+        plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability)
     #Histograms of parameters
     #Walker positions as function of step position
-    #Samples from the posterior overlaid with the data
 
 
 if __name__ == "__main__":
