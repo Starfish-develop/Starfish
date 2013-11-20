@@ -36,6 +36,7 @@ def auto_hist_param_linspace(flatchain):
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
     plt.savefig(config['output_dir'] + '/' + config['name'] + '/hist_param.png')
+    plt.close(fig)
 
 def auto_hist_param(flatchain):
     '''Just a simple histogram with no care about bin number, sizes, or location.'''
@@ -55,6 +56,7 @@ def auto_hist_param(flatchain):
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
     plt.savefig(config['output_dir'] + '/' + config['name'] + '/hist_param.png')
+    plt.close(fig)
 
 def hist_nuisance_param(flatchain):
     #make a nuisance directory
@@ -79,6 +81,7 @@ def hist_nuisance_param(flatchain):
             axes[3].hist(cs[:,HEAD + 3])
             fig.subplots_adjust(hspace=0.35,bottom=0.05,top=0.95)
             fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
+            plt.close(fig)
 
     if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
         pass
@@ -195,6 +198,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
 
             plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
+            plt.close('all')
 
 
 def plot_data_and_residuals():
@@ -452,6 +456,7 @@ def staircase_plot_proposal(flatchain):
 
     #plt.show()
     fig.savefig("plots/staircase_mini.eps")
+    plt.close(fig)
 
 def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$",bins=None):
     '''Data comes as a N,D array, where N is the number of samples and D=2. The first column goes on the x-axis and the second column goes on the y-axis.'''

@@ -56,7 +56,7 @@ def main():
 
     if config['MPI']:
         from emcee.utils import MPIPool
-        # Initialize the MPI-based pool used for parallelization.
+        # Initialize the MPI-based pool used for parallel run.
         pool = MPIPool(debug=True)
         print("Running with MPI")
 
@@ -71,8 +71,7 @@ def main():
     else:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=config['threads'])
 
-    ### Do creation of directories here ###
-    #Create necessary output directories using os.mkdir, if it does not exist
+    # Create necessary output directories, if they do not already exist
     if not os.path.exists(outdir):
         os.makedirs(outdir, exist_ok=True)
         print("Created output directory", outdir)
@@ -83,8 +82,7 @@ def main():
     shutil.copy(confname, outdir + confname)
     shutil.copy('run', outdir + 'run')
 
-    # Choose an initial set of positions for the walkers, randomly distributed across a reasonable range of parameters.
-
+    # Choose an initial set of walker parameter positions, randomly distributed across a reasonable range of parameters.
     temp = np.random.uniform(low=wr['temp'][0], high=wr['temp'][1], size=(nwalkers,))
     logg = np.random.uniform(low=wr['logg'][0], high=wr['logg'][1], size=(nwalkers,))
     Z = np.random.uniform(low=wr['Z'][0], high=wr['Z'][1], size=(nwalkers,))
@@ -105,8 +103,6 @@ def main():
     # Reset the chain to remove the burn-in samples.
     sampler.reset()
 
-    # Starting from the final position in the burn-in chain, sample for 1000
-    # steps.
     #f = open("chain.dat", "w")
     #f.close()
     sampler.run_mcmc(pos, config['iterations'], rstate0=state)
@@ -120,22 +116,16 @@ def main():
         pool.close()
 
     # Print out the mean acceptance fraction. In general, acceptance_fraction
-    # has an entry for each walker so, in this case, it is a 250-dimensional
-    # vector.
+    # has an entry for each walker.
     print("Mean acceptance fraction:", np.mean(sampler.acceptance_fraction))
 
-    #write chain to file
+    #write chains to file
     np.save(outdir + "chain.npy", sampler.chain)
-    #write lnprob to file
     np.save(outdir + "lnprobchain.npy", sampler.lnprobability)
-    #write flatchain to file
     np.save(outdir + "flatchain.npy", sampler.flatchain)
-    #write flatlnprob to file
     np.save(outdir + "flatlnprobchain.npy", sampler.flatlnprobability)
 
-
-
-    ### if config['plots'] == True, Call routines to make plots of output ###
+    ### Call routines to make plots of output ###
     if config['plots'] == True:
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)

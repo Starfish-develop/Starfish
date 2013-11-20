@@ -69,7 +69,7 @@ logg_arg = np.where(logg_ind)[0]
 
 Z_low, Z_high = grid_params['Z_range']
 #Z_points = Z_points[(Z_points > Z_low) & (Z_points < Z_high)]
-print("Limiting PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
+#print("Limiting PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
 
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
@@ -101,7 +101,8 @@ wl_min = wls[0,0] - wl_buffer
 wl_max = wls[-1,-1] + wl_buffer
 
 #####
-#Truncate wave_grid and red_grid to include only the regions necessary for fitting orders. But do this so that it is a power of 2
+# Truncate wave_grid and red_grid to include only the regions necessary for fitting orders.
+# But do this so that it is a power of 2
 #####
 
 len_wg = len(wave_grid)
@@ -117,27 +118,30 @@ elif len_data < (len_wg/4):
 elif len_data < (len_wg/2):
     chunk = int(len_wg/2)
 else:
+    #use the  full spectrum
     chunk = len_wg
+    ind = np.ones_like(wave_grid, dtype='bool')
 
-ind_wg = np.arange(len_wg)
-#Determine if the data region is closer to the start or end of the wave_grid
-if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
-    #the data region is closer to the start
-    #find starting index
-    #start at index corresponding to wl_min and go chunk forward
-    start_ind = np.argwhere(wave_grid > wl_min)[0][0]
-    end_ind = start_ind + chunk
-    ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
+if chunk < len_wg:
+    ind_wg = np.arange(len_wg)
+    #Determine if the data region is closer to the start or end of the wave_grid
+    if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
+        #the data region is closer to the start
+        #find starting index
+        #start at index corresponding to wl_min and go chunk forward
+        start_ind = np.argwhere(wave_grid > wl_min)[0][0]
+        end_ind = start_ind + chunk
+        ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
 
-else:
-    # the data region is closer to the finish
-    # start at index corresponding to wl_max and go chunk backward
-    end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
-    start_ind = end_ind - chunk
-    ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
+    else:
+        # the data region is closer to the finish
+        # start at index corresponding to wl_max and go chunk backward
+        end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
+        start_ind = end_ind - chunk
+        ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
 
 #ind = (wave_grid > wl_min) & (wave_grid < wl_max)
-#ind = np.ones_like(wave_grid, dtype='bool')
+
 wave_grid = wave_grid[ind]
 red_grid = np.load('red_grid.npy')[ind]
 
@@ -166,30 +170,6 @@ def flux_interpolator_hdf5():
     del fluxes
     gc.collect()
     return flux_intp
-
-def flux_interpolator_hdf5_Z0():
-    #load hdf5 file of PHOENIX grid
-    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
-    LIB = fhdf5['LIB']
-    param_combos = []
-    var_combos = []
-    for t, temp in enumerate(T_points):
-        for l, logg in enumerate(logg_points):
-            param_combos.append([t, l])
-            var_combos.append([temp, logg])
-    num_spec = len(param_combos)
-    points = np.array(var_combos)
-    fluxes = np.empty((num_spec, len(wave_grid)))
-    for i in range(num_spec):
-        t, l = param_combos[i]
-        fluxes[i] = LIB[t, l][ind]
-    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
-    print("Loaded HDF5 interpolator")
-    fhdf5.close()
-    del fluxes
-    gc.collect()
-    return flux_intp
-
 
 flux = flux_interpolator_hdf5()
 
