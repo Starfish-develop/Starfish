@@ -26,7 +26,7 @@
 
 <h2>Nuisance Parameters</h2>
 <div>
-{% for image in nuisance_images %}
+{% for image in nuisance_images|sort %}
 <img src= {{ image }} width=400 />
 {% endfor %}
 </div>
