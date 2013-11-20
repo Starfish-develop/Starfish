@@ -71,12 +71,13 @@ def hist_nuisance_param(flatchain):
     if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
         for i in range(norders):
             HEAD = i * 4
-            fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(6, 6))
+            fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(6, 8))
             axes[0].hist(cs[:,HEAD + 0])
             axes[0].set_title("%s" % (config['orders'][i]+1,) )
             axes[1].hist(cs[:,HEAD + 1])
             axes[2].hist(cs[:,HEAD + 2])
             axes[3].hist(cs[:,HEAD + 3])
+            fig.subplots_adjust(hspace=0.35,bottom=0.05,top=0.95)
             fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
 
     if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
