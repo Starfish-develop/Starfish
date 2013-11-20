@@ -8,7 +8,7 @@ import yaml
 import gc
 import sys
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
-#import pyfftw
+import pyfftw
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -96,11 +96,48 @@ len_wl = len(wls[0])
 
 wave_grid = np.load("wave_grid_2kms.npy")
 
-wl_min = wls[0,0] - 5.0
-wl_max = wls[-1,-1] + 5.0
+wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts
+wl_min = wls[0,0] - wl_buffer
+wl_max = wls[-1,-1] + wl_buffer
 
-#Truncate wave_grid and red_grid to include only the regions neccessary for fitting orders.
-ind = (wave_grid > wl_min) & (wave_grid < wl_max)
+#####
+#Truncate wave_grid and red_grid to include only the regions necessary for fitting orders. But do this so that it is a power of 2
+#####
+
+len_wg = len(wave_grid)
+
+len_data = np.sum((wave_grid > wl_min) & (wave_grid < wl_max))
+
+if len_data < (len_wg/16):
+    chunk = int(len_wg/16)
+elif len_data < (len_wg/8):
+    chunk = int(len_wg/8)
+elif len_data < (len_wg/4):
+    chunk = int(len_wg/4)
+elif len_data < (len_wg/2):
+    chunk = int(len_wg/2)
+else:
+    chunk = len_wg
+
+ind_wg = np.arange(len_wg)
+#Determine if the data region is closer to the start or end of the wave_grid
+if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
+    #the data region is closer to the start
+    #find starting index
+    #start at index corresponding to wl_min and go chunk forward
+    start_ind = np.argwhere(wave_grid > wl_min)[0][0]
+    end_ind = start_ind + chunk
+    ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
+
+else:
+    # the data region is closer to the finish
+    # start at index corresponding to wl_max and go chunk backward
+    end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
+    start_ind = end_ind - chunk
+    ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
+
+#ind = (wave_grid > wl_min) & (wave_grid < wl_max)
+#ind = np.ones_like(wave_grid, dtype='bool')
 wave_grid = wave_grid[ind]
 red_grid = np.load('red_grid.npy')[ind]
 
@@ -124,7 +161,7 @@ def flux_interpolator_hdf5():
         t, l, z = param_combos[i]
         fluxes[i] = LIB[t, l, z][ind]
     flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
-    print("Loaded HDF5 interpolator")
+    #print("Loaded HDF5 interpolator")
     fhdf5.close()
     del fluxes
     gc.collect()
@@ -339,12 +376,12 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
 #Constant for all models
 ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
 
-#f_full = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-#FF = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-#blended = pyfftw.n_byte_align_empty(196608, 16, 'complex128')
-#blended_real = pyfftw.n_byte_align_empty(196608, 16, "float64")
-#fft_object = pyfftw.FFTW(f_full, FF)
-#ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
+f_full = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+FF = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+blended = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+blended_real = pyfftw.n_byte_align_empty(chunk, 16, "float64")
+fft_object = pyfftw.FFTW(f_full, FF)
+ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
 def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
@@ -361,12 +398,12 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
 
     #Loads the ENTIRE spectrum, not limited to a specific order
-    #f_full[:] = flux_factor * flux(temp, logg)
-    f_full = flux_factor * flux(temp, logg, Z)
+    f_full[:] = flux_factor * flux(temp, logg, Z)
+    #f_full = flux_factor * flux(temp, logg, Z)
 
     #Take FFT of f_grid
-    FF = fft(f_full)
-    #fft_object()
+    #FF = fft(f_full)
+    fft_object()
 
     ss[0] = 0.01 #junk so we don't get a divide by zero error
     ub = 2. * np.pi * vsini * ss
@@ -374,14 +411,14 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     #set zeroth frequency to 1 separately (DC term)
     sb[0] = 1.
 
-    #FF[:] *= sb #institute velocity taper
-    FF *= sb
+    FF[:] *= sb #institute velocity taper
+    #FF *= sb
 
     #do ifft
-    #ifft_object()
-    blended_real = np.abs(ifft(FF))
+    ifft_object()
+    #blended_real = np.abs(ifft(FF))
 
-    #blended_real[:] = np.absolute(blended) #remove tiny complex component
+    blended_real[:] = np.abs(blended) #remove tiny complex component
 
     #redden spectrum
     red = blended_real / 10**(0.4 * Av * red_grid)
@@ -535,29 +572,47 @@ def lnprob_lognormal(p):
         c0s = coefs_arr[:,0] #length norders
         cns = coefs_arr[:,1:] #shape (norders, 3)
         #This does correctly unpack the coefficients into c0s, cns by order 11/17/13
-
+        #print("c0s.shape", c0s.shape)
+        #print("cns.shape", cns.shape)
 
         fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
         fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
 
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
+        #print("A.shape: ", A.shape)
         Ap = A + D
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
+        #print("B.shape", B.shape)
         Bp = B + Dmu
 
         g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
         G = np.einsum("ij->i",g)
+        #print("G.shape", G.shape)
         Gp = G - 0.5 * muDmu
 
         Ac = np.einsum("ijk,ik->ij",Ap,cns)
-        cAc = np.einsum("ij,ij->",cns,Ac)
-        Bc = np.einsum("ij,ij->",Bp,cns)
+        cAc = np.einsum("ij,ij->i",cns,Ac)
+        Bc = np.einsum("ij,ij->i",Bp,cns)
+        #print()
+        #print("Ac.shape", Ac.shape)
+        #print("cAc.shape", cAc.shape)
+        #print("Bc.shape", Bc.shape)
+
+        #we should have a cAc and a Bc for each order
 
         #to obtain the original, unnormalized, unmarginalized P given c
         #addition of lognormal prior
+
+        #print()
+        #print("-0.5 cAc: ",-0.5 * cAc)
+        #print("Bc: ", Bc)
+        #print("-0.5 cAc + Bc", -0.5 * cAc + Bc)
+        #print("Gp: ", Gp)
+
+        #Each variable should have two orders up to this point
         lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
 
         return lnp
@@ -674,19 +729,27 @@ def main():
 
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.00, 0.00, 0.00, 1, 0, 0, 0, 1.0, 0, 0, 0])))
-    print(lnprob_lognormal(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
-    print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
+    print(lnprob_lognormal(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1,1, 0.1, 0.1, 0.1])))
+    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.1, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
+    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 3, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
+    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 50, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
 
     #available in sample05
-    print(lnprob_lognormal(np.array([ 5.83723742e+03 , 3.42143796e+00  ,-3.40050296e-01  , 9.74222590e+00,
-                                      6.67791281e+00 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
-                                     -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
-                                     -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
+    #print(lnprob_lognormal(np.array([ 5.83723742e+03 , 3.42143796e+00  ,-3.40050296e-01  , 9.74222590e+00,
+    #                                  6.67791281e+00 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
+    #                                 -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
+    #                                 -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
 
     #tweaking to see where the breaking point is
-    print(lnprob_lognormal(np.array([ 5900 , 3.5  , 0.0 , 5, 6e+00 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
-                                      -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
-                                      -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
+    #print(lnprob_lognormal(np.array([ 5900 , 3.5  , 0.0 , 5, 2 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
+    #                                  -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
+    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
+    #print(lnprob_lognormal(np.array([ 5900 , 3.5  , 0.0 , 5, 6 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
+    #                                  -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
+    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
+    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
+    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
+    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
     #model_p(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0]))
 
     pass

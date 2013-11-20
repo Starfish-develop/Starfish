@@ -97,9 +97,6 @@ def main():
     cs = generate_nuisance_params()
 
     p0 = np.vstack((np.array([temp, logg, Z, vsini, vz, Av, flux_factor]), cs)).T #Stack cs onto the end
-    print(p0.shape)
-    print(p0)
-    sys.exit(0)
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
@@ -143,6 +140,7 @@ def main():
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)
         plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability)
+        import generate_webpage
     #Histograms of parameters
     #Walker positions as function of step position
 
