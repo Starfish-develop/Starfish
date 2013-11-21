@@ -84,7 +84,14 @@ def hist_nuisance_param(flatchain):
             plt.close(fig)
 
     if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
-        pass
+        #print nuisance params in figures of 5 (rows), moving to a new figure as necessary depending on norders
+        for i in range(norders):
+            fig = plt.figure(figsize=(4,4))
+            ax = fig.add_subplot(111)
+            ax.hist(cs[:,i])
+            ax.set_title("%s" % (config['orders'][i]+1,) )
+            fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
+            plt.close(fig)
 
 
 def joint_hist(p1, p2, **kwargs):
@@ -179,27 +186,41 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
             f = fs[j]
             k = ks[j]
 
-            #coefs = p[m.config['nparams']:]
-            #coefs_arr = coefs.reshape(m.config.len(orders), -1)
-            #print(coefs_arr)
+            #TODO: Some code here to generate samples from the conditional
 
-            ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
-            ax0.plot(wl, fl, "b")
-            ax0.plot(wl, f, "r")
-            ax0.set_xlim(wl[0],wl[-1])
+            if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+                ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
+                ax0.plot(wl, fl, "b")
+                ax0.plot(wl, f, "r")
+                ax0.set_xlim(wl[0],wl[-1])
 
-            ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
-            residuals = fl - f
-            ax1.plot(wl, residuals)
-            ax1.set_xlim(wl[0],wl[-1])
+                ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
+                residuals = fl - f
+                ax1.plot(wl, residuals)
+                ax1.set_xlim(wl[0],wl[-1])
 
-            ax2.plot(wl,k)
-            ax3.hist(residuals)
+                ax2.plot(wl,k)
+                ax3.hist(residuals)
 
+            if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+                ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
+                ax0.plot(wl, fl, "b")
+                ax0.plot(wl, f, "r")
+                ax0.set_xlim(wl[0],wl[-1])
+
+                ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
+                residuals = fl - f
+                ax1.plot(wl, residuals)
+                ax1.set_xlim(wl[0],wl[-1])
+
+                #ax2.plot(wl,k)
+                ax3.hist(residuals)
 
             plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
             plt.close('all')
 
+#TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
+# or Asynchronous plotter https://gist.github.com/astrofrog/1453933
 
 def plot_data_and_residuals():
     fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
@@ -223,11 +244,6 @@ def plot_data_and_residuals():
     ax[2].plot(wl, fl - f)
     ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
     ax[2].set_xlim(wl[0],wl[-1])
-    plt.show()
-
-    plt.hist(sigma)
-    plt.show()
-    plt.hist(fl-f)
     plt.show()
 
 

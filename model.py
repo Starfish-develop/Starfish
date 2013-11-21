@@ -422,23 +422,33 @@ def model_p(p):
     fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
     coefs = p[config['nparams']:]
-    # reshape to (norders, 4)
-    coefs_arr = coefs.reshape(len(orders), -1)
-    c0s = coefs_arr[:,0] #length norders
-    cns = coefs_arr[:,1:] #shape (norders, 3)
 
-    #now create polynomials for each order, and multiply through fls
-    #print("c0s.shape", c0s.shape)
-    #print("cns.shape", cns.shape)
-    #print("T.shape", T.shape)
+    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+        # reshape to (norders, 4)
+        coefs_arr = coefs.reshape(len(orders), -1)
+        c0s = coefs_arr[:,0] #length norders
+        cns = coefs_arr[:,1:] #shape (norders, 3)
 
-    Tc = np.einsum("jk,ij->ik", T,cns)
-    #print("Tc.shape",Tc.shape)
-    k = np.einsum("i,ij->ij",c0s, 1 + Tc)
-    #print("k.shape",k.shape)
-    #print("fmods.shape",fmods.shape)
-    refluxed = k * fmods
-    return [k, refluxed]
+        #now create polynomials for each order, and multiply through fls
+        #print("c0s.shape", c0s.shape)
+        #print("cns.shape", cns.shape)
+        #print("T.shape", T.shape)
+
+        Tc = np.einsum("jk,ij->ik", T,cns)
+        #print("Tc.shape",Tc.shape)
+        k = np.einsum("i,ij->ij",c0s, 1 + Tc)
+        #print("k.shape",k.shape)
+        #print("fmods.shape",fmods.shape)
+        refluxed = k * fmods
+        return [k, refluxed]
+    if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+        c0s = p[config['nparams']:]
+        #print("c0s.shape",c0s.shape)
+        #print("fmods.shape", fmods.shape)
+        k = c0s
+        refluxed = np.einsum( "i,ij->ij",k, fmods)
+        return [k, refluxed]
+
 
 def degrade_flux(wl, w, f_full):
     vsini = 40.
@@ -519,6 +529,7 @@ def lnprob_gaussian_marg(p):
         detA = np.array(list(map(np.linalg.det, Ap)))
         invA = np.array(list(map(np.linalg.inv, Ap)))
 
+
         b = fmods * fls / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
         Bp = B + Dmu
@@ -527,8 +538,10 @@ def lnprob_gaussian_marg(p):
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
 
+
         invAB = np.einsum("ijk,ik->ij",invA,Bp)
         BAB = np.einsum("ij,ij->i",Bp,invAB)
+
 
         lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp)
 
@@ -554,6 +567,10 @@ def lnprob_lognormal(p):
         #This does correctly unpack the coefficients into c0s, cns by order 11/17/13
         #print("c0s.shape", c0s.shape)
         #print("cns.shape", cns.shape)
+
+        #If any c0s are less than 0, return -np.inf
+        if np.any((c0s < 0)):
+            return -np.inf
 
         fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
         fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
@@ -610,6 +627,9 @@ def lnprob_lognormal_marg(p):
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         c0s = p[config['nparams']:]
+        #If any c0s are less than 0, return -np.inf
+        if np.any((c0s < 0)):
+            return -np.inf
 
         fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
         fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
@@ -619,6 +639,8 @@ def lnprob_lognormal_marg(p):
         Ap = A + D
         detA = np.array(list(map(np.linalg.det, Ap)))
         invA = np.array(list(map(np.linalg.inv, Ap)))
+        #print("detA.shape", detA.shape)
+        #print("invA.shape", invA.shape)
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
@@ -627,9 +649,11 @@ def lnprob_lognormal_marg(p):
         g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
+        #print("Gp.shape", Gp.shape)
 
         invAB = np.einsum("ijk,ik->ij",invA,Bp)
         BAB = np.einsum("ij,ij->i",Bp,invAB)
+        #print("BAB.shape", BAB.shape)
 
         #addition of lognormal prior
         lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
@@ -709,7 +733,10 @@ def main():
 
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.00, 0.00, 0.00, 1, 0, 0, 0, 1.0, 0, 0, 0])))
-    print(lnprob_lognormal(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1,1, 0.1, 0.1, 0.1])))
+    #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
+    print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
+    print()
+    print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 2.0, 1, 1, 1, 1])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.1, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 3, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 50, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
