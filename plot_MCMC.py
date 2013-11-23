@@ -288,6 +288,29 @@ def plot_random_data():
     ax[2].set_xlim(wl[0],wl[-1])
     plt.show()
 
+def plot_conditionals():
+    p_sample0 = np.array([  6.37665400e+03,   4.11726823e+00,  -4.26040655e-01,
+                            5.79771926e+00,   6.82711711e+01,   4.36739589e-01, 3.98183063e-20,
+         8.16442795e-01,  -2.14084280e-02,  -1.81593435e-02,  -4.75064142e-03,
+         7.94618168e-01,  -2.12433020e-02,  -1.46015856e-02,  -3.89108342e-03,
+         7.88047667e-01,  -9.91390893e-03,  -1.41852534e-02,   1.16170893e-03,
+         7.77703335e-01,  -1.82761458e-02,  -1.48666778e-02,   5.87681449e-03])
+    c1 = p_sample0[8]
+    lnpc1 = lambda c1 : m.lnprob_lognormal(np.hstack( (p_sample0[:8], np.array([c1]), p_sample0[9:])))
+    lnpc1 = np.vectorize(lnpc1)
+    print(lnpc1(-2.14084280e-02))
+    lnp = np.array([-45278.31620970686])
+    print(lnp)
+    c1s = np.linspace(-0.05, 0.05)
+
+    lnpc3 = lambda c3 : m.lnprob_lognormal(np.hstack( (p_sample0[:10], np.array([c3]), p_sample0[11:])))
+    lnpc3 = np.vectorize(lnpc3)
+    #print(lnpc1(-2.14084280e-02))
+    #lnp = np.array([-45278.31620970686])
+    #print(lnp)
+    c3s = np.linspace(-0.007, -0.002)
+    plt.plot(c3s, lnpc3(c3s))
+    plt.show()
 
 def staircase_plot(flatchain):
     '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Create a M x M
@@ -593,9 +616,11 @@ def main():
     lnflatchain = np.load("output/" + config['name'] + "/flatlnprobchain.npy")
     ndim_chain = flatchain.shape[1]
 
-    auto_hist_param(flatchain)
-    hist_nuisance_param(flatchain)
-    visualize_draws(flatchain, lnflatchain)
+    #auto_hist_param(flatchain)
+    #hist_nuisance_param(flatchain)
+    #visualize_draws(flatchain, lnflatchain)
+
+    plot_conditionals()
     #plot_random_data()
     #plot_random_data()
     #plot_data_and_residuals()

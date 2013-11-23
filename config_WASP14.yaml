@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_22_23_24_25/lnprob_lognormal  #internal tests
+name : WASP14/order_22_23_24_25/lnprob_lognormal_marg  #internal tests
 
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
@@ -19,12 +19,12 @@ dataset : WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
 #lnprob : lnprob
 #lnprob : lnprob_gaussian  #Gaussian priors
 #lnprob : lnprob_gaussian_marg #Gaussian priors, marginalized
-lnprob : lnprob_lognormal
-#lnprob : lnprob_lognormal_marg
+#lnprob : lnprob_lognormal
+lnprob : lnprob_lognormal_marg
 #lnprob : lnprob_classic
 
-sigmac : 0.2
-sigmac0 : 2
+sigmac : 0.05
+sigmac0 : 0.2
 
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
@@ -37,24 +37,24 @@ grid_params :
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
-burn_in : 6000
-iterations : 2000
-MPI : True
+burn_in : 1
+iterations : 1
+MPI : False
 threads : 4
 output_dir : output
 plots : True
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
-    temp : [6200,6800]
+    temp : [6300,6700]
     logg : [4.0, 4.6]
     Z : [-0.3, 0.0]
-    vsini : [0.0, 10.0]
-    vz : [5, 15]
+    vsini : [5.0, 15.0]
+    vz : [68, 69]
     Av : [0.0, 0.5]
-    flux_factor : [1e-20, 1e-19]
-    c0 : [0.8, 1.2]
-    cs : [-0.05, 0.05]
+    flux_factor : [2e-20, 4e-20]
+    c0 : [0.9, 1.1]
+    cs : [-0.02, 0.02]
 
 # Params local for testing
 # threads : 4

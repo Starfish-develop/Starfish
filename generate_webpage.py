@@ -21,8 +21,7 @@ f.close()
 # In this case, we will load templates off the filesystem.
 # This means we must construct a FileSystemLoader object.
 # The search path can be used to make finding templates by
-#   relative paths much easier.  In this case, we are using
-#   absolute paths and thus set it to the filesystem root.
+#   relative paths much easier.
 templateLoader = jinja2.FileSystemLoader(searchpath="_templates")
 # An environment provides the data necessary to read and
 #   parse our templates.  We pass in the loader object here.
