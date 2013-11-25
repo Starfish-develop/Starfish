@@ -33,9 +33,16 @@
 
 <h2>Visualizations</h2>
 <div>
-{% for key,list in sample_dict|dictsort %}
+{% for key,mini_dict in sample_dict|dictsort %}
     <h3> {{ key|e }} </h3>
-    {% for image in list|sort %}
+    <strong>lnprob:</strong> {{"%.2f"|format(mini_dict['lnp'])}} <br />
+    <strong>Temp:</strong> {{"%.1f"|format(mini_dict['p'][0])}} K, <strong>log g: </strong> {{"%.2f"|format(mini_dict['p'][1])}} dex,
+    <strong>Z: </strong> {{"%.2f"|format(mini_dict['p'][2])}} dex, <strong>v sini: </strong> {{"%.2f"|format(mini_dict['p'][3])}} km/s,
+    <strong>vz: </strong> {{"%.2f"|format(mini_dict['p'][4])}} km/s, <strong>Av: </strong> {{"%.2f"|format(mini_dict['p'][5])}} mag,
+    <strong>R^2/d^2: </strong> {{"%.2e"|format(mini_dict['p'][6])}} <br />
+    <strong>cs: </strong> {{ mini_dict['p'][7:]}} <br />
+
+    {% for image in mini_dict['images']|sort %}
         <img src= {{ image }} width=400 />
     {% endfor %}
 {% endfor %}

@@ -9,6 +9,7 @@ import gc
 import sys
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 import pyfftw
+import emcee
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -91,6 +92,8 @@ masks = masks[orders]
 
 sigmac = config['sigmac']
 sigmac0 = config['sigmac0']
+
+wr = config['walker_ranges']
 
 len_wl = len(wls[0])
 
@@ -413,9 +416,39 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     gc.collect() #necessary to prevent memory leak!
     return result
 
+def draw_cheb_vectors(p):
+    '''This function is only worthwhile in the lnprob_XXX_marg cases, and is used to generate samples of the nuisance
+    parameters that have already been marginalized over analytically. This means we wish to draw samples from the
+    un-marginalized probability function. Doing that analytically is tough, but there is no reason emcee can't help us
+     out. Intake a set of stellar parameters, run emcee to determine the nuisance parameters. Returns the many
+     samples from the posterior.'''
+
+    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+        print("Mini chain not designed to work on un-marginalized function")
+        return 0
+    if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+        #Appropriately translate the parameter chain into something that can be split up for each order.
+        if (config['lnprob'] == 'lnprob_gaussian_marg'):
+            print("Not implemented yet")
+            return 0
+        if (config['lnprob'] == 'lnprob_lognormal_marg'):
+            lnprob_mini = lnprob_lognormal_nuis_func(p)
+
+            #sample cns with emcee
+            ndim = (config['ncoeff'] - 1) * norder
+            nwalkers = 4 * ndim
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_mini)
+            p0 = np.random.uniform(low=wr['cs'][0], high = wr['cs'][1], size=(nwalkers, ndim))
+            pos, prob, state = sampler.run_mcmc(p0, 1000)
+            sampler.reset()
+            print("Burned in cheb mini-chain")
+            sampler.run_mcmc(pos, 500, rstate0=state)
+            flatchain = sampler.flatchain
+            return flatchain
+
 def model_p(p):
     '''Post processing routine that can take all parameter values and return the model.
-    Actual sampling does not require the use of this method since it is slow.'''
+    Actual sampling does not require the use of this method since it is slow. Returns flatchain.'''
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
     wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
@@ -440,14 +473,24 @@ def model_p(p):
         #print("k.shape",k.shape)
         #print("fmods.shape",fmods.shape)
         refluxed = k * fmods
-        return [k, refluxed]
-    if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+        return [refluxed, k, None]
+
+    if config['lnprob'] == 'lnprob_lognormal_marg':
         c0s = p[config['nparams']:]
-        #print("c0s.shape",c0s.shape)
-        #print("fmods.shape", fmods.shape)
-        k = c0s
-        refluxed = np.einsum( "i,ij->ij",k, fmods)
-        return [k, refluxed]
+
+        #get flatchain
+        flatchain = draw_cheb_vectors(p)
+
+        #get random k vector
+        ind = np.random.choice(np.arange(len(flatchain)))
+        cns = flatchain[ind]
+        cns.shape = ((norder,-1))
+
+        Tc = np.einsum("jk,ij->ik", T,cns)
+        k = np.einsum("i,ij->ij",c0s, 1 + Tc)
+        refluxed = k * fmods
+
+        return [refluxed, k, flatchain]
 
 
 def degrade_flux(wl, w, f_full):
@@ -613,6 +656,50 @@ def lnprob_lognormal(p):
         lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
 
         return lnp
+
+def lnprob_lognormal_nuis_func(p):
+    '''Used for sampling the lnprob_lognormal at a fixed p for the cns.'''
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
+            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
+        #if the call is outside of the loaded grid.
+        return -np.inf
+    else:
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+        c0s = p[config['nparams']:]
+        #If any c0s are less than 0, return -np.inf
+        if np.any((c0s < 0)):
+            return -np.inf
+
+        fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
+        fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
+
+        a= fm2c2/sigmas**2
+        A = np.einsum("in,jkn->ijk",a,TT)
+        Ap = A + D
+
+        b = (-fm2c2 + fdfmc0) / sigmas**2
+        B = np.einsum("in,jn->ij",b,T)
+        Bp = B + Dmu
+
+        g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
+        G = np.einsum("ij->i",g)
+        Gp = G - 0.5 * muDmu
+
+    def nuis_func(cns):
+        '''input as flat array'''
+        cns.shape = (norder,-1)
+        Ac = np.einsum("ijk,ik->ij",Ap,cns)
+        cAc = np.einsum("ij,ij->i",cns,Ac)
+        Bc = np.einsum("ij,ij->i",Bp,cns)
+        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
+        return lnp
+
+    return nuis_func
+
 
 def lnprob_lognormal_marg(p):
     '''Sample only in c0's  '''

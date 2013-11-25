@@ -3,11 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 from matplotlib.ticker import FormatStrFormatter as FSF
+from matplotlib.ticker import MultipleLocator
 #import acor
 import model as m
 import yaml
 import os
 import sys
+import emcee
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -93,42 +95,6 @@ def hist_nuisance_param(flatchain):
             fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
             plt.close(fig)
 
-
-def joint_hist(p1, p2, **kwargs):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.hist2d(flatchain[:, p1], flatchain[:, p2], **kwargs)
-    plt.show()
-
-
-def joint_hist_temp_log():
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.hist2d(flatchain[:, 0], flatchain[:, 1], bins=[Tbin_edges, loggbin_edges])
-    ax.set_xlabel(r"$T_{\rm eff}\quad(K)$")
-    ax.set_ylabel(r"$\log(g)$")
-    plt.show()
-
-
-def draw_chebyshev_samples():
-    wl = wls[22]
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    all_inds = np.arange(len(flatchain))
-    inds = np.random.choice(all_inds, size=(10,))
-    ps = flatchain[inds]
-    lnp = lnchain[inds]
-    lnp_min, lnp_max = np.percentile(lnp, [10., 99.])
-    lnp = (lnp - lnp_min) / (lnp_max - lnp_min)
-    lnp[lnp > 1.] = 1.
-    lnp[lnp < 0.] = 0.
-    coefss = ps[:, 5:]
-    for i, coefs in enumerate(coefss):
-        myCh = Ch(coefs, domain=[wl[0], wl[-1]])
-        c = (1. - lnp[i], 0., lnp[i])
-        ax.plot(wl, myCh(wl), c=c)
-    plt.show()
-
 def visualize_draws(flatchain, lnflatchain, sample_num=10):
     '''Currently only implemented for the un-marginalized probability functions.'''
 
@@ -154,13 +120,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         p = flatchain[ind]
         lnp = lnflatchain[ind]
 
-        #write p and lnp to a file in sample dir
-        f = open(sample_dir + 'params.txt',"w")
-        f.write("Parameters: %s \n" % (p,))
-        f.write("lnp: %s \n" % (lnp,))
-        f.close()
-
-        #also write to numpy objects
+        #write p and lnp to numpy objects
         np.save(sample_dir + "p.npy", p)
         np.save(sample_dir + "lnp.npy", lnp)
 
@@ -170,15 +130,10 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         sigmas = m.sigmas
 
         #Reproduce the model spectrum for that parameter combo
-        ks, fs = m.model_p(p)
+        fs, ks, cflatchain = m.model_p(p)
 
         for j in range(norders):
-            #fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
-            ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
-            ax0.set_title("%s" % (config['orders'][j]+1,))
-            ax1 = plt.subplot2grid((3,2), (1,0),colspan=2)
-            ax2 = plt.subplot2grid((3,2), (2,0))
-            ax3 = plt.subplot2grid((3,2), (2,1))
+
 
             wl = wls[j]
             fl = fls[j]
@@ -189,13 +144,20 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
             #TODO: Some code here to generate samples from the conditional
 
             if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+                plt.figure(figsize=(10,10))
+                ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
+                ax0.set_title("%s" % (config['orders'][j]+1,))
+                ax1 = plt.subplot2grid((3,2), (1,0),colspan=2)
+                ax2 = plt.subplot2grid((3,2), (2,0))
+                ax3 = plt.subplot2grid((3,2), (2,1))
+
                 ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
                 ax0.plot(wl, fl, "b")
                 ax0.plot(wl, f, "r")
                 ax0.set_xlim(wl[0],wl[-1])
 
-                ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
-                residuals = fl - f
+                ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
+                residuals = (fl - f)/sigma
                 ax1.plot(wl, residuals)
                 ax1.set_xlim(wl[0],wl[-1])
 
@@ -203,18 +165,52 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax3.hist(residuals)
 
             if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+                fig = plt.figure(figsize=(20,12))
+                ax0 = plt.subplot2grid((4,4), (0,0),colspan=4)
+                ax0.set_title("%s" % (config['orders'][j]+1,))
+                ax0.xaxis.set_major_formatter(FSF("%.0f"))
+                ax0.xaxis.set_major_locator(MultipleLocator(5.))
+
+                ax1 = plt.subplot2grid((4,4), (1,0),colspan=4)
+                ax1.xaxis.set_major_formatter(FSF("%.0f"))
+                ax1.xaxis.set_major_locator(MultipleLocator(5.))
+
+                #For plotting posteriors for nuisance parameters
+
+                ax2_0 = plt.subplot2grid((4,4), (2,0))
+                ax2_1 = plt.subplot2grid((4,4), (2,1))
+                ax2_2 = plt.subplot2grid((4,4), (2,2))
+                ax2_3 = plt.subplot2grid((4,4), (2,3))
+                c_axes = [ax2_0, ax2_1, ax2_2, ax2_3]
+                labels = [r"$c_0$", r"$c_1$", r"$c_2$", r"$c_3$"]
+                for l, ax in enumerate(c_axes):
+                    ax.set_title(labels[l])
+                    ax.locator_params(axis='x', nbins=5)
+
+
+                ax3_1 = plt.subplot2grid((4,4), (3,0),colspan=2)
+                ax3_2 = plt.subplot2grid((4,4), (3,2),colspan=2)
+
                 ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
                 ax0.plot(wl, fl, "b")
                 ax0.plot(wl, f, "r")
                 ax0.set_xlim(wl[0],wl[-1])
 
-                ax1.fill_between(wl, - sigma, sigma, color="0.5", alpha=0.5)
-                residuals = fl - f
+                ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
+                residuals = (fl - f)/sigma
                 ax1.plot(wl, residuals)
                 ax1.set_xlim(wl[0],wl[-1])
 
-                #ax2.plot(wl,k)
-                ax3.hist(residuals)
+                HEAD = j*3
+                ax2_1.hist(cflatchain[:,HEAD+0])
+                ax2_2.hist(cflatchain[:,HEAD+1])
+                ax2_3.hist(cflatchain[:,HEAD+2])
+
+                ax3_1.plot(wl,k)
+                ax3_2.hist(residuals,bins=30)
+                fig.subplots_adjust(hspace=0.3,wspace=0.2)
+
+
 
             plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
             plt.close('all')
@@ -222,71 +218,6 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 #TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
 # or Asynchronous plotter https://gist.github.com/astrofrog/1453933
 
-def plot_data_and_residuals():
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8),sharex=True)
-
-    wl = m.wls[0]
-    fl = m.fls[0]
-    sigma = m.sigmas[0]
-
-    wlsz = m.shift_TRES(2.)
-    f = m.model(wlsz, 5900., 3.5, 0.0, 5., 0.0, 1e-10)[0]
-
-    #coefs = p[m.config['nparams']:]
-    #coefs_arr = coefs.reshape(m.config.len(orders), -1)
-    #print(coefs_arr)
-
-    ax[0].plot(wl, fl, "b")
-    ax[0].plot(wl, f, "r")
-    ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
-
-
-    ax[2].plot(wl, fl - f)
-    ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
-    ax[2].set_xlim(wl[0],wl[-1])
-    plt.show()
-
-
-def plot_random_data():
-    from model import model_and_data,lnprob_old
-    import model as m
-
-    '''plots a random sample of the posterior, model, data, cheb, and residuals'''
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8, 6),sharex=True)
-
-    all_inds = np.arange(len(flatchain))
-    ind = np.random.choice(all_inds)
-
-    p = flatchain[ind]
-    lnp = lnflatchain[ind]
-
-    wlsz, flsc, fs = model_and_data(p)
-    wl = wlsz[0]
-    fl = flsc[0]
-    f = fs[0]
-    sigma = m.sigmas[0]
-
-    lnp_calc = lnprob_old(p)
-
-    print("lnprob", lnp)
-    print("chi^2_red", -2. * lnp/len(wl))
-    print("lnpcalc", lnp_calc)
-    print("chi^2_calc", -2 * lnp_calc/len(wl))
-    print("Parameters", p)
-
-    coefs = p[5:]
-    myCh = Ch(np.append([1], coefs), domain=[wl[0], wl[-1]])
-
-    ax[0].plot(wl, fl, "b")
-    ax[0].plot(wl, f, "r")
-    ax[0].fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.8)
-
-    ax[1].plot(wl, myCh(wl))
-
-    ax[2].plot(wl, fl - f)
-    ax[2].fill_between(wl, - sigma, sigma, color="0.5", alpha=0.8)
-    ax[2].set_xlim(wl[0],wl[-1])
-    plt.show()
 
 def plot_conditionals():
     p_sample0 = np.array([  6.37665400e+03,   4.11726823e+00,  -4.26040655e-01,
@@ -311,6 +242,9 @@ def plot_conditionals():
     c3s = np.linspace(-0.007, -0.002)
     plt.plot(c3s, lnpc3(c3s))
     plt.show()
+
+
+
 
 def staircase_plot(flatchain):
     '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Create a M x M
@@ -360,7 +294,6 @@ def staircase_plot(flatchain):
         row_ax.append(col_ax)
 
     plt.show()
-
 
 def staircase_plot_thesis(flatchain):
     '''flatchain has shape (N, M), where N is the number of samples and M is the number of parameters. Create a M x M
@@ -580,8 +513,6 @@ def mini_hist(data,label1=r"$x_1$", label2=r"$x_2$",bins=None):
         label.set_rotation(50)
     fig.savefig('plots/staircase_mini.eps')
 
-
-
 def plot_walker_position():
     nwalkers = chain.shape[0]
     nsteps = chain.shape[1]
@@ -593,10 +524,6 @@ def plot_walker_position():
             ax.plot(steps, chain[walker, :, param])
         fig.savefig("plots/walkers/{:0>2.0f}.png".format(param))
 
-
-#def get_acor():
-#    for param in range(nparams):
-#        print(acor.acor(chain[:, :, param]))
 
 
 def main():
@@ -616,11 +543,14 @@ def main():
     lnflatchain = np.load("output/" + config['name'] + "/flatlnprobchain.npy")
     ndim_chain = flatchain.shape[1]
 
-    #auto_hist_param(flatchain)
-    #hist_nuisance_param(flatchain)
-    #visualize_draws(flatchain, lnflatchain)
+    auto_hist_param(flatchain)
+    hist_nuisance_param(flatchain)
+    visualize_draws(flatchain, lnflatchain, sample_num=1)
 
-    plot_conditionals()
+    #plot_conditionals()
+    #p = np.load('p.npy')
+    #print(p)
+    #draw_cheb_vectors(p)
     #plot_random_data()
     #plot_random_data()
     #plot_data_and_residuals()

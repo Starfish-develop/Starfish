@@ -130,8 +130,9 @@ def main():
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)
         plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability)
-        import generate_webpage
-    #Histograms of parameters
+        import generate_webpage #create the webpage
+        #then copy all the webpages to the web directory, update the main web directory
+
     #Walker positions as function of step position
 
 
