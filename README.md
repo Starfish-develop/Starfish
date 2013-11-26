@@ -148,6 +148,7 @@ Put the decorator `@profile` over the function you want to profile
 * Kurusowa: how line profiles can trace gas
 * Alaca: accretion properties using X-shooter
 * Buchhave 2012 has parameters for many KOI's. We can access all the TRES data easily.
+* Schornrich 2013: OSU paper for Bayseian method
 
 
 
