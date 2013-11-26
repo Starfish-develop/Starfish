@@ -128,6 +128,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         wls = m.wls
         fls = m.fls
         sigmas = m.sigmas
+        masks = m.masks
 
         #Reproduce the model spectrum for that parameter combo
         fs, ks, cflatchain = m.model_p(p)
@@ -138,6 +139,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
             wl = wls[j]
             fl = fls[j]
             sigma = sigmas[j]
+            mask = masks[j]
             f = fs[j]
             k = ks[j]
 
@@ -170,10 +172,12 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax0.set_title("%s" % (config['orders'][j]+1,))
                 ax0.xaxis.set_major_formatter(FSF("%.0f"))
                 ax0.xaxis.set_major_locator(MultipleLocator(5.))
+                ax0.xaxis.set_minor_locator(MultipleLocator(1.))
 
                 ax1 = plt.subplot2grid((4,4), (1,0),colspan=4)
                 ax1.xaxis.set_major_formatter(FSF("%.0f"))
                 ax1.xaxis.set_major_locator(MultipleLocator(5.))
+                ax1.xaxis.set_minor_locator(MultipleLocator(1.))
 
                 #For plotting posteriors for nuisance parameters
 
@@ -194,11 +198,14 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
                 ax0.plot(wl, fl, "b")
                 ax0.plot(wl, f, "r")
+                ax0.plot(wl[~mask], fl[~mask], "c")
+                ax0.plot(wl[~mask], f[~mask], "m")
                 ax0.set_xlim(wl[0],wl[-1])
 
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
                 ax1.plot(wl, residuals)
+                ax1.plot(wl[~mask], residuals[~mask], "r")
                 ax1.set_xlim(wl[0],wl[-1])
 
                 HEAD = j*3

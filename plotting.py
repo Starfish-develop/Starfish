@@ -105,7 +105,7 @@ def plot_sigmas():
 
 def plot_full_model():
     fig, ax = plt.subplots(nrows=5, ncols=5, figsize=(11, 8))
-    f_mod = m.model(5900)
+    f_mod = m.model(6200,3.5,0.0,)
     for i in range(5):
         for j in range(5):
             order = i * 5 + j + 25

@@ -564,7 +564,7 @@ def lnprob_gaussian_marg(p):
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks #mask all the bad model points
 
         a= fmods**2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
@@ -577,7 +577,7 @@ def lnprob_gaussian_marg(p):
         B = np.einsum("in,jn->ij",b,T)
         Bp = B + Dmu
 
-        g = -0.5 * fls**2/sigmas**2
+        g = -0.5 * fls**2/sigmas**2 * masks
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
 
@@ -711,7 +711,7 @@ def lnprob_lognormal_marg(p):
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
 
         c0s = p[config['nparams']:]
         #If any c0s are less than 0, return -np.inf
@@ -723,6 +723,7 @@ def lnprob_lognormal_marg(p):
 
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
+        #print("A.shape",A.shape)
         Ap = A + D
         detA = np.array(list(map(np.linalg.det, Ap)))
         invA = np.array(list(map(np.linalg.inv, Ap)))
@@ -731,9 +732,10 @@ def lnprob_lognormal_marg(p):
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
+        #print("B.shape",B.shape)
         Bp = B + Dmu
 
-        g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
+        g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + masks * fls**2)
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
         #print("Gp.shape", Gp.shape)
@@ -821,9 +823,9 @@ def main():
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.00, 0.00, 0.00, 1, 0, 0, 0, 1.0, 0, 0, 0])))
     #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
-    print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
-    print()
-    print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 2.0, 1, 1, 1, 1])))
+    #print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
+    #print()
+    #print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 2.0, 1, 1, 1, 1])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.1, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 3, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
     #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 50, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
@@ -845,7 +847,7 @@ def main():
     #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
     #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
     #model_p(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0]))
-
+    print(lnprob_lognormal_marg(np.array([6200, 3.7, 0.0, 6.4, 68.2, 0.4, 2.6e-20, 1.2, 1.2, 1.2, 1.2])))
     pass
 
 
