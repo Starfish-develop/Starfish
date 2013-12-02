@@ -21,6 +21,7 @@ Model parameters
 * v sin i: for rotational broadening
 * v_z: radial velocity
 * Av: extinction
+* solid angle for spot coverage/accretion luminosity
 
 "Nuisance" calibration parameters, four Chebyshev coefficients for each order. From testing, we find that three (or four) might be sufficient to encapsulate any systematic residual error from flux-calibration or blaze-removal. In any case, these corrections should be small (less than 5 percent).
 
@@ -28,7 +29,7 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 ## Data set
 
-* *Spectra*: High resolution TRES spectrum. 51 orders, R = 48,000 (FWHM = 6.7 km/s) with typical signal to noise of 50 in each resolution element. All target spectra are flux-calibrated to within 10% error in c0 and 3% error in higher terms.
+* *Spectra*: High resolution TRES spectrum. 51 orders, R = 48,000 (FWHM = 6.8 km/s) with typical signal to noise of 50 in each resolution element. All target spectra are flux-calibrated to within 10% error in c0 and 3% error in higher terms.
 * *Photometry*: UBVRI, Herbst, Grankin, 2MASS, and other sources. ugriz from Keplercam. Generally, some of infrared points will be contaminated with disk emission. ugriz data from Keplercam.
 
 # PHOENIX Models
@@ -47,16 +48,9 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 ## Operation modes
 
 * Sampling in all c for each order
-
-	* this means we need to come up with a method to start MCMC in the minimum of each c0, and to properly set up emcee and priors. 
-
-* marginalization only
- 
-	* this needs a way to determine the conditionals after one is done
-	* needs tests against the full sampling in all c
-
-* using an un-flux calibrated TRES spectrum. Is this as simple as not putting a prior on c0? 
-
+* marginalization only: regeneration of conditionals after the fact
+* using an un-flux calibrated TRES spectrum. Is this as simple as not putting a prior on c0?
+* operate on just one order, for all orders using a JobArray
 
 
 ## Synthetic photometry comparison
@@ -70,16 +64,13 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 
 ## Desireable plotting tools and output analysis
 
-* Drawing random samples from the data (color code by lnprob value?)
-* Posterior predictive check: does the model match the data in a qualitative sense? Needs to be a better tool for doing this for multiple orders. Can you select which orders to do this for? Plot three orders at once? Reasonably show parameter values, lnprob value.
-* better way to visualize posteriors on Chebyshev coefficients
-* way to easily visualize outliers --> where is most of the chi^2 coming from?
+* color code random samples by lnprob value?
 * Easy staircase plot generator (partially done)
 * use autocorrelation time, and plots for each walker
-* automatically generate outputs of histograms and charts, summarized in a directory that is unique for each run.
-* Easily configure plot_MCMC.py to work within the directory, after a run
-* Automatically run and generate webpages after SLURM job is completed (during?)
-* Change all files to use config from arguments, but in the case that the argument is blank `(len(sys.argv) < 1)`? then use `config.yaml`.
+* Jinja2 output: multithreading for quicker plotting
+* create my own "linelist" using an astropy table, easily plot line regions of data in a "gallery"
+* change masking list into an astropy table
+* easily "jump around" in parameters, ie, automatically solve for nuisance coeffs while jumping around in T, log g, Z. Interactive.
 
 ## Error analysis
 
@@ -90,24 +81,21 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * determine an 'interpolation error spectrum' 
 * Complete prior error determination using `test_priors.py` and write this up in research notebook. Also update paper.
 * Determine high and low information content regions of the spectrum.
-
-
-## Functionality improvements
-
-* Better configuration files on Odyssey, launching multiple jobs at once: .yaml files. Job arrays and environment variables for a suite of tests at different starting positions? Otherwise, probably better to use individual runs.
+* also fit sky spectrum, with no wavelength shift
 
 ## Potential Speedups
 
 * Now that I am interpolating in T_eff, log g space, convert fitting to use mass, radius, distance, and luminosity. 
 * Be so bold as to interpolate the Fourier transform?
 * Fine tune garbage collection (debugging?): http://docs.python.org/2/library/gc.html#gc.garbage
-* Move back to pyFFTW
+* Ask Paul Edmon if I can write to /n/scratch2
 
 # Method Checks and concerns 
 
 * Flux interpolation errors (a systematic spectrum) (see notes + figure from 9/9/13)
 * distribution of interpolation errors (histogram)
 * What is a veiling prior? Hartigan 1991
+* Make mini_sampler pickleable following emcee
 
 # Beyond TRES
 
@@ -117,6 +105,7 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 * For knowledge purposes, try synthesizing a spectrum using the model atmosphere provided. This might be harder than I currently imagine.
 * ELOISE spectral library
 * GNIRS spectral library: http://www.gemini.edu/sciops/instruments/nearir-resources?q=node/11594
+* TAPAS transmission service. Username: iczekala@cfa.harvard.edu, hertzsprung
 
 # MISC
 
@@ -149,6 +138,7 @@ Put the decorator `@profile` over the function you want to profile
 * Alaca: accretion properties using X-shooter
 * Buchhave 2012 has parameters for many KOI's. We can access all the TRES data easily.
 * Schornrich 2013: OSU paper for Bayseian method
+* Hernandez 2004: using FAST spectra, identified spectral features sensitive to temperature
 
 
 

@@ -214,7 +214,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax2_3.hist(cflatchain[:,HEAD+2])
 
                 ax3_1.plot(wl,k)
-                ax3_2.hist(residuals,bins=30)
+                ax3_2.hist(residuals[mask],bins=30)
                 fig.subplots_adjust(hspace=0.3,wspace=0.2)
 
 
