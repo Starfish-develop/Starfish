@@ -238,17 +238,17 @@ def shift_TRES(vz, wls=wls):
 #TRES Instrument Broadening
 ##################################################
 @np.vectorize
-def gauss_kernel(dlam, V=6.8, lam0=6500.):
+def gauss_kernel(dlam, lam0, V=6.8):
     '''V is the FWHM in km/s. lam0 is the central wavelength in A'''
     sigma = V / 2.355 * 1e13 #A/s
-    return c_ang / lam0 * 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- (c_ang * dlam / lam0) ** 2 / (2. * sigma ** 2))
+    return np.exp(- (c_ang * dlam / lam0) ** 2 / (2. * sigma ** 2))
 
 
-def gauss_series(dlam, V=6.8, lam0=6500.):
+def gauss_series(dlam, lam0, V=6.8):
     '''sampled from +/- 3sigma at dlam. V is the FWHM in km/s'''
-    sigma_l = V / (2.355 * c_kms) * lam0 #A
-    wl = karray(0., 6 * sigma_l, dlam)
-    gk = gauss_kernel(wl)
+    sigma_l = V / (2.355 * c_kms) * lam0 # sigma in AA (lambda)
+    wl = karray(0., 6 * sigma_l, dlam) # Gaussian kernel stretching +/- 6 sigma in lambda (AA)
+    gk = gauss_kernel(wl, lam0, V)
     return gk / np.sum(gk)
 
 
@@ -335,10 +335,10 @@ def old_model(wlsz, temp, logg, vsini, flux_factor):
         f = f_full[ind]
 
         #convolve with stellar broadening (sb)
-        k = vsini_ang(np.mean(wlz), vsini) #stellar rotation kernel centered at order
+        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order
         f_sb = convolve(f, k)
 
-        dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel
+        dlam = w[1] - w[0] # spacing of model points for TRES resolution kernel
 
         #convolve with filter to resolution of TRES
         filt = gauss_series(dlam, lam0=np.mean(wlz))

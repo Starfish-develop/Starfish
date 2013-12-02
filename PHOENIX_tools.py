@@ -219,11 +219,11 @@ def load_flux_full_Z0(temp, logg, norm=False):
 @np.vectorize
 def gauss_taper(s, sigma=2.89):
     '''This is the FT of a gaussian w/ this sigma. Sigma in km/s'''
-    return np.exp(-2 * np.pi ** 2 * sigma * 2 * s ** 2)
+    return np.exp(-2 * np.pi ** 2 * sigma ** 2 * s ** 2)
 
 def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
     '''Take a full-resolution PHOENIX spectrum `f`, resample it to a fine wave_grid,
-    instrumentally broaden it, then resample it to a coarser wave_grid.'''
+    instrumentally broaden it, then resample it to a coarser wave_grid. sigma in km/s.'''
 
     #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline
     interp_P = InterpolatedUnivariateSpline(w,f)
@@ -235,7 +235,7 @@ def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
     freqs = fftfreq(len(f_grid), d=wg_fine_d)
 
     #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space (corresponding to FWHM 6.8km/s)
-    taper = np.exp(-2 * np.pi ** 2 * sigma * 2 * freqs ** 2)
+    taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (freqs ** 2))
     tout = out * taper
 
     #Take the broadened spectrum back to wavelength space
