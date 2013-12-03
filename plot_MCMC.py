@@ -10,6 +10,7 @@ import yaml
 import os
 import sys
 import emcee
+import itertools
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -43,7 +44,8 @@ def auto_hist_param_linspace(flatchain):
 def auto_hist_param(flatchain):
     '''Just a simple histogram with no care about bin number, sizes, or location.'''
     fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
-    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$A_v$ (mag)", r"$R^2/d^2$" ]
+    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)",
+              r"$A_v$ (mag)", r"$R^2/d^2$" ]
 
     axes[0].hist(flatchain[:, 0]) #temp
     axes[1].hist(flatchain[:, 1]) #logg
@@ -225,7 +227,6 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 #TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
 # or Asynchronous plotter https://gist.github.com/astrofrog/1453933
 
-
 def plot_conditionals():
     p_sample0 = np.array([  6.37665400e+03,   4.11726823e+00,  -4.26040655e-01,
                             5.79771926e+00,   6.82711711e+01,   4.36739589e-01, 3.98183063e-20,
@@ -250,7 +251,35 @@ def plot_conditionals():
     plt.plot(c3s, lnpc3(c3s))
     plt.show()
 
+def plot_joint_marginals(flatchain):
 
+    marginal_dir = config['output_dir'] + "/" + config['name'] + '/marginals/'
+    if not os.path.exists(marginal_dir):
+        os.mkdir(marginal_dir)
+        print("Created output directory", marginal_dir)
+    else:
+        print(marginal_dir, "already exists, overwriting.")
+
+    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)",
+              r"$A_v$ (mag)", r"$R^2/d^2$"]
+    if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
+        nuisance_labels = []
+        for order in config['orders']:
+            nuisance_labels.append(r"{:d} $c_0$".format(order+1))
+        labels = labels + nuisance_labels
+    label_ind = np.arange(len(labels))
+
+    for i,j in itertools.combinations(label_ind, 2):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.hexbin(flatchain[:,i],flatchain[:,j], gridsize=15)
+        ax.set_xlabel(labels[i])
+        ax.set_ylabel(labels[j])
+        fig.subplots_adjust(left=0.2,bottom=0.2)
+        fig.savefig(marginal_dir + "{:d}_{:d}.png".format(i, j))
+        plt.close('all')
+
+    #pass
 
 
 def staircase_plot(flatchain):
@@ -553,6 +582,7 @@ def main():
     auto_hist_param(flatchain)
     hist_nuisance_param(flatchain)
     visualize_draws(flatchain, lnflatchain, sample_num=1)
+    plot_joint_marginals(flatchain)
 
     #plot_conditionals()
     #p = np.load('p.npy')
