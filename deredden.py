@@ -100,9 +100,9 @@ def plot_curve():
 
 
 def main():
-    #plot_curve()
-    wls = np.load('wave_grid_2kms.npy')
-    create_red_grid(wls)
+    plot_curve()
+    #wls = np.load('wave_grid_2kms.npy')
+    #create_red_grid(wls)
     pass
 
 

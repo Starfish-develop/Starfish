@@ -13,7 +13,7 @@ difference, if any.'''
 
 #Load raw spectrum
 raw_wl = pt.w_full
-raw_fl = pt.load_flux_full(5900., 3.5, "-0.0", norm=True)
+raw_fl = pt.load_flux_full(6400., 4.5, "-0.5", norm=True)
 
 #truncate to 5000 - 5400 Ang
 raw_ind = (raw_wl > 4900) & (raw_wl < 5500)
@@ -45,7 +45,7 @@ flm = pt.resample_and_convolve(raw_fl[pt.ind],pt.wave_grid_fine, wlm)
 #wlm = wlm[ind]
 
 #Try getting spectrum directly from the LIB
-fl_LIB = m.flux(5900, 3.5, 0.0)
+fl_LIB = m.flux(6390, 4.5, -0.49999)
 wl_LIB = m.wave_grid
 ind = (5100 < wl_LIB) & (wl_LIB < 5200)
 fl_LIB = fl_LIB[ind]

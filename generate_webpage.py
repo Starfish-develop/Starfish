@@ -28,8 +28,8 @@ base_dir = 'output/' + config['name'] + '/'
 
 hist_param = 'hist_param.png'
 nuisance_images = [os.path.relpath(i,base_dir) for i in glob.glob(base_dir + 'nuisance/*.png')]
+marginal_images = [os.path.relpath(i,base_dir) for i in glob.glob(base_dir + 'marginals/*.png')]
 sample_names = [os.path.relpath(i,base_dir + 'visualize/') for i in glob.glob(base_dir + 'visualize/sample*')]
-
 
 sample_dict = {}
 for i in sample_names:
@@ -40,13 +40,13 @@ for i in sample_names:
     sample_dict[i] = {"lnp":lnp, "p":p, "images":images}
 
 # Specify any input variables to the template as a dictionary.
-templateVars = { 'title': config['name'], "hist_param" : hist_param, 'config' : config, 'nuisance_images':nuisance_images,
-                 'sample_dict':sample_dict}
+templateVars = { 'title': config['name'], "hist_param" : hist_param, 'config' : config,
+                 'nuisance_images':nuisance_images, 'marginal_images':marginal_images, 'sample_dict':sample_dict}
 
 
 # Finally, process the template to produce our final text.
-outputText = template.render( templateVars )
-f = open(base_dir + 'index.html','w')
+outputText = template.render(templateVars)
+f = open(base_dir + 'index.html', 'w')
 f.write(outputText)
 f.close()
 
