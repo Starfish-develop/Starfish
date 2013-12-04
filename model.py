@@ -59,17 +59,17 @@ Z_points = np.array([-0.5, 0.0, 0.5])
 grid_params = config['grid_params']
 
 T_low, T_high = grid_params['temp_range']
-T_ind = (T_points > T_low) & (T_points < T_high)
+T_ind = (T_points >= T_low) & (T_points <= T_high)
 T_points = T_points[T_ind]
 T_arg = np.where(T_ind)[0]
 
 g_low, g_high = grid_params['logg_range']
-logg_ind = (logg_points > g_low) & (logg_points < g_high)
+logg_ind = (logg_points >= g_low) & (logg_points <= g_high)
 logg_points = logg_points[logg_ind]
 logg_arg = np.where(logg_ind)[0]
 
 Z_low, Z_high = grid_params['Z_range']
-Z_ind = (Z_points > Z_low) & (Z_points < Z_high)
+Z_ind = (Z_points >= Z_low) & (Z_points <= Z_high)
 Z_points = Z_points[Z_ind]
 Z_arg = np.where(Z_ind)[0]
 
@@ -78,9 +78,7 @@ Z_arg = np.where(Z_ind)[0]
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-#fls = np.load("fls_fake.npy")
-sigmas = np.load(base + ".sigma.npy") #3.8 gives chi^2_red = 1
-#sigmas = np.load('sigmas_fake.npy')
+sigmas = np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
 
@@ -895,10 +893,8 @@ def main():
     #print(lnprob_lognormal_marg(np.array([6299, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
 
     #print(lnprob_lognormal_marg(np.array([6400.1, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    print(lnprob_lognormal_marg(np.array([  5.91469844e+03 ,  3.47656117e+00 ,  3.46839357e-02 ,  5.23904667e+00,
-   2.05779785e+00  , 1.74022666e-02  , 1.00947171e-10  , 1.04227145e+00,
-   1.05804967e+00  , 1.05004000e+00  , 9.29823852e-01 ,  1.03900018e+00,
-   1.02716059e+00])))
+    print(lnprob_lognormal_marg(np.array([6.62330980e+03 ,  5.08297570e+00 , -4.11463605e-01   ,1.83139932e+01,
+    6.81191543e+01  , 7.26964668e-02 ,  2.20496823e-20 ,  9.94199986e-01])))
     #spectrum = flux(5915,3.47,0.03)
     #import matplotlib.pyplot as plt
     #plt.plot(spectrum)
