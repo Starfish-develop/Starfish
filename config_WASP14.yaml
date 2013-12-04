@@ -30,9 +30,9 @@ sigmac0 : 0.2
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
 grid_params :
-    temp_range : [5499, 7201]
-    logg_range : [3.4, 5.1]
-    Z_range : [-0.6, 0.6] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
+    temp_range : [5500, 7200]
+    logg_range : [3.5, 5.0]
+    Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
