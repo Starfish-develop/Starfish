@@ -3,11 +3,11 @@ import pstats
 
 #Your module here
 import model
-import plot_MCMC
+#import plot_MCMC
 
 
-#cProfile.run("model.main()", "prof")
-cProfile.run("plot_MCMC.main()", "prof")
+cProfile.run("model.main()", "prof")
+#cProfile.run("plot_MCMC.main()", "prof")
 
 
 def display_stats(pfile):

@@ -155,3 +155,78 @@ def flux_interpolator():
     del fluxes
     print("Loaded flux_interpolator")
     return flux_intp
+
+
+#Originally from PHOENIX_tools
+
+def create_grid_parallel_Z0(ncores):
+    '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists,
+    write it. If not, write nan.'''
+    f = h5py.File("LIB_2kms.hdf5", "w")
+    shape = (len(T_points), len(logg_points), len(wave_grid_coarse))
+    dset = f.create_dataset("LIB", shape, dtype="f")
+
+    # A thread pool of P processes
+    pool = mp.Pool(ncores)
+
+    param_combos = []
+    var_combos = []
+    for t, temp in enumerate(T_points):
+        for l, logg in enumerate(logg_points):
+            param_combos.append([t, l])
+            var_combos.append([temp, logg])
+
+    spec_gen = list(pool.map(process_spectrum_Z0, var_combos))
+    for i in range(len(param_combos)):
+        t, l = param_combos[i]
+        dset[t, l, :] = spec_gen[i]
+
+    f.close()
+
+def process_spectrum_Z0(pars):
+    temp, logg = pars
+    try:
+        f = load_flux_full(temp, logg, True)[ind]
+        flux = resample_and_convolve(f,wave_grid_fine,wave_grid_coarse)
+        print("Finished %s, %s" % (temp, logg))
+    except OSError:
+        print("%s, %s does not exist!" % (temp, logg))
+        flux = np.nan
+    return flux
+
+def load_flux_full_Z0(temp, logg, norm=False):
+    rname = "HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-0.0/lte{temp:0>5.0f}-{logg:.2f}-0.0" \
+            ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(
+        temp=temp, logg=logg)
+    flux_file = pf.open(rname)
+    f = flux_file[0].data
+    L = flux_file[0].header['PHXLUM'] #W
+    if norm:
+        f = f * (L_sun / L)
+        print("Normalized luminosity to 1 L_sun")
+    flux_file.close()
+    print("Loaded " + rname)
+    return f
+
+def flux_interpolator():
+    points = ascii.read("param_grid.txt")
+    T_list = points["T"].data
+    logg_list = points["logg"].data
+    fluxes = np.empty((len(T_list), len(w)))
+    for i in range(len(T_list)):
+        fluxes[i] = load_flux_npy(T_list[i], logg_list[i])
+    flux_intp = NearestNDInterpolator(np.array([T_list, logg_list]).T, fluxes)
+    return flux_intp
+
+
+def flux_interpolator_np():
+    points = np.loadtxt("param_grid.txt")
+    print(points)
+    #T_list = points["T"].data
+    #logg_list = points["logg"].data
+    len_w = 716665
+    fluxes = np.empty((len(points), len_w))
+    for i in range(len(points)):
+        fluxes[i] = load_flux_npy(points[i][0], points[i][1])
+    flux_intp = NearestNDInterpolator(points, fluxes)
+    return flux_intp
