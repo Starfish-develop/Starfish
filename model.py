@@ -69,7 +69,10 @@ logg_points = logg_points[logg_ind]
 logg_arg = np.where(logg_ind)[0]
 
 Z_low, Z_high = grid_params['Z_range']
-#Z_points = Z_points[(Z_points > Z_low) & (Z_points < Z_high)]
+Z_ind = (Z_points > Z_low) & (Z_points < Z_high)
+Z_points = Z_points[Z_ind]
+Z_arg = np.where(Z_ind)[0]
+
 #print("Limiting PHOENIX grid to temp: ", T_points, " logg: ", logg_points, " Z: ", Z_points)
 
 base = 'data/' + config['dataset']
@@ -152,29 +155,87 @@ def flux_interpolator_hdf5():
     #load hdf5 file of PHOENIX grid 
     fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
     LIB = fhdf5['LIB']
-    param_combos = []
+    index_combos = []
     var_combos = []
     for ti in range(len(T_points)):
         for li in range(len(logg_points)):
-            for z, Z in enumerate(Z_points):
-                param_combos.append([T_arg[ti], logg_arg[li], z])
-                var_combos.append([T_points[ti], logg_points[li], Z])
+            for zi in range(len(Z_points)):
+                index_combos.append([T_arg[ti], logg_arg[li], Z_arg[zi]])
+                var_combos.append([T_points[ti], logg_points[li], Z_points[zi]])
     #print(param_combos)
-    num_spec = len(param_combos)
+    num_spec = len(index_combos)
     points = np.array(var_combos)
-    #print(points)
+
     fluxes = np.empty((num_spec, len(wave_grid)))
     for i in range(num_spec):
-        t, l, z = param_combos[i]
+        t, l, z = index_combos[i]
         fluxes[i] = LIB[t, l, z][ind]
     flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
-    #print("Loaded HDF5 interpolator")
     fhdf5.close()
     del fluxes
     gc.collect()
     return flux_intp
 
-flux = flux_interpolator_hdf5()
+def trilinear_interpolator():
+    '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
+    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
+    LIB = fhdf5['LIB']
+
+    #Load only those indexes we want into a grid in memory
+    grid = LIB[T_arg[0]:T_arg[-1]+1, logg_arg[0]:logg_arg[-1]+1, Z_arg[0]:Z_arg[-1]+1, ind] #weird syntax because
+    #sequence indexing is not supported for more than one axis in h5py
+    lenT, lenG, lenZ, lenF = grid.shape
+
+    #Create index interpolators
+    T_intp = interp1d(T_points, np.arange(lenT), kind='linear')
+    logg_intp = interp1d(logg_points, np.arange(lenG), kind='linear')
+    Z_intp = interp1d(Z_points, np.arange(lenZ), kind='linear')
+
+    fluxes = np.empty((8, lenF))
+    zeros = np.zeros(lenF)
+
+    def intp_func(temp, logg, Z):
+        if (logg < g_low) or (logg > g_high) or (temp < T_low) or (temp > T_high) or (Z < Z_low) or (Z > Z_high):
+            return zeros
+        else:
+            '''Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/'''
+            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))
+            ui = np.ceil(indexes) #upper cube vertices
+            li = np.floor(indexes) #lower cube vertices
+            #print(li,ui)
+            x, y, z = (indexes - li) #range between 0 - 1
+            xu, yu, zu = ui
+            xl, yl, zl = li
+            fluxes[:] = np.array([
+                grid[xl, yl, zl],
+                grid[xu, yl, zl],
+                grid[xl, yu, zl],
+                grid[xl, yl, zu],
+                grid[xu, yl, zu],
+                grid[xl, yu, zu],
+                grid[xu, yu, zl],
+                grid[xu, yu, zu]])
+
+            weights = np.array([
+                (1 - x) * (1 - y) * (1 - z),
+                x * (1 - y) * (1 - z),
+                (1 - x) * y * (1 - z),
+                (1 - x) * (1 - y) * z,
+                x * (1 - y) * z,
+                (1 - x) * y * z,
+                x * y * (1 - z),
+                x * y * z])
+
+            #print(weights)
+            #print(np.sum(weights))
+
+            return np.average(fluxes, axis=0, weights=weights)
+
+    return intp_func
+
+
+flux = trilinear_interpolator()
+#flux = flux_interpolator_hdf5()
 
 ##################################################
 #Data processing steps
@@ -559,7 +620,7 @@ def lnprob_gaussian_marg(p):
     '''New lnprob, no nuisance coeffs'''
     temp, logg, Z, vsini, vz, Av, flux_factor = p
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
+            (temp > T_high) or (Z < Z_low) or (Z > Z_high) or (Av < 0):
         return -np.inf
     else:
         #shift TRES wavelengths
@@ -813,42 +874,36 @@ def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     np.save(base + '.mask.npy', mask)
 
 def main():
-
     #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
     #generate_fake_data(70., *fake_params)
     #generate_fake_data(100., *fake_params)
 
-    #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0])))
-    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10, 1.0, 0.00, 0.00, 0.00, 1, 0, 0, 0, 1.0, 0, 0, 0])))
-    #print(lnprob_lognormal_marg(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
-    #print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 1.0, 1, 1, 1, 1])))
-    #print()
-    #print(model_p(np.array([5900., 3.5, 0, 5., 2.0, 0.0, 1e-10, 2.0, 1, 1, 1, 1])))
-    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 2.1, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
-    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 3, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
-    #print(lnprob_lognormal(np.array([5900., 3.5, 0.0, 5., 50, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
-
-    #available in sample05
-    #print(lnprob_lognormal(np.array([ 5.83723742e+03 , 3.42143796e+00  ,-3.40050296e-01  , 9.74222590e+00,
-    #                                  6.67791281e+00 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
-    #                                 -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
-    #                                 -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
-
-    #tweaking to see where the breaking point is
-    #print(lnprob_lognormal(np.array([ 5900 , 3.5  , 0.0 , 5, 2 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
-    #                                  -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
-    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
-    #print(lnprob_lognormal(np.array([ 5900 , 3.5  , 0.0 , 5, 6 ,  4.39022745e-01 , 8.92392783e-11 ,  7.67364875e-01,
-    #                                  -3.59142121e-01 ,-1.02655686e+00  , 9.32378921e-03 ,  1.82976554e+00,
-    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
-    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
-    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01, 1.82976554e+00,
-    #                                  -2.01284175e-01 , -3.97143675e-02 , -2.53125531e-01])))
     #model_p(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0]))
-    #print(lnprob_lognormal_marg(np.array([6200, 3.7, 0.0, 6.4, 68.2, 0.4, 2.6e-20, 1.2, 1.2, 1.2, 1.2])))
-    print(lnprob_lognormal_marg(np.array([6399.0, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    ##print(lnprob_lognormal_marg(np.array([6200, 3.7, 0.0, 6.4, 68.2, 0.4, 2.6e-20, 1.2, 1.2, 1.2, 1.2])))
+    #print(lnprob_lognormal_marg(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6400.0001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6400.00001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6400.0000001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6400.0, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6399.999, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print()
+    #print(lnprob_lognormal_marg(np.array([6301, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6300.01, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6299.99, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    #print(lnprob_lognormal_marg(np.array([6299, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+
+    #print(lnprob_lognormal_marg(np.array([6400.1, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
+    print(lnprob_lognormal_marg(np.array([  5.91469844e+03 ,  3.47656117e+00 ,  3.46839357e-02 ,  5.23904667e+00,
+   2.05779785e+00  , 1.74022666e-02  , 1.00947171e-10  , 1.04227145e+00,
+   1.05804967e+00  , 1.05004000e+00  , 9.29823852e-01 ,  1.03900018e+00,
+   1.02716059e+00])))
+    #spectrum = flux(5915,3.47,0.03)
+    #import matplotlib.pyplot as plt
+    #plt.plot(spectrum)
+    #plt.show()
+    #spectrum = flux(6401,4.2,-0.25)
     pass
 
 

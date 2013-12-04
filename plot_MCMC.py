@@ -227,6 +227,77 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 #TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
 # or Asynchronous plotter https://gist.github.com/astrofrog/1453933
 
+def plot_residuals(p):
+
+    #Get wavelength, flux, and sigmas
+    wls = m.wls
+    fls = m.fls
+    sigmas = m.sigmas
+    masks = m.masks
+
+    #Reproduce the model spectrum for that parameter combo
+    fs, ks, cflatchain = m.model_p(p)
+
+    for j in range(norders):
+        wl = wls[j]
+        fl = fls[j]
+        sigma = sigmas[j]
+        mask = masks[j]
+        f = fs[j]
+        k = ks[j]
+
+        fig = plt.figure(figsize=(20,12))
+        ax0 = plt.subplot2grid((4,4), (0,0),colspan=4)
+        ax0.set_title("%s" % (config['orders'][j]+1,))
+        ax0.xaxis.set_major_formatter(FSF("%.0f"))
+        ax0.xaxis.set_major_locator(MultipleLocator(5.))
+        ax0.xaxis.set_minor_locator(MultipleLocator(1.))
+
+        ax1 = plt.subplot2grid((4,4), (1,0),colspan=4)
+        ax1.xaxis.set_major_formatter(FSF("%.0f"))
+        ax1.xaxis.set_major_locator(MultipleLocator(5.))
+        ax1.xaxis.set_minor_locator(MultipleLocator(1.))
+
+        #For plotting posteriors for nuisance parameters
+
+        ax2_0 = plt.subplot2grid((4,4), (2,0))
+        ax2_1 = plt.subplot2grid((4,4), (2,1))
+        ax2_2 = plt.subplot2grid((4,4), (2,2))
+        ax2_3 = plt.subplot2grid((4,4), (2,3))
+        c_axes = [ax2_0, ax2_1, ax2_2, ax2_3]
+        labels = [r"$c_0$", r"$c_1$", r"$c_2$", r"$c_3$"]
+        for l, ax in enumerate(c_axes):
+            ax.set_title(labels[l])
+            ax.locator_params(axis='x', nbins=5)
+
+
+        ax3_1 = plt.subplot2grid((4,4), (3,0),colspan=2)
+        ax3_2 = plt.subplot2grid((4,4), (3,2),colspan=2)
+
+        ax0.fill_between(wl, fl - sigma, fl + sigma, color="0.5", alpha=0.5)
+        ax0.plot(wl, fl, "b")
+        ax0.plot(wl, f, "r")
+        ax0.plot(wl[~mask], fl[~mask], "c")
+        ax0.plot(wl[~mask], f[~mask], "m")
+        ax0.set_xlim(wl[0],wl[-1])
+
+        ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
+        residuals = (fl - f)/sigma
+        ax1.plot(wl, residuals)
+        ax1.plot(wl[~mask], residuals[~mask], "r")
+        ax1.set_xlim(wl[0],wl[-1])
+
+        HEAD = j*3
+        ax2_1.hist(cflatchain[:,HEAD+0])
+        ax2_2.hist(cflatchain[:,HEAD+1])
+        ax2_3.hist(cflatchain[:,HEAD+2])
+
+        ax3_1.plot(wl,k)
+        ax3_2.hist(residuals[mask],bins=30)
+        fig.subplots_adjust(hspace=0.3,wspace=0.2)
+
+    plt.show()
+
 def plot_conditionals():
     p_sample0 = np.array([  6.37665400e+03,   4.11726823e+00,  -4.26040655e-01,
                             5.79771926e+00,   6.82711711e+01,   4.36739589e-01, 3.98183063e-20,
@@ -579,10 +650,13 @@ def main():
     lnflatchain = np.load("output/" + config['name'] + "/flatlnprobchain.npy")
     ndim_chain = flatchain.shape[1]
 
-    auto_hist_param(flatchain)
-    hist_nuisance_param(flatchain)
-    visualize_draws(flatchain, lnflatchain, sample_num=1)
-    plot_joint_marginals(flatchain)
+    #auto_hist_param(flatchain)
+    #hist_nuisance_param(flatchain)
+    #visualize_draws(flatchain, lnflatchain, sample_num=1)
+    #plot_joint_marginals(flatchain)
+
+    #plot_residuals(np.array([6399.999, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
+    plot_residuals(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
 
     #plot_conditionals()
     #p = np.load('p.npy')
