@@ -94,7 +94,7 @@ def main():
     flux_factor = np.random.uniform(low=wr['flux_factor'][0], high=wr['flux_factor'][1], size=(nwalkers,))
     cs = generate_nuisance_params()
 
-    p0 = np.vstack((np.array([temp, logg, Z, vsini, vz, Av, flux_factor]), cs)).T #Stack cs onto the end
+    p0 = np.vstack((np.array([temp, logg, Z, vsini, vz, flux_factor]), cs)).T #Stack cs onto the end
 
     # Burn-in.
     pos, prob, state = sampler.run_mcmc(p0, config['burn_in'])
@@ -130,6 +130,7 @@ def main():
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)
         plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability)
+        plot_MCMC.plot_joint_marginals(sampler.flatchain)
         import generate_webpage #create the webpage
         #then copy all the webpages to the web directory, update the main web directory
 

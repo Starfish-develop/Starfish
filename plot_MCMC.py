@@ -43,19 +43,19 @@ def auto_hist_param_linspace(flatchain):
 
 def auto_hist_param(flatchain):
     '''Just a simple histogram with no care about bin number, sizes, or location.'''
-    fig, axes = plt.subplots(nrows=7, ncols=1, figsize=(8, 11))
+    fig, axes = plt.subplots(nrows=6, ncols=1, figsize=(8, 11))
     labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)",
-              r"$A_v$ (mag)", r"$R^2/d^2$" ]
+              r"$R^2/d^2$" ]
 
     axes[0].hist(flatchain[:, 0]) #temp
     axes[1].hist(flatchain[:, 1]) #logg
     axes[2].hist(flatchain[:, 2]) #Z
     axes[3].hist(flatchain[:, 3]) #vsini
     axes[4].hist(flatchain[:, 4]) #vz
-    axes[5].hist(flatchain[:,5]) # Av
-    axes[6].hist(flatchain[:,6]) #fluxfactor
+    #axes[5].hist(flatchain[:,5]) # Av
+    axes[5].hist(flatchain[:,5]) #fluxfactor
 
-    for i in range(7):
+    for i in range(6):
         axes[i].set_xlabel(labels[i])
 
     fig.subplots_adjust(hspace=0.9, top=0.95, bottom=0.06)
@@ -331,8 +331,7 @@ def plot_joint_marginals(flatchain):
     else:
         print(marginal_dir, "already exists, overwriting.")
 
-    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)",
-              r"$A_v$ (mag)", r"$R^2/d^2$"]
+    labels = [r"$T_{\rm eff}$ (K)", r"$\log g$ (dex)", r'$Z$ (dex)', r"$v \sin i$ (km/s)", r"$v_z$ (km/s)", r"$R^2/d^2$"]
     if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
         nuisance_labels = []
         for order in config['orders']:
@@ -650,13 +649,13 @@ def main():
     lnflatchain = np.load("output/" + config['name'] + "/flatlnprobchain.npy")
     ndim_chain = flatchain.shape[1]
 
-    #auto_hist_param(flatchain)
-    #hist_nuisance_param(flatchain)
-    #visualize_draws(flatchain, lnflatchain, sample_num=1)
-    #plot_joint_marginals(flatchain)
+    auto_hist_param(flatchain)
+    hist_nuisance_param(flatchain)
+    visualize_draws(flatchain, lnflatchain, sample_num=1)
+    plot_joint_marginals(flatchain)
 
     #plot_residuals(np.array([6399.999, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
-    plot_residuals(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
+    #plot_residuals(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
 
     #plot_conditionals()
     #p = np.load('p.npy')

@@ -33,7 +33,7 @@ grid_params :
 #    Z_range : [-0.6, 0.6]
 
 # MCMC parameters
-nparams : 7 # these do not include nuisance parameters c0, c1, c2...
+nparams : 6 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 2
