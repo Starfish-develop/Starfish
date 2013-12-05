@@ -25,7 +25,7 @@ lnprob : lnprob_lognormal_marg
 #lnprob : lnprob_classic
 
 sigmac : 0.05
-sigmac0 : 0.2
+sigmac0 : 0.05
 
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
@@ -39,7 +39,7 @@ nparams : 6 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 16000
-iterations : 2000
+iterations : 4000
 MPI : True
 threads : 4
 output_dir : output
