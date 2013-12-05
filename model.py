@@ -426,7 +426,7 @@ fft_object = pyfftw.FFTW(f_full, FF)
 ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
+def model(wlsz, temp, logg, Z, vsini, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -463,8 +463,8 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     blended_real[:] = np.abs(blended) #remove tiny complex component
 
     #redden spectrum
-    red = blended_real / 10**(0.4 * Av * red_grid)
-    #red = blended_real
+    #red = blended_real / 10**(0.4 * Av * red_grid)
+    red = blended_real
 
     #do synthetic photometry to compare to points
 
@@ -508,10 +508,12 @@ def draw_cheb_vectors(p):
 def model_p(p):
     '''Post processing routine that can take all parameter values and return the model.
     Actual sampling does not require the use of this method since it is slow. Returns flatchain.'''
-    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
 
     wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+    #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+    fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
 
     coefs = p[config['nparams']:]
 
@@ -651,15 +653,17 @@ def lnprob_gaussian_marg(p):
 
 def lnprob_lognormal(p):
     '''Sample only in c0's  '''
-    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
+            (temp > T_high) or (np.abs(Z) >= 0.5): # or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
 
         coefs = p[config['nparams']:]
         # reshape to (norders, 4)
@@ -718,15 +722,17 @@ def lnprob_lognormal(p):
 
 def lnprob_lognormal_nuis_func(p):
     '''Used for sampling the lnprob_lognormal at a fixed p for the cns.'''
-    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (np.abs(Z) >= 0.5) or (Av < 0):
+            (temp > T_high) or (np.abs(Z) >= 0.5): #or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
 
         c0s = p[config['nparams']:]
         #If any c0s are less than 0, return -np.inf
@@ -762,15 +768,17 @@ def lnprob_lognormal_nuis_func(p):
 
 def lnprob_lognormal_marg(p):
     '''Sample only in c0's  '''
-    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
-        or (np.abs(Z) >= 0.5) or (Av < 0):
+        or (np.abs(Z) >= 0.5): # or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
+        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
+        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor) * masks
 
         c0s = p[config['nparams']:]
         #If any c0s are less than 0, return -np.inf
