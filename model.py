@@ -771,7 +771,7 @@ def lnprob_lognormal_marg(p):
     #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
     temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
-        or (np.abs(Z) >= 0.5): # or (Av < 0):
+        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0): # or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
@@ -886,29 +886,10 @@ def main():
     #generate_fake_data(70., *fake_params)
     #generate_fake_data(100., *fake_params)
 
-    #model_p(np.array([5900., 3.5, -0.45, 5., 2.0, 0.0, 1e-10, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0]))
-    ##print(lnprob_lognormal_marg(np.array([6200, 3.7, 0.0, 6.4, 68.2, 0.4, 2.6e-20, 1.2, 1.2, 1.2, 1.2])))
-    #print(lnprob_lognormal_marg(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6400.0001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6400.00001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6400.0000001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6400.0, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6399.999, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print()
-    #print(lnprob_lognormal_marg(np.array([6301, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6300.01, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6299.99, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-    #print(lnprob_lognormal_marg(np.array([6299, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
-
-    #print(lnprob_lognormal_marg(np.array([6400.1, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996])))
     print(lnprob_lognormal_marg(np.array([  6.33370311e+03  , 4.07412992e+00 , -8.47241238e-02 ,  8.26812315e+00,
                                             6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
                                             1.06044794e+00 ,  1.05605767e+00])))
-    #spectrum = flux(5915,3.47,0.03)
-    #import matplotlib.pyplot as plt
-    #plt.plot(spectrum)
-    #plt.show()
-    #spectrum = flux(6401,4.2,-0.25)
+
     pass
 
 
