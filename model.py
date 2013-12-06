@@ -426,7 +426,7 @@ fft_object = pyfftw.FFTW(f_full, FF)
 ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 
-def model(wlsz, temp, logg, Z, vsini, flux_factor):
+def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -463,8 +463,8 @@ def model(wlsz, temp, logg, Z, vsini, flux_factor):
     blended_real[:] = np.abs(blended) #remove tiny complex component
 
     #redden spectrum
-    #red = blended_real / 10**(0.4 * Av * red_grid)
-    red = blended_real
+    red = blended_real / 10**(0.4 * Av * red_grid)
+    #red = blended_real
 
     #do synthetic photometry to compare to points
 
@@ -508,12 +508,10 @@ def draw_cheb_vectors(p):
 def model_p(p):
     '''Post processing routine that can take all parameter values and return the model.
     Actual sampling does not require the use of this method since it is slow. Returns flatchain.'''
-    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
     wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-    #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
-    fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
+    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
     coefs = p[config['nparams']:]
 
@@ -622,17 +620,15 @@ def lnprob_gaussian_marg(p):
 
 def lnprob_lognormal(p):
 
-    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (Z < Z_low) or (Z > Z_high): # or (Av < 0):
+            (temp > T_high) or (Z < Z_low) or (Z > Z_high) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
-        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         coefs = p[config['nparams']:]
         # reshape to (norders, 4)
@@ -670,17 +666,17 @@ def lnprob_lognormal(p):
 
 def lnprob_lognormal_nuis_func(p):
     '''Used for sampling the lnprob_lognormal at a fixed p for the cns.'''
-    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (Z < Z_low) or (Z > Z_high): #or (Av < 0):
+            (temp > T_high) or (Z < Z_low) or (Z > Z_high) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
-        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
 
         c0s = p[config['nparams']:]
         #If any c0s are less than 0, return -np.inf
@@ -714,19 +710,29 @@ def lnprob_lognormal_nuis_func(p):
     return nuis_func
 
 
+mu_temp = 6462
+sigma_temp = 75
+mu_logg = 4.29
+sigma_logg = 0.04
+mu_Z = -0.13
+sigma_Z = 0.08
+mu_vsini = 3.5
+sigma_vsini = 0.9
+mu_Av = 0.0
+sigma_Av = 0.2
+
 def lnprob_lognormal_marg(p):
     '''Sample only in c0's  '''
-    #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
-    temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
-        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0): # or (Av < 0):
+        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
-        #fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
-        fmods = model(wlsz, temp, logg, Z, vsini, flux_factor) * masks
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
 
         c0s = p[config['nparams']:]
         #If any c0s are less than 0, return -np.inf
@@ -734,7 +740,7 @@ def lnprob_lognormal_marg(p):
             return -np.inf
 
         fdfmc0 = np.einsum('i,ij->ij', c0s, fmods * fls)
-        fm2c2 = np.einsum("i,ij->ij", c0s**2,fmods**2)
+        fm2c2 = np.einsum("i,ij->ij", c0s**2, fmods**2)
 
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
@@ -754,8 +760,11 @@ def lnprob_lognormal_marg(p):
         invAB = np.einsum("ijk,ik->ij",invA,Bp)
         BAB = np.einsum("ij,ij->i",Bp,invAB)
 
-        #addition of lognormal prior
-        lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
+        lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) \
+        + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s)**2/sigmac0**2) \
+        - 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
+        - 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini \
+        - 0.5 * (Av - mu_Av)**2/sigma_Av
         return lnp
 
 def lnprob_classic(p):
@@ -861,9 +870,11 @@ def main():
     #generate_fake_data(70., *fake_params)
     #generate_fake_data(100., *fake_params)
 
-    print(lnprob_lognormal_marg(np.array([  6.33370311e+03  , 4.07412992e+00 , -8.47241238e-02 ,  8.26812315e+00,
-                                            6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
-                                            1.06044794e+00 ,  1.05605767e+00])))
+    #print(lnprob_lognormal_marg(np.array([  6.33370311e+03  , 4.07412992e+00 , -8.47241238e-02 ,  8.26812315e+00,
+    #                                        6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
+    #                                        1.06044794e+00 ,  1.05605767e+00])))
+    print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
+                                             6.85987877e+01 ,  8.47304773e-20 ,  1.00423485e+00])))
 
     pass
 

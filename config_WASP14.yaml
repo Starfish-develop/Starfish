@@ -35,7 +35,7 @@ grid_params :
     Z_range : [-1.0, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
-nparams : 6 # these do not include nuisance parameters c0, c1, c2...
+nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 16000
@@ -47,10 +47,10 @@ plots : True
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
-    temp : [6300,6700]
-    logg : [4.0, 4.6]
+    temp : [6350,6450]
+    logg : [4.1, 4.4]
     Z : [-0.3, 0.0]
-    vsini : [5.0, 15.0]
+    vsini : [3.0, 7.0]
     vz : [68, 69]
     Av : [0.0, 0.1]
     flux_factor : [2e-20, 9e-20]
