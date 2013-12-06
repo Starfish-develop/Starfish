@@ -89,6 +89,7 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * Be so bold as to interpolate the Fourier transform?
 * Fine tune garbage collection (debugging?): http://docs.python.org/2/library/gc.html#gc.garbage
 * Ask Paul Edmon if I can write to /n/scratch2
+* tweak grid generation mechanism so that it doesn't fill up memory (try removing list()). Output only the error messages.
 
 # Method Checks and concerns 
 

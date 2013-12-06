@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_23/lnprob_lognormal_marg/one_sigma  #internal tests
+name : WASP14/order_23/lnprob_lognormal_marg/three_sigma  #internal tests
 
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
