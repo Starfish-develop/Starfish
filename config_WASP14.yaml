@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_23/lnprob_lognormal_marg  #internal tests
+name : WASP14/order_23/lnprob_lognormal_marg/one_sigma  #internal tests
 
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
@@ -32,7 +32,7 @@ sigmac0 : 0.05
 grid_params :
     temp_range : [5500, 7200]
     logg_range : [3.5, 5.0]
-    Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
+    Z_range : [-1.0, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
 nparams : 6 # these do not include nuisance parameters c0, c1, c2...
