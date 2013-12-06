@@ -78,7 +78,7 @@ Z_arg = np.where(Z_ind)[0]
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-sigmas = np.load(base + ".sigma.npy")
+sigmas = 3 * np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
 
@@ -554,38 +554,7 @@ def model_p(p):
         return [refluxed, k, flatchain]
 
 
-def degrade_flux(wl, w, f_full):
-    vsini = 40.
-    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5
-    # angstroms to be sure.
-    ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
-    w = w_full[ind]
-    f = f_full[ind]
-    #convolve with stellar broadening (sb)
-    k = vsini_ang(np.mean(wl), vsini) #stellar rotation kernel centered at order
-    f_sb = convolve(f, k)
 
-    dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel
-
-    #convolve with filter to resolution of TRES
-    filt = gauss_series(dlam, lam0=np.mean(wl))
-    f_TRES = convolve(f_sb, filt)
-
-    #downsample to TRES bins
-    dsamp = downsample(w, f_TRES, wl)
-
-    return dsamp
-
-
-def data(coefs_arr, wls, fls):
-    '''coeff is a (norders, npoly) shape array'''
-    flsc = np.zeros_like(fls)
-    for i, coefs in enumerate(coefs_arr):
-        #do this to keep constant fixed at 1
-        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
-        #do this to allow tweaks to each order
-        #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
-    return flsc
 
 xs = np.arange(len_wl)
 T0 = np.ones_like(xs)
@@ -652,7 +621,7 @@ def lnprob_gaussian_marg(p):
         return lnp
 
 def lnprob_lognormal(p):
-    '''Sample only in c0's  '''
+
     #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
     temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
@@ -814,6 +783,38 @@ def lnprob_classic(p):
         #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))
         prior = 0
         return L + prior
+
+def degrade_flux(wl, w, f_full):
+    vsini = 40.
+    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5
+    # angstroms to be sure.
+    ind = (w_full > (wl[0] - 5.)) & (w_full < (wl[-1] + 5.))
+    w = w_full[ind]
+    f = f_full[ind]
+    #convolve with stellar broadening (sb)
+    k = vsini_ang(np.mean(wl), vsini) #stellar rotation kernel centered at order
+    f_sb = convolve(f, k)
+
+    dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel
+
+    #convolve with filter to resolution of TRES
+    filt = gauss_series(dlam, lam0=np.mean(wl))
+    f_TRES = convolve(f_sb, filt)
+
+    #downsample to TRES bins
+    dsamp = downsample(w, f_TRES, wl)
+
+    return dsamp
+
+def data(coefs_arr, wls, fls):
+    '''coeff is a (norders, npoly) shape array'''
+    flsc = np.zeros_like(fls)
+    for i, coefs in enumerate(coefs_arr):
+        #do this to keep constant fixed at 1
+        flsc[i] = Ch(np.append([1],coefs),domain=[wls[i][0],wls[i][-1]])(wls[i]) * fls[i]
+        #do this to allow tweaks to each order
+        #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]
+    return flsc
 
 def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):
     import os
