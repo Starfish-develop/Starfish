@@ -53,7 +53,7 @@ T_points = np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
 logg_points = np.arange(0.0, 6.1, 0.5)
-Z_points = np.array([-0.5, 0.0, 0.5])
+Z_points = np.array([-1., -0.5, 0.0, 0.5, 1.0])
 
 #Limit grid size to relevant region
 grid_params = config['grid_params']
@@ -656,7 +656,7 @@ def lnprob_lognormal(p):
     #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
     temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (np.abs(Z) >= 0.5): # or (Av < 0):
+            (temp > T_high) or (Z < Z_low) or (Z > Z_high): # or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
@@ -671,8 +671,6 @@ def lnprob_lognormal(p):
         c0s = coefs_arr[:,0] #length norders
         cns = coefs_arr[:,1:] #shape (norders, 3)
         #This does correctly unpack the coefficients into c0s, cns by order 11/17/13
-        #print("c0s.shape", c0s.shape)
-        #print("cns.shape", cns.shape)
 
         #If any c0s are less than 0, return -np.inf
         if np.any((c0s < 0)):
@@ -683,39 +681,20 @@ def lnprob_lognormal(p):
 
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
-        #print("A.shape: ", A.shape)
         Ap = A + D
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
-        #print("B.shape", B.shape)
         Bp = B + Dmu
 
         g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + fls**2)
         G = np.einsum("ij->i",g)
-        #print("G.shape", G.shape)
         Gp = G - 0.5 * muDmu
 
         Ac = np.einsum("ijk,ik->ij",Ap,cns)
         cAc = np.einsum("ij,ij->i",cns,Ac)
         Bc = np.einsum("ij,ij->i",Bp,cns)
-        #print()
-        #print("Ac.shape", Ac.shape)
-        #print("cAc.shape", cAc.shape)
-        #print("Bc.shape", Bc.shape)
 
-        #we should have a cAc and a Bc for each order
-
-        #to obtain the original, unnormalized, unmarginalized P given c
-        #addition of lognormal prior
-
-        #print()
-        #print("-0.5 cAc: ",-0.5 * cAc)
-        #print("Bc: ", Bc)
-        #print("-0.5 cAc + Bc", -0.5 * cAc + Bc)
-        #print("Gp: ", Gp)
-
-        #Each variable should have two orders up to this point
         lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))
 
         return lnp
@@ -725,7 +704,7 @@ def lnprob_lognormal_nuis_func(p):
     #temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
     temp, logg, Z, vsini, vz, flux_factor = p[:config['nparams']]
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or \
-            (temp > T_high) or (np.abs(Z) >= 0.5): #or (Av < 0):
+            (temp > T_high) or (Z < Z_low) or (Z > Z_high): #or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
@@ -790,26 +769,21 @@ def lnprob_lognormal_marg(p):
 
         a= fm2c2/sigmas**2
         A = np.einsum("in,jkn->ijk",a,TT)
-        #print("A.shape",A.shape)
         Ap = A + D
         detA = np.array(list(map(np.linalg.det, Ap)))
         invA = np.array(list(map(np.linalg.inv, Ap)))
-        #print("detA.shape", detA.shape)
-        #print("invA.shape", invA.shape)
+
 
         b = (-fm2c2 + fdfmc0) / sigmas**2
         B = np.einsum("in,jn->ij",b,T)
-        #print("B.shape",B.shape)
         Bp = B + Dmu
 
         g = -0.5/sigmas**2 * (fm2c2 - 2 * fdfmc0 + masks * fls**2)
         G = np.einsum("ij->i",g)
         Gp = G - 0.5 * muDmu
-        #print("Gp.shape", Gp.shape)
 
         invAB = np.einsum("ijk,ik->ij",invA,Bp)
         BAB = np.einsum("ij,ij->i",Bp,invAB)
-        #print("BAB.shape", BAB.shape)
 
         #addition of lognormal prior
         lnp = np.sum(0.5 * np.log((2. * np.pi)**norder/detA) + 0.5 * BAB + Gp) + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s)**2/(2 * sigmac0**2))

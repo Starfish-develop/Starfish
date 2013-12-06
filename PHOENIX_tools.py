@@ -51,7 +51,7 @@ T_points = np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
 logg_points = np.arange(0.0, 6.1, 0.5)
-Z_points = ['-0.5','-0.0','+0.5']
+Z_points = ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0']
 
 #shorten for ease of use
 #T_points = T_points[16:-25]
@@ -214,7 +214,7 @@ def resample_and_convolve(f, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
 def create_grid_parallel(ncores):
     '''create an hdf5 file of the PHOENIX grid. Go through each T point, if the corresponding logg exists,
     write it. If not, write nan. Each spectrum is normalized to the bolometric flux at the surface of the Sun.'''
-    f = h5py.File("LIB_2kms.hdf5", "w")
+    f = h5py.File("LIB_2kms_Z.hdf5", "w")
     shape = (len(T_points), len(logg_points), len(Z_points), len(wave_grid_coarse))
     dset = f.create_dataset("LIB", shape, dtype="f")
 
@@ -386,107 +386,6 @@ def compare_PHOENIX_TRES_spacing():
 def v(ls,lo):
     return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
 
-def trunc_tres():
-    wl = wls[0]
-    for i in range(1, 51):
-        ind = (wls[i] > wl[-1])
-        wl = np.append(wl, wls[i][ind])
-    return wl
-
-
-def PHOENIX_5000(temp, logg):
-    '''Interpolate the entire PHOENIX spectrum to 0.06 spacing in anticipation of sinc interpolation.'''
-    global w
-    f_full = load_flux_full(temp, logg, True)[ind]
-    #take all points longer than 5000 ang
-    ind3 = (w < 5000)
-    f_3 = f_full[ind3]
-    w_3 = w[ind3]
-    ind5 = (w >= 5000) & (w < 10000)
-    f_5 = f_full[ind5]
-    w_5 = w[ind5]
-    ind10 = (w >= 10000)
-    f_10 = f_full[ind10]
-    w_10 = w[ind10]
-
-    #for 5000
-    N = len(f_5)
-    if N % 2 == 0:
-        print("Even")
-    else:
-        print("Odd")
-
-    out = fft(ifftshift(f_5))
-    freqs = fftfreq(N, d=0.01) # spacing, Ang
-    d = freqs[1]
-
-    zeros_5 = np.zeros((333332,))
-
-    w_50 = ifftshift(w_5)[0] #must do this to get the zeroth wavelength
-
-    wout = ifftshift(hann(len(out))) * out
-    #since even, 
-    nyq = N / 2
-    t_pack = np.concatenate((wout[:nyq + 1], zeros_5, wout[nyq + 1:]))
-
-    scale_factor = len(t_pack) / N
-    f_restored5 = scale_factor * fftshift(ifft(t_pack))
-    w_restored5 = fftshift(fftfreq(len(t_pack), d=d)) + w_50
-    print(w_restored5[10] - w_restored5[9])
-
-
-    #for 10000
-    N = len(f_10)
-    if N % 2 == 0:
-        print("Even")
-    else:
-        print("Odd")
-
-    out = fft(ifftshift(f_10))
-    freqs = fftfreq(N, d=0.02) # spacing, Ang
-    d = freqs[1]
-
-    zeros_10 = np.zeros((233332,))
-
-    w_10_0 = ifftshift(w_10)[0] #must do this to get the zeroth wavelength
-
-    wout = ifftshift(hann(len(out))) * out
-    #since even, 
-    nyq = N / 2
-    t_pack = np.concatenate((wout[:nyq + 1], zeros_10, wout[nyq + 1:]))
-
-    scale_factor = len(t_pack) / N
-    f_restored10 = scale_factor * fftshift(ifft(t_pack))
-    w_restored10 = fftshift(fftfreq(len(t_pack), d=d)) + w_10_0
-    print("Match up", w_3[-1], w_restored5[0], w_restored5[-1], w_restored10[0])
-
-    w_all = np.concatenate((w_3, w_restored5, w_restored10))
-    f_all = np.concatenate((f_3, f_restored5, f_restored10))
-
-    np.save("w_all.npy", w_all)
-    np.save("f_all.npy", f_all)
-
-    plt.plot(w_all, f_all)
-    plt.plot(w, f_full, "r.")
-    plt.axvline(5000)
-    plt.axvline(10000)
-    plt.show()
-
-
-def do_sinc_interp(temp, logg):
-    f_full = load_flux_full(temp, logg, True)[ind]
-    global w
-    intp = Sinc_w(w, f_full, a=5, window='kaiser')
-    f_kms = list(map(intp, wave_grid))
-    np.save("f_kms.npy", f_kms)
-    plt.plot(wave_grid, f_kms)
-    plt.show()
-
-def test_integrate():
-    f_full = load_flux_full(5900,3.5,"-0.0")
-    #w_full
-    print(trapz(f_full*1e-8, w_full))
-    print(simps(f_full*1e-8, w_full))
 
 def main():
     #Rewrite Flux
