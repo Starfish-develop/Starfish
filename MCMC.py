@@ -129,7 +129,7 @@ def main():
     if config['plots'] == True:
         plot_MCMC.auto_hist_param(sampler.flatchain)
         plot_MCMC.hist_nuisance_param(sampler.flatchain)
-        plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability)
+        plot_MCMC.visualize_draws(sampler.flatchain, sampler.flatlnprobability, sample_num=4)
         plot_MCMC.plot_joint_marginals(sampler.flatchain)
         import generate_webpage #create the webpage
         #then copy all the webpages to the web directory, update the main web directory

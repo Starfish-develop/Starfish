@@ -2,9 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
+from matplotlib.ticker import MultipleLocator
 import yaml
 import PHOENIX_tools as pt
 import h5py
+from astropy.io import ascii
 
 f = open('config.yaml')
 config = yaml.load(f)
@@ -17,13 +19,8 @@ fls_true = np.load(base + ".true.fls.npy")
 sigmas = np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
-lkbase = 'data/LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec'
-lkwls = np.load(lkbase + ".wls.npy")
-lkfls = np.load(lkbase + ".fls.npy")
-#lkfls_true = np.load(lkbase + ".true.fls.npy")
-lksigmas = np.load(lkbase + ".sigma.npy")
-lkmasks = np.load(lkbase + ".mask.npy")
-
+#k.xaxis.set_major_formatter(FSF("%.0f"))
+#k.locator_params(axis='x', nbins=5)
 
 def plot_logg_grid():
     fig, ax = plt.subplots(nrows=13, sharex=True, sharey=True, figsize=(11, 8))
@@ -39,18 +36,6 @@ def plot_logg_grid():
     ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
     ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
     fig.subplots_adjust(top=0.96, right=0.96)
-    plt.show()
-
-def plot_wl():
-    plt.plot(wl)
-    plt.xlabel("Index")
-    plt.ylabel(r"Wavelength $\AA$")
-    plt.savefig("plots/WAVE_GWOri_solution.png")
-
-def plot_wl_short():
-    plt.plot(w)
-    plt.xlabel("Index")
-    plt.ylabel(r"Wavelength $\AA$")
     plt.show()
 
 def compare_kurucz():
@@ -102,7 +87,6 @@ def plot_sigmas():
     ax[4, 0].set_xlabel(r"$\lambda\quad[\AA]$")
     fig.savefig("plots/sigmas25.png")
 
-
 def plot_full_model():
     fig, ax = plt.subplots(nrows=5, ncols=5, figsize=(11, 8))
     f_mod = m.model(6200,3.5,0.0,)
@@ -144,98 +128,48 @@ def plot_comic_strip():
                 k.locator_params(axis='x', nbins=5)
         fig.savefig("plots/comic_strips/set%s.png" % (i,))
 
-def three_orders():
-    f_mod = m.model(6200, logg=4.0, Av=3.7, orders=m.orders)
-    m.global_chi2(f_mod)
-    const_coeff = np.load("const_coeff.npy")
-    chiR_list = np.load("chiR_list.npy")
-    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(11, 8))
-    for i in range(3):
-        wl, f_TRES = m.efile_z[m.orders[i]]
-        f = f_mod[i]
-        p = const_coeff[i]
-        ax[0, i].annotate(r"%s $\chi^2_R=$%.2f" % (m.orders[i] + 1, chiR_list[i]), (0.4, 0.85),
-                          xycoords="axes fraction")
-        ax[0, i].plot(wl, f_TRES, "b")
-        ax[0, i].plot(wl, f * Ch(p, domain=[wl[0], wl[-1]])(wl), "r")
+def identify_lines(wi, temp, logg, Z):
+    lines = ascii.read("linelist.dat", Reader=ascii.FixedWidth, col_starts=[3,17], col_ends=[16,27],
+                       converters={'line': [ascii.convert_numpy(np.float)],
+                                   'element': [ascii.convert_numpy(np.str)]})
+    print(lines.dtype)
 
-        ax[1, i].plot(wl, Ch(p, domain=[wl[0], wl[-1]])(wl))
+    wl = pt.w
+    ind = (wl >= wi[0]) & (wl <= wi[1])
+    wl = wl[ind]
 
-        ax[2, i].plot(wl, f_TRES - f * Ch(p, domain=[wl[0], wl[-1]])(wl), 'g')
-        for k in ax[:, i]:
-            k.set_xlim(wl[0], wl[-1])
-            k.xaxis.set_major_formatter(FSF("%.0f"))
-            k.locator_params(axis='x', nbins=5)
-    fig.savefig("plots/three_orders.png")
+    combinations = [[temp[0], logg[0], Z[0]],
+                    [temp[0], logg[0], Z[1]],
+                    [temp[0], logg[1], Z[0]],
+                    [temp[0], logg[1], Z[1]],
+                    [temp[1], logg[0], Z[0]],
+                    [temp[1], logg[0], Z[1]],
+                    [temp[1], logg[1], Z[0]],
+                    [temp[1], logg[1], Z[1]]]
 
+    #[print(comb) for comb in combinations]
+    fluxes = [pt.load_flux_full(*comb, norm=True)[pt.ind][ind] for comb in combinations]
 
-def one_order():
-    f_mod = m.model(6300, logg=4.0, Av=3.7, orders=m.orders)
-    m.global_chi2(f_mod)
-    const_coeff = np.load("const_coeff.npy")
-    chiR_list = np.load("chiR_list.npy")
-    chi2_list = np.load("chi2_list.npy")
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(11, 8))
-    i = 0
-    wl, f_TRES = m.efile_z[m.orders[i]]
-
-    f = f_mod[i]
-    p = const_coeff[i]
-    ax[0].annotate(r"%s $\chi^2 =$%.1f $\chi^2_R=$%.2f" % (m.orders[i] + 1, chi2_list[i], chiR_list[i]), (0.4, 0.85),
-                   xycoords="axes fraction")
-    ax[0].plot(wl, f_TRES, "b")
-    ax[0].plot(wl, f * Ch(p, domain=[wl[0], wl[-1]])(wl), "r")
-
-    ax[1].plot(wl, Ch(p, domain=[wl[0], wl[-1]])(wl))
-    residuals = f_TRES - f * Ch(p, domain=[wl[0], wl[-1]])(wl)
-
-    ax[2].plot(wl, residuals, 'g')
-    for k in ax:
-        k.set_xlim(wl[0], wl[-1])
-        k.xaxis.set_major_formatter(FSF("%.0f"))
-        k.locator_params(axis='x', nbins=5)
-    fig.savefig("plots/one_order63.png")
-    #histogram of residuals
-    fig2 = plt.figure()
-    ax2 = fig2.add_subplot(111)
-    ax2.hist(residuals, bins=20)
-    #plt.show()
-
-def plot_GWOri_all_unnormalized():
-    #Load normalized order spectrum
-    efile = rechelletxt("GWOri_f") #has structure len = 51, for each order: [wl,fl]
-
-    fig = plt.figure(figsize=(11, 8))
+    fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111)
-    for i in efile:
-        wl, fl = i
-        ax.plot(wl, fl)
-        ax.xaxis.set_major_formatter(FSF("%.0f"))
-        ax.set_xlabel(r"$\lambda\quad[\AA]$")
-        ax.set_ylabel("Counts")
-    fig.savefig("plots/all_flux_calib.png")
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.xaxis.set_major_locator(MultipleLocator(1.))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.2))
 
-def plot_order_23():
-    fig, ax = plt.subplots(nrows=3,figsize=(11, 8), sharex=True)
-    #ax[0].plot(wls[22], fls[22], "b")
-    #ax[0].plot(wls[22], fls_true[22], "r")
-    #ax[1].plot(lkwls[22], lkfls[22], "b")
-    flux = m.flux(6000, 3.5, 0.49)
-    ax[0].plot(m.wave_grid, flux)
-    flux_pt = pt.load_flux_full(6000, 3.5, "+0.5", norm=True)[pt.ind]
-    wave_pt = pt.w
-    ax[1].plot(wave_pt, flux_pt)
-    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
-    LIB = fhdf5['LIB']
-    wave_grid = np.load("wave_grid_2kms.npy")
-    ax[2].plot(wave_grid, LIB[36,7,2])
-    print(pt.T_points[36], pt.logg_points[7])
+    ind2 = (lines['line'] >= wi[0]) & (lines['line'] <= wi[1])
+    for line, label in lines[ind2]:
+        ax.axvline(float(line), color="0.5")
+        ax.annotate(label, (line, 0.9), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center')
+
+    for i, fl in enumerate(fluxes):
+        ax.plot(wl, fl, label="%s %s %s" % tuple(combinations[i]))
+
+    ax.legend()
     plt.show()
-
+    pass
 
 def main():
-    #plot_comic_strip()
-    plot_order_23()
+    identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
     pass
 
 
