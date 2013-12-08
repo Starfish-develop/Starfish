@@ -34,6 +34,8 @@ Coding convention:
 
     fls: refers to 2D model flux array, after being downsampled to TRES resolution, shape = (51, 2304)
 
+    The raw PHOENIX spectra uses vacuum wavelengths.
+
 '''
 
 ##################################################
@@ -590,7 +592,7 @@ def lnprob_gaussian_marg(p):
             (temp > T_high) or (Z < Z_low) or (Z > Z_high) or (Av < 0):
         return -np.inf
     else:
-        #shift TRES wavelengths
+        #shift TRES wavelengths to output spectra to.
         wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks #mask all the bad model points
 

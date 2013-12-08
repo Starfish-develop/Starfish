@@ -11,6 +11,7 @@ import os
 import sys
 import emcee
 import itertools
+from astropy.io import ascii
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -206,6 +207,15 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
+
+                line_list = return_lines(wl, residuals, sigma=50, tol=0.3)
+                offsets = np.linspace(-0.4, 0.4, num=10)
+                off_counter = 0
+                for line, label in line_list:
+                    ax1.axvline(line, color="0.5", lw=0.1)
+                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
+                    off_counter += 1
+
                 ax1.plot(wl, residuals)
                 ax1.plot(wl[~mask], residuals[~mask], "r")
                 ax1.set_xlim(wl[0],wl[-1])
@@ -217,15 +227,47 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
                 ax3_1.plot(wl,k)
                 ax3_2.hist(residuals[mask],bins=30)
+
+                np.save(sample_dir + "residuals{i:0>2.0f}.npy".format(i=(config['orders'][j]+1)), residuals)
+
                 fig.subplots_adjust(hspace=0.3,wspace=0.2)
 
 
 
-            plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
+            plt.savefig(sample_dir + 'order{i:0>2.0f}.svg'.format(i=(config['orders'][j]+1)))
             plt.close('all')
 
 #TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
 # or Asynchronous plotter https://gist.github.com/astrofrog/1453933
+
+def return_lines(wl, residuals, sigma=1, tol=1):
+    '''Given a set of wl and residuals that are abs() > 1 sigma, return a list of lines and labels that are within
+    tolerance = 1 Ang of each point.'''
+    lines = ascii.read("linelist.dat", Reader=ascii.FixedWidth, col_starts=[3,17], col_ends=[16,27],
+                       converters={'line': [ascii.convert_numpy(np.float)],
+                                   'element': [ascii.convert_numpy(np.str)]})
+    #truncate list to speed execution
+    ind = (lines['line'] >= np.min(wl) - tol) & (lines['line'] <= np.max(wl) + tol)
+    lines = lines[ind]
+
+    #identify the wl that correspond to residuals over sigma
+    ind_sigma = np.abs(residuals) >= sigma
+    wl = wl[ind_sigma]
+    residuals = residuals[ind_sigma]
+
+    #for each wl, query all known lines that are within tol, add these to the set of known lines
+    line_set = set([])
+    for w in wl:
+        ind = (w - tol <= lines['line']) & (lines['line'] <= w + tol)
+        new_set = [(line, label) for line, label in lines[ind]]
+        new_set = set(new_set)
+        line_set.update(new_set)
+
+    arr = np.array(list(line_set), dtype=[('line', 'f8'), ('element', 'U10')])
+    #sort array by increasing line strength
+    return arr[np.argsort(arr['line'])]
+
+
 
 def plot_residuals(p):
 
@@ -652,27 +694,13 @@ def main():
 
     auto_hist_param(flatchain)
     hist_nuisance_param(flatchain)
-    visualize_draws(flatchain, lnflatchain, sample_num=1)
+    visualize_draws(flatchain, lnflatchain, sample_num=4)
     plot_joint_marginals(flatchain)
 
-    #plot_residuals(np.array([6399.999, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
-    #plot_residuals(np.array([6400.001, 4.09, -0.41, 4.88, 68.32, 0.69, 4.27e-20, 0.9765732, 0.94855705, 0.93789106, 0.92220996]))
+    #wls = np.load("data/Fake/50/Fake.wls.npy")
+    #return_lines(wls[21], np.load("output/internal/SNR_50/order_22_23_24_25_26/lnprob_lognormal_marg/visualize/sample00/residuals22.npy"), sigma=50)
 
-    #plot_conditionals()
-    #p = np.load('p.npy')
-    #print(p)
-    #draw_cheb_vectors(p)
-    #plot_random_data()
-    #plot_random_data()
-    #plot_data_and_residuals()
-    #joint_hist(2,3,bins=[20,40],range=((50,65),(28,31)))
-    #joint_hist(0,4,range=((),()))
-    #draw_chebyshev_samples()
-    #staircase_plot_thesis(flatchain[590000:])
-    #staircase_plot_proposal(flatchain)
-    #test_hist()
-    #plot_walker_position()
-    #get_acor()
+
 
     #x1 = np.random.normal(0,1,size=(10000,))
     #x2 = np.random.normal(0,3,size=(10000,))
