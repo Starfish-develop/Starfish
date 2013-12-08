@@ -208,7 +208,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
 
-                line_list = return_lines(wl, residuals, sigma=50, tol=0.3)
+                line_list = return_lines(wl, residuals, sigma=1, tol=0.3)
                 offsets = np.linspace(-0.4, 0.4, num=10)
                 off_counter = 0
                 for line, label in line_list:
