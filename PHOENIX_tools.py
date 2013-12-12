@@ -87,9 +87,7 @@ def create_coarse_wave_grid_kurucz():
 
 @np.vectorize
 def vacuum_to_air(wl):
-    '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996:
-    hebe.as.utexas.edu/apogee/docs/air_vacuum.pdf‎ Also T-O Husser PhD thesis.
-    '''
+    '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996.'''
     sigma = (1e4/wl)**2
     f = 1.0 + 0.05792105/(238.0185 - sigma) + 0.00167917/(57.362 - sigma)
     return wl/f
@@ -143,7 +141,7 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
         file = bz2.BZ2File(rname, 'r')
     except:
         print("No file exists %s" % rname)
-        return None
+        raise OSError
 
     lines = file.readlines()
     strlines = [line.decode('utf-8') for line in lines]
