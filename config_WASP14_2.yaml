@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_22_23_24_25/lnprob_lognormal_marg/three_sigma/priors  #internal tests
+name : WASP14/order_22_23_24_25/lnprob_lognormal_marg/three_sigma/kurucz  #internal tests
 
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
@@ -34,13 +34,15 @@ grid_params :
     logg_range : [3.5, 5.0]
     Z_range : [-1.0, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
+grid : PHOENIX
+
 # MCMC parameters
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
-burn_in : 16000
-iterations : 4000
-MPI : True
+burn_in : 500
+iterations : 300
+MPI : False
 threads : 4
 output_dir : output
 plots : True

@@ -128,13 +128,12 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         np.save(sample_dir + "lnp.npy", lnp)
 
         #Get wavelength, flux, and sigmas
-        wls = m.wls
         fls = m.fls
         sigmas = m.sigmas
         masks = m.masks
 
         #Reproduce the model spectrum for that parameter combo
-        fs, ks, cflatchain = m.model_p(p)
+        wls, fs, ks, cflatchain = m.model_p(p)
 
         for j in range(norders):
 
@@ -208,7 +207,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
 
-                line_list = return_lines(wl, residuals, sigma=1, tol=0.3)
+                line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
                 offsets = np.linspace(-0.4, 0.4, num=10)
                 off_counter = 0
                 for line, label in line_list:
@@ -243,7 +242,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 def return_lines(wl, residuals, sigma=1, tol=1):
     '''Given a set of wl and residuals that are abs() > 1 sigma, return a list of lines and labels that are within
     tolerance = 1 Ang of each point.'''
-    lines = ascii.read("linelist.dat", Reader=ascii.FixedWidth, col_starts=[3,17], col_ends=[16,27],
+    lines = ascii.read("linelist_air.dat", Reader=ascii.FixedWidth, col_starts=[3,20], col_ends=[19,29],
                        converters={'line': [ascii.convert_numpy(np.float)],
                                    'element': [ascii.convert_numpy(np.str)]})
     #truncate list to speed execution
@@ -272,13 +271,12 @@ def return_lines(wl, residuals, sigma=1, tol=1):
 def plot_residuals(p):
 
     #Get wavelength, flux, and sigmas
-    wls = m.wls
     fls = m.fls
     sigmas = m.sigmas
     masks = m.masks
 
     #Reproduce the model spectrum for that parameter combo
-    fs, ks, cflatchain = m.model_p(p)
+    wls, fs, ks, cflatchain = m.model_p(p)
 
     for j in range(norders):
         wl = wls[j]
