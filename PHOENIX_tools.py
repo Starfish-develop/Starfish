@@ -16,7 +16,7 @@ import bz2
 import h5py
 
 c_kms = 2.99792458e5 #km s^-1
-wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+wl_file = pf.open("PHOENIX/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
 ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
@@ -49,7 +49,7 @@ grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
                'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]}
 
 grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(1.0, 5.6, 0.5),
-#                'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}
+                'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}
 
 #grid_BTSettl = {'T_points': [3000, 3100], 'logg_points': [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
 #                'Z_points': ['-0.0a+0.0']}
@@ -88,8 +88,7 @@ def create_coarse_wave_grid_kurucz():
 @np.vectorize
 def vacuum_to_air(wl):
     '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996:
-    hebe.as.utexas.edu/apogee/docs/air_vacuum.pdf‎
-    Also T-O Husser PhD thesis.
+    hebe.as.utexas.edu/apogee/docs/air_vacuum.pdf‎ Also T-O Husser PhD thesis.
     '''
     sigma = (1e4/wl)**2
     f = 1.0 + 0.05792105/(238.0185 - sigma) + 0.00167917/(57.362 - sigma)
@@ -138,8 +137,14 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
     rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
                                                                                               logg=logg, Z=Z)
-    #first unzip the file
-    file = bz2.BZ2File(rname, 'r')
+
+    try:
+        #first unzip the file
+        file = bz2.BZ2File(rname, 'r')
+    except:
+        print("No file exists %s" % rname)
+        return None
+
     lines = file.readlines()
     strlines = [line.decode('utf-8') for line in lines]
     file.close()
@@ -459,7 +464,8 @@ def main():
 
     #create_grid_parallel(ncores, "LIB_kurucz_2kms.hdf5", grid_name="kurucz")
     #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX")
-    create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
+    #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
+    load_BTSettl(5000, 6.0, "-0.0a+0.0")
     #idl_float('1.047875D+01')
     #wl, fl = load_BTSettl(3000, 0.0, "-0.0a+0.0", norm=True, trunc=True)
 
