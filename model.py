@@ -49,13 +49,39 @@ R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
 
-T_points = np.array(
+
+grid_PHOENIX = {'T_points': np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000])
-logg_points = np.arange(0.0, 6.1, 0.5)
-Z_points = np.array([-1., -0.5, 0.0, 0.5, 1.0])
+     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
+                'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': np.array([-1., -0.5, 0.0, 0.5, 1.0])}
+
+grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
+               'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': np.array([-0.5, 0.0, 0.5])}
+
+grid_BTSettl = {'T_points': [3000, 3100], 'logg_points': [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
+                'Z_points': [0.0]}
+
+if config['grid'] == 'PHOENIX':
+    grid = grid_PHOENIX
+    wave_grid = np.load("wave_grid_2kms.npy")
+    LIB_filename = "LIB_2kms.hdf5"
+elif config['grid'] == "kurucz":
+    grid = grid_kurucz
+    wave_grid = np.load("wave_grid_2kms_kurucz.npy")
+    LIB_filename = "LIB_kurucz_2kms.hdf5"
+elif config['grid'] == 'BTSettl':
+    grid = grid_BTSettl
+    wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
+    LIB_filename = "LIB_BTSettl_2kms_air.hdf5"
+
+
+
+T_points = grid['T_points']
+logg_points = grid['logg_points']
+Z_points = grid['Z_points']
+
 
 #Limit grid size to relevant region
 grid_params = config['grid_params']
@@ -80,7 +106,7 @@ Z_arg = np.where(Z_ind)[0]
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-sigmas = 3 * np.load(base + ".sigma.npy")
+sigmas = 1.5 * np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
 
@@ -99,8 +125,6 @@ sigmac0 = config['sigmac0']
 wr = config['walker_ranges']
 
 len_wl = len(wls[0])
-
-wave_grid = np.load("wave_grid_2kms.npy")
 
 wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts
 wl_min = wls[0,0] - wl_buffer
@@ -153,7 +177,7 @@ red_grid = np.load('red_grid.npy')[ind]
 
 def flux_interpolator_hdf5():
     #load hdf5 file of PHOENIX grid 
-    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
+    fhdf5 = h5py.File(LIB, 'r')
     LIB = fhdf5['LIB']
     index_combos = []
     var_combos = []
@@ -178,7 +202,7 @@ def flux_interpolator_hdf5():
 
 def trilinear_interpolator():
     '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
-    fhdf5 = h5py.File('LIB_2kms.hdf5', 'r')
+    fhdf5 = h5py.File(LIB_filename, 'r')
     LIB = fhdf5['LIB']
 
     #Load only those indexes we want into a grid in memory
@@ -512,7 +536,7 @@ def model_p(p):
     Actual sampling does not require the use of this method since it is slow. Returns flatchain.'''
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
-    wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+    wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
     fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
     coefs = p[config['nparams']:]
@@ -551,7 +575,7 @@ def model_p(p):
         k = np.einsum("i,ij->ij",c0s, 1 + Tc)
         refluxed = k * fmods
 
-        return [refluxed, k, flatchain]
+        return [wlsz, refluxed, k, flatchain]
 
 
 
@@ -593,7 +617,7 @@ def lnprob_gaussian_marg(p):
         return -np.inf
     else:
         #shift TRES wavelengths to output spectra to.
-        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks #mask all the bad model points
 
         a= fmods**2/sigmas**2
@@ -629,7 +653,7 @@ def lnprob_lognormal(p):
         return -np.inf
     else:
         #shift TRES wavelengths
-        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         coefs = p[config['nparams']:]
@@ -676,7 +700,7 @@ def lnprob_lognormal_nuis_func(p):
         return -np.inf
     else:
         #shift TRES wavelengths
-        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
 
@@ -713,15 +737,15 @@ def lnprob_lognormal_nuis_func(p):
 
 
 mu_temp = 6462
-sigma_temp = 75
+sigma_temp = 400
 mu_logg = 4.29
-sigma_logg = 0.04
+sigma_logg = 0.0001
 mu_Z = -0.13
-sigma_Z = 0.08
+sigma_Z = 0.7
 mu_vsini = 3.5
 sigma_vsini = 0.9
 mu_Av = 0.0
-sigma_Av = 0.2
+sigma_Av = 0.01
 
 def lnprob_lognormal_marg(p):
     '''Sample only in c0's  '''
@@ -733,7 +757,7 @@ def lnprob_lognormal_marg(p):
         return -np.inf
     else:
         #shift TRES wavelengths
-        wlsz = wls * np.sqrt((c_kms + vz) / (c_kms - vz))
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
         fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks
 
         c0s = p[config['nparams']:]
@@ -875,8 +899,14 @@ def main():
     #print(lnprob_lognormal_marg(np.array([  6.33370311e+03  , 4.07412992e+00 , -8.47241238e-02 ,  8.26812315e+00,
     #                                        6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
     #                                        1.06044794e+00 ,  1.05605767e+00])))
-    print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
-                                             6.85987877e+01 ,  8.47304773e-20 ,  1.00423485e+00])))
+    #print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
+    #                                         6.85987877e+01 , 0.0, 1e-15 ,  1.00423485e+00, 1, 1])))
+    fls = model(wls, 7000, 4.2, 0.0, 4.0, 0.0, 1e-15)
+
+    import matplotlib.pyplot as plt
+    plt.plot(wls[1],fls[1])
+    plt.show()
+
 
     pass
 
