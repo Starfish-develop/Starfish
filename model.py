@@ -60,8 +60,8 @@ grid_PHOENIX = {'T_points': np.array(
 grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
                'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': np.array([-0.5, 0.0, 0.5])}
 
-grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(3.0, 5.6, 0.5),
-                'Z_points': np.array([-0.5, 0.0])}
+grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
+                'Z_points': np.array([-0.5, 0.0, 0.5])}
 
 
 if config['grid'] == 'PHOENIX':
@@ -107,7 +107,7 @@ Z_arg = np.where(Z_ind)[0]
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-sigmas = 1.5 * np.load(base + ".sigma.npy")
+sigmas = 2 * np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
 

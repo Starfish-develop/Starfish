@@ -207,13 +207,13 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
 
-                line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
-                offsets = np.linspace(-0.4, 0.4, num=10)
-                off_counter = 0
-                for line, label in line_list:
-                    ax1.axvline(line, color="0.5", lw=0.1)
-                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
-                    off_counter += 1
+                #line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
+                #offsets = np.linspace(-0.4, 0.4, num=10)
+                #off_counter = 0
+                #for line, label in line_list:
+                #    ax1.axvline(line, color="0.5", lw=0.1)
+                #    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
+                #    off_counter += 1
 
                 ax1.plot(wl, residuals)
                 ax1.plot(wl[~mask], residuals[~mask], "r")
