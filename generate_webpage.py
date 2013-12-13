@@ -36,7 +36,7 @@ for i in sample_names:
     lnp = np.load(base_dir + 'visualize/' + i + '/lnp.npy')
     p = np.load(base_dir + 'visualize/' + i + '/p.npy')
     # create a list of order images in each sample_dir
-    images = [os.path.relpath(i,base_dir) for i in glob.glob(base_dir + 'visualize/' + i + '/*.svg')]
+    images = [os.path.relpath(i,base_dir) for i in glob.glob(base_dir + 'visualize/' + i + '/*.png')]
     sample_dict[i] = {"lnp":lnp, "p":p, "images":images}
 
 # Specify any input variables to the template as a dictionary.

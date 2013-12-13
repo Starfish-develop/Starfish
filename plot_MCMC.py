@@ -233,7 +233,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
 
 
-            plt.savefig(sample_dir + 'order{i:0>2.0f}.svg'.format(i=(config['orders'][j]+1)))
+            plt.savefig(sample_dir + 'order{i:0>2.0f}.png'.format(i=(config['orders'][j]+1)))
             plt.close('all')
 
 #TODO: try speeding up with: http://stackoverflow.com/questions/4659680/matplotlib-simultaneous-plotting-in-multiple-threads/4662511#4662511
