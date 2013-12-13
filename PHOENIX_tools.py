@@ -48,11 +48,8 @@ grid_PHOENIX = {'T_points': np.array(
 grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
                'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]}
 
-grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(1.0, 5.6, 0.5),
-                'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}
-
-#grid_BTSettl = {'T_points': [3000, 3100], 'logg_points': [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
-#                'Z_points': ['-0.0a+0.0']}
+grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(3.0, 5.6, 0.5),
+                'Z_points': ['-0.5a+0.2', '-0.0a+0.0']}
 
 def create_wave_grid(v=1., start=3700., end=10000):
     '''Returns a grid evenly spaced in velocity'''
@@ -135,13 +132,7 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
     rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
                                                                                               logg=logg, Z=Z)
-
-    try:
-        #first unzip the file
-        file = bz2.BZ2File(rname, 'r')
-    except:
-        print("No file exists %s" % rname)
-        raise OSError
+    file = bz2.BZ2File(rname, 'r')
 
     lines = file.readlines()
     strlines = [line.decode('utf-8') for line in lines]
@@ -266,9 +257,9 @@ def process_spectrum_BTSettl(pars):
     try:
         wl, f = load_BTSettl(temp, logg, Z, norm=True, trunc=True)
         flux = resample_and_convolve(f, wl, wave_grid_fine, wave_grid_coarse)
-        print("processing %s, %s, %s" % (temp, logg, Z))
-    except OSError:
-        print("%s, %s, %s does not exist!" % (temp, logg, Z))
+        print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
+    except (FileNotFoundError, OSError): #on Python2 gives OS, Python3 gives FileNotFound
+        print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
 
@@ -462,8 +453,8 @@ def main():
 
     #create_grid_parallel(ncores, "LIB_kurucz_2kms.hdf5", grid_name="kurucz")
     #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX")
-    #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
-    load_BTSettl(5000, 6.0, "-0.0a+0.0")
+    create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
+
     #idl_float('1.047875D+01')
     #wl, fl = load_BTSettl(3000, 0.0, "-0.0a+0.0", norm=True, trunc=True)
 
