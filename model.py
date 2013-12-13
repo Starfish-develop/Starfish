@@ -901,13 +901,14 @@ def main():
     #                                        6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
     #                                        1.06044794e+00 ,  1.05605767e+00])))
     #print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
-    #                                         6.85987877e+01 , 0.0, 1e-15 ,  1.00423485e+00, 1, 1])))
-    fls = model(wls, 6400, 3.5, 0.0, 4.0, 0.0, 1e-15)
-    print(fls)
+    #
+    fl = flux(6400, 3.5, 0.0)
+    #fls = model(wls, 6400, 3.5, 0.0, 4.0, 0.0, 1e-15)
+    print(fl)
 
-    import matplotlib.pyplot as plt
-    plt.plot(wls[1],fls[1])
-    plt.show()
+    #import matplotlib.pyplot as plt
+    #plt.plot(wls[1],fls[1])
+    #plt.show()
 
 
     pass
