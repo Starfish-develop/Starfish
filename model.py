@@ -470,6 +470,7 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     f_full[:] = flux_factor * flux(temp, logg, Z)
     #f_full = flux_factor * flux(temp, logg, Z)
 
+
     #Take FFT of f_grid
     #FF = fft(f_full)
     fft_object()
@@ -902,9 +903,21 @@ def main():
     #                                        1.06044794e+00 ,  1.05605767e+00])))
     #print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
     #
-    fl = flux(6400, 3.5, 0.0)
+    #print(lnprob_lognormal_marg(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
+    #                                        1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
+    #                                        1.09799757e+00 ,  1.05003663e+00])))
+    fl1 = flux(6457, 4.31, 0.02)
+    print('flux1', fl1)
+
+    fl2 = flux(6.45745482e+03,  4.31375412e+00, 2.74544784e-02)
+    print("flux2", fl2)
+    #wlsz, refluxed, k, flatchain = model_p(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
+    #                    1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
+    #                    1.09799757e+00 ,  1.05003663e+00]))
+    #print(wlsz)
+    #print(refluxed)
     #fls = model(wls, 6400, 3.5, 0.0, 4.0, 0.0, 1e-15)
-    print(fl)
+    #print(fl)
 
     #import matplotlib.pyplot as plt
     #plt.plot(wls[1],fls[1])
