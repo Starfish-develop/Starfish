@@ -255,7 +255,7 @@ def process_spectrum_kurucz(pars):
 def process_spectrum_BTSettl(pars):
     temp, logg, Z = pars
     try:
-        wl, f = load_BTSettl(temp, logg, Z, norm=True, trunc=True)
+        wl, f = load_BTSettl(temp, logg, Z, norm=True, trunc=True, air=True)
         flux = resample_and_convolve(f, wl, wave_grid_fine, wave_grid_coarse)
         print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
     except (FileNotFoundError, OSError): #on Python2 gives OS, Python3 gives FileNotFound
@@ -289,7 +289,8 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name="PHOENIX"):
     Z_points = grid['Z_points']
 
     shape = (len(T_points), len(logg_points), len(Z_points), len(wave_grid_2kms))
-    dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
+    #dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
+    dset = f.create_dataset("LIB", shape, dtype="f")
 
     # A thread pool of P processes
     pool = mp.Pool(ncores)
