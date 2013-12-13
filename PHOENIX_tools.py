@@ -5,7 +5,7 @@ from astropy.io import ascii
 
 import multiprocessing as mp
 
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, UnivariateSpline
 from scipy.integrate import trapz
 
 import matplotlib.pyplot as plt
@@ -48,8 +48,8 @@ grid_PHOENIX = {'T_points': np.array(
 grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
                'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]}
 
-grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(3.0, 5.6, 0.5),
-                'Z_points': ['-0.5a+0.2', '-0.0a+0.0']}
+grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
+                'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}
 
 def create_wave_grid(v=1., start=3700., end=10000):
     '''Returns a grid evenly spaced in velocity'''
@@ -197,8 +197,11 @@ def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2
     (done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
     then resample it to wg_coarse. sigma in km/s.'''
 
-    #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline
-    interp_fine = InterpolatedUnivariateSpline(wg_raw, f)
+    #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline. First check to make sure there
+    #are no duplicates and the wavelength is increasing, otherwise the spline will fail and return NaN.
+    wl_sorted, ind = np.unique(wg_raw, return_index=True)
+    fl_sorted = f[ind]
+    interp_fine = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
     f_grid = interp_fine(wg_fine)
 
     #Fourier Transform
@@ -289,8 +292,7 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name="PHOENIX"):
     Z_points = grid['Z_points']
 
     shape = (len(T_points), len(logg_points), len(Z_points), len(wave_grid_2kms))
-    #dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
-    dset = f.create_dataset("LIB", shape, dtype="f")
+    dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
 
     # A thread pool of P processes
     pool = mp.Pool(ncores)
@@ -447,6 +449,8 @@ def v(ls,lo):
     return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
 
 
+
+
 def main():
     ncores = mp.cpu_count()
     #create_fine_and_coarse_wave_grid()
@@ -454,10 +458,8 @@ def main():
 
     #create_grid_parallel(ncores, "LIB_kurucz_2kms.hdf5", grid_name="kurucz")
     #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX")
-    create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
 
-    #idl_float('1.047875D+01')
-    #wl, fl = load_BTSettl(3000, 0.0, "-0.0a+0.0", norm=True, trunc=True)
+    create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl")
 
 
 
