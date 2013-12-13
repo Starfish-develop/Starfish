@@ -30,8 +30,8 @@ sigmac0 : 0.05
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
 grid_params :
-    temp_range : [5000, 7250]
-    logg_range : [3.5, 5.0]
+    temp_range : [3000, 7000]
+    logg_range : [1., 5.5]
     Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 grid : BTSettl
