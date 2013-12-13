@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_22_23_24/lnprob_lognormal_marg/three_sigma/kurucz  #internal tests
+name : WASP14/order_22_23_24/lnprob_lognormal_marg/BTSettl/two_sigma  #internal tests
 
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
@@ -30,8 +30,8 @@ sigmac0 : 0.05
 # Limit the range of grid space that is read in. Note that routine will load in only gridpoints that are
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
 grid_params :
-    temp_range : [3000, 7000]
-    logg_range : [1., 5.5]
+    temp_range : [5700, 7000]
+    logg_range : [3.0, 5.0]
     Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 grid : BTSettl
@@ -40,9 +40,9 @@ grid : BTSettl
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
-burn_in : 200
-iterations : 200
-MPI : False
+burn_in : 4000
+iterations : 2000
+MPI : True
 threads : 4
 output_dir : output
 plots : True
@@ -53,7 +53,7 @@ walker_ranges :
     logg : [4.29, 4.31]
     Z : [-0.25, 0.0]
     vsini : [3.0, 6.0]
-    vz : [-16, -15]
+    vz : [15, 16]
     Av : [0.0, 0.1]
     flux_factor : [1e-15, 1.2e-16]
     c0 : [0.9, 1.1]
