@@ -233,7 +233,7 @@ def resample(f, wg_input, wg_output):
     wl_sorted, ind = np.unique(wg_input, return_index=True)
     fl_sorted = f[ind]
 
-    interp = InterpolatedUnivariateSpline(wg_input, fl_sorted)
+    interp = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
     f_output = interp(wg_output)
     return f_output
 
@@ -246,7 +246,7 @@ def process_spectrum_PHOENIX(pars, convolve=True):
         else:
             flux = resample(f, wave_grid_raw_PHOENIX, wave_grid_fine)
         print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except OSError:
+    except IOError: #IOError in python2, OSError in python3
         print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
@@ -270,7 +270,7 @@ def process_spectrum_BTSettl(pars, convolve=True):
         else:
             flux = resample(f, wl, wave_grid_fine)
         print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except OSError: #on Python2 gives IOError, Python3 use FileNotFoundError
+    except IOError: #on Python2 gives IOError, Python3 use FileNotFoundError
         print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
@@ -470,11 +470,12 @@ def main():
     #create_coarse_wave_grid_kurucz()
 
     #create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
-    create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
-    #create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
+    #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
+    create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
+    #load_flux_full(5900, 7.0, "-0.0", norm=False, vsini=0, grid="PHOENIX")
 
     #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl", convolve=True)
-    #create_grid_parallel(ncores, "LIB_BTSettl_0.35kms_air.hdf5", grid_name="BTSettl", convolve=True)
+    #create_grid_parallel(ncores, "LIB_BTSettl_0.35kms_air.hdf5", grid_name="BTSettl", convolve=False)
 
 
 
