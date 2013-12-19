@@ -30,7 +30,8 @@ wr = config['walker_ranges']
 
 if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
     ndim = config['nparams'] + norders
-if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian") \
+    or (config['lnprob'] == 'lnprob_mixed'):
     ndim = config['nparams'] + ncoeff * norders
 
 lnprob = getattr(model, config['lnprob'])
@@ -46,7 +47,8 @@ def generate_nuisance_params():
     if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
         return c0s
 
-    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian") \
+        or (config['lnprob'] == 'lnprob_mixed'):
         #do this for each order. create giant array for cns, then do a stride on every c0 to replace them.
         cs = np.random.uniform(low=wr['cs'][0], high = wr['cs'][1], size=(ncoeff*norders, nwalkers))
         cs[::ncoeff] = c0s
