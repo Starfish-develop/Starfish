@@ -79,6 +79,9 @@ def create_coarse_wave_grid_kurucz():
     print(len(wave_grid_2kms_kurucz))
     np.save('wave_grid_2kms_kurucz.npy', wave_grid_2kms_kurucz)
 
+def grid_loader():
+
+    pass
 
 @np.vectorize
 def vacuum_to_air(wl):
@@ -235,6 +238,8 @@ def resample(f, wg_input, wg_output):
 
     interp = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
     f_output = interp(wg_output)
+    del interp
+    gc.collect()
     return f_output
 
 def process_spectrum_PHOENIX(pars, convolve=True):

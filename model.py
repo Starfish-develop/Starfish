@@ -29,12 +29,7 @@ Coding convention:
 
     wlsz: refers to 2D TRES wavelength array, shifted in velocity, shape = (51, 2304)
 
-    w: refers to individual 1D PHOENIX wavelength array, spacing 0.01A, shape = (large number,)
-    f: refers to individual 1D PHOENIX flux array, shape = (large number,)
-
     fls: refers to 2D model flux array, after being downsampled to TRES resolution, shape = (51, 2304)
-
-    The raw PHOENIX spectra uses vacuum wavelengths.
 
 '''
 
@@ -49,35 +44,29 @@ R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
 
-
-grid_PHOENIX = {'T_points': np.array(
+grids = {"PHOENIX": {'T_points': np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-                'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': np.array([-1., -0.5, 0.0, 0.5, 1.0])}
-
-grid_kurucz = {'T_points': np.arange(3500, 9751, 250),
-               'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': np.array([-0.5, 0.0, 0.5])}
-
-grid_BTSettl = {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
-                'Z_points': np.array([-0.5, 0.0, 0.5])}
+                'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': np.array([-1., -0.5, 0.0, 0.5, 1.0])},
+         "kurucz": {'T_points': np.arange(3500, 9751, 250),
+               'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': np.array([-0.5, 0.0, 0.5])},
+         "BTSettl": {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
+                'Z_points': np.array([-0.5, 0.0, 0.5])}}
 
 
 if config['grid'] == 'PHOENIX':
-    grid = grid_PHOENIX
     wave_grid = np.load("wave_grid_2kms.npy")
-    LIB_filename = "LIB_2kms.hdf5"
+    LIB_filename = "LIB_PHOENIX_2kms_air.hdf5"
 elif config['grid'] == "kurucz":
-    grid = grid_kurucz
     wave_grid = np.load("wave_grid_2kms_kurucz.npy")
     LIB_filename = "LIB_kurucz_2kms.hdf5"
 elif config['grid'] == 'BTSettl':
-    grid = grid_BTSettl
     wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
     LIB_filename = "LIB_BTSettl_2kms_air.hdf5"
 
-
+grid = grids[config['grid']]
 
 T_points = grid['T_points']
 logg_points = grid['logg_points']
@@ -107,7 +96,7 @@ Z_arg = np.where(Z_ind)[0]
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-sigmas = 2 * np.load(base + ".sigma.npy")
+sigmas = np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
 
@@ -200,6 +189,35 @@ def flux_interpolator_hdf5():
     del fluxes
     gc.collect()
     return flux_intp
+
+def load_hdf5_spectrum(temp, logg, Z, grid_name, LIB_filename):
+    grid = grids[grid_name]
+    T_points = grid['T_points']
+    lenT = len(T_points)
+
+    logg_points = grid['logg_points']
+    lenG = len(logg_points)
+
+    Z_points = grid['Z_points']
+    lenZ = len(Z_points)
+
+    #Create index interpolators
+    T_intp = interp1d(T_points, np.arange(lenT), kind='nearest')
+    logg_intp = interp1d(logg_points, np.arange(lenG), kind='nearest')
+    Z_intp = interp1d(Z_points, np.arange(lenZ), kind='nearest')
+
+    fhdf5 = h5py.File(LIB_filename, 'r')
+    LIB = fhdf5['LIB']
+
+
+
+    T = int(T_intp(temp))
+    G = int(logg_intp(logg))
+    Z = int(Z_intp(Z))
+    print("Loading", T_points[T], logg_points[G], Z_points[Z], grid_name)
+    f = LIB[T, G, Z]
+    return f
+
 
 def trilinear_interpolator():
     '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
@@ -543,16 +561,12 @@ def model_p(p):
 
     coefs = p[config['nparams']:]
 
-    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+    if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian") \
+        or (config['lnprob'] == 'lnprob_mixed'):
         # reshape to (norders, 4)
         coefs_arr = coefs.reshape(len(orders), -1)
         c0s = coefs_arr[:,0] #length norders
         cns = coefs_arr[:,1:] #shape (norders, 3)
-
-        #now create polynomials for each order, and multiply through fls
-        #print("c0s.shape", c0s.shape)
-        #print("cns.shape", cns.shape)
-        #print("T.shape", T.shape)
 
         Tc = np.einsum("jk,ij->ik", T,cns)
         #print("Tc.shape",Tc.shape)
@@ -560,7 +574,7 @@ def model_p(p):
         #print("k.shape",k.shape)
         #print("fmods.shape",fmods.shape)
         refluxed = k * fmods
-        return [refluxed, k, None]
+        return [wlsz, refluxed, k, None]
 
     if config['lnprob'] == 'lnprob_lognormal_marg':
         c0s = p[config['nparams']:]
@@ -580,8 +594,6 @@ def model_p(p):
         return [wlsz, refluxed, k, flatchain]
 
 
-
-
 xs = np.arange(len_wl)
 T0 = np.ones_like(xs)
 Ch1 = Ch([0,1], domain=[0,len_wl-1])
@@ -599,7 +611,8 @@ if (config['lnprob'] == "lnprob_gaussian") or (config['lnprob'] == 'lnprob_gauss
     Dmu = np.einsum("ij,j->j",D,mu)
     muDmu = np.einsum("j,j->",mu,Dmu)
 
-if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg'):
+if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg') \
+    or (config['lnprob'] == 'lnprob_mixed'):
     T = np.array([T1,T2,T3])
     TT = np.einsum("in,jn->ijn",T,T)
     mu = np.array([0,0,0])
@@ -795,6 +808,56 @@ def lnprob_lognormal_marg(p):
         - 0.5 * (Av - mu_Av)**2/sigma_Av
         return lnp
 
+A = 0.4
+var_G = (1.5 * sigmas)**2
+sigma_E = 3.0 * sigmas
+
+def lnprob_mixed(p):
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
+        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0) or (Av < 0):
+        #if the call is outside of the loaded grid.
+        return -np.inf
+    else:
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+        coefs = p[config['nparams']:]
+        # reshape to (norders, 4)
+        coefs_arr = coefs.reshape(len(orders), -1)
+        c0s = coefs_arr[:,0] #length norders
+        cns = coefs_arr[:,1:] #shape (norders, 3)
+        #print("c0s.shape", c0s.shape)
+        #print("cns.shape", cns.shape)
+
+        #If any c0s are less than 0, return -np.inf
+        if np.any((c0s < 0)):
+            return -np.inf
+
+        #now create polynomials for each order, and multiply through fls
+        #print("T.shape", T.shape)
+        Tc = np.einsum("jk,ij->ik", T, cns)
+        k = np.einsum("i,ij->ij", c0s, 1 + Tc)
+        #print("k.shape", k.shape)
+        kf = k * fmods
+        #print("kf.shape", kf.shape)
+        #import matplotlib.pyplot as plt
+        #plt.plot(kf[0])
+        #plt.show()
+        #print(fls)
+        #print(kf)
+
+        lnp = np.sum(np.log(np.exp(-0.5 * (fls - kf)**2/var_G) + A * np.exp(- np.abs(fls - kf)/sigma_E)))\
+              + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s)**2/sigmac0**2) \
+              - 0.5 * np.sum(c0s**2/sigmac**2)\
+              - 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
+              - 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini \
+              - 0.5 * (Av - mu_Av)**2/sigma_Av
+        return lnp
+
+
 def lnprob_classic(p):
     '''p is the parameter vector, contains both theta_s and theta_n'''
     #print(p)
@@ -906,11 +969,11 @@ def main():
     #print(lnprob_lognormal_marg(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
     #                                        1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
     #                                        1.09799757e+00 ,  1.05003663e+00])))
-    fl1 = flux(6457, 4.31, 0.02)
-    print('flux1', fl1)
+    #fl1 = flux(6457, 4.31, 0.02)
+    #print('flux1', fl1)
 
-    fl2 = flux(6.45745482e+03,  4.31375412e+00, 2.74544784e-02)
-    print("flux2", fl2)
+    #fl2 = flux(6.45745482e+03,  4.31375412e+00, 2.74544784e-02)
+    #print("flux2", fl2)
     #wlsz, refluxed, k, flatchain = model_p(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
     #                    1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
     #                    1.09799757e+00 ,  1.05003663e+00]))
@@ -918,6 +981,15 @@ def main():
     #print(refluxed)
     #fls = model(wls, 6400, 3.5, 0.0, 4.0, 0.0, 1e-15)
     #print(fl)
+    #print(lnprob_mixed(np.array([5300, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])))
+    #print(lnprob_mixed(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])))
+    #print(lnprob_mixed(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0])))
+    #print(lnprob_lognormal_marg(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 1.0])))
+    wls, fs, ks, cflatchain = model_p(np.array([6000, 4.29, 0.0, 5.0, -68, 0.0, 2.1e-20, 1.0, 0, 0, 0, 1.0, 0, 0, 0]))
+    import matplotlib.pyplot as plt
+    plt.plot(wls[0], fls[0])
+    plt.plot(wls[0], fs[0], 'r')
+    plt.show()
 
     #import matplotlib.pyplot as plt
     #plt.plot(wls[1],fls[1])

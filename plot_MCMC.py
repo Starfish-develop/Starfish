@@ -9,7 +9,6 @@ import model as m
 import yaml
 import os
 import sys
-import emcee
 import itertools
 from astropy.io import ascii
 
@@ -127,7 +126,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
         np.save(sample_dir + "p.npy", p)
         np.save(sample_dir + "lnp.npy", lnp)
 
-        #Get wavelength, flux, and sigmas
+        #Get flux, and sigmas
         fls = m.fls
         sigmas = m.sigmas
         masks = m.masks
@@ -147,7 +146,8 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
             #TODO: Some code here to generate samples from the conditional
 
-            if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian"):
+            if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian") \
+                or (config['lnprob'] == 'lnprob_mixed'):
                 plt.figure(figsize=(10,10))
                 ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
                 ax0.set_title("%s" % (config['orders'][j]+1,))
@@ -207,13 +207,13 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax1.fill_between(wl, -1, 1, color="0.5", alpha=0.5)
                 residuals = (fl - f)/sigma
 
-                #line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
-                #offsets = np.linspace(-0.4, 0.4, num=10)
-                #off_counter = 0
-                #for line, label in line_list:
-                #    ax1.axvline(line, color="0.5", lw=0.1)
-                #    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
-                #    off_counter += 1
+                line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
+                offsets = np.linspace(-0.4, 0.4, num=10)
+                off_counter = 0
+                for line, label in line_list:
+                    ax1.axvline(line, color="0.5", lw=0.1)
+                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
+                    off_counter += 1
 
                 ax1.plot(wl, residuals)
                 ax1.plot(wl[~mask], residuals[~mask], "r")
@@ -242,9 +242,14 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 def return_lines(wl, residuals, sigma=1, tol=1):
     '''Given a set of wl and residuals that are abs() > 1 sigma, return a list of lines and labels that are within
     tolerance = 1 Ang of each point.'''
-    lines = ascii.read("linelist_air.dat", Reader=ascii.FixedWidth, col_starts=[3,20], col_ends=[19,29],
+
+    #for linelist_air.dat, col_starts=[3, 20], col_ends=[17, 28]
+    #for linelist_kurucz.dat, col_starts=[3, 13], col_ends=[10, 20]
+
+    lines = ascii.read("linelist_kurucz.dat", Reader=ascii.FixedWidth, col_starts=[3, 13], col_ends=[10, 20],
                        converters={'line': [ascii.convert_numpy(np.float)],
-                                   'element': [ascii.convert_numpy(np.str)]})
+                                   'element': [ascii.convert_numpy(np.str)]}, guess=False)
+    lines['line'] = 10 * lines['line']
     #truncate list to speed execution
     ind = (lines['line'] >= np.min(wl) - tol) & (lines['line'] <= np.max(wl) + tol)
     lines = lines[ind]

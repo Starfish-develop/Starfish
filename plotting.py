@@ -7,10 +7,14 @@ import yaml
 import PHOENIX_tools as pt
 import h5py
 from astropy.io import ascii
+import plot_MCMC as pltMC
+from scipy.optimize import fmin
 
 f = open('config.yaml')
 config = yaml.load(f)
 f.close()
+
+c_ang = 2.99792458e18 #A s^-1
 
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
@@ -39,20 +43,48 @@ def plot_logg_grid():
     plt.show()
 
 def compare_kurucz():
-    wl, fl = np.loadtxt("kurucz.txt", unpack=True)
-    wl = 10. ** wl
-    fig, ax = plt.subplots(nrows=4, sharex=True, figsize=(8, 8))
-    ax[0].plot(wl, fl)
-    ax[0].set_title("Kurucz T=5750 K, convolved to 6.5 km/s")
-    ax[1].plot(w, f_TRES1)
-    ax[1].set_title("PHOENIX T=5700 K, convolved 6.5 km/s")
-    ax[2].plot(w, f_TRES2)
-    ax[2].set_title("PHOENIX T=5800 K, convolved 6.5 km/s")
-    ax[3].plot(wl_n, fl_n)
-    ax[3].set_title("GW Ori normalized, order 23")
-    ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
-    ax[-1].set_xlim(5170, 5195)
-    ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
+    wg_full = np.load('wave_grids/PHOENIX_2kms_air.npy')
+    wg = np.load("wave_grids/kurucz_2kms_air.npy")
+
+    ind = (wg_full >= wg[0]) & (wg_full <= wg[-1])
+
+    kurucz = m.load_hdf5_spectrum(6000, 4.0, 0.0, "kurucz", "LIB_kurucz_2kms_air.hdf5")
+    BTSettl = m.load_hdf5_spectrum(6000, 4.0, 0.0, "BTSettl", "LIB_BTSettl_2kms_air.hdf5")[ind]
+    PHOENIX = m.load_hdf5_spectrum(6000, 4.0, 0.0, "PHOENIX", "LIB_PHOENIX_2kms_air.hdf5")[ind]
+
+    #normalize avg value to 1
+    kurucz *= c_ang/wg**2
+    kurucz = kurucz/np.average(kurucz)
+    BTSettl = BTSettl/np.average(BTSettl)
+    PHOENIX = PHOENIX/np.average(PHOENIX)
+
+    fig, ax = plt.subplots(nrows=2, sharex=True, figsize=(9,6))
+
+    ax[0].plot(wg, kurucz, label="Kurucz")
+    ax[0].plot(wg, PHOENIX, label="Husser")
+    ax[0].legend()
+
+    residuals = (kurucz - PHOENIX)/kurucz
+    ax[1].plot(wg, residuals, label="(Kurucz-Husser)/Kurucz")
+    ax[1].legend()
+    line_list = pltMC.return_lines(wg, residuals, sigma=0.3, tol=0.2)
+
+    offsets = np.linspace(-0.4, 0.4, num=10)
+    off_counter = 0
+    for line, label in line_list:
+        ax[1].axvline(line, color='k', lw=0.1)
+        ax[1].annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=12)
+        off_counter += 1
+
+    ax[1].xaxis.set_major_formatter(FSF("%.2f"))
+    #ax[1].xaxis.set_major_locator(MultipleLocator(.))
+    #ax[1].xaxis.set_minor_locator(MultipleLocator(1.))
+
+    plt.show()
+    plt.hist(residuals, bins=np.linspace(-0.6,0.6,num=50),log=True)
+    plt.xlabel(r"$\sigma$")
+    #plt.ylim(0,500)
+    plt.savefig("plots/kurucz_husser_residuals_log.png")
     plt.show()
 
 def plot_GWOri_all_orders():
@@ -168,9 +200,79 @@ def identify_lines(wi, temp, logg, Z):
     plt.show()
     pass
 
+def gaussian_abs(p):
+    func = lambda x: p[0]/(np.sqrt(2 * np.pi) * p[2]) * np.exp(-0.5 * np.abs(x - p[1])/p[2])
+    return func
+
+def gaussian(p):
+    func = lambda x: p[0]/(np.sqrt(2 * np.pi) * p[2]) * np.exp(-0.5 * (x - p[1])**2/p[2]**2)
+    return func
+
+def lorentzian(p):
+    func = lambda x: p[0] / (np.pi * p[2] * np.sqrt(2) * (1 + (x - p[1])**2/(2 * p[2]**2)))
+    return func
+
+def combo(p):
+    func = lambda x: p[0] * p[2]/np.sqrt(2 * np.pi) * ( (1 - np.exp(-0.5 * (x - p[1])**2/p[2]**2 ))/(x - p[1])**2 )
+    return func
+
+def mixed(p):
+    func = lambda x: p[0] * (np.exp(-0.5 * x**2/p[2]**2) + p[1] * np.exp(-np.abs(x)/p[3]))
+    return func
+
+def plot_residuals():
+    residuals = 3 * np.load("residuals/residuals25.npy")
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    n, bins = np.histogram(residuals, bins=40)
+    n = n/np.max(n)
+    bin_centers = (bins[:-1] + bins[1:])/2
+    var = n.copy()
+    var[var == 0] = 1.
+
+    abs_func = lambda p: np.sum((n - gaussian_abs(p)(bin_centers))**2/var)
+    gauss_func = lambda p: np.sum((n - gaussian(p)(bin_centers))**2/var)
+    lorentz_func = lambda p: np.sum((n - lorentzian(p)(bin_centers))**2/var)
+    combo_func = lambda p: np.sum((n - combo(p)(bin_centers))**2/var)
+    mixed_func = lambda p: np.sum((n - mixed(p)(bin_centers))**2/var)
+
+
+    #abs_param = fmin(abs_func, [1, 0, 3])
+    #abs = gaussian_abs(abs_param)
+    #
+    #gparam = fmin(gauss_func, [1, 0, 3])
+    #gauss = gaussian(gparam)
+    #
+    #lparam = fmin(lorentz_func, [1, 0, 3])
+    #lorentz = lorentzian(lparam)
+    #
+    #cparam = fmin(combo_func, [1, 0, 3])
+    #comb = combo(cparam)
+
+    mparam = fmin(mixed_func, [1, 0.3, 3, 3])
+    print("Mixture parameters", mparam)
+    mix = mixed(mparam)
+
+    xs = np.linspace(-15, 20, num=100)
+    ax.plot(bin_centers, n, "o")
+    #ax.plot(xs, abs(xs), label="Exp")
+    #ax.plot(xs, gauss(xs), label="Gaussian")
+    #ax.plot(xs, lorentz(xs), label="Lorentzian")
+    #ax.plot(xs, comb(xs), label="Sivia")
+    ax.plot(xs, mix(xs), label="Mixed")
+    ax.set_ylabel("Residuals")
+    ax.set_xlabel(r"$\sigma$")
+    ax.legend()
+
+    #fig.savefig("plots/residuals.png")
+    plt.show()
+
 def main():
-    identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
+    #identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
+    #compare_kurucz()
+    plot_residuals()
     pass
+
 
 
 if __name__ == "__main__":

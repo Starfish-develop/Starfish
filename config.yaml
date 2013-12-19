@@ -1,25 +1,26 @@
 # Output parameters
-name : internal/SNR_50/order_22_23_24_25_26/lnprob_lognormal_marg  #internal tests
+name : WASP14/order_23/lnprob_mixed  #internal tests
 
 Comments: >
-  This run is to test internal consistency of parameters. Additionally, to test that lnprob_lognormal will work
-  correctly on 5 orders.
+  Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential
 
 # Data parameters
 #orders : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50]
 #orders : [4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,30,31,32,33,34,35,42,45]
-orders : [20,21,22,23,24,25]
+#orders : [20,21,22,23,24,25]
+orders : [22, 23]
 #dataset : LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec
-#dataset : WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec
-dataset : Fake/50/Fake
+dataset : WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
+#dataset : Fake/50/Fake
 
 # Model parameters
 #lnprob : lnprob
 #lnprob : lnprob_gaussian  #Gaussian priors
 #lnprob : lnprob_gaussian_marg #Gaussian priors, marginalized
 #lnprob : lnprob_lognormal
-lnprob : lnprob_lognormal_marg
+#lnprob : lnprob_lognormal_marg
 #lnprob : lnprob_classic
+lnprob : lnprob_mixed
 
 sigmac : 0.05
 sigmac0 : 0.1
@@ -28,31 +29,33 @@ sigmac0 : 0.1
 # within the bounds. T_eff is generally spaced in 100K, logg is spaced in 0.5, and metallicity is -0.5, 0.0, and 0.5.
 grid_params :
     temp_range : [5300, 6500]
-    logg_range : [3., 4.6]
+    logg_range : [3., 4.5]
     Z_range : [-1., 1.] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
-burn_in : 2
-iterations : 2
-MPI : False
+burn_in : 10000
+iterations : 4000
+MPI : True
 threads : 4
 output_dir : output
 plots : True
 
+grid : PHOENIX
+
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
-    temp : [5850,5950]
-    logg : [3.45, 3.55]
-    Z : [-0.75, 0.75]
-    vsini : [4.0, 6.0]
-    vz : [1.0, 3.0]
+    temp : [6000,6450]
+    logg : [4.1, 4.4]
+    Z : [-0.3, 0.0]
+    vsini : [3.0, 7.0]
+    vz : [-69, -67]
     Av : [0.0, 0.1]
-    flux_factor : [9.9e-11, 1.05e-10]
+    flux_factor : [2e-20, 9e-20]
     c0 : [0.9, 1.1]
-    cs : [-0.05, 0.05]
+    cs : [-0.02, 0.02]
 
 AvOff : True #Turn Av fitting off?
 
