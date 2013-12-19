@@ -1,14 +1,14 @@
 # Output parameters
-name : WASP14/order_23/lnprob_mixed  #internal tests
+name : WASP14/order_22_23_24/lnprob_mixed/free  #internal tests
 
 Comments: >
-  Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential
+  Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential. No tight prior on logg.
 
 # Data parameters
 #orders : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50]
 #orders : [4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,30,31,32,33,34,35,42,45]
 #orders : [20,21,22,23,24,25]
-orders : [22, 23]
+orders : [21, 22, 23]
 #dataset : LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec
 dataset : WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
 #dataset : Fake/50/Fake
