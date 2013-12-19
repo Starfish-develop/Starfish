@@ -842,19 +842,13 @@ def lnprob_mixed(p):
         k = np.einsum("i,ij->ij", c0s, 1 + Tc)
         #print("k.shape", k.shape)
         kf = k * fmods
-        #print("kf.shape", kf.shape)
-        #import matplotlib.pyplot as plt
-        #plt.plot(kf[0])
-        #plt.show()
-        #print(fls)
-        #print(kf)
 
         lnp = np.sum(np.log(np.exp(-0.5 * (fls - kf)**2/var_G) + A * np.exp(- np.abs(fls - kf)/sigma_E)))\
               + np.sum(np.log(1/(c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s)**2/sigmac0**2) \
-              - 0.5 * np.sum(c0s**2/sigmac**2)\
-              - 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
-              - 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini \
+              - 0.5 * np.sum(cns**2/sigmac**2) \
               - 0.5 * (Av - mu_Av)**2/sigma_Av
+              #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
+              #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini
         return lnp
 
 
@@ -958,42 +952,8 @@ def main():
     #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
-    #generate_fake_data(70., *fake_params)
-    #generate_fake_data(100., *fake_params)
 
-    #print(lnprob_lognormal_marg(np.array([  6.33370311e+03  , 4.07412992e+00 , -8.47241238e-02 ,  8.26812315e+00,
-    #                                        6.88759010e+01 ,  3.73899841e-20 ,  1.05733646e+00 ,  1.00042999e+00,
-    #                                        1.06044794e+00 ,  1.05605767e+00])))
-    #print(lnprob_lognormal_marg(np.array([6.36775928e+03 ,  4.15686725e+00 , -1.39802799e-01 ,  7.97754533e+00,
-    #
-    #print(lnprob_lognormal_marg(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
-    #                                        1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
-    #                                        1.09799757e+00 ,  1.05003663e+00])))
-    #fl1 = flux(6457, 4.31, 0.02)
-    #print('flux1', fl1)
-
-    #fl2 = flux(6.45745482e+03,  4.31375412e+00, 2.74544784e-02)
-    #print("flux2", fl2)
-    #wlsz, refluxed, k, flatchain = model_p(np.array([  6.45745482e+03 ,  4.31375412e+00  , 2.74544784e-02   ,3.04047511e+00,
-    #                    1.55153861e+01 ,  1.21362611e-02  , 4.26368333e-16 ,  1.14699746e+00,
-    #                    1.09799757e+00 ,  1.05003663e+00]))
-    #print(wlsz)
-    #print(refluxed)
-    #fls = model(wls, 6400, 3.5, 0.0, 4.0, 0.0, 1e-15)
-    #print(fl)
-    #print(lnprob_mixed(np.array([5300, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])))
-    #print(lnprob_mixed(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])))
-    #print(lnprob_mixed(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0])))
-    #print(lnprob_lognormal_marg(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 1.0])))
-    wls, fs, ks, cflatchain = model_p(np.array([6000, 4.29, 0.0, 5.0, -68, 0.0, 2.1e-20, 1.0, 0, 0, 0, 1.0, 0, 0, 0]))
-    import matplotlib.pyplot as plt
-    plt.plot(wls[0], fls[0])
-    plt.plot(wls[0], fs[0], 'r')
-    plt.show()
-
-    #import matplotlib.pyplot as plt
-    #plt.plot(wls[1],fls[1])
-    #plt.show()
+    print(lnprob_mixed(np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1, 0, 0, 0])))
 
 
     pass
