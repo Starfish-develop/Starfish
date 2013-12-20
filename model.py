@@ -57,11 +57,11 @@ grids = {"PHOENIX": {'T_points': np.array(
 
 
 if config['grid'] == 'PHOENIX':
-    wave_grid = np.load("wave_grid_2kms.npy")
+    wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
     LIB_filename = "LIB_PHOENIX_2kms_air.hdf5"
 elif config['grid'] == "kurucz":
-    wave_grid = np.load("wave_grid_2kms_kurucz.npy")
-    LIB_filename = "LIB_kurucz_2kms.hdf5"
+    wave_grid = np.load("wave_grids/kurucz_2kms_air.npy")
+    LIB_filename = "LIB_kurucz_2kms_air.hdf5"
 elif config['grid'] == 'BTSettl':
     wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
     LIB_filename = "LIB_BTSettl_2kms_air.hdf5"

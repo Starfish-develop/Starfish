@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_21_22_23_24_25/lnprob_mixed/free  #internal tests
+name : WASP14/order_22_23/lnprob_mixed/kurucz/free  #internal tests
 
 Comments: >
   Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential. No tight prior on logg.
@@ -43,7 +43,7 @@ threads : 4
 output_dir : output
 plots : True
 
-grid : PHOENIX
+grid : kurucz
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :

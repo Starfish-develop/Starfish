@@ -169,7 +169,7 @@ def load_flux_full(temp, logg, Z, norm=False, vsini=0, grid="PHOENIX"):
         rname = "PHOENIX/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
     elif grid == "kurucz":
-        rname = "Kurucz/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
+        rname = "Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
                                                                                   logg=10*logg, Z=Z, vsini=vsini)
     else:
         print("No grid %s" % (grid))
@@ -251,7 +251,7 @@ def process_spectrum_PHOENIX(pars, convolve=True):
         else:
             flux = resample(f, wave_grid_raw_PHOENIX, wave_grid_fine)
         print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except IOError: #IOError in python2, OSError in python3
+    except OSError: #IOError in python2, OSError in python3
         print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
@@ -275,7 +275,7 @@ def process_spectrum_BTSettl(pars, convolve=True):
         else:
             flux = resample(f, wl, wave_grid_fine)
         print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except IOError: #on Python2 gives IOError, Python3 use FileNotFoundError
+    except FileNotFoundError: #on Python2 gives IOError, Python3 use FileNotFoundError
         print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
@@ -474,9 +474,9 @@ def main():
     #create_fine_and_coarse_wave_grid()
     #create_coarse_wave_grid_kurucz()
 
-    #create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
+    create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
     #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
-    create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
+    #create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
     #load_flux_full(5900, 7.0, "-0.0", norm=False, vsini=0, grid="PHOENIX")
 
     #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl", convolve=True)
