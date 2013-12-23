@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <title>StellarSpectra</title>
+  <meta name="description" content="Text" />
+</head>
+
+<body>
+<h1> Index of StellarSpectra runs </h1>
+
+<div>
+<ul>
+{% for link in paths|sort %}
+<li><a href={{ link }}> {{ link }} </a></li>
+{% endfor %}
+</ul>
+</div>
+
+
+</body>
+</html>
