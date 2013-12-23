@@ -32,7 +32,7 @@ lnprob = getattr(m, config['lnprob'])
 
 
 fig, ax = plt.subplots(nrows=2, figsize=(8,10), sharex=True)
-plt.subplots_adjust(left=0.1, bottom=0.55, top=0.96)
+plt.subplots_adjust(left=0.05, bottom=0.55, top=0.96, right=0.95)
 
 wlsz, f, k, flatchain = m.model_p(np.array([6000, 4.0, 0.0, 5.0, 15, 0.0, 2e-20, 1, -0.02, -0.019, -0.002 ]))
 l0, = ax[0].plot(wlsz[0], m.fls[0], lw=2, color='blue')
@@ -57,6 +57,10 @@ sc1 = Slider(plt.axes([left, 0.15, width, height]), r'$c_1$', -0.1, 0.1, valinit
 sc2 = Slider(plt.axes([left, 0.1, width, height]), r'$c_2$', -0.1, 0.1, valinit=-0.019)
 sc3 = Slider(plt.axes([left, 0.05, width, height]), r'$c_3$', -0.1, 0.1, valinit=-0.002)
 
+def mixed(p):
+    func = lambda x: p[0] * (np.exp(-0.5 * (x - p[2])**2/p[3]**2) + p[1] * np.exp(-np.abs(x - p[4])/p[5]))
+    return func
+
 fig2 = plt.figure(figsize=(5,5))
 ax2 = fig2.add_subplot(111)
 
@@ -68,6 +72,12 @@ var[var == 0] = 1.
 lhist, = ax2.plot(bin_centers, n, "o")
 ax2.set_title("Histogram of Residuals")
 ax2.set_xlabel(r"$\sigma$ (Poisson)")
+
+xs = np.linspace(-20, 20, num = 150)
+mix = mixed([1, 0.2, 0, 3, 0, 3])
+lmix, = ax2.plot(xs, mix(xs))
+
+
 
 
 def update(val):
@@ -93,6 +103,9 @@ def update(val):
     #print(new_p)
 
     wlsz, f, k, flatchain = m.model_p(np.array([T, G, Z, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
+    lnprob_val = m.lnprob_mixed(np.array([T, G, Z, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
+    print(lnprob_val)
+    ax[0].annotate("lnprob: {:.1f}".format(lnprob_val), (0.8, 0.1), xycoords='axes fraction', backgroundcolor='w')
     l0.set_xdata(wlsz[0])
     l.set_xdata(wlsz[0])
     l.set_ydata(f[0])
@@ -106,6 +119,21 @@ def update(val):
     bin_centers = (bins[:-1] + bins[1:])/2
     var = n.copy()
     var[var == 0] = 1.
+
+    mixed_func = lambda p: np.sum((n - mixed(p)(bin_centers))**2/var)
+
+    mparam = fmin(mixed_func, [1, 0.2, 0, 3, 0, 3])
+    print("Mixture parameters", mparam)
+    mix = mixed(mparam)
+    lmix.set_ydata(mix(xs))
+
+    ax2.annotate(r"$\mu_G$:{:.1f}    $\sigma_G$:{:.1f}".format(mparam[2], mparam[3]),
+                 (0.1, 0.9), xycoords='axes fraction', backgroundcolor='w')
+    ax2.annotate(r"$\mu_E$:{:.1f}    $\sigma_E$:{:.1f}".format(mparam[4], mparam[5]),
+                 (0.1, 0.8), xycoords='axes fraction', backgroundcolor='w')
+    ax2.annotate(r"$A_E$:{:.1f}".format(mparam[1]),
+                 (0.1, 0.7), xycoords='axes fraction', backgroundcolor='w')
+
     lhist.set_xdata(bin_centers)
     lhist.set_ydata(n)
 
