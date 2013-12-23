@@ -50,5 +50,7 @@ f = open(base_dir + 'index.html', 'w')
 f.write(outputText)
 f.close()
 
+import generate_web_index
+
 #run rsync to update the web output, don't copy the chain files
 subprocess.call('rsync -avr --exclude "*.npy" output/ ../web', shell=True)
