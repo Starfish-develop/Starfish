@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_23/lnprob_mixed/kurucz/free  #internal tests
+name : WASP14/order_23/lnprob_mixed/PHOENIX/free  #internal tests
 
 Comments: >
   Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential. No tight prior on logg. Using kurucz grid.
@@ -48,7 +48,7 @@ pnwalkers : 24
 pburn_in : 20
 piterations : 100
 
-grid : kurucz
+grid : PHOENIX
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
@@ -58,8 +58,8 @@ walker_ranges :
     vsini : [3.0, 7.0]
     vz : [14, 16]
     Av : [0.0, 0.1]
-    #flux_factor : [2e-20, 9e-20] #PHOENIX
-    flux_factor : [2e-26, 2.2e-26] #kurucz
+    flux_factor : [2e-20, 9e-20] #PHOENIX
+    #flux_factor : [2e-26, 2.2e-26] #kurucz
     c0 : [0.9, 1.1]
     cs : [-0.02, 0.02]
 
