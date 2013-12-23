@@ -30,14 +30,14 @@ sigmac0 : 0.1
 grid_params :
     temp_range : [5000, 7000]
     logg_range : [3., 5.0]
-    Z_range : [-1., 1.] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
+    Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 10000
-iterations : 4000
+iterations : 2000
 MPI : True
 threads : 4
 output_dir : output
@@ -59,7 +59,7 @@ walker_ranges :
     vz : [14, 16]
     Av : [0.0, 0.1]
     #flux_factor : [2e-20, 9e-20] #PHOENIX
-    flux_factor : [1e-14, 1.2e-17] #kurucz
+    flux_factor : [2e-26, 2.2e-26] #kurucz
     c0 : [0.9, 1.1]
     cs : [-0.02, 0.02]
 

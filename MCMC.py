@@ -10,7 +10,6 @@ import os
 import shutil
 #from model import lnprob_old as lnprob
 import yaml
-import importlib
 import model
 import plot_MCMC
 
