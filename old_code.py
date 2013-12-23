@@ -230,3 +230,28 @@ def flux_interpolator_np():
         fluxes[i] = load_flux_npy(points[i][0], points[i][1])
     flux_intp = NearestNDInterpolator(points, fluxes)
     return flux_intp
+
+def flux_interpolator_hdf5():
+    #load hdf5 file of PHOENIX grid
+    fhdf5 = h5py.File(LIB, 'r')
+    LIB = fhdf5['LIB']
+    index_combos = []
+    var_combos = []
+    for ti in range(len(T_points)):
+        for li in range(len(logg_points)):
+            for zi in range(len(Z_points)):
+                index_combos.append([T_arg[ti], logg_arg[li], Z_arg[zi]])
+                var_combos.append([T_points[ti], logg_points[li], Z_points[zi]])
+        #print(param_combos)
+    num_spec = len(index_combos)
+    points = np.array(var_combos)
+
+    fluxes = np.empty((num_spec, len(wave_grid)))
+    for i in range(num_spec):
+        t, l, z = index_combos[i]
+        fluxes[i] = LIB[t, l, z][ind]
+    flux_intp = LinearNDInterpolator(points, fluxes, fill_value=1.)
+    fhdf5.close()
+    del fluxes
+    gc.collect()
+    return flux_intp

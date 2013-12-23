@@ -17,6 +17,7 @@ import h5py
 from functools import partial
 
 c_kms = 2.99792458e5 #km s^-1
+c_ang = 2.99792458e18 #A s^-1
 wl_file = pf.open("PHOENIX/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
@@ -36,18 +37,19 @@ wave_grid_2kms_kurucz = np.load("wave_grids/kurucz_2kms_air.npy") #same wl as PH
 L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 R_sun = 6.955e10 #cm
 
-F_sun = L_sun/(4 * np.pi * R_sun**2) #bolometric flux of the Sun measured at the surface
+F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
 grids = {"PHOENIX": {'T_points': np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-    'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0']},
+                     'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0']},
          "kurucz": {'T_points': np.arange(3500, 9751, 250),
-               'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]},
+                    'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]},
          'BTSettl': {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
-                'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']} }
+                     'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}}
+
 
 def create_wave_grid(v=1., start=3700., end=10000):
     '''Returns a grid evenly spaced in velocity'''
@@ -62,51 +64,58 @@ def create_wave_grid(v=1., start=3700., end=10000):
         lam_grid[i] = lam_new
     return lam_grid[np.nonzero(lam_grid)][:-1]
 
+
 def create_fine_and_coarse_wave_grid():
     wave_grid_2kms_PHOENIX = create_wave_grid(2., start=3050., end=11322.2) #chosen for 3 * 2**16 = 196608
     wave_grid_fine = create_wave_grid(0.35, start=3050., end=12089.65) # chosen for 9 * 2 **17 = 1179648
 
-    np.save('wave_grid_2kms.npy',wave_grid_2kms_PHOENIX)
-    np.save('wave_grid_0.35kms.npy',wave_grid_fine)
+    np.save('wave_grid_2kms.npy', wave_grid_2kms_PHOENIX)
+    np.save('wave_grid_0.35kms.npy', wave_grid_fine)
     print(len(wave_grid_2kms_PHOENIX))
     print(len(wave_grid_fine))
+
 
 def create_coarse_wave_grid_kurucz():
     start = 5050.00679905
     end = 5359.99761468
-    wave_grid_2kms_kurucz = create_wave_grid(2.0, start+1,  5333.70+1)
+    wave_grid_2kms_kurucz = create_wave_grid(2.0, start + 1, 5333.70 + 1)
     #8192 = 2**13
     print(len(wave_grid_2kms_kurucz))
     np.save('wave_grid_2kms_kurucz.npy', wave_grid_2kms_kurucz)
 
-def grid_loader():
 
+def grid_loader():
     pass
+
 
 @np.vectorize
 def vacuum_to_air(wl):
     '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996.'''
-    sigma = (1e4/wl)**2
-    f = 1.0 + 0.05792105/(238.0185 - sigma) + 0.00167917/(57.362 - sigma)
-    return wl/f
+    sigma = (1e4 / wl) ** 2
+    f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
+    return wl / f
+
 
 @np.vectorize
 def vacuum_to_air_SLOAN(wl):
     '''Takes wavelength in angstroms and maps to wl in air.
     from SLOAN website
      AIR = VAC / (1.0 + 2.735182E-4 + 131.4182 / VAC^2 + 2.76249E8 / VAC^4)'''
-    air = wl / (1.0 + 2.735182E-4 + 131.4182 / wl**2 + 2.76249E8 / wl**4)
+    air = wl / (1.0 + 2.735182E-4 + 131.4182 / wl ** 2 + 2.76249E8 / wl ** 4)
     return air
+
 
 @np.vectorize
 def air_to_vacuum(wl):
-    sigma = 1e4/wl
-    vac = wl + wl * (6.4328e-5 + 2.94981e-2/(146 - sigma**2) + 2.5540e-4/(41 - sigma**2))
+    sigma = 1e4 / wl
+    vac = wl + wl * (6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2))
     return vac
+
 
 def rewrite_wl():
     np.save("ind.npy", ind)
     np.save("wave_trim.npy", w)
+
 
 def get_wl_kurucz():
     '''The Kurucz grid is already convolved with a FWHM=6.8km/s Gaussian. WL is log-linear spaced.'''
@@ -117,11 +126,13 @@ def get_wl_kurucz():
     p = np.arange(num)
     w1 = hdr['CRVAL1']
     dw = hdr['CDELT1']
-    wl = 10**(w1 + dw * p)
+    wl = 10 ** (w1 + dw * p)
     return wl
+
 
 def get_wl_BTSettl():
     pass
+
 
 @np.vectorize
 def idl_float(idl):
@@ -129,10 +140,10 @@ def idl_float(idl):
     #replace 'D' with 'E', convert to float
     return np.float(idl.replace("D", "E"))
 
-def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
+def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
     rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
-                                                                                              logg=logg, Z=Z)
+                                                                                                   logg=logg, Z=Z)
     file = bz2.BZ2File(rname, 'r')
 
     lines = file.readlines()
@@ -144,7 +155,7 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
     fl_str = data['col2']
 
     fl = idl_float(fl_str) #convert because of "D" exponent, unreadable in Python
-    fl = 10**(fl - 8.) #now in ergs/cm^2/s/A
+    fl = 10 ** (fl - 8.) #now in ergs/cm^2/s/A
 
     if norm:
         F_bol = trapz(fl, wl)
@@ -162,15 +173,16 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
     return [wl, fl]
 
+
 def load_flux_full(temp, logg, Z, norm=False, vsini=0, grid="PHOENIX"):
     '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to F_sun if desired.'''
 
     if grid == "PHOENIX":
         rname = "PHOENIX/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
-            ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
+                ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
     elif grid == "kurucz":
         rname = "Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
-                                                                                  logg=10*logg, Z=Z, vsini=vsini)
+                                                                                       logg=10 * logg, Z=Z, vsini=vsini)
     else:
         print("No grid %s" % (grid))
         return 1
@@ -183,15 +195,19 @@ def load_flux_full(temp, logg, Z, norm=False, vsini=0, grid="PHOENIX"):
         F_bol = trapz(f, w_full)
         f = f * (F_sun / F_bol)
         #this also means that the bolometric luminosity is always 1 L_sun
+    if grid == "kurucz":
+        f *= c_ang / wave_grid_kurucz_raw ** 2 #Convert from f_nu to f_lambda
 
     flux_file.close()
     #print("Loaded " + rname)
     return f
 
+
 @np.vectorize
 def gauss_taper(s, sigma=2.89):
     '''This is the FT of a gaussian w/ this sigma. Sigma in km/s'''
     return np.exp(-2 * np.pi ** 2 * sigma ** 2 * s ** 2)
+
 
 def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
     '''Take a full-resolution PHOENIX model spectrum `f`, with raw spacing wg_raw, resample it to wg_fine
@@ -228,6 +244,7 @@ def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2
 
     return f_coarse
 
+
 def resample(f, wg_input, wg_output):
     '''Take a TRES spectrum and resample it to 2km/s binning. For the kurucz grid.'''
 
@@ -241,6 +258,7 @@ def resample(f, wg_input, wg_output):
     del interp
     gc.collect()
     return f_output
+
 
 def process_spectrum_PHOENIX(pars, convolve=True):
     temp, logg, Z = pars
@@ -256,6 +274,7 @@ def process_spectrum_PHOENIX(pars, convolve=True):
         flux = np.nan
     return flux
 
+
 def process_spectrum_kurucz(pars):
     temp, logg, Z = pars
     try:
@@ -265,6 +284,7 @@ def process_spectrum_kurucz(pars):
         print("%s, %s, %s does not exist!" % (temp, logg, Z))
         flux = np.nan
     return flux
+
 
 def process_spectrum_BTSettl(pars, convolve=True):
     temp, logg, Z = pars
@@ -279,6 +299,7 @@ def process_spectrum_BTSettl(pars, convolve=True):
         print("FAILED: %s, %s, %s" % (temp, logg, Z))
         flux = np.nan
     return flux
+
 
 process_routines = {"PHOENIX": process_spectrum_PHOENIX, "kurucz": process_spectrum_kurucz,
                     "BTSettl": process_spectrum_BTSettl}
@@ -332,7 +353,7 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
 
     f.close()
 
-# Interpolation routines
+
 def interpolate_raw_test_temp():
     base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
     wls = np.load(base + "wls.npy")
@@ -357,6 +378,7 @@ def interpolate_raw_test_temp():
     ax.xaxis.set_major_formatter(FSF("%.0f"))
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/5800_5900_6000_logg3.5.png")
+
 
 def interpolate_raw_test_logg():
     base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
@@ -384,6 +406,7 @@ def interpolate_raw_test_logg():
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/5900_logg3_3.5_4.png")
 
+
 def interpolate_test_temp():
     base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
     wls = np.load(base + "wls.npy")
@@ -408,6 +431,7 @@ def interpolate_test_temp():
     ax.xaxis.set_major_formatter(FSF("%.0f"))
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/2400_2500_2600_logg3.5_degrade.png")
+
 
 def interpolate_test_logg():
     base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
@@ -437,6 +461,7 @@ def interpolate_test_logg():
     ax.set_ylabel("Fractional Error [\%]")
     fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
 
+
 def compare_PHOENIX_TRES_spacing():
     fig = plt.figure(figsize=(8, 4))
     ax = fig.add_subplot(111)
@@ -462,11 +487,10 @@ def compare_PHOENIX_TRES_spacing():
     #plt.show()
     fig.savefig("plots/pixel_spacing_v.png")
 
+
 @np.vectorize
-def v(ls,lo):
+def v(ls, lo):
     return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
-
-
 
 
 def main():
@@ -481,8 +505,6 @@ def main():
 
     #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl", convolve=True)
     #create_grid_parallel(ncores, "LIB_BTSettl_0.35kms_air.hdf5", grid_name="BTSettl", convolve=False)
-
-
 
 
 if __name__ == "__main__":
