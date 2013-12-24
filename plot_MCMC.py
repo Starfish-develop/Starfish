@@ -11,6 +11,7 @@ import os
 import sys
 import itertools
 from astropy.io import ascii
+from scipy.optimize import fmin
 
 if len(sys.argv) > 1:
     confname= sys.argv[1]
@@ -97,6 +98,10 @@ def hist_nuisance_param(flatchain):
             fig.savefig(nuisance_dir + "{order:0>2.0f}.png".format(order=config['orders'][i]+1))
             plt.close(fig)
 
+def mixed(p):
+    func = lambda x: p[0] * (np.exp(-0.5 * (x - p[2])**2/p[3]**2) + p[1] * np.exp(-np.abs(x - p[4])/p[5]))
+    return func
+
 def visualize_draws(flatchain, lnflatchain, sample_num=10):
     '''Currently only implemented for the un-marginalized probability functions.'''
 
@@ -148,7 +153,7 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
 
             if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == "lnprob_gaussian") \
                 or (config['lnprob'] == 'lnprob_mixed'):
-                plt.figure(figsize=(10,10))
+                fig = plt.figure(figsize=(10,10))
                 ax0 = plt.subplot2grid((3,2), (0,0),colspan=2)
                 ax0.set_title("%s" % (config['orders'][j]+1,))
                 ax1 = plt.subplot2grid((3,2), (1,0),colspan=2)
@@ -165,8 +170,39 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 ax1.plot(wl, residuals)
                 ax1.set_xlim(wl[0],wl[-1])
 
+                line_list = return_lines(wl, residuals, sigma=3, tol=0.3)
+                offsets = np.linspace(-0.4, 0.4, num=10)
+                off_counter = 0
+                for line, label in line_list:
+                    ax1.axvline(line, color="0.5", lw=0.1)
+                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]),
+                        xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
+                    off_counter += 1
+
                 ax2.plot(wl,k)
-                ax3.hist(residuals)
+
+                n, bins = np.histogram(residuals, bins=40)
+                n = n/np.max(n)
+                bin_centers = (bins[:-1] + bins[1:])/2
+                var = n.copy()
+                var[var == 0] = 1.
+                ax3.plot(bin_centers, n, "o")
+                ax3.set_xlabel(r"$\sigma$ (Poisson)")
+
+                mixed_func = lambda p: np.sum((n - mixed(p)(bin_centers))**2/var)
+
+                mparam = fmin(mixed_func, [1, 0.2, 0, 3, 0, 3])
+                mix = mixed(mparam)
+
+                xs = np.linspace(-20, 20, num = 150)
+                ax3.plot(xs, mix(xs))
+                ax3.annotate(r"$\mu_G$:{:.1f}    $\sigma_G$:{:.1f}".format(mparam[2], mparam[3]),
+                             (0.1, 0.9), xycoords='axes fraction', backgroundcolor='w')
+                ax3.annotate(r"$\mu_E$:{:.1f}    $\sigma_E$:{:.1f}".format(mparam[4], mparam[5]),
+                             (0.1, 0.8), xycoords='axes fraction', backgroundcolor='w')
+                ax3.annotate(r"$A_E$:{:.1f}".format(mparam[1]),
+                             (0.1, 0.7), xycoords='axes fraction', backgroundcolor='w')
+
 
             if (config['lnprob'] == 'lnprob_gaussian_marg') or (config['lnprob'] == 'lnprob_lognormal_marg'):
                 fig = plt.figure(figsize=(20,12))
@@ -212,7 +248,8 @@ def visualize_draws(flatchain, lnflatchain, sample_num=10):
                 off_counter = 0
                 for line, label in line_list:
                     ax1.axvline(line, color="0.5", lw=0.1)
-                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]), xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
+                    ax1.annotate("%s" % label, (line, 0.5 + offsets[off_counter % 10]),
+                                 xycoords=('data', 'axes fraction'), rotation='vertical', ha='center', va='center', size=4)
                     off_counter += 1
 
                 ax1.plot(wl, residuals)

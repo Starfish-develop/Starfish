@@ -1,5 +1,5 @@
 # Output parameters
-name : WASP14/order_23/lnprob_mixed/PHOENIX/free  #internal tests
+name : WASP14/order_24/lnprob_mixed/kurucz/free  #internal tests
 
 Comments: >
   Trying the alternate lnprob_mixed as a summation of Gaussian and Exponential. No tight prior on logg. Using kurucz grid.
@@ -8,7 +8,7 @@ Comments: >
 #orders : [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50]
 #orders : [4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,30,31,32,33,34,35,42,45]
 #orders : [21,22,23,24,25]
-orders : [22]
+orders : [23]
 #dataset : LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec
 dataset : WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
 #dataset : Fake/50/Fake
@@ -30,7 +30,7 @@ sigmac0 : 0.1
 grid_params :
     temp_range : [5000, 7000]
     logg_range : [3., 5.0]
-    Z_range : [-1, 1] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
+    Z_range : [-0.5, 0.5] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
 
 # MCMC parameters
 nparams : 7 # these do not include nuisance parameters c0, c1, c2...
@@ -38,7 +38,7 @@ nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 12000
 iterations : 6000
-MPI : False
+MPI : True
 threads : 4
 output_dir : output
 plots : True
@@ -48,7 +48,7 @@ pnwalkers : 24
 pburn_in : 20
 piterations : 100
 
-grid : PHOENIX
+grid : kurucz
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
@@ -58,8 +58,8 @@ walker_ranges :
     vsini : [3.0, 7.0]
     vz : [14, 16]
     Av : [0.0, 0.1]
-    flux_factor : [2e-20, 9e-20] #PHOENIX
-    #flux_factor : [2e-26, 2.2e-26] #kurucz
+    #flux_factor : [2e-20, 9e-20] #PHOENIX
+    flux_factor : [2e-26, 2.2e-26] #kurucz
     c0 : [0.9, 1.1]
     cs : [-0.02, 0.02]
 
