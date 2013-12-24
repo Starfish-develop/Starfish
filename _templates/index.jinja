@@ -12,8 +12,8 @@
 
 <div>
 <ul>
-{% for link in paths|sort %}
-<li><a href={{ link }}> {{ link }} </a></li>
+{% for link in paths %}
+<li>{{ dates[loop.index0] }} <a href={{ link }}> {{ link }} </a></li>
 {% endfor %}
 </ul>
 </div>
