@@ -783,7 +783,7 @@ var_G = (1.5 * sigmas) ** 2
 sigma_E = 3.0 * sigmas
 
 
-def lnprob_mixed(p):
+def lnprob_mixed_exp(p):
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
@@ -822,6 +822,46 @@ def lnprob_mixed(p):
         #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini
         return lnp
 
+def lnprob_mixed(p):
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
+
+    if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
+        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0) or (Av < 0):
+        #if the call is outside of the loaded grid.
+        return -np.inf
+    else:
+        #shift TRES wavelengths
+        wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
+
+        coefs = p[config['nparams']:]
+        # reshape to (norders, 4)
+        coefs_arr = coefs.reshape(len(orders), -1)
+        c0s = coefs_arr[:, 0] #length norders
+        cns = coefs_arr[:, 1:] #shape (norders, 3)
+        #print("c0s.shape", c0s.shape)
+        #print("cns.shape", cns.shape)
+
+        #If any c0s are less than 0, return -np.inf
+        if np.any((c0s < 0)):
+            return -np.inf
+
+        #now create polynomials for each order, and multiply through fls
+        #print("T.shape", T.shape)
+        Tc = np.einsum("jk,ij->ik", T, cns)
+        k = np.einsum("i,ij->ij", c0s, 1 + Tc)
+        #print("k.shape", k.shape)
+        kf = k * fmods
+
+        R = (fls - kf)/sigmas
+
+        lnp = np.sum(np.log((1 - np.exp(-0.5 * R**2))/R**2)) \
+              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \
+              - 0.5 * np.sum(cns ** 2 / sigmac ** 2) \
+              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av
+        #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
+        #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini
+        return lnp
 
 def wrap_lnprob(lnprob, temp, logg, z, vsini):
     '''Return a lnprob function that keeps these parameters fixed'''
