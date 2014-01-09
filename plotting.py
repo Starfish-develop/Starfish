@@ -19,7 +19,7 @@ c_ang = 2.99792458e18 #A s^-1
 base = 'data/' + config['dataset']
 wls = np.load(base + ".wls.npy")
 fls = np.load(base + ".fls.npy")
-fls_true = np.load(base + ".true.fls.npy")
+#fls_true = np.load(base + ".true.fls.npy")
 sigmas = np.load(base + ".sigma.npy")
 masks = np.load(base + ".mask.npy")
 
@@ -267,10 +267,27 @@ def plot_residuals():
     #fig.savefig("plots/residuals.png")
     plt.show()
 
+def plot_line_residuals():
+    residuals = 3 * np.load("residuals/residuals24.npy")
+    wl = wls[23]
+    gauss1 = gaussian([4.5, 5245.91, 0.08])
+    gauss2 = gaussian([3.0, 5292.86, 0.08])
+    gauss3 = gaussian([1.5, 5294.35, 0.08])
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+    ax.plot(wl, residuals)
+    ax.plot(wl, gauss1(wl))
+    ax.plot(wl, gauss2(wl))
+    ax.plot(wl, gauss3(wl))
+    #plt.xlim(5245.4, 5246.4)
+
+    plt.show()
+
 def main():
     #identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
     #compare_kurucz()
-    plot_residuals()
+    #plot_residuals()
+    plot_line_residuals()
     pass
 
 

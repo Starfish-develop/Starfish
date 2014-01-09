@@ -1,12 +1,13 @@
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
 import astropy.io.fits as pf
-from astropy.io import ascii
+from astropy.io import ascii,fits
 
 import multiprocessing as mp
 
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, UnivariateSpline
 from scipy.integrate import trapz
+from scipy.special import j1
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
@@ -492,19 +493,99 @@ def compare_PHOENIX_TRES_spacing():
 def v(ls, lo):
     return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
 
+def create_FITS_wavegrid(wl_start, wl_end, vel_spacing):
+    '''Taking the desired wavelengths, output CRVAL1, CDELT1, NAXIS1 and the actual wavelength array.
+    vel_spacing in km/s, wavelengths in angstroms.'''
+    CRVAL1 = np.log10(wl_start)
+    CDELT1 = np.log10(vel_spacing/c_kms + 1)
+    NAXIS1 = int(np.ceil((np.log10(wl_end) - CRVAL1)/CDELT1)) + 1
+    p = np.arange(NAXIS1)
+    wl = 10 ** (CRVAL1 + CDELT1 * p)
+    return [wl, CRVAL1, CDELT1, NAXIS1]
+
+
+def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
+    '''Assumes that wl is already log lambda spaced'''
+
+    hdu = fits.PrimaryHDU(fl)
+    head = hdu.header
+    head["DISPTYPE"] = 'log lambda'
+    head["DISPUNIT"] = 'log angstroms'
+    head["CRPIX1"] = 1.
+
+    head["CRVAL1"] = CRVAL1
+    head["CDELT1"] = CDELT1
+    head["DC-FLAG"] = 1
+
+    if dict is not None:
+        for key, value in dict.items():
+            head[key] = value
+
+    hdu.writeto(filename)
+
+def process_PHOENIX_to_grid(temp, logg, Z, vsini, instFWHM, air=True):
+    #Create the wave_grid
+    out_grid, CRVAL1, CDELT1, NAXIS = create_FITS_wavegrid(6200, 6700, 2.)
+
+    #Load the raw file
+    flux = load_flux_full(temp, logg, Z, norm=True, grid="PHOENIX")[ind]
+
+    global w
+    if air:
+        w = vacuum_to_air(w)
+
+    #resample to equally spaced v grid, convolve w/ instrumental profile,
+    f_coarse = resample_and_convolve(flux, w, wave_grid_fine, out_grid, wg_fine_d=0.35, sigma=instFWHM/2.35)
+
+    ss = np.fft.fftfreq(len(out_grid), d=2.) #2km/s spacing for wave_grid
+    ss[0] = 0.01 #junk so we don't get a divide by zero error
+    ub = 2. * np.pi * vsini * ss
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+    #set zeroth frequency to 1 separately (DC term)
+    sb[0] = 1.
+    FF = fft(f_coarse)
+    FF *= sb
+
+    #do ifft
+    f_lam = np.abs(ifft(FF))
+
+    #convert to f_nu
+    f_nu = out_grid**2/c_ang * f_lam
+
+    filename = "t{temp:0>5.0f}g{logg:.0f}p00v{vsini:0>3.0f}.fits".format(temp=temp,
+    logg=10 * logg, vsini=vsini)
+
+    create_fits(filename, f_nu, CRVAL1, CDELT1, {"BUNIT": ('erg/s/cm^2/Hz', 'Unit of flux'),
+                                                                "AUTHOR": "Ian Czekala",
+                                                                "COMMENT" : "Adapted from PHOENIX"})
+
+
+
+    pass
 
 def main():
     ncores = mp.cpu_count()
     #create_fine_and_coarse_wave_grid()
     #create_coarse_wave_grid_kurucz()
 
-    create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
+    #create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
     #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
     #create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
     #load_flux_full(5900, 7.0, "-0.0", norm=False, vsini=0, grid="PHOENIX")
 
     #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl", convolve=True)
     #create_grid_parallel(ncores, "LIB_BTSettl_0.35kms_air.hdf5", grid_name="BTSettl", convolve=False)
+    #n = np.linspace(6200, 6700, num=11627)
+    #create_fits("test.fits", n, 3.7923916895, 2.89729125382e-06, dict={"Author":"Ian Czekala"})
+    #wl, CRVAL1, CDELT1, NAXIS = create_FITS_wavegrid(6200, 6700, 2.)
+    #np.save("wave_grids/willie_custom_2kms.npy", wl)
+    #print(wl)
+    #print(CRVAL1)
+    #print(CDELT1)
+    #print(NAXIS)
+    #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
+    process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
+    process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
 
 
 if __name__ == "__main__":
