@@ -32,9 +32,10 @@ grid_params :
     temp_range : [5000, 7000]
     logg_range : [3., 5.0]
     Z_range : [-1, 1] #this is necessary to load any metallicity at all. Could also limit to just negative or positive.
+    alpha_range : [-0.2, 0.8]
 
 # MCMC parameters
-nparams : 7 # these do not include nuisance parameters c0, c1, c2...
+nparams : 8 # these do not include nuisance parameters c0, c1, c2...
 nwalkers : 64
 ncoeff : 4 #order Chebyshev polynomial
 burn_in : 2
@@ -56,6 +57,7 @@ walker_ranges :
     temp : [6000,6450]
     logg : [4.1, 4.4]
     Z : [-0.3, 0.0]
+    alpha: [-0.2, 0.8]
     vsini : [3.0, 7.0]
     vz : [14, 16]
     Av : [0.0, 0.1]
