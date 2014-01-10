@@ -122,7 +122,12 @@ class Base1DSpectrum(BaseSpectrum):
         super().__init__(wl, fl, fl_type=fl_type, air=air)
         assert len(wl.shape) == 1, "1D spectrum must be 1D"
 
-    def resample_to_log_lambda(self):
+    def convert_to_log_lambda(self):
+        #Sort grid, make values unique
+
+        #Inspect grid and find minimum spacing in velocity space
+
+        #Create log-lamb grid spaced from min to max
         raise NotImplementedError
 
 
