@@ -46,8 +46,8 @@ grids = {"PHOENIX": {'T_points': np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
                      'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0'],
-                     'alpha_points': [".Alpha=-0.20", "", ".Alpha=0.20", ".Alpha=0.40", ".Alpha=0.60",
-                                      ".Alpha=0.80"]},
+                     'alpha_points': [".Alpha=-0.20", "", ".Alpha=+0.20", ".Alpha=+0.40", ".Alpha=+0.60",
+                                      ".Alpha=+0.80"]},
          "kurucz": {'T_points': np.arange(3500, 9751, 250),
                     'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]},
          'BTSettl': {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
@@ -588,8 +588,8 @@ def main():
     #print(CDELT1)
     #print(NAXIS)
     #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
-    process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
-    process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
+    #process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
+    #process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
 
 
 if __name__ == "__main__":

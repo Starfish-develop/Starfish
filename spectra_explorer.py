@@ -34,7 +34,7 @@ lnprob = getattr(m, config['lnprob'])
 fig, ax = plt.subplots(nrows=2, figsize=(8,10), sharex=True)
 plt.subplots_adjust(left=0.05, bottom=0.55, top=0.96, right=0.95)
 
-wlsz, f, k, flatchain = m.model_p(np.array([6000, 4.0, 0.0, 5.0, 15, 0.0, 2e-20, 1, -0.02, -0.019, -0.002 ]))
+wlsz, f, k, flatchain = m.model_p(np.array([6000, 4.0, 0.0, 0.0, 5.0, 15, 0.0, 2e-20, 1, -0.02, -0.019, -0.002 ]))
 l0, = ax[0].plot(wlsz[0], m.fls[0], lw=2, color='blue')
 l, = ax[0].plot(wlsz[0], f[0], lw=2, color='red')
 residuals = (m.fls[0] - f[0])/m.sigmas[0]
@@ -49,6 +49,7 @@ height = 0.03
 stemp = Slider(plt.axes([left, 0.5, width, height]) , 'Temp', 5000, 7000, valinit=6000)
 slogg = Slider(plt.axes([left, 0.45, width, height]), r'$\log g$', 3.0, 5.0, valinit=4.0)
 sZ = Slider(plt.axes([left, 0.40, width, height]), r'$Z$', -1.0, 0.5, valinit=0.0)
+salpha = Slider(plt.axes([left, 0.55, width, height]), r'$\alpha$', -0.2, 0.8, valinit=0.0)
 svsini = Slider(plt.axes([left, 0.35, width, height]), r'$v \sin i$', 1.0, 10, valinit=5.0)
 svz = Slider(plt.axes([left, 0.30, width, height]), r'$v_z$', 14, 16, valinit=15.0)
 sAv = Slider(plt.axes([left, 0.25, width, height]), r'$A_v$', 0.0, 1, valinit=0.0)
@@ -84,6 +85,7 @@ def update(val):
     T = stemp.val
     G = slogg.val
     Z = sZ.val
+    alpha = salpha.val
     vsini = svsini.val
     vz = svz.val
     Av = sAv.val
@@ -102,8 +104,8 @@ def update(val):
     #new_p = np.hstack((np.array([T, G, Z, vsini]), new_params))
     #print(new_p)
 
-    wlsz, f, k, flatchain = m.model_p(np.array([T, G, Z, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
-    lnprob_val = m.lnprob_mixed(np.array([T, G, Z, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
+    wlsz, f, k, flatchain = m.model_p(np.array([T, G, Z, alpha, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
+    lnprob_val = m.lnprob_mixed(np.array([T, G, Z, alpha, vsini, vz, Av, ff, 1.0, c1, c2, c3]))
     print(lnprob_val)
     ax[0].annotate("lnprob: {:.1f}".format(lnprob_val), (0.8, 0.1), xycoords='axes fraction', backgroundcolor='w')
     l0.set_xdata(wlsz[0])
@@ -143,6 +145,7 @@ def update(val):
 stemp.on_changed(update)
 slogg.on_changed(update)
 sZ.on_changed(update)
+salpha.on_changed(update)
 svsini.on_changed(update)
 svz.on_changed(update)
 sAv.on_changed(update)
