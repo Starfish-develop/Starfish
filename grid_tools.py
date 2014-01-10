@@ -26,16 +26,13 @@ R_sun = 6.955e10 #cm
 F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
 class BaseGrid:
-    def __init__(self, name, rname, temp_points, logg_points, Z_points, alpha_points=None, air=True,
-                 wl_range=[0, np.inf]):
+    def __init__(self, name, temp_points, logg_points, Z_points, alpha_points=None, air=True):
         self.name = name
-        self.rname = rname #format string which will be formatted by subclass
         self.temp_points = temp_points
         self.logg_points = logg_points
         self.Z_points = Z_points
         self.alpha_points = np.array([0.0]) if (alpha_points is None) else alpha_points
         self.air = air #read files in air wavelengths?
-        self.wl_range = wl_range #limit the read operation to these wavelengths only
 
     def check_params(self, temp, logg, Z, alpha=0.0):
         '''Checks to see if parameter combo is in the list, otherwise returns an error.'''
@@ -56,7 +53,6 @@ class BaseGrid:
 class PHOENIXGrid(BaseGrid):
     def __init__(self, air=True, wl_range=[3000,13000]):
         super().__init__("PHOENIX",
-        rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits",
         temp_points = np.array(
      [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
       4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
@@ -65,9 +61,8 @@ class PHOENIXGrid(BaseGrid):
         logg_points = np.arange(0.0, 6.1, 0.5),
         Z_points = np.arange(-1., 1.1, 0.5),
         alpha_points = np.array([0.0, 0.2, 0.4, 0.6, 0.8]),
-        air=air,
-        wl_range=wl_range)
-
+        air=air)
+        self.rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
         self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         #if air is true, convert the normally vacuum file to air wls.
         wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
@@ -78,6 +73,7 @@ class PHOENIXGrid(BaseGrid):
         else:
             self.wl_full = w_full
 
+        self.wl_range = wl_range
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.norm = True
         self.wl_short = self.wl_full[self.ind]
@@ -107,22 +103,90 @@ class KuruczGrid(BaseGrid):
 
         self.Z_dict = {-0.5:"m05", 0.0:"p00", 0.5:"p05"}
         self.wl_full = np.load("wave_grids/kurucz_raw.npy")
+        self.rname = None
 
     def load_file(self, temp, logg, Z):
         '''Includes an interface that can map a queried number to the actual string'''
         super().load_file(temp, logg, Z)
 
 
-class BaseGridProcessor:
-    def __init__(self, grid, wave_grid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+class HDF5Interface(BaseGrid):
+    '''Connect to an HDF5 file that stores spectra. Properly close the file when done.
+    Useful for creating grid when using a GridProcessor, or when reading from the
+    HDF5 grid in model or general use.'''
+    def __init__(self, name, filename, mode, wave_grid, temp_points, logg_points, Z_points, alpha_points=None):
+        super().__init__(name, temp_points, logg_points, Z_points, alpha_points)
+        self.wave_grid = wave_grid
+        lenT, lenG, lenZ, lenA, lenwl = (len(self.temp_points), len(self.logg_points),
+            len(self.Z_points), len(self.alpha_points), len(self.wave_grid))
+        if lenA == 1:
+            self.shape = (lenT, lenG, lenZ, lenwl)
+        else:
+            self.shape = (lenT, lenG, lenZ, lenA, lenwl)
+
+        #Create index lookup
+        self.temp_index = dict(zip(self.temp_points, np.arange(lenT)))
+        self.logg_index = dict(zip(self.logg_points, np.arange(lenG)))
+        self.Z_index = dict(zip(self.Z_points, np.arange(lenZ)))
+        self.alpha_index = dict(zip(self.alpha_points, np.arange(lenA)))
+
+        if mode == "w": #write
+            self.new(filename)
+        elif mode == "r": #read
+            self.open(filename)
+
+    def __del__(self):
+        self.close()
+
+    def open(self, filename):
+        self.HDF5_file = h5py.File(filename, 'r')
+        self.dset = self.HDF5_file['LIB']
+
+    def new(self, filename):
+        self.HDF5_file = h5py.File(filename, "w")
+        self.dset = self.HDF5_file.create_dataset("LIB", self.shape, dtype="f", compression='gzip', compression_opts=9)
+
+    def close(self):
+        print("closing file")
+        self.HDF5_file.close()
+
+    def load_flux(self, temp, logg, Z, alpha=0.0):
+        super().load_file(temp, logg, Z, alpha)
+        return self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :]
+
+    def load_spectrum(self, temp, logg, Z, alpha=0.0):
+        super().load_file(temp, logg, Z, alpha)
+        flux = self.load_flux(temp, logg, Z, alpha)
+        return Base1DSpectrum(self.wave_grid, flux, air=self.air)
+
+    def write_flux(self, flux, temp, logg, Z, alpha):
+        assert len(flux) == len(self.wave_grid)
+        self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :] = flux
+
+
+class FITSInterface(BaseGrid):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class GridProcessor:
+    def __init__(self, grid=PHOENIXGrid(), temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
                  alpha_range=[0, np.inf], chunksize=20):
         self.grid = grid
-        self.temp_points = grid.temp_points[(grid.temp_points >= temp_range[0]) & (grid.temp_points <= temp_range[1])]
-        self.logg_points = grid.logg_points[(grid.logg_points >= logg_range[0]) & (grid.logg_points <= logg_range[1])]
-        self.Z_points = grid.Z_points[(grid.Z_points >= Z_range[0]) & (grid.Z_points <= Z_range[1])]
-        self.alpha_points = grid.alpha_points[(grid.alpha_points >= alpha_range[0]) & (grid.alpha_points <= alpha_range[1])]
 
-        self.wave_grid = wave_grid
+        #Create interface object using range, and parameters of host grid
+        self.out_grid = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w",
+        temp_points=grid.temp_points[(grid.temp_points >= temp_range[0]) & (grid.temp_points <= temp_range[1])],
+        logg_points=grid.logg_points[(grid.logg_points >= logg_range[0]) & (grid.logg_points <= logg_range[1])],
+        Z_points=grid.Z_points[(grid.Z_points >= Z_range[0]) & (grid.Z_points <= Z_range[1])],
+        alpha_points=grid.alpha_points[(grid.alpha_points >= alpha_range[0]) & (grid.alpha_points <= alpha_range[1])])
+
+        #Uses grid.wave_grid as in_grid
+
+        #If grid.wave_grid is not log-lambda spaced, it converts it
+
+        #Uses interface wave_grid as out_grid
+
+
         self.pool = mp.Pool(mp.cpu_count())
         self.chunksize = chunksize
 
@@ -142,9 +206,48 @@ class BaseGridProcessor:
             #t, l, z, a = index_combos[i]
             self.save(self.index_combos[i], spec)
 
-    def process_spectrum(self):
+    def process_spectrum(self, var_combos):
         '''This depends on what you want to do (resample, convolve, etc) and must be defined in a subclass.'''
+        spec = self.grid.load_file(var_combos)
+
+        #Convert to a LogLamb grid
+
         raise NotImplementedError
+
+    def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
+        '''Take a full-resolution PHOENIX model spectrum `f`, with raw spacing wg_raw, resample it to wg_fine
+        (done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
+        then resample it to wg_coarse. sigma in km/s.'''
+
+        #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline. First check to make sure there
+        #are no duplicates and the wavelength is increasing, otherwise the spline will fail and return NaN.
+        wl_sorted, ind = np.unique(wg_raw, return_index=True)
+        fl_sorted = f[ind]
+        interp_fine = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
+        f_grid = interp_fine(wg_fine)
+
+        #Fourier Transform
+        out = fft(f_grid)
+        #The frequencies (cycles/km) corresponding to each point
+        freqs = fftfreq(len(f_grid), d=wg_fine_d)
+
+        #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space (corresponding to FWHM 6.8km/s)
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (freqs ** 2))
+        tout = out * taper
+
+        #Take the broadened spectrum back to wavelength space
+        f_grid6 = ifft(tout)
+        #print("Total of imaginary components", np.sum(np.abs(np.imag(f_grid6))))
+
+        #Resample the broadened spectrum to a uniform coarse grid
+        interp_coarse = InterpolatedUnivariateSpline(wg_fine, np.abs(f_grid6))
+        f_coarse = interp_coarse(wg_coarse)
+
+        del interp_fine
+        del interp_coarse
+        gc.collect() #necessary to prevent memory leak!
+
+        return f_coarse
 
     def save(self, i, spec):
         raise NotImplementedError
@@ -152,35 +255,26 @@ class BaseGridProcessor:
     def run(self):
         raise NotImplementedError
 
+class TRES_PHOENIX_HDF5_Processor(GridProcessor):
+    def __init__(self, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+                 alpha_range=[0, np.inf]):
+        super().__init__(temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+                         alpha_range=[0, np.inf])
 
-class HDF5Processor(BaseGridProcessor):
-    def __init__(self, grid, wave_grid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
-                 alpha_range=[0, np.inf], chunksize=20):
-        super().__init__(grid, wave_grid, temp_range=temp_range, logg_range=logg_range, Z_range=Z_range,
-                         alpha_range=alpha_range, chunksize=chunksize)
-
-        if len(self.grid.alpha_points) == 1:
-            self.shape = (len(self.temp_points), len(self.logg_points), len(self.Z_points),
-                          len(self.alpha_points), len(wave_grid))
-        else:
-            self.shape = (len(self.temp_points), len(self.logg_points), len(self.Z_points), len(wave_grid))
+        #Set the interface as a HDF5 grid
+        #Set the grid as a PHOENIX grid
+        #Set the instrument as TRES
 
 
-    def save(self, i, spec):
-        t, l, z, a = self.index_combos[i]
-        self.dset[t, l, z, a, :] = spec
-        print("Writing ", self.var_combos[i], "to HDF5")
+        #Gets the output grid parameters from the instrument
 
-    def run(self):
-        #setup
-        self.HDF5_file = h5py.File("{0}.hdf5".format(self.grid.name), "w")
-        self.dset = self.HDF5_file.create_dataset("LIB", self.shape, dtype="f", compression='gzip', compression_opts=9)
+class Instrument:
+    def __init__(self):
+        self.response_kernel
+        self.min_resolution
+        pass
 
-        #process
-        self.process_all()
 
-        #tear down
-        self.HDF5_file.close()
 
 
 
@@ -742,6 +836,11 @@ def main():
     #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
     #process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
     #process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
+    def test():
+        HDF5 = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w", np.linspace(5000, 6000), np.array([6000, 6100]), np.array([3.5, 4.0]),
+                         np.array([-0.5, 0.0]), np.array([0.0, 0.2]))
+    test()
+    #processor = TRES_PHOENIX_HDF5_Processor()
 
 
 if __name__ == "__main__":
