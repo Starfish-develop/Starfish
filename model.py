@@ -39,11 +39,108 @@ Coding convention:
 ##################################################
 c_ang = 2.99792458e18 #A s^-1
 c_kms = 2.99792458e5 #km s^-1
+
+#n @ 3000: 1.0002915686329712
+#n @ 6000: 1.0002769832562917
+#n @ 8000: 1.0002750477973053
+
+
+n_air = 1.000277
+c_ang_air = c_ang/n_air
+c_kms_air = c_kms/n_air
+
 G = 6.67259e-8 #cm3 g-1 s-2
 M_sun = 1.99e33 #g
 R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
+
+
+class BaseSpectrum:
+    def __init__(self, wl, fl, fl_type="flam", air=True, vel=0.0):
+        #TODO: convert fl_type to use astropy units for later conversions
+        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
+        self.wl_raw = wl
+        self.fl = fl
+        self.shape = self.wl_raw.shape
+        self.fl_type = fl_type
+        self.air = air
+        self.velocity = vel #creates self.wl_vel
+
+
+    def convert_units(self):
+        raise NotImplementedError
+
+    #Set air as a property which will update self.c it uses to calculate velocities
+    @property
+    def air(self):
+        return self._air
+
+    @air.setter
+    def air(self, air):
+        assert type(air) == type(True)
+        self._air = air
+        if self.air:
+            self.c = c_kms_air
+        else:
+            self.c = c_kms
+
+    @property
+    def velocity(self):
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, vz):
+        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
+        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
+        self._velocity = vz
+
+
+class DataSpectrum(BaseSpectrum):
+    def __init__(self, wl, fl, sigma, mask=None, fl_type="flam"):
+        super().__init__(wl, fl, fl_type)
+        self.sigma = sigma
+
+        if mask is None:
+            self.mask = np.ones_like(self.wl, dtype='bool') #create mask of all True
+        else:
+            self.mask = mask
+
+        assert self.sigma.shape == self.shape, "sigma array incompatible shape."
+        assert self.mask.shape == self.shape, "mask array incompatible shape."
+
+
+class ModelSpectrum(BaseSpectrum):
+    '''Specifically designed to match the shape of the data.'''
+    def __init__(self, wl, fl, dataSpectrum, fl_type="flam"):
+        super().__init__(wl, fl, fl_type)
+        self.dataSpectrum = dataSpectrum
+
+
+class Base1DSpectrum(BaseSpectrum):
+    def __init__(self, wl, fl, fl_type="flam", air=True):
+        super().__init__(wl, fl, fl_type=fl_type, air=air)
+        assert len(wl.shape) == 1, "1D spectrum must be 1D"
+
+    def resample_to_log_lambda(self):
+        raise NotImplementedError
+
+
+class LogLambdaSpectrum(Base1DSpectrum):
+    def __init__(self):
+        super().__init__(wl, fl, fl_type)
+
+    def resample(self):
+            raise NotImplementedError
+
+    def convolve(self):
+        raise NotImplementedError
+
+
+
+
+
+
 
 grids = {"PHOENIX": {'T_points': np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
@@ -980,11 +1077,13 @@ def main():
     #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
+    wl = np.linspace(0,10)
+    fl = np.linspace(0,20)
+    spec = BaseSpectrum(wl, fl)
+    spec.velocity = 10.
+    print(spec.velocity)
+    print(wl, spec.wl_vel)
 
-    print(lnprob_mixed(
-        np.array([6000, 4.29, 0.0, 5.0, 15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0])))
-    new_lnprob = wrap_lnprob(lnprob_mixed, 6000, 4.29, 0.0, 5.0)
-    print(new_lnprob(np.array([15, 0.0, 2e-20, 1.0, 0.0, 0.0, 0.0])))
 
     pass
 

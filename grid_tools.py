@@ -17,9 +17,174 @@ import bz2
 import h5py
 from functools import partial
 
+from model import Base1DSpectrum, LogLambdaSpectrum
+
 c_kms = 2.99792458e5 #km s^-1
 c_ang = 2.99792458e18 #A s^-1
-wl_file = pf.open("PHOENIX/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
+R_sun = 6.955e10 #cm
+F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
+
+class BaseGrid:
+    def __init__(self, name, rname, temp_points, logg_points, Z_points, alpha_points=None, air=True,
+                 wl_range=[0, np.inf]):
+        self.name = name
+        self.rname = rname #format string which will be formatted by subclass
+        self.temp_points = temp_points
+        self.logg_points = logg_points
+        self.Z_points = Z_points
+        self.alpha_points = np.array([0.0]) if (alpha_points is None) else alpha_points
+        self.air = air #read files in air wavelengths?
+        self.wl_range = wl_range #limit the read operation to these wavelengths only
+
+    def check_params(self, temp, logg, Z, alpha=0.0):
+        '''Checks to see if parameter combo is in the list, otherwise returns an error.'''
+        if (temp in self.temp_points) and (logg in self.logg_points) \
+            and (Z in self.Z_points) and (alpha in self.alpha_points):
+            return True
+        else:
+            raise IndexError("Temp: {temp:.0f}, logg: {logg:.1f}, [Fe/H]: {Z:.1f}, "
+                             "[alpha/Fe]: {alpha:.1f} not in {grid} grid".format(temp=temp,
+                                                logg=logg, Z=Z, alpha=alpha, grid=self.name))
+
+    def load_file(self, temp, logg, Z, alpha=0.0):
+        '''Designed to be extended'''
+        self.check_params(temp, logg, Z, alpha)
+        #returns a spectrum object defined by subclass
+
+
+class PHOENIXGrid(BaseGrid):
+    def __init__(self, air=True, wl_range=[3000,13000]):
+        super().__init__("PHOENIX",
+        rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits",
+        temp_points = np.array(
+     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
+      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
+      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
+        logg_points = np.arange(0.0, 6.1, 0.5),
+        Z_points = np.arange(-1., 1.1, 0.5),
+        alpha_points = np.array([0.0, 0.2, 0.4, 0.6, 0.8]),
+        air=air,
+        wl_range=wl_range)
+
+        self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+        #if air is true, convert the normally vacuum file to air wls.
+        wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+        w_full = wl_file[0].data
+        wl_file.close()
+        if self.air:
+            self.wl_full = vacuum_to_air(w_full)
+        else:
+            self.wl_full = w_full
+
+        self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
+        self.norm = True
+        self.wl_short = self.wl_full[self.ind]
+
+    def load_file(self, temp, logg, Z, alpha=0.0):
+        super().load_file(temp, logg, Z, alpha)
+
+        rname = self.rname.format(temp=temp, logg=logg, Z=self.Z_dict[Z])
+        flux_file = pf.open(rname)
+        f = flux_file[0].data
+        flux_file.close()
+
+        if self.norm:
+            f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
+            F_bol = trapz(f, self.wl_full)
+            f = f * (F_sun / F_bol) #bolometric luminosity is always 1 L_sun
+
+        return Base1DSpectrum(self.wl_short, f[self.ind], air=self.air)
+
+
+class KuruczGrid(BaseGrid):
+    def __init__(self):
+        super().__init__("Kurucz", "Kurucz/",
+        temp_points = np.arange(3500, 9751, 250),
+        logg_points = np.arange(1.0, 5.1, 0.5),
+        Z_points = np.arange(-0.5, 0.6, 0.5))
+
+        self.Z_dict = {-0.5:"m05", 0.0:"p00", 0.5:"p05"}
+        self.wl_full = np.load("wave_grids/kurucz_raw.npy")
+
+    def load_file(self, temp, logg, Z):
+        '''Includes an interface that can map a queried number to the actual string'''
+        super().load_file(temp, logg, Z)
+
+
+class BaseGridProcessor:
+    def __init__(self, grid, wave_grid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+                 alpha_range=[0, np.inf], chunksize=20):
+        self.grid = grid
+        self.temp_points = grid.temp_points[(grid.temp_points >= temp_range[0]) & (grid.temp_points <= temp_range[1])]
+        self.logg_points = grid.logg_points[(grid.logg_points >= logg_range[0]) & (grid.logg_points <= logg_range[1])]
+        self.Z_points = grid.Z_points[(grid.Z_points >= Z_range[0]) & (grid.Z_points <= Z_range[1])]
+        self.alpha_points = grid.alpha_points[(grid.alpha_points >= alpha_range[0]) & (grid.alpha_points <= alpha_range[1])]
+
+        self.wave_grid = wave_grid
+        self.pool = mp.Pool(mp.cpu_count())
+        self.chunksize = chunksize
+
+    def process_all(self):
+        self.index_combos = []
+        self.var_combos = []
+        for t, temp in enumerate(self.temp_points):
+            for l, logg in enumerate(self.logg_points):
+                for z, Z in enumerate(self.Z_points):
+                    for a, A in enumerate(self.alpha_points):
+                        self.index_combos.append([t, l, z, a])
+                        self.var_combos.append([temp, logg, Z, A])
+
+        spec_gen = self.pool.imap(self.process_spectrum, self.var_combos, chunksize=20)
+
+        for i, spec in enumerate(spec_gen):
+            #t, l, z, a = index_combos[i]
+            self.save(self.index_combos[i], spec)
+
+    def process_spectrum(self):
+        '''This depends on what you want to do (resample, convolve, etc) and must be defined in a subclass.'''
+        raise NotImplementedError
+
+    def save(self, i, spec):
+        raise NotImplementedError
+
+    def run(self):
+        raise NotImplementedError
+
+
+class HDF5Processor(BaseGridProcessor):
+    def __init__(self, grid, wave_grid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+                 alpha_range=[0, np.inf], chunksize=20):
+        super().__init__(grid, wave_grid, temp_range=temp_range, logg_range=logg_range, Z_range=Z_range,
+                         alpha_range=alpha_range, chunksize=chunksize)
+
+        if len(self.grid.alpha_points) == 1:
+            self.shape = (len(self.temp_points), len(self.logg_points), len(self.Z_points),
+                          len(self.alpha_points), len(wave_grid))
+        else:
+            self.shape = (len(self.temp_points), len(self.logg_points), len(self.Z_points), len(wave_grid))
+
+
+    def save(self, i, spec):
+        t, l, z, a = self.index_combos[i]
+        self.dset[t, l, z, a, :] = spec
+        print("Writing ", self.var_combos[i], "to HDF5")
+
+    def run(self):
+        #setup
+        self.HDF5_file = h5py.File("{0}.hdf5".format(self.grid.name), "w")
+        self.dset = self.HDF5_file.create_dataset("LIB", self.shape, dtype="f", compression='gzip', compression_opts=9)
+
+        #process
+        self.process_all()
+
+        #tear down
+        self.HDF5_file.close()
+
+
+
+wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
 ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
@@ -35,10 +200,7 @@ wave_grid_coarse = np.load('wave_grids/PHOENIX_2kms_air.npy')
 wave_grid_kurucz_raw = np.load("wave_grids/kurucz_raw.npy")
 wave_grid_2kms_kurucz = np.load("wave_grids/kurucz_2kms_air.npy") #same wl as PHOENIX_2kms_air, but trimmed
 
-L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
-R_sun = 6.955e10 #cm
 
-F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
 grids = {"PHOENIX": {'T_points': np.array(
     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
@@ -85,16 +247,19 @@ def create_coarse_wave_grid_kurucz():
     np.save('wave_grid_2kms_kurucz.npy', wave_grid_2kms_kurucz)
 
 
-def grid_loader():
-    pass
-
-
 @np.vectorize
 def vacuum_to_air(wl):
     '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996.'''
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
     return wl / f
+
+def calculate_n(wl):
+    sigma = (1e4 / wl) ** 2
+    f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
+    new_wl = wl / f
+    n = wl/new_wl
+    print(n)
 
 
 @np.vectorize
@@ -113,11 +278,6 @@ def air_to_vacuum(wl):
     return vac
 
 
-def rewrite_wl():
-    np.save("ind.npy", ind)
-    np.save("wave_trim.npy", w)
-
-
 def get_wl_kurucz():
     '''The Kurucz grid is already convolved with a FWHM=6.8km/s Gaussian. WL is log-linear spaced.'''
     sample_file = "Kurucz/t06000g45m05v000.fits"
@@ -129,10 +289,6 @@ def get_wl_kurucz():
     dw = hdr['CDELT1']
     wl = 10 ** (w1 + dw * p)
     return wl
-
-
-def get_wl_BTSettl():
-    pass
 
 
 @np.vectorize
@@ -584,8 +740,8 @@ def main():
     #print(CDELT1)
     #print(NAXIS)
     #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
-    process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
-    process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
+    #process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
+    #process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
 
 
 if __name__ == "__main__":
