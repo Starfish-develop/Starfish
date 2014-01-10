@@ -45,7 +45,9 @@ grids = {"PHOENIX": {'T_points': np.array(
      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-                     'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0']},
+                     'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0'],
+                     'alpha_points': [".Alpha=-0.20", "", ".Alpha=0.20", ".Alpha=0.40", ".Alpha=0.60",
+                                      ".Alpha=0.80"]},
          "kurucz": {'T_points': np.arange(3500, 9751, 250),
                     'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]},
          'BTSettl': {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
@@ -175,12 +177,12 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
     return [wl, fl]
 
 
-def load_flux_full(temp, logg, Z, norm=False, vsini=0, grid="PHOENIX"):
+def load_flux_full(temp, logg, Z, alpha, norm=False, vsini=0, grid="PHOENIX"):
     '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to F_sun if desired.'''
 
     if grid == "PHOENIX":
-        rname = "PHOENIX/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
-                ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
+        rname = "PHOENIX/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+                ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg, alpha=alpha)
     elif grid == "kurucz":
         rname = "Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
                                                                                        logg=10 * logg, Z=Z, vsini=vsini)
@@ -262,16 +264,16 @@ def resample(f, wg_input, wg_output):
 
 
 def process_spectrum_PHOENIX(pars, convolve=True):
-    temp, logg, Z = pars
+    temp, logg, Z, alpha = pars
     try:
-        f = load_flux_full(temp, logg, Z, norm=True, grid="PHOENIX")[ind]
+        f = load_flux_full(temp, logg, Z, alpha, norm=True, grid="PHOENIX")[ind]
         if convolve:
             flux = resample_and_convolve(f, wave_grid_raw_PHOENIX, wave_grid_fine, wave_grid_coarse)
         else:
             flux = resample(f, wave_grid_raw_PHOENIX, wave_grid_fine)
-        print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except OSError: #IOError in python2, OSError in python3
-        print("FAILED: %s, %s, %s" % (temp, logg, Z))
+        print("PROCESSED: %s, %s, %s %s" % (temp, logg, Z, alpha))
+    except OSError:
+        print("FAILED: %s, %s, %s, %s" % (temp, logg, Z, alpha))
         flux = np.nan
     return flux
 
@@ -316,6 +318,7 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
     T_points = grid['T_points']
     logg_points = grid['logg_points']
     Z_points = grid['Z_points']
+    alpha_points = grid['alpha_points']
 
     if grid_name == 'kurucz':
         process_spectrum = process_spectrum_kurucz
@@ -331,7 +334,7 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
         print("No grid %s" % grid_name)
         return 1
 
-    shape = (len(T_points), len(logg_points), len(Z_points), len(wave_grid_out))
+    shape = (len(T_points), len(logg_points), len(Z_points), len(alpha_points), len(wave_grid_out))
     dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
 
     # A thread pool of P processes
@@ -342,14 +345,15 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
     for t, temp in enumerate(T_points):
         for l, logg in enumerate(logg_points):
             for z, Z in enumerate(Z_points):
-                index_combos.append([t, l, z])
-                var_combos.append([temp, logg, Z])
+                for a, A in enumerate(alpha_points):
+                    index_combos.append([t, l, z, a])
+                    var_combos.append([temp, logg, Z, A])
 
     spec_gen = pool.imap(process_spectrum, var_combos, chunksize=20)
 
     for i, spec in enumerate(spec_gen):
-        t, l, z = index_combos[i]
-        dset[t, l, z, :] = spec
+        t, l, z, a = index_combos[i]
+        dset[t, l, z, a, :] = spec
         print("Writing ", var_combos[i], "to HDF5")
 
     f.close()
@@ -569,7 +573,7 @@ def main():
     #create_coarse_wave_grid_kurucz()
 
     #create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
-    #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
+    create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
     #create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
     #load_flux_full(5900, 7.0, "-0.0", norm=False, vsini=0, grid="PHOENIX")
 
