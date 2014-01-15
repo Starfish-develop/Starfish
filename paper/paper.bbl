@@ -1,4 +1,4 @@
-\begin{thebibliography}{9}
+\begin{thebibliography}{28}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
 
 \bibitem[{{Akeret} {et~al.}(2013){Akeret}, {Seehars}, {Amara}, {Refregier}, \&
@@ -17,6 +17,11 @@
   {Pontzen}, {Ptak}, {Refsdal}, {Servillat}, \& {Streicher}}]{art+13}
 {Astropy Collaboration} {et~al.} 2013, \aap, 558, A33
 
+\bibitem[{{Baraffe} {et~al.}(2002){Baraffe}, {Chabrier}, {Allard}, \&
+  {Hauschildt}}]{bca+02}
+{Baraffe}, I., {Chabrier}, G., {Allard}, F., \& {Hauschildt}, P.~H. 2002, \aap,
+  382, 563, arXiv:astro-ph/0111385
+
 \bibitem[{{Buchhave} {et~al.}(2012){Buchhave}, {Latham}, {Johansen},
   {Bizzarro}, {Torres}, {Rowe}, {Batalha}, {Borucki}, {Brugamyer}, {Caldwell},
   {Bryson}, {Ciardi}, {Cochran}, {Endl}, {Esquerdo}, {Ford}, {Geary},
@@ -24,9 +29,20 @@
   {Robertson}, {Shporer}, {Stefanik}, {Still}, \& {Quinn}}]{blj+12}
 {Buchhave}, L.~A. {et~al.} 2012, \nat, 486, 375
 
+\bibitem[{{Coelho} {et~al.}(2005){Coelho}, {Barbuy}, {Mel\'{e}ndez},
+  {Schiavon}, \& {Castilho}}]{cbm+05}
+{Coelho}, P., {Barbuy}, B., {Mel\'{e}ndez}, J., {Schiavon}, R.~P., \&
+  {Castilho}, B.~V. 2005, \aap, 443, 735, astro-ph/0505511
+
+\bibitem[{{D'Antona} \& {Mazzitelli}(1997)}]{dm97}
+{D'Antona}, F., \& {Mazzitelli}, I. 1997, \memsai, 68, 807
+
+\bibitem[{{Doppmann} \& {Jaffe}(2003)}]{dj03}
+{Doppmann}, G.~W., \& {Jaffe}, D.~T. 2003, \aj, 126, 3030, astro-ph/0308521
+
 \bibitem[{{Eisenstein} {et~al.}(2006){Eisenstein}, {Liebert}, {Harris},
   {Kleinman}, {Nitta}, {Silvestri}, {Anderson}, {Barentine}, {Brewington},
-  {Brinkmann}, {Harvanek}, {Krzesi{\'n}ski}, {Neilsen}, {Long}, {Schneider}, \&
+  {Brinkmann}, {Harvanek}, {Krzesi\'{n}ski}, {Neilsen}, {Long}, {Schneider}, \&
   {Snedden}}]{elh+06}
 {Eisenstein}, D.~J. {et~al.} 2006, \apjs, 167, 40, arXiv:astro-ph/0606700
 
@@ -38,6 +54,72 @@
 \bibitem[{Goodman \& Weare(2010)}]{gw10}
 Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
   Computational Science, 5, 65
+
+\bibitem[{{Hogg} {et~al.}(2010){Hogg}, {Bovy}, \& {Lang}}]{dbl10}
+{Hogg}, D.~W., {Bovy}, J., \& {Lang}, D. 2010, ArXiv e-prints, 1008.4686
+
+\bibitem[{{Koleva} {et~al.}(2009){Koleva}, {Prugniel}, {Bouchard}, \&
+  {Wu}}]{kpb+09}
+{Koleva}, M., {Prugniel}, P., {Bouchard}, A., \& {Wu}, Y. 2009, \aap, 501,
+  1269, 0903.2979
+
+\bibitem[{{Lee} {et~al.}(2008){Lee}, {Beers}, {Sivarani}, {Allende Prieto},
+  {Koesterke}, {Wilhelm}, {Re Fiorentin}, {Bailer-Jones}, {Norris}, {Rockosi},
+  {Yanny}, {Newberg}, {Covey}, {Zhang}, \& {Luo}}]{lbs+08}
+{Lee}, Y.~S. {et~al.} 2008, \aj, 136, 2022, 0710.5645
+
+\bibitem[{{Mann} {et~al.}(2013){Mann}, {Gaidos}, \& {Ansdell}}]{mga13}
+{Mann}, A.~W., {Gaidos}, E., \& {Ansdell}, M. 2013, \apj, 779, 188, 1311.0003
+
+\bibitem[{{Martins} \& {Coelho}(2007)}]{mc07}
+{Martins}, L.~P., \& {Coelho}, P. 2007, \mnras, 381, 1329, 0705.1994
+
+\bibitem[{{Newton} {et~al.}(2014){Newton}, {Charbonneau}, {Irwin},
+  {Berta-Thompson}, {Rojas-Ayala}, {Covey}, \& {Lloyd}}]{nci+14}
+{Newton}, E.~R., {Charbonneau}, D., {Irwin}, J., {Berta-Thompson}, Z.~K.,
+  {Rojas-Ayala}, B., {Covey}, K., \& {Lloyd}, J.~P. 2014, \aj, 147, 20,
+  1310.1087
+
+\bibitem[{{Paletou} {et~al.}(2014){Paletou}, {Trouilhet}, \& {Boehm}}]{ptb14}
+{Paletou}, F., {Trouilhet}, J.-F., \& {Boehm}, T. 2014, ArXiv e-prints,
+  1401.1083
+
+\bibitem[{{Press}(1997)}]{pre97}
+{Press}, W.~H. 1997, in {Unsolved Problems in Astrophysics}, ed. J.~N.
+  {Bahcall} \& J.~P. {Ostriker}, 49--60, arXiv:astro-ph/9604126
+
+\bibitem[{{Prugniel} {et~al.}(2007){Prugniel}, {Soubiran}, {Koleva}, \& {Le
+  Borgne}}]{psk+07}
+{Prugniel}, P., {Soubiran}, C., {Koleva}, M., \& {Le Borgne}, D. 2007, VizieR
+  Online Data Catalog, 3251, 0
+
+\bibitem[{{Recio-Blanco} {et~al.}(2006){Recio-Blanco}, {Bijaoui}, \& {de
+  Laverny}}]{rbd06}
+{Recio-Blanco}, A., {Bijaoui}, A., \& {de Laverny}, P. 2006, \mnras, 370, 141,
+  astro-ph/0604385
+
+\bibitem[{{Santos} {et~al.}(2013){Santos}, {Sousa}, {Mortier}, {Neves},
+  {Adibekyan}, {Tsantaki}, {Delgado Mena}, {Bonfils}, {Israelian}, {Mayor}, \&
+  {Udry}}]{ssm+13}
+{Santos}, N.~C. {et~al.} 2013, \aap, 556, A150, 1307.0354
+
+\bibitem[{{Schoenrich} \& {Bergemann}(2013)}]{sb13}
+{Schoenrich}, R., \& {Bergemann}, M. 2013, ArXiv e-prints, 1311.5558
+
+\bibitem[{{Shkedy} {et~al.}(2007){Shkedy}, {Decin}, {Molenberghs}, \&
+  {Aerts}}]{sdm+07}
+{Shkedy}, Z., {Decin}, L., {Molenberghs}, G., \& {Aerts}, C. 2007, \mnras, 377,
+  120, arXiv:astro-ph/0701449
+
+\bibitem[{{Sneden}(1973)}]{sne73}
+{Sneden}, C.~A. 1973, PhD thesis, THE UNIVERSITY OF TEXAS AT AUSTIN.
+
+\bibitem[{{Sordo} {et~al.}(2011){Sordo}, {Vallenari}, {Tantalo}, {Liu},
+  {Smith}, {Allard}, {Blomme}, {Bouret}, {Brott}, {de Laverny}, {Edvardsson},
+  {Fr\'{e}mat}, {Heber}, {Josselin}, {Kochukhov}, {Korn}, {Lanzafame},
+  {Martayan}, {Martins}, {Plez}, {Schweitzer}, {Th\'{e}venin}, \&
+  {Zorec}}]{svt+11}
+{Sordo}, R. {et~al.} 2011, Journal of Physics Conference Series, 328, 012006
 
 \bibitem[{Stoof {et~al.}(2009)Stoof, Gubbels, \& Dickerscheid}]{sgd+09}
 Stoof, H.~T., Gubbels, K.~B., \& Dickerscheid, D.~B. 2009, {Ultracold quantum

@@ -72,7 +72,7 @@ grid = grids[config['grid']]
 T_points = grid['T_points']
 logg_points = grid['logg_points']
 Z_points = grid['Z_points']
-alpha_points = grid['alpha_points']
+#alpha_points = grid['alpha_points']
 
 #Limit grid size to relevant region
 grid_params = config['grid_params']
@@ -92,10 +92,10 @@ Z_ind = (Z_points >= Z_low) & (Z_points <= Z_high)
 Z_points = Z_points[Z_ind]
 Z_arg = np.where(Z_ind)[0]
 
-A_low, A_high = grid_params['alpha_range']
-A_ind = (alpha_points >= A_low) & (alpha_points <= A_high)
-A_points = alpha_points[A_ind]
-A_arg = np.where(A_ind)[0]
+#A_low, A_high = grid_params['alpha_range']
+#A_ind = (alpha_points >= A_low) & (alpha_points <= A_high)
+#A_points = alpha_points[A_ind]
+#A_arg = np.where(A_ind)[0]
 
 #Load the data to fit
 base = 'data/' + config['dataset']
@@ -330,7 +330,7 @@ def trilinear_interpolator():
     return intp_func
 
 
-flux = quadlinear_interpolator()
+flux = trilinear_interpolator()
 
 ##################################################
 #Stellar Broadening
@@ -514,7 +514,57 @@ blended_real = pyfftw.n_byte_align_empty(chunk, 16, "float64")
 fft_object = pyfftw.FFTW(f_full, FF)
 ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
-def model(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor):
+def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
+    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
+    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
+    blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+    #wlsz has length norders
+
+    #M = M * M_sun #g
+    #R = R * R_sun #cm
+    #d = d * pc #cm
+
+    #logg = np.log10(G * M / R**2)
+    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
+
+    #Loads the ENTIRE spectrum, not limited to a specific order
+    f_full[:] = flux_factor * flux(temp, logg, Z)
+    #f_full = flux_factor * flux(temp, logg, Z)
+
+
+    #Take FFT of f_grid
+    #FF = fft(f_full)
+    fft_object()
+
+    ss[0] = 0.01 #junk so we don't get a divide by zero error
+    ub = 2. * np.pi * vsini * ss
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+    #set zeroth frequency to 1 separately (DC term)
+    sb[0] = 1.
+
+    FF[:] *= sb #institute velocity taper
+    #FF *= sb
+
+    #do ifft
+    ifft_object()
+    #blended_real = np.abs(ifft(FF))
+
+    blended_real[:] = np.abs(blended) #remove tiny complex component
+
+    #redden spectrum
+    red = blended_real / 10 ** (0.4 * Av * red_grid)
+    #red = blended_real
+
+    #do synthetic photometry to compare to points
+
+    f = InterpolatedUnivariateSpline(wave_grid, red)
+    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels
+    result = np.reshape(fresult, (norder, -1))
+    del f
+    gc.collect() #necessary to prevent memory leak!
+    return result
+
+def model_alpha(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
     `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
     blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
@@ -606,10 +656,10 @@ def draw_cheb_vectors(p):
 def model_p(p):
     '''Post processing routine that can take all parameter values and return the model.
     Actual sampling does not require the use of this method since it is slow. Returns flatchain.'''
-    temp, logg, Z, alpha, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
     wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
-    fmods = model(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor)
+    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
     coefs = p[config['nparams']:]
 
@@ -905,16 +955,16 @@ def lnprob_mixed_exp(p):
         return lnp
 
 def lnprob_mixed(p):
-    temp, logg, Z, alpha, vsini, vz, Av, flux_factor = p[:config['nparams']]
+    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
 
     if (logg < g_low) or (logg > g_high) or (vsini < 0) or (temp < T_low) or (temp > T_high) \
-        or (Z < Z_low) or (Z > Z_high) or (alpha < A_low) or (alpha > A_high) or (flux_factor <= 0) or (Av < 0):
+        or (Z < Z_low) or (Z > Z_high) or (flux_factor <= 0) or (Av < 0):
         #if the call is outside of the loaded grid.
         return -np.inf
     else:
         #shift TRES wavelengths
         wlsz = wls * np.sqrt((c_kms - vz) / (c_kms + vz))
-        fmods = model(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor)
+        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)
 
         coefs = p[config['nparams']:]
         # reshape to (norders, 4)
