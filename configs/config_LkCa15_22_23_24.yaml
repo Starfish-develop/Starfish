@@ -1,5 +1,5 @@
 # Output parameters
-name : LkCa15/order_22_23_24/sivia/kurucz  #internal tests
+name : LkCa15/order_22_23_24/sivia/PHOENIX  #internal tests
 
 Comments: >
   Using Kurucz grid on LkCa15
@@ -42,7 +42,7 @@ pnwalkers : 24
 pburn_in : 20
 piterations : 100
 
-grid : kurucz
+grid : PHOENIX
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
@@ -52,8 +52,8 @@ walker_ranges :
     vsini : [14.0, 17.0]
     vz : [-7, -4]
     Av : [0.0, 0.2]
-    #flux_factor : [2e-20, 9e-20] #PHOENIX
-    flux_factor : [1.4e-26, 1.9e-26] #kurucz
+    flux_factor : [7e-21, 8e-21] #PHOENIX
+    #flux_factor : [1.4e-26, 1.9e-26] #kurucz
     c0 : [0.9, 1.1]
     cs : [-0.02, 0.02]
 

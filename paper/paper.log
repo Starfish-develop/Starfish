@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  15 JAN 2014 12:14
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  15 JAN 2014 18:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -447,25 +447,25 @@ File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 91.
 [3] [4] [5] [6] [7]
-Overfull \hbox (3.34221pt too wide) in paragraph at lines 134--135
+Overfull \hbox (3.34221pt too wide) in paragraph at lines 133--134
 []\OT1/cmr/m/n/10.95 Many, many meth-ods ex-ist for com-par-i-son of stel-lar s
 pec-tra, in-clud-ing many ``Bayesian''
  []
 
 [8] [9] [10] [11] [12] [13]
-Overfull \hbox (16.26598pt too wide) detected at line 252
+Overfull \hbox (16.26598pt too wide) detected at line 251
 [][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
 it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[] []
  []
 
 
-Overfull \hbox (16.26598pt too wide) detected at line 293
+Overfull \hbox (16.26598pt too wide) detected at line 292
 [][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
 it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[] []
  []
 
 [14]
-Overfull \hbox (27.22354pt too wide) detected at line 296
+Overfull \hbox (27.22354pt too wide) detected at line 295
 [][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
 it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[][] [] [] \OML/c
 mm/m/it/10.95 c[]T[]c[]T[] \OT1/cmr/m/n/10.95 + [] [] \OML/cmm/m/it/10.95 c[]T[
@@ -473,25 +473,25 @@ mm/m/it/10.95 c[]T[]c[]T[] \OT1/cmr/m/n/10.95 + [] [] \OML/cmm/m/it/10.95 c[]T[
  []
 
 [15] [16] [17] [18] [19] [20]
-Overfull \hbox (64.95595pt too wide) detected at line 465
+Overfull \hbox (64.95595pt too wide) detected at line 464
  []$[][]$ []  
  []
 
 [21] [22]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 528.
+(hyperref)                removing `math shift' on input line 527.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 528.
+(hyperref)                removing `subscript' on input line 527.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 528.
+(hyperref)                removing `math shift' on input line 527.
 
 [23] [24]
-Overfull \hbox (0.22952pt too wide) in paragraph at lines 551--552
+Overfull \hbox (0.22952pt too wide) in paragraph at lines 550--551
 []\OT1/cmr/m/n/10.95 Presumably, each line would be a Gaus-sian pa-ram-e-ter-iz
 ed by $\OML/cmm/m/it/10.95 ^^U[]$\OT1/cmr/m/n/10.95 , strength, and FWHM.
  []
@@ -499,15 +499,15 @@ ed by $\OML/cmm/m/it/10.95 ^^U[]$\OT1/cmr/m/n/10.95 , strength, and FWHM.
 [25]
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 574.
+(hyperref)                removing `math shift' on input line 573.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 574.
+(hyperref)                removing `subscript' on input line 573.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 574.
+(hyperref)                removing `math shift' on input line 573.
 
 [26] [27] (./paper.bbl [28] [29]pdfTeX warning (ext4): destination with the sam
 e identifier (name{Hfootnote.3}) has been already used, duplicate ignored
@@ -515,15 +515,15 @@ e identifier (name{Hfootnote.3}) has been already used, duplicate ignored
                    \relax 
 l.136 \end{thebibliography}
                            )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 666.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 665.
  [30]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 666.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 665.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 666.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 666.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 665.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 665.
 Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 93F7364ACA343AC42A818C08F9B9A52B;2281.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 666.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 665.
  ) 
 Here is how much of TeX's memory you used:
  7748 strings out of 493311
@@ -549,7 +549,7 @@ onts/cm/cmsy8.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.
 pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/shar
 e/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></usr/share/texmf-dist/fo
 nts/type1/public/amsfonts/symbols/msam10.pfb>
-Output written on paper.pdf (30 pages, 310516 bytes).
+Output written on paper.pdf (30 pages, 310412 bytes).
 PDF statistics:
  572 PDF objects out of 1000 (max. 8388607)
  515 compressed objects within 6 object streams
