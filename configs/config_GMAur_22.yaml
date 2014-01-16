@@ -1,5 +1,5 @@
 # Output parameters
-name : GMAur/order_22/sivia/kurucz  #internal tests
+name : GMAur/order_22/sivia/PHOENIX  #internal tests
 
 Comments: >
   Using Kurucz grid on GMAur
@@ -42,7 +42,7 @@ pnwalkers : 24
 pburn_in : 20
 piterations : 100
 
-grid : kurucz
+grid : PHOENIX
 
 # Where to start the MCMC chains, assuming uniform distribution over the range of parameters
 walker_ranges :
@@ -52,8 +52,8 @@ walker_ranges :
     vsini : [16, 22.0]
     vz : [1, 4]
     Av : [0.0, 0.2]
-    #flux_factor : [2e-20, 9e-20] #PHOENIX
-    flux_factor : [1e-26, 2e-26] #kurucz
+    flux_factor : [5e-21, 7e-21] #PHOENIX
+    #flux_factor : [1e-26, 2e-26] #kurucz
     c0 : [0.9, 1.1]
     cs : [-0.02, 0.02]
 
