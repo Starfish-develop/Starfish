@@ -993,7 +993,10 @@ def lnprob_mixed(p):
               - 0.5 * (Av - mu_Av) ** 2 / sigma_Av
         #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
         #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini
-        return lnp
+        if np.isnan(lnp):
+            return -np.inf
+        else:
+            return lnp
 
 def wrap_lnprob(lnprob, temp, logg, z, vsini):
     '''Return a lnprob function that keeps these parameters fixed'''
