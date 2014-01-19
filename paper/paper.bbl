@@ -1,4 +1,4 @@
-\begin{thebibliography}{28}
+\begin{thebibliography}{35}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
 
 \bibitem[{{Akeret} {et~al.}(2013){Akeret}, {Seehars}, {Amara}, {Refregier}, \&
@@ -16,6 +16,9 @@
   {Dencheva}, {Ely}, {Jenness}, {Labrie}, {Lian Lim}, {Pierfederici},
   {Pontzen}, {Ptak}, {Refsdal}, {Servillat}, \& {Streicher}}]{art+13}
 {Astropy Collaboration} {et~al.} 2013, \aap, 558, A33
+
+\bibitem[{{Bailer-Jones}(2010)}]{bai10}
+{Bailer-Jones}, C.~A.~L. 2010, \mnras, 403, 96, 0911.5242
 
 \bibitem[{{Baraffe} {et~al.}(2002){Baraffe}, {Chabrier}, {Allard}, \&
   {Hauschildt}}]{bca+02}
@@ -51,6 +54,10 @@
 {Foreman-Mackey}, D., {Hogg}, D.~W., {Lang}, D., \& {Goodman}, J. 2012, ArXiv
   e-prints, 1202.3665
 
+\bibitem[{Gelman {et~al.}(2004)Gelman, Carlin, Stern, \& Rubin}]{gcs+04}
+Gelman, A., Carlin, J.~B., Stern, H.~S., \& Rubin, D.~B. 2004, {Bayesian data
+  analysis} (Chapman \& Hall/CRC)
+
 \bibitem[{Goodman \& Weare(2010)}]{gw10}
 Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
   Computational Science, 5, 65
@@ -58,15 +65,28 @@ Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
 \bibitem[{{Hogg} {et~al.}(2010){Hogg}, {Bovy}, \& {Lang}}]{dbl10}
 {Hogg}, D.~W., {Bovy}, J., \& {Lang}, D. 2010, ArXiv e-prints, 1008.4686
 
+\bibitem[{{Husser} {et~al.}(2013){Husser}, {Wende-von Berg}, {Dreizler},
+  {Homeier}, {Reiners}, {Barman}, \& {Hauschildt}}]{hwd+13}
+{Husser}, T.-O., {Wende-von Berg}, S., {Dreizler}, S., {Homeier}, D.,
+  {Reiners}, A., {Barman}, T., \& {Hauschildt}, P.~H. 2013, \aap, 553, A6,
+  1303.5632
+
 \bibitem[{{Koleva} {et~al.}(2009){Koleva}, {Prugniel}, {Bouchard}, \&
   {Wu}}]{kpb+09}
 {Koleva}, M., {Prugniel}, P., {Bouchard}, A., \& {Wu}, Y. 2009, \aap, 501,
   1269, 0903.2979
 
+\bibitem[{Kruschke(2010)}]{kru10}
+Kruschke, J. 2010, {Doing Bayesian Data Analysis: A Tutorial Introduction with
+  R} (Academic Press)
+
 \bibitem[{{Lee} {et~al.}(2008){Lee}, {Beers}, {Sivarani}, {Allende Prieto},
   {Koesterke}, {Wilhelm}, {Re Fiorentin}, {Bailer-Jones}, {Norris}, {Rockosi},
   {Yanny}, {Newberg}, {Covey}, {Zhang}, \& {Luo}}]{lbs+08}
 {Lee}, Y.~S. {et~al.} 2008, \aj, 136, 2022, 0710.5645
+
+\bibitem[{{Ma} \& {Berndsen}(2013)}]{mb13}
+{Ma}, Y.-Z., \& {Berndsen}, A. 2013, ArXiv e-prints, 1309.3271
 
 \bibitem[{{Mann} {et~al.}(2013){Mann}, {Gaidos}, \& {Ansdell}}]{mga13}
 {Mann}, A.~W., {Gaidos}, E., \& {Ansdell}, M. 2013, \apj, 779, 188, 1311.0003
@@ -93,10 +113,19 @@ Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
 {Prugniel}, P., {Soubiran}, C., {Koleva}, M., \& {Le Borgne}, D. 2007, VizieR
   Online Data Catalog, 3251, 0
 
+\bibitem[{Rasmussen \& Williams(2005)}]{rw05}
+Rasmussen, C.~E., \& Williams, C. K.~I. 2005, {Gaussian Processes for Machine
+  Learning (Adaptive Computation and Machine Learning)} (The MIT Press)
+
 \bibitem[{{Recio-Blanco} {et~al.}(2006){Recio-Blanco}, {Bijaoui}, \& {de
   Laverny}}]{rbd06}
 {Recio-Blanco}, A., {Bijaoui}, A., \& {de Laverny}, P. 2006, \mnras, 370, 141,
   astro-ph/0604385
+
+\bibitem[{{S\'{a}nchez Almeida} {et~al.}(2010){S\'{a}nchez Almeida}, {Aguerri},
+  {Mu\~{n}oz-Tu\~{n}\'{o}n}, \& {de Vicente}}]{sam+10}
+{S\'{a}nchez Almeida}, J., {Aguerri}, J.~A.~L., {Mu\~{n}oz-Tu\~{n}\'{o}n}, C.,
+  \& {de Vicente}, A. 2010, \apj, 714, 487, 1003.3186
 
 \bibitem[{{Santos} {et~al.}(2013){Santos}, {Sousa}, {Mortier}, {Neves},
   {Adibekyan}, {Tsantaki}, {Delgado Mena}, {Bonfils}, {Israelian}, {Mayor}, \&

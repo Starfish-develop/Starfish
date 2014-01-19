@@ -19,7 +19,7 @@ from functools import partial
 
 c_kms = 2.99792458e5 #km s^-1
 c_ang = 2.99792458e18 #A s^-1
-wl_file = pf.open("PHOENIX/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+wl_file = pf.open("WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
 w_full = wl_file[0].data
 wl_file.close()
 ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
