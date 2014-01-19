@@ -283,11 +283,112 @@ def plot_line_residuals():
 
     plt.show()
 
+def line_classes():
+    fig, ax = plt.subplots(nrows=2, ncols=4, figsize=(6,4.))
+    #need to set config.yaml['orders'] = [22,23], WASP-14
+    fl23, fl24 = m.fls
+    sig23, sig24 = m.sigmas
+
+    wlsz23 = np.load("residuals/wlsz23.npy")[0]
+    f23 = np.load("residuals/fl23.npy")[0]
+    wlsz24 = np.load("residuals/wlsz24.npy")[0]
+    f24 = np.load("residuals/fl24.npy")[0]
+
+    #import matplotlib
+    #font = {'size' : 8}
+
+    #matplotlib.rc('font', **font)
+    #matplotlib.rc('labelsize', **font)
+    r23 = (fl23 - f23)/sig23
+    r24 = (fl24 - f24)/sig24
+    fl23 /= 2e-13
+    fl24 /= 2e-13
+    f23 /= 2e-13
+    f24 /= 2e-13
+
+
+    ax[0,0].plot(wlsz23, fl23, "b", label="data")
+    ax[0,0].plot(wlsz23, f23, "r", label="model")
+
+    ax[1,0].plot(wlsz23, r23, "g")
+    ax[0,0].set_xlim(5136.4, 5140.4)
+    ax[1,0].set_xlim(5136.4, 5140.4)
+    ax[1,0].set_ylim(-4,4)
+
+    ax[0,1].plot(wlsz23, fl23, "b")
+    ax[0,1].plot(wlsz23, f23, "r")
+    ax[1,1].plot(wlsz23, r23, "g")
+    ax[0,1].set_xlim(5188, 5189.5)
+    ax[1,1].set_xlim(5188, 5189.5)
+    #ax[1,1].set_ylim(-4,4)
+
+    ax[0,2].plot(wlsz24, fl24, "b", label='data')
+    ax[0,2].plot(wlsz24, f24, "r", label='model')
+    ax[0,2].legend(loc="lower center", prop={'size':10})
+
+    ax[1,2].plot(wlsz24, r24, "g")
+    ax[0,2].set_xlim(5258, 5260)
+    ax[1,2].set_xlim(5258, 5260)
+
+    ax[0,3].plot(wlsz24, fl24, "b")
+    ax[0,3].plot(wlsz24, f24, "r")
+    ax[1,3].plot(wlsz24, r24, "g")
+    ax[0,3].set_xlim(5260, 5271)
+    ax[1,3].set_xlim(5260, 5271)
+    ax[1,3].set_ylim(-15, 15)
+
+
+    for j in range(4):
+        labels = ax[1,j].get_xticklabels()
+        for label in labels:
+            label.set_rotation(60)
+
+    ax[0,0].set_ylabel(r"$\propto f_\lambda$")
+    ax[1,0].set_ylabel(r"Residuals$/\sigma_P$")
+
+    for i in range(2):
+        for j in range(4):
+            ax[i,j].xaxis.set_major_formatter(FSF("%.0f"))
+            ax[i,j].xaxis.set_major_locator(MultipleLocator(1.))
+            ax[i,j].tick_params(axis='both', which='major', labelsize=10)
+
+    for i in [0,1]:
+        for j in [1,2]:
+            ax[i,j].xaxis.set_major_formatter(FSF("%.1f"))
+            ax[i,j].xaxis.set_major_locator(MultipleLocator(0.5))
+
+    for i in [0,1]:
+        ax[i,3].xaxis.set_major_formatter(FSF("%.0f"))
+        ax[i,3].xaxis.set_major_locator(MultipleLocator(2))
+
+    class_label = ["0", "I", "II", "III"]
+    for j in range(4):
+        ax[0,j].set_title(class_label[j])
+        ax[0,j].xaxis.set_ticklabels([])
+        ax[0,j].set_ylim(0.25, 1.15)
+        if j != 0:
+            ax[0,j].yaxis.set_ticklabels([])
+
+    fig.subplots_adjust(left=0.09, right=0.99, top=0.94, bottom=0.18, hspace=0.1, wspace=0.27)
+    fig.text(0.48, 0.02, r"$\lambda$ (\AA)")
+    fig.savefig("plots/badlines.eps")
+    #plt.show()
+
+
+    pass
+
 def main():
     #identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
     #compare_kurucz()
     #plot_residuals()
-    plot_line_residuals()
+    #plot_line_residuals()
+    #p24 = np.load("residuals/p24.npy")
+    #p24 = np.load("p24.npy")
+    #wlsz, refluxed, k, flatchain = m.model_p(p24)
+    #np.save("residuals/wlsz24.npy", wlsz)
+    #np.save("residuals/fl24.npy", refluxed)
+    line_classes()
+
     pass
 
 
