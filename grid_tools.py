@@ -169,7 +169,7 @@ class FITSInterface(BaseGrid):
         super().__init__(**kwargs)
 
 class GridProcessor:
-    def __init__(self, grid=PHOENIXGrid(), temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+    def __init__(self, grid=PHOENIXGrid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
                  alpha_range=[0, np.inf], chunksize=20):
         self.grid = grid
 
@@ -443,14 +443,18 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
     return [wl, fl]
 
 
-def load_flux_full(temp, logg, Z, alpha, norm=False, vsini=0, grid="PHOENIX"):
+def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX"):
     '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to F_sun if desired.'''
 
     if grid == "PHOENIX":
-        rname = "PHOENIX/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+        if alpha is not None:
+            rname = "raw_grids/PHOENIX/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
                 ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg, alpha=alpha)
+        else:
+            rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
+                    ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
     elif grid == "kurucz":
-        rname = "Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
+        rname = "raw_grids/Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
                                                                                        logg=10 * logg, Z=Z, vsini=vsini)
     else:
         print("No grid %s" % (grid))
@@ -793,19 +797,19 @@ def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
 
     hdu.writeto(filename)
 
-def process_PHOENIX_to_grid(temp, logg, Z, vsini, instFWHM, air=True):
+def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
     #Create the wave_grid
     out_grid, CRVAL1, CDELT1, NAXIS = create_FITS_wavegrid(6200, 6700, 2.)
 
     #Load the raw file
-    flux = load_flux_full(temp, logg, Z, norm=True, grid="PHOENIX")[ind]
+    flux = load_flux_full(temp, logg, Z, alpha, norm=True, grid="PHOENIX")[ind]
 
     global w
     if air:
-        w = vacuum_to_air(w)
+        w_new = vacuum_to_air(w)
 
     #resample to equally spaced v grid, convolve w/ instrumental profile,
-    f_coarse = resample_and_convolve(flux, w, wave_grid_fine, out_grid, wg_fine_d=0.35, sigma=instFWHM/2.35)
+    f_coarse = resample_and_convolve(flux, w_new, wave_grid_fine, out_grid, wg_fine_d=0.35, sigma=instFWHM/2.35)
 
     ss = np.fft.fftfreq(len(out_grid), d=2.) #2km/s spacing for wave_grid
     ss[0] = 0.01 #junk so we don't get a divide by zero error
@@ -854,12 +858,12 @@ def main():
     #print(CDELT1)
     #print(NAXIS)
     #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
-    #process_PHOENIX_to_grid(6000, 4.5, "-0.0", 8, 14.4)
-    #process_PHOENIX_to_grid(4000, 4.5, "-0.0", 4, 14.4)
-    def test():
-        HDF5 = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w", np.linspace(5000, 6000), np.array([6000, 6100]), np.array([3.5, 4.0]),
-                         np.array([-0.5, 0.0]), np.array([0.0, 0.2]))
-    test()
+    process_PHOENIX_to_grid(6000, 4.5, "-0.0", None, 8, 14.4)
+    process_PHOENIX_to_grid(4000, 4.5, "-0.0", None, 4, 14.4)
+    #def test():
+    #    HDF5 = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w", np.linspace(5000, 6000), np.array([6000, 6100]), np.array([3.5, 4.0]),
+    #                     np.array([-0.5, 0.0]), np.array([0.0, 0.2]))
+    #test()
     #processor = TRES_PHOENIX_HDF5_Processor()
 
 
