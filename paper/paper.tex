@@ -11,6 +11,7 @@
 
 \newcommand{\prob}{{\rm prob}}
 \newcommand{\qN}{\{q_i\}_{i=1}^N}
+\newcommand{\qM}{\{q_{im}\}_{i=1,m=0}^{N,M}}
 \newcommand{\yN}{\{y_i\}_{i=1}^N}
 \newcommand{\vt}{\vec{\theta}}
 \newcommand{\vg}{\vt_{\star, {\rm grid}}}
@@ -58,7 +59,7 @@ Ian~Czekala\altaffilmark{1} et al.
 
 \section{Introduction and review of existing methods}
 
-The fundamental parameters of stars---mass, luminosity, effective photospheric temperature, surface gravity, and metallicity--are of supreme interest to astrophysicists for a wide variety of reasons. A salient example is that most newly discovered exoplanets must necessarily their mass and radius measured relative to the properties of their host stars (e.g. \citealt{tfs+12,blj+12,ssm+13}). The properties of stars are of course also important in their own right because they inform us about our ideas of stellar evolution \citep{dm97, bca+02}. Because stars are the fundamental units of the cosmos, techniques to infer the properties of stars date back to the dawn of astronomy. We briefly review some of the modern and popular techniques in the literature. Approaches can be broadly classified into techniques that compare stars by some broadly defined indices and techniques that attempt to forward-model an observed stellar spectrum by doing a pixel-to-pixel comparison.
+The fundamental parameters of stars---mass, luminosity, effective photospheric temperature, surface gravity, and metallicity--are of supreme interest to astrophysicists for a wide variety of reasons. A salient example is that most newly discovered exoplanets must necessarily their mass and radius measured relative to the properties of their host stars (e.g. \citealt{tfs+12,blj+12,ssm+13}) and uncertain stellar parameters translate into uncertain planet properties \citep{kan14}. The properties of stars are of course also important in their own right because they inform us about our ideas of stellar evolution \citep{dm97, bca+02}. Because stars are the fundamental units of the cosmos, techniques to infer the properties of stars date back to the dawn of astronomy. We briefly review some of the modern and popular techniques in the literature. Approaches can be broadly classified into techniques that compare stars by some broadly defined indices and techniques that attempt to forward-model an observed stellar spectrum by doing a pixel-to-pixel comparison.
 
 \subsection{Classification techniques}
 Many of existing techniques were written to analyze low to medium resolution ($R < $ 10,000) spectra. I am calling them similarity techniques because they focus on determining and recognizing patterns of spectra useful in classification.
@@ -98,7 +99,7 @@ It appears that for many techniques, $\sigma(\lambda)$ is the Poisson photon cou
 
 \paragraph{\citet{mga13}} fit BT-Settl PHOENIX models to M dwarfs. Because high quality, high resolution M dwarf spectra are difficult to obtain owing to their intrinsic faintness, the development of stellar libraries for later spectral types has typically lagged behind. They use a $\chi^2$-like likelihood function and iterate to mask bad pixels. Unlike ULySS, however, they iterate the method against a sample of $\sim 20$ M dwarfs and track which pixels consistently have the high residuals (median residual amount $> 10$\%, or ten times their measurement error) across all stars. Presumably, such a consistent residual would be due to an incorrect physical constant for a certain line or molecular feature. After masking, they repeat the fitting and claim that after two iterations the masks do not change. They note that in the future, rather than selecting good and bad pixels with a binary mask, ``a more nuanced weighting scheme would be to weight each interval (pixel) according to how consistent it is with the models, or test different weighting schemes to see which gives the best agreement with the bolometric temperatures. \textbf{However regions with modest agreement between the real and synthetic spectra may contain more temperature information than regions with slightly better matches, and we have no a priori information about what spectral regions are the most temperature sensitive.}'' Thus, masking ``bad regions'' could very well destroy stellar information in the pursuit of a better ``fit.'' This is a nuanced point that masking schemes generally neglect. We aim to address later in this document.
 
-\paragraph{``Bayesian'' methods} do exist. \citet{sdm+07} developed a hierarchical Bayesian approach to compare infrared spectra at low resolution ($R \sim $ 1,200) to a synthetic grid in order to determine stellar parameters $\vg$. Their model is hierarchical in that it has parameters describing the statistical and systematic uncertainties of the observed spectrum. The systematic errors are due to the imperfect performance of the instrument, for example a bad flux calibration. They use an ``empirical'' Bayesian model for the noise, meaning that they use data to estimate the prior parameters for the noise \citep{gcs+04}. They use a $\chi^2$ likelihood function and allow for ``shrinkage'' of their hierarchical parameters if there is good agreement between observed and synthetic spectra. Disappointingly, they do explicitly account for systematic errors in the synthesis of actual lines, for example due to wrong atomic constants. One could imagine having a systematic error parameter which describes the scatter in the relationship between $\fM(\lambda | \vg)$ and the ``true'' physical spectrum in the absence of noise $\fD$. Nor do they account for any systematic effect that likely exists between $\vg$ and the true physical stellar parameters (as far as $T_{\rm eff}$ has any physical significance) and is a function of which synthetic grid they use\footnote{For example, in our tests with Kurucz vs. PHOENIX spectra we often find a systematic offset in temperature of $\gtrsim 200$ K.}. However, they do account for interpolation errors by testing interpolating spectra in the pixel space and atmospheric interpolations. Then, they select the best model using squared error loss function and a penalty measure for model complexity.
+\paragraph{``Bayesian'' methods} do exist. \citet{sdm+07} developed a hierarchical Bayesian approach to compare infrared spectra at low resolution ($R \sim $ 1,200) to a synthetic grid in order to determine stellar parameters $\vg$. Their model is hierarchical in that it has parameters describing the statistical and systematic uncertainties of the observed spectrum. The systematic errors are due to the imperfect performance of the instrument, for example a bad flux calibration. They use an ``empirical'' Bayesian model for the noise, meaning that they use data to estimate the prior parameters for the noise \citep{gcs+04}. They do a fit to the variance with a hierarchical linear mixed model (sec 5.2.2, and their figure 7) using design matricies and regression coefficients. This is probably to incorporate some sort of correlation length on the systematic errors, and ``smooth'' the function, as they say. They use a $\chi^2$ likelihood function and allow for ``shrinkage'' of their hierarchical parameters if there is good agreement between observed and synthetic spectra. Disappointingly, they do explicitly account for systematic errors in the synthesis of actual lines, for example due to wrong atomic constants. One could imagine having a systematic error parameter which describes the scatter in the relationship between $\fM(\lambda | \vg)$ and the ``true'' physical spectrum in the absence of noise $\fD$. Nor do they account for any systematic effect that likely exists between $\vg$ and the true physical stellar parameters (as far as $T_{\rm eff}$ has any physical significance) and is a function of which synthetic grid they use\footnote{For example, in our tests with Kurucz vs. PHOENIX spectra we often find a systematic offset in temperature of $\gtrsim 200$ K.}. However, they do account for interpolation errors by testing interpolating spectra in the pixel space and atmospheric interpolations. Then, they select the best model using squared error loss function and a penalty measure for model complexity.
 
 \citet{sb13} present a comprehensive Bayesian method that can fit low or high resolution spectra in addition to photometry and parallax data. They too, mention that they use a $\chi^2$ likelihood. They mention using special masks for the spectra that block noisy and uninformative regions of the spectrum, however they do not go into further detail about how these masks were created or applied. Their unpublished stellar library focuses on parts of the optical spectrum which contain the most stellar information, as determined by experts. As noted by \citet{sb13}, the grids ``sample the wavelength windows around the spectral features important for diagnostic of FGKM stars: 3850 - 4050\AA\ (Ca I lines), 4350 - 4450\AA\ (G-band, CN sensitive), 4600 - 4900\AA\ (H$\beta$), 5100 - 5300\AA\ (Mg I triplet, main gravity diagnostics), 6400 - 6640\AA\ (H$\alpha$), 8400 - 8800\AA\ (Ca II triplet, also used in \emph{Gaia} and in RAVE stellar survey).'' 
 
@@ -202,7 +203,8 @@ With flat priors on $\vstar$ and $\vN$ (an assumption we will later relax) the l
   \label{eqn:lnprob}
 \end{equation}
 
-The prefactor $k(\lambda | \vN)$ is a calibration function that aims to account for errors in the blaze-correction or flux-calibration by multiplying the synthetic spectrum by a polynomial. The parameters describing this function are the coefficients of the polynomial. This approach of accounting for large-scale calibration errors in the spectrum is more justified than the traditional approach of normalizing to the stellar continuum. From a flux-calibration experiment where we observed spectrophotometric standards BD+28 and BD+25 multiple times, we calibrated the dispersion in (FIGURE showing the sensitivity function for a few representative orders) flux-calibration function, or IRAF's ``sensitivity function.'' These tests revealed that the largest source of error in flux-calibration was actually in the overall magnitude of individual order, this could be due to slit losses, poor correction due to parallactic angle, or scattered light within the instrument. These corrections are smaller than 10\%. But more importantly, the corrections in the higher order terms (ie, the shape of the bandpass calibration for each order) are small ($\lesssim 3\%$). As described in \S\ref{sec:priors}, we can set priors on these coefficients. This prior information on the calibration parameters motivates our choice of functional parameterization for the nuisance parameters in \S\ref{sec:nuisance}. The polynomial approach is also better than the normalization approach if the order only spans a small region of the spectrum. If a M star absorption band spanned the whole order, one might accidentally normalize to the feature rather than a pseudo-continuum.
+The prefactor $k(\lambda | \vN)$ is a calibration function that aims to account for errors in the blaze-correction or flux-calibration by multiplying the synthetic spectrum by a polynomial. The parameters describing this function are the coefficients of the polynomial. This approach of accounting for large-scale calibration errors in the spectrum is more justified than the traditional approach of normalizing to the stellar continuum. From a flux-calibration experiment where we observed spectrophotometric standards BD+28 and BD+25 multiple times, we calibrated the dispersion in (FIGURE showing the sensitivity function for a few representative orders) flux-calibration function, or IRAF's ``sensitivity function.'' These tests revealed that the largest source of error in flux-calibration was actually in the overall magnitude of individual order, this could be due to slit losses, poor correction due to parallactic angle, or scattered light within the instrument. These corrections are smaller than 10\%. But more importantly, the corrections in the higher order terms (ie, the shape of the bandpass calibration for each order) are small ($\lesssim 3\%$). As described in \S\ref{sec:priors}, we can set priors on these coefficients. This prior information on the calibration parameters motivates our choice of functional parameterization for the nuisance parameters in \S\ref{sec:nuisance}.
+The polynomial approach is also better than the normalization approach if the order only spans a small region of the spectrum. If a M star absorption band spanned the whole order, one might accidentally normalize to the feature rather than a pseudo-continuum.
 
 
 \subsection{Nuisance parameters}
@@ -281,7 +283,7 @@ then we have
 \begin{equation}
   \sum_{i =1}^N \sum_{j=1}^N c_i T_i c_j T_j = \vc^\trans \cdot {\bm W} \cdot \vc
 \end{equation}
-We can rewrite Equation~\ref{eqn:expanded} quadratically in $\vc$ as
+We can rewrite Equation~\ref{eqn:expanded} quthat should be accounted for? adratically in $\vc$ as
 \begin{equation}
   \ln \bigl [p(\vt | \lambda_i) \bigr] \propto - \frac{1}{2 \sigma^2} \left [ \fD^2 - 2 \fD c_0 \fM \left [1+ \sum_{i=1}^N c_i T_i \right ]+ c_0^2 \fM^2 \left [1 + 2 \sum_{i=1}^N c_i T_i + \sum_{i=1}^N \sum_{j=1}^N c_i T_i c_j T_j \right ] \right ]
  \end{equation}
@@ -314,6 +316,7 @@ The analytic multi-dimensional Gaussian integral with linear term \citep{sgd+09}
   p(\vstar, c_0 | \vD) &\propto \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A} \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^\trans {\bm A}^{-1} \vec{B} + g \right )}
 \end{align}
 Where $N$ is the number of Chebyshev coefficients marginalized over, in our case $N=3$. By doing this marginalization we have reduced the dimensionality of our posterior space from $200+$ parameters ($\sim 7$ stellar parameters plus 3 Chebyshev coefficients for each of 51 echelle orders) to $\sim 60$ ($\sim 7$ stellar parameters and one $c_0$ for each of the 51 echelle orders). This enables a dramatic speedup in the MCMC sampling. For flux-calibrated spectra where the variation in $c_0$ is expected to be small (less than how much?), we can approximate $k$ in a different manner which allows marginalization over the $c_0$ coefficients as well, reducing the dimensionality of the space to only the $\sim 7$ stellar parameters. This approach is detailed in \S\ref{sec:gaussian_simplification}.
+
 
 \subsection{Including Gaussian priors on nuisance parameters}
 \label{sec:priors}
@@ -365,6 +368,7 @@ in the case that $\vec{\mu} = \{0, 0, \ldots, 0\}$, there is only a non-zero cor
    \boxed{
   p(\vstar, \vN | \vD) = p(\vstar, c_0, \vc\;) \propto \exp \left ( - \frac{1}{2} \vc^\trans {\bm A}^\prime \vc + \vec{B}^{\prime \trans} \vc + g^\prime \right ) p(\vstar) p(c_0) p(\vc)
 }
+\label{eqn:lnprob_lognormal}
 \end{equation}
 This probability function appears in the code as \texttt{lnprob\_lognormal} and has $\sim 7$ stellar dimensions and $\sim 200$ nuisance dimensions.
 
@@ -373,136 +377,159 @@ Using the previous multi-dimensional integral, we can marginalize over the $\vc$
   \boxed{
   p(\vstar, c_0 | \vD) \propto \sqrt{\frac{(2 \pi )^N}{ {\rm det} \bigl |{\bm A}^\prime \bigr |}} \exp{ \left ( \frac{1}{2} \vec{B}^{\prime\trans} {\bm A}^{\prime -1} \vec{B}^\prime + g^\prime \right )} p(\vstar) p(c_0)
 }
+\label{eqn:lnprob_lognormal_marg}
 \end{equation}
 where $N$ is the number of Chebyshev coefficients marginalized over, in our case $N=3$. This probability function appears in the code as \texttt{lnprob\_lognormal\_marg} and has $\sim 7$ stellar dimensions and $\sim 50$ nuisance dimensions. If we increase the permissible degree of re-fluxing by increasing $\sigma_i$, this will have the effect of smearing out or widening the posterior on a given $\vstar$.
 
+If one uses a marginalized posterior, but is still interested in obtaining a flux-corrected spectrum for the purposes of inspecting the residuals, it is still possible to do so. We can use Eqn~\ref{eqn:lnprob_lognormal} with $\vstar$ fixed at a sample from the posterior of Eqn~\ref{eqn:lnprob_lognormal_marg} and then use MCMC to draw samples from $p(\vN | \vstar, \vD)$. Now, the combination of $\vstar$ and $\vN$ completely describes a flux-corrected spectrum.
 
 \subsection{Sampling a un-flux calibrated model}
-There also exists a wealth of archival \emph{TRES} data that is not flux calibrated, since its primary purpose was for radial velocity determination of FGK stars. To fit this data we can use outdated sensitivity functions and soften the priors on the coefficients.
+There also exists a wealth of archival \emph{TRES} data that is not flux calibrated, since its primary purpose was for radial velocity determination of FGK stars. To fit this data we can use newer sensitivity functions taken under different conditions and soften the priors on the coefficients. Tests indicate that this works rather well. The blaze function will might change significantly between nights and years, so this might be a source of error.
 
-This invalidates the previous section on normalization. However, for corrections of less than XX\%, this approximation is better than XX\% accurate.
-
-For the flux-calibration exercise, the overall spread in $c_0$ across all orders should not be more than $\sigma_{c_0} \leq 2$, or the one-sigma deviation of $c_0$ is between $0.125 \leq c_0 \leq 8.0$.
-
-The plot in plots/priortests shows that the log-normal prior is the correct choice. Since we care most about the inference on F, we want to know that the choice on prior of $c_0$ is not biasing the final outcome, while a Gaussian prior might if $\sigma_{c_0}$ was large. How to quantify this error and create a dividing line? For 5\% error? In peak? Do these plots need to be in the paper?
+For non flux calibrated spectra, we determined that the overall spread in $c_0$ across all orders should not be more than $\sigma_{c_0} \leq 2$, or the one-sigma deviation of $c_0$ is between $0.125 \leq c_0 \leq 8.0$. The plot in plots/priortests shows that log-normal prior (vs. Gaussian) on $c_0$ is the correct choice . Since we care most about the inference on F, we want to know that this prior is not biasing the final outcome. Using a Gaussian prior with a large $\sigma_{c_0}$ will bias the results, but if $\sigma_{c_0}$ is small ($\lesssim 0.2$), then we can get away with Gaussian priors (see \S\ref{sec:gaussian_simplification}). Is there a better way to determine these thresholds other than my current technique of testing and visual inspection?
  
-Compare distributions by doing a K-S test on the cumulative distributions between Gaussian and Log-normal?
-
 \subsection{Hierarchical modelling}
-Can have a $c_1$, etc, that are marginalized over but we sample $c_0$ in a hierarchical manner which informs the overall flux-level.
+Instead of the current framework where the nuisance coefficients of each order are independent, we could derive a hierarchical framework where each $c_0$ is drawn from a probability distribution of $c_0$ described by a hyperparameter $C_0$. If each order required a similar $c_0$, then this would enable shrinkage of $C_0$, however if each order required a widely disparate $c_0$, then $C_0$ would correspondingly increase. Higher order coefficients could still be analytically marginalized over. 
 
-\subsection{Sampling with emcee}
-Citation to DFM \citep{fhl+12}, GW \citep{gw10}, and CosmoHAMMER \citep{asa+13}.
+\subsection{Sampling the posterior and performance of the $\chi^2$ likelihood}
+Currently we are sampling this posterior with the MCMC ensemble sampler \citep{gw10} implemented in \texttt{Python} by \citet{fhl+12} as \texttt{emcee}. See \citet[CosmoHAMMER]{asa+13} for a review of \texttt{emcee} parallel performance and scaling relationships on a computer cluster. 
 
+In this section, we described our approach to take into account flux calibration errors assuming a perfect synthetic spectra. If one does a straight up $\chi^2$ fit to the data, however, you can get posteriors that look have 1-sigma contours of $\pm 1$ K and $\pm 0.01$ dex in gravity and metallicity. This would be as precise as stellar parameters obtained with astroseismology! Clearly there is something going wrong here.
 
-\section{Moving beyond a perfect stellar model}
+As our previous discussion has noted, these posteriors are unfortunately too good to be true and we must take a more sophisticated approach. However, many of the flux-calibration principles developed in this section should still apply. More advanced posterior functions in the following sections might require using more specialized MCMC techniques such as Gibbs sampling or expectation maximization (EM). 
+
+\section{Baby steps beyond a perfect stellar model}
 \label{sec:residuals}
+In this section we describe a few simple things we might try (or have tried) in order to remedy the shortcomings of the previous section.
 
+\subsection{Additional sources of noise}
+Presumably we shouldn't have to add an additional source of instrumental ``noise'' to the fit, because our nuisance parameters will find an exact flux calibration. However, CCD readnoise and 1D spectrum extraction will almost definitely increase the noise in a pixel beyond theoretical Poisson limits. Normally this information will be encapsulated in a ``sigma spectrum,'' but unfortunately we do not have access to this unless we develop an alternative to the \emph{TRES} pipeline. We could try to fudge adjustments to the readout noise by adding a small error in quadrature.
 
-\subsection{Additional sources of noise beyond Poisson}
-Presumably we shouldn't have to add an additional source of ``noise'' to the fit, because our nuisance parameters will find an exact flux calibration.
+Even the stellar continuum can flicker/jitter (as shown by Kepler studies), which would produce a small departure from a perfect continuum. Even in the Class 0 region of our spectrum (Figure~\ref{fig:lineclasses}, left panel), the residuals are slightly larger than 1 $\sigma$ on average.
 
-Interpolation errors. Quantified via Husser et al. Ph.D. thesis as well as custom tests.
-
-\subsection{Noise, Masking, Residuals, and Alternative likelihood functions}
-In the future, we could modify our likelihood function to use a Student-t statistic instead of a Gaussian, such that it would be more robust in the presence of outlier pixels, however this does not seem necessary at the moment. 
+When we interpolate a synthetic spectrum from the library to a specific $\vg$, we will introduce interpolation errors depending on how close we are to a grid point in the library. \citet{hus12} investigate the possible range of interpolation errors at specific $\vg$ by dropping out a spectrum from the grid, interpolating over it, and then comparing the true spectrum to the interpolated spectra. For hotter stars with well defined continua, we find the maximum error is $\lesssim 5$\%, while for M stars the error could be as large as $\sim 20$\% for some spectral features. By doing this interpolation test across the grid, we could determine an ``interpolation error spectrum'' that would encapsulate the maximum error possible for an interpolated spectrum, weighted by its distance from the nearest grid points. This uncertainty could be included in quadrature. Since most of our \emph{TRES} spectra are at signal/noise of $\sim 30$ per pixel (or noise/signal ratio of $1/30 \approx 0.03$), an interpolation noise contribution of $\sim 5$\% the level of the signal level would be significant. However, we tried arbitrarily increasing the Poisson errors by a factor of 2 or 3 and it didn't significantly change the results. While such an error spectrum should eventually be incorporated, we have bigger fish to fry. 
 
 \subsection{Masking}
+We must necessarily mask certain wavelength regions of the T Tauri spectra that are contaminated (one might also say ``made more interesting'') by the astrophysical realities of accretion or stellar spots (such as the Balmer lines, which are in emission).  We also accept the assumption that rotation or accretion onto the star does not fundamentally alter the structure of the model atmosphere that generates the model spectrum and that a spectral comparison of the ``clean'' regions of the spectrum is valid. We also mask blatant Class I and II regions by eye, but currently do nothing for smaller errors or Class III errors.
 
-We must necessarily mask certain wavelength regions of the T Tauri spectra that are contaminated (one might also say ``made more interesting'') by the astrophysical realities of accretion or stellar spots (such as the Balmer lines, which are in emission).  We also accept the assumption that rotation or accretion onto the star does not fundamentally alter the structure of the model atmosphere that generates the model spectrum and that a spectral comparison of the ``clean'' regions of the spectrum is valid.
+\subsection{Gallery of likelihood functions}
+A problem with the $\chi^2$ likelihood function is that the Gaussian tails of the probability function rapidly decline, making any outliers extremely improbable, which will bias a fit. 
 
-Section on how to choose masked regions, testing the PHOENIX grid to see where the derivative is highest and thus gives the best leverage on stellar parameters.
+A common approach to make ``robust inference'' is to use a likelihood function with fatter tails. Although not rigorously motivated, this is can be a quick thing to try. We explore the following likelihood functions.
 
+\paragraph{Combination of Gaussian with exponential wings}
+We fit a function of the form
+\begin{equation}
+  p(\fD(\lambda) | \fM(\lambda | \vt)) \propto \exp \left (\frac{(\fD - \fM)^2}{(\sigma_G \sigma_P)^2} \right ) + A \exp \left (\frac{|\fD - \fM|}{\sigma_E \sigma_P}  \right )
+\end{equation}
+to the residuals of a reasonable $\vt$ to determine $A$, $\sigma_G$, and $\sigma_E$. This functional form assumes that there will be a Gaussian core, similar to the $\chi^2$ likelihood, but also allows some contribution from an exponential tail, used to describe the residuals. I think the problem here is that the exponential is too steep to properly describe Class I and II residuals, although it might do well for Class III errors.
 
-Iterative masking to deal with Class I and II errors a la ULySS. They use a $\kappa - \sigma$ routine, where they iteratively sigma clip (Website link).
+\paragraph{Sivia's model}
+\citet{ss06} describe a likelihood function which treats the noise estimate for each data point suspiciously. The true noise $\sigma$ can be no smaller than some original estimate $\sigma_0$, but it may be much larger. By putting a prior on $\sigma$, 
+\begin{equation}
+  p(\sigma | \sigma_0) = \left \{ \begin{array}{cc}
+    \sigma_0/\sigma^2 & \sigma  \leq \sigma_0\\
+    0                 & \textrm{else}
+  \end{array}
+    \right.
+\end{equation}
+and marginalizing over the $\chi^2$ likelihood, the new likelihood function becomes
+\begin{equation}
+  p(\fD | \fM, \sigma_0) = \frac{1}{\sigma_0 \sqrt{2 \pi}} \left [ \frac{1 - e^{-R^2/2}}{R^2} \right ] 
+\end{equation}
+where $R = (\fD - \fM)/\sigma_0$. This function has even fatter tails than the exponential model and seems to give more believable results. We have done the most testing using this new likelihood function, but it still does not give a truly satisfying result. For example, which lines contributed most to the posterior? What about the wings of class I and II errors? These individual pixels might still be given a weight of $\sigma_0$ because they are not nearly as bad as the line centers.
 
+\paragraph{$\chi^2$ with flat tails}
+\citet{hbl10} describe a likelihood function that smoothly caps the total likelihood contribution any outlier might have at some constant $Q$ by using a $\chi^2_Q$ function
+\begin{equation}
+  \chi^2_Q = \sum_{i = 1}^N \frac{Q^2 [\fD - \fM]^2}{Q^2 \sigma_P^2 + [\fD - \fM]^2}
+\end{equation}
+In some ways, this is analogous to sigma-clipping. Once a residual reaches the flat tails, it fails to factor into the determination of parameters.
 
-\section{Gallery of likelihood functions}
-
-If you do a straight up $\chi^2$ fit to the data, you can get posteriors that look like $\pm 1$ K and $\pm 0.01$ dex in gravity and metallicity. This would be better than that obtained by astroseismology! Clearly there is something going wrong here.
-
-Lorentzian, linear combination of Gaussians, Sivia w/ prior on sigma. $\chi^2_Q$ model.
-
-These likelihood functions seem to be an improvement over the straight $\chi^2$ function, in the sense that they give parameter estimates that are 
+Other functions we might try include a Student-t statistic, a Lorentzian, or a linear combination of Gaussians. While all of these likelihood function shenanigans are amusing, we would like to move beyond tweaking the fitting function towards an approach that properly incorporates knowledge about the specifics of our problem.
 
 \subsection{Bad data model}
-The bad data model \citep{pre97,dbl10} is a powerful framework for forward-modelling of data, allowing the modeler to account for the probability of outliers.
+The bad data model \citep{pre97,hbl10} is a powerful framework for forward modelling data, which allows the modeler to explicitly account for outliers using a generative model.
 
-Now, we have a $q_i$ for each data point, such that for the entire data set we have an ensemble of $\qN$. If this ensemble of $\qN$ is chosen appropriately, and the good data points are flagged as good and the bad data points are flagged as bad, the likelihood will be maximized. Written out explicitly, this is
+In the simplest mixture model, each data point has a binary flag $q_i$ which specifies whether that data point is good or bad. Then, for the entire data set we have an ensemble of $\qN$. If this ensemble of $\qN$ is chosen appropriately, and the good data points are flagged as good and the bad data points are flagged as bad, the likelihood will be maximized. We adopt $P_B$ for the \emph{a priori} probability that a given data point will be bad, $Y_b$ for the mean of the bad data distribution, and $V_b$ for its variance. Written out explicitly, this is
 \begin{multline}
-  {\cal L} = p({\bm D} | m,b,\qN,Y_b,V_b) = \prod_{i=1}^N \left [ \frac{1}{\sqrt{2 \pi} \sigma} \exp \left[ - \frac{(y_i - m x_i - b)^2}{2 \sigma^2} \right] \right ]^{q_i}  \times \\
-  \left [ \frac{1}{\sqrt{2 \pi (V_b + \sigma_{y_i}^2)}} \exp \left[ - \frac{(y_i - Y_b)^2}{2 (V_b + \sigma_{y_i}^2)} \right]
+  {\cal L} = p({\bm D} | \vt,\qN, Y_b,V_b) = \prod_{i=1}^N \left [ \frac{1}{\sqrt{2 \pi} \sigma} \exp \left[ - \frac{(\fD - \fM)^2}{2 \sigma^2} \right] \right ]^{q_i}  \times \\
+  \left [ \frac{1}{\sqrt{2 \pi (V_b + \sigma^2)}} \exp \left[ - \frac{(\fD - Y_b)^2}{2 (V_b + \sigma^2)} \right]
   \right ]^{1 - q_i}
 \end{multline}
-
-using a Bernoulli prior
-
+We we a Bernoulli prior on the $q_i$
 \begin{equation}
   p(q_i | P_b) = [1-P_b]^{q_i} P_b^{[1-q_i]}
 \end{equation}
-
+then, the probability of any given ensemble of $\qN$ is 
 \begin{equation}
   p(\qN | P_b) = \prod_{i=1}^N [1-P_b]^{q_i} P_b^{[1-q_i]}
 \end{equation}
 
-For this data point, we can integrate (in this case, discrete sum) over the two states of $q_i$: $q_i = 1$ and $q_i = 0$. 
+We can analytically marginalize over the single flag by a discrete sum over the two states of $q_i$: $q_i = 1$ and $q_i = 0$. 
 \begin{multline}
-  p(m, b, P_b, Y_b, V_b | D_i)  =  \int p( m, b, q_i, P_b, Y_b, V_b| D_i) {\rm d} q_i \\
-  = p(m, b, q_i=1, P_b, Y_b, V_b | D_i) + p(m, b, q_i=0, P_b, Y_b, V_b | D_i) \\
-  = \Bigl[ p_{\rm good}(D_i | m,b)\, p(q_i=1 | P_b) +  p_{\rm bad}(D_i | Y_b, V_b)\, p(q_i=0 | P_b)\Bigr] \times p(m,b,P_b, Y_b,V_b) 
+  p(\vt, P_b, Y_b, V_b | D_i)  =  \int p( \vt, q_i, P_b, Y_b, V_b| D_i) {\rm d} q_i \\
+  = p(\vt, q_i=1, P_b, Y_b, V_b | D_i) + p(\vt, q_i=0, P_b, Y_b, V_b | D_i) \\
+  = \Bigl[ p_{\rm good}(D_i | \vt)\, p(q_i=1 | P_b) +  p_{\rm bad}(D_i | Y_b, V_b)\, p(q_i=0 | P_b)\Bigr] \times p(\vt ,P_b, Y_b,V_b) 
 \end{multline}
 
 \begin{multline}
-  p(m,b,P_b,Y_b,V_b|\,{\bm D}) \propto \prod_{i=1}^N \Bigl [ [1 - P_b] p_{\rm good}(D_i | m, b)  + P_b p_{\rm bad}(D_i | Y_b, V_b)\Bigr ] \times p(m,b,P_b, Y_b, V_b)\\
+  p(\vt,P_b,Y_b,V_b|\,{\bm D}) \propto \prod_{i=1}^N \Bigl [ [1 - P_b] p_{\rm good}(D_i |\vt)  + P_b p_{\rm bad}(D_i | Y_b, V_b)\Bigr ] \times p(\vt,P_b, Y_b, V_b)\\
   \boxed{
-    = \prod_{i=1}^N \left\{ \frac{1 - P_b}{\sqrt{2 \pi \sigma_{yi}^2}} \exp \left[ - \frac{(y_i - m x_i - b)^2}{2 \sigma_{yi}^2} \right] + \frac{P_b}{\sqrt{2 \pi (V_b + \sigma_{yi}^2)}} \exp \left[- \frac{(y_i - Y_b)^2}{2 (V_b + \sigma_{yi}^2)} \right] \right\}
-  \times p(m,b,P_b,Y_b,V_b)}
+    = \prod_{i=1}^N \left\{ \frac{1 - P_b}{\sqrt{2 \pi \sigma_{yi}^2}} \exp \left[ - \frac{(\fD - \fM)^2}{2 \sigma^2} \right] + \frac{P_b}{\sqrt{2 \pi (V_b + \sigma^2)}} \exp \left[- \frac{(\fD - Y_b)^2}{2 (V_b + \sigma^2)} \right] \right\}
+  \times p(\vt,P_b,Y_b,V_b)}
 \end{multline}
 
-In it's simplest form (Hogg 2010), the bad data model results in a linear combination of Gaussians. 
-
-A benefit of the bad data model over a chosen likelihood function is that it is motivated. It may still result in the linear combination of Gaussians (nice), but preserves real parameter correlations. You are not forcing the same mean.
-
+In its simplest form, the bad data model results in a likelihood function that is a linear combination of Gaussians. Although the functional form you end up with is similar, the benefit of this bad data approach over a gallery of likelihood functions is that it is motivated by the characteristics of the bad data ($P_B$, $Y_b$, and $V_b$). If we wish to add additional information about the characteristics of the bad data, we can do so. 
 
 \subsection{Spatial correlations of pixels}
-We can do more. The bad model of the previous section assumes that each data point is independent. For example, the spectral lines are actually bad, and this means that if a single line is wrong, not just the core of the line (which may be a 10 - 20 sigma residual) will be wrong, but also the wings of the line, which may be only 5 or 3 sigma wrong.
+We can do more. We now discuss bad data models that leverage more of the information about our problem to more robustly handle systematic errors. In bad model of the previous section, we assumed that each data point is independent. However, we know that Class I, II, and III errors will be correlated across several pixels, where the correlation length is the typical width of a spectral line, set by the stellar rotation kernel $v \sin i$, the instrumental resolution kernel, or both. Some very strong lines (such as the Balmer lines, or the Mg b triplet) will have wings that are correlated across a wider length of pixels.
 
-Now, let's come up with a model which includes spatial (wavelength) correlations in the bad data model.
-
-How could we accomplish this? If we identify one point as bad, then the flags around it will have a correlation length, ie, the prior on $q_i$ will be bad. This means that for however many nearby pixels that will be bad (most likely a constant amount for uncrowded lines), then this means that we could still integrate over the qis, it's just that we would now have to take a contribution from the nearest 5 pixels, say. That central pixel would then mark the ``line'' that is bad. 
-
-That is one way to mark the ``badness of the line,'' that the qi are correlated. But we also know that the $y_i$ will be correlated too. 
-
-This correlation length will probably depend on the type of star, and the contribution of the band. For example, if they're simple FGK stars, then the bad lines might be singular. But if they are M stars, then there is a chance that there might be a large ``pseudo-continuum'' region that might be incorrect.
-
-Once we have identified the center of the bad line, then there will be a decrease in the nearby pixels, similar to a Gaussian shape. Presumably we could come up with a correlation in this space too. (or, it could simply be that the correlation between $y_i$ is flat in the case of an M star.
-
-This might actually save the marginalization. We could still do the backwards ``what is the probability a given line is bad.''
-
-For Class I and II errors, we could have a hyper parameter describing the width of each line, and another hyper parameter describing the (distribution of) depth. These could also be sampled in.
-
-For Class III errors, describing how line strengths are off makes sense for stars with continuum, but as we move to later type stars (K stars) that do not have a nice continuum, we may run into trouble. For the later stars (M dwarfs), there might be a whole region that is incorrect.
-
-There are different ways to describe a correlation over pixels. Gaussian random fields. Autocorrelation function.
-
-\subsection{Simple correlation between pixels}
-For a simple correlation, say that if a given $q_i$ is bad, then there is also a high probability that the neighboring pixels are also bad. Say we know from inspection that it seems as though bad lines knock out 5 pixel chunks. 
-
-
-Caveat: I think this assumes that bad lines will not occur within the same spread of each other. Maybe we should include a $P_B$ prior on the good counts too?
-
+\subsubsection{Mixture of multiple components}
+When we believe that a sample population might be composed of several populations with different behaviours (Class 0, I, II, and III), it makes sense to expand the bad data model to a multiple mixture model. Following \citet{gcs+04}, our likelihood function becomes
 \begin{equation}
-  p(q_i = 0 | q_{i \pm 5} = 0) = P_B
+  p(\fD, \vec{Q} | \vt) = p(\fD | \vec{Q}, \theta) p(\vec{Q}) = \prod_\lambda \prod_{m = 0}^3  {\cal L}_m(\fD(\lambda | \theta_m))^{q_{im}}
 \end{equation}
+where we use $\vec{Q} = \qM$ to describe a single vector of all the individual $q_{im}$ flags. For example, when a Class I, II, or III error occurs, the core of the line may be a 20 sigma residual while the wings of the line will taper off to a 3 sigma residual, and eventually to a 0 residual once it reaches the continuum. If we treat pixels as uncorrelated, then the small-residual wings of the bad lines might actually have more probability if they were labelled as ``good'' pixels. To remedy this situation, we attempt to develop a bad data model which includes spatial (wavelength) correlations.
 
-\begin{align}
- p(q_i = 0 | q_{i \pm 5} = 0) &= 1/5 \\
- q_{i \pm 4} &= 2/5 \\
- q_{i \pm 3} &= 3/5 \\
- q_{i \pm 2} &= 4/5 \\
-\end{align} 
+This correlation length will probably depend on the spectral type of star. For example, if they're simple F and G stars then the bad lines will likely be singular. But if they are M stars, then there is a chance that there might be a large ``pseudo-continuum'' region that would be incorrect. For Class I and II errors, we could include a hyper parameter describing the width of each line, and another hyper parameter describing the (distribution of) depth. For Class III errors, describing how line strengths might be wrong makes sense for stars with continuum, but as we move to later type stars (K stars) that do not have a nice continuum, we may run into trouble. For the later stars (M dwarfs), there might be a whole region that is incorrect.
 
-This might need more work with $P_B$.
+Proper Class III modeling is very important, following the discussion of \citep{mga13}. Some spectral features will not fit perfectly, especially at the lower end of the temperature scale. However, it's important to still take these features into account when modelling since they still contain information. How should we account for the fact that some parts of the spectrum carry more information about $\vg$ than other parts of the spectrum? Is it important to weight this parts beforehand? Or should this contribution to the posterior naturally weight itself, the way certain points might heavily contribute to the slope and intercept of a linear fit?
+
+\subsubsection{Correlation of the $q_i$ flags}
+
+In the manner of Gaussian random processes, we develop a covariance function
+\begin{equation}
+  {\rm cov}(q_i, q_j) = \rho(| \lambda_i - \lambda_j|)
+\end{equation}
+or where the covariance matrix has components
+\begin{equation}
+  \Sigma_{ij} = \sigma^2 \rho(|\lambda_i - \lambda_j|)
+\end{equation}
+where
+\begin{equation}
+  \rho_{ij} = \frac{ {\rm cov}(i,j)}{\sigma_i \sigma_j} = \frac{E[(X - \mu_x)(Y - \mu_y)]}{\sigma_x \sigma_y}
+\end{equation}
+that describes the correlation between the state of the bad data flags. The simplest thing to do would be to take the common correlation length in the spectrum imposed by $l$. If we say that the typical feature will have five adjacent pixels wrong, then the correlation matrix would be
+\begin{equation}
+  \begin{bmatrix}
+    1 & 4/5 & 3/5 & 2/5 & 1/5 \\
+    4/5 & 1 & 4/5 & 3/5 & 2/5 \\
+    3/5 & 4/5 & 1 & 4/5 & 3/5 \\
+    2/5 & 3/5 & 4/5 & 1 & 4/5 \\
+    1/5 & 2/5 & 3/5 & 4/5 & 1\\
+  \end{bmatrix}
+\end{equation}
+(this is embedded in an N-pixel sparse matrix where everywhere but the diagonal is 0). And so
+\begin{equation}
+  {\rm cov}(q_i, q_j) = \left \{ \begin{array}{cc}
+    1 - \frac{|\lambda_i - \lambda_j|}{5} & |\lambda_i - \lambda_j| \leq 5 \\
+    0                                    & \textrm{else}
+\end{array}
+\right .
+\end{equation}
+Once we move beyond 5 pixels, any correlation vanishes.
+
 
 Then the probability functions would be
 \begin{multline}
@@ -510,60 +537,51 @@ Then the probability functions would be
     p(D_{i + j} | \vt, q_{i + j} = 1) p(q_{i +j} = 1 | q_i = 0) \bigr ]
 \end{multline}
 
-
 \begin{multline}
   p(D_{i + j} | \vt, q_i = 1) = \prod_{j = -4, \ne 0}^4 \bigl [ p(D_{i+j} | \vt, q_{i +j}=0) p(q_{i+j} = 0 | q_i=1) + \\
     p(D_{i + j} | \vt, q_{i + j} = 1) p(q_{i +j} = 1 | q_i = 1) \bigr ]
 \end{multline}
 
-The marginalization could still be done analytically, but now the likelihood function involves a correlation between adjacent pixels. Could we use a sparse array for this? Or, we could evaluate all of the pixels, and then have the final likelihood function involve some correlation terms between the lnprobs evaluated at each pixel. We could do this using the logarithm so that everything is additive.
+The marginalization could still be done analytically, but now the likelihood function involves a correlation between adjacent pixels. Alternatively, we might be able to use a sparse array for this? Or, we could evaluate all of the pixels, and then have the final likelihood function involve some correlation terms between the lnprobs evaluated at each pixel. We could do this using the logarithm so that everything is additive. We might also be able to evaluate the FFT of the $\log(p(D_i))$ and just do the autocorrelation in Fourier space?
 
-Or, what if we evaluated the FFT of the $\log(p(D_i))$ and just the autocorrelation in Fourier space?
+\subsubsection{Correlation of adjacent $\fM(\lambda)$}
+We haven't yet mentioned what ${\cal L}_m$ should be for each $m$. Not only will the flags $q_i$ be spatially correlated but the values of $\fM$ will also be correlated on the scale of $v \sin i$ or the instrumental resolution kernel, whichever is larger.
 
-\subsection{Correlation between $y_i$}
-Not only will the flags be spatially correlated (if a point is bad, the nearby $\sim$ 5 points are also likely to be bad) but for OBAFGK stars, the lines are likely to be Gaussian shape. That is if $q_i$ specifies the center of the line, then the neighbooring $y_{i+1}$ or $y_{i-1}$ will be of lower residual height. This means that the inside of the likelihood function should also have spatial correlations.
-
-Could this correlation be described by a Gaussian random process? \citep{rw05}.
-
-\subsection{Different flags and weights}
-Instead of a good or bad flag, what if we had a flag that would identify which class of error the line became? For example we could have the option of $q_i = \{0, 1, 2, 3\}$, where $q_i=0$. 
-
-How do we account for the fact that some parts of the spectrum carry much more information about $\vg$ than other parts of the spectrum? Is it important to weight this parts beforehand? Or should this contribution to the posterior naturally weight itself, the way certain points might heavily contribute to the slope and intercept of a linear fit?
-
-If so, we could imagine having a Gibbs sampler on the weights of each pixel.
-
-Proper Class III modeling is very important, following the discussion of \citep{mga13} Mann et al, and see recent example from Rajpurohit 2103. Some features will not fit perfectly, especially at the lower temperature scale. However, it's important to still take these features int account with the modelling. They also use a $\chi^2$ likelihood function, but perhaps even less appropriate is that they draw error bars by saying that the $\chi^2$ value changes by 5\%. In reality, they are checking the fits by eye and saying whether or not a spectrum matches. This approach is no more justified than a by-eye spectral classification.
+For OBAFGK stars, the lines are likely to be Gaussian shape. That is if $\fD(\lambda_i)$ specifies the center of the line, then the neighboring $\lambda_{i \pm 1,2,3,\ldots}$ pixels will be of lower residual height. For M stars, there might be a wider correlation length and the shape of the lines might not be well-described by a Gaussian. Whatever the case, this means that the inside of the likelihood function should also have spatial correlations. In this case, the likelihood function also includes the nearest 5 pixels
+\begin{equation}
+  {\cal L}(\lambda_i) = \exp\left ( 
+  \begin{bmatrix}
+x & x & \dots\\
+x & x & \dots\\
+  \end{bmatrix}
+  \right )
+\end{equation}
+or maybe evaluate the likelihood and then matrix multiply? This matrix math needs to be worked out. The covariance function between $\fD(\lambda_i)$ could be learned from the spectrum itself (a la Gaussian random processes \citep{rw05}), or specified to create a Gaussian shape. Then, the likelihood functions for each mixture component in the model would be custom tailored for the type of error that it expected to encounter. (Strength and shape of residuals).
 
 \subsection{Hyperparameters}
-Difficulty of combining different data sets with different errors \citep{mb13}. Or a hyperparameter like \citep{sdm+07}. Shrinkage similar to \citet{kru10}.
-
-\citet{sdm+07} use ISO SWS infrared spectra. Hierarchical approach. Able to synthesize their own spectra. Use systematic error flags from the instrument, as well as statistical flags. Hierarchical model that uses shrinkage between the observed spectrum and the synthetic spectrum. They do a fit to the variance with a hierarchical linear mixed model (sec 5.2.2, and their figure 7) using design matricies and regression coefficients. This is probably to incorporate some sort of correlation length on the systematic errors, and ``smooth'' the function, as they say. I was having some difficulty understanding it, but it seems as though they were keeping the noise components fixed, and they did not have a contribution to the error budget from regions where the spectral synthesis \emph{itself} contained systematic errors. Perhaps these were masked by the systematic error from the instrument. 
+\citep{mb13} discuss the difficulty of combining different data sets for the combined inference on a single problem. They use a hyperparameter approach that can artificially inflate the variance of each data set to find a common posterior. They also allow correlations between data sets. We could imagine setting up a hyperparameter approach that can tune the sensitivity of certain lines, treating different lines as different datasets. Such a hyperparameter might also undergo ``shrinkage'' similar to \citet{kru10}.
 
 \subsection{Sampling such a model}
-If our bad model is sufficiently complex that we are not able to analytically marginalize over the $q_i$, it is still possible to sample in this huge parameter space. A stellar model with flags for each pixel would have $\vstar + N$ parameters, where for a typical optical spectrum $N >$ 100,000. Even using an ensemble sampler, sampling in this space would take a tremendous amount of time to converge. 
+If our bad model is sufficiently complex that we are not able to analytically marginalize over the $q_i$, it is still possible to sample in this huge parameter space. A stellar model with flags for each pixel would have $\vstar + N$ parameters, where for a typical high resolution optical spectrum $N >$ 100,000. Even using an ensemble sampler, sampling in this space would take a tremendous amount of time to converge. 
 
 An alternative way to approach this problem is to do Gibbs sampling in the flags. It may be possible to do do Gibbs sampling where we draw from the conditional probability distribution, or at the very worst we could still do a Gibbs sampler with a Metropolis-Hastings backend, where we propose a jump in a single $q_i$ at a time. Such an sample requires none of the previous heavy lifting (spectral grid interpolation, FFT, or pixel interpolation), and so even though there are $\sim$ 100,000 flags to sample, this is likely to be computationally feasible.
 
+\citet{gcs+04} suggest to start with a crude estimate (such as $k$-means clustering) to tentatively identify which observations have been drawn from which mixture components. They also suggest that the expectation-maximize (EM) algorithm could also be used to sample this posterior.
+
 \section{Injection of fake lines}
+As an alternative approach to modelling the systematically wrong regions of the spectrum, we could actually inject fake lines into the spectrum to compensate for errors in the models. Presumably, each line would be a Gaussian parameterized by $\lambda_0$, strength, and FWHM. In M star spectra, this might actually need to be a larger continuum feature that is added.
 
-An alternative approach is instead of modelling the systematically wrong regions of the spectrum, actually add in lines to the spectrum. This can be thought of as correcting the models. We could add in a set number of lines.
+Line strength could be described by a hyper prior, and FWHM described by a hyper parameter, since all lines should have pretty much the same FWHM (in velocity space). We could penalize the model fits by having a hyperprior on the number of bad lines that can be created. Given a bad line and the linelist that produced the synthetic models, it may be possible to identify other regions of the spectrum that might be bad. For example, if a vanadium line is bad, then we could check to see if the other vanadium lines might also be bad. 
 
-Presumably, each line would be a Gaussian parameterized by $\lambda_0$, strength, and FWHM. Strength could be described by a hyper prior, and FWHM described by a hyper parameter, since all lines should have pretty much the same FWHM (in velocity space). 
+Class III errors might be difficult to address in this paradigm since we would be fitting the different of two lines, though we might still be able to get it to work. 
 
-In later type spectra, this might actually need to be a larger continuum feature that is added.
+\subsection{Piecewise metallicity model}
+In theory, it is possible to fit the profiles of only certain elements to determine the abundances of certain elements. By masking all non-alpha elements, \citet{hus12} use PHOENIX spectra to derive individual alpha abundances of stars.
 
-We could penalize the model fits by having a hyperprior on the number of bad lines that can be created.
-
-In theory, it is possible to fit the profiles of only certain elements to determine the abundances of certain elements (see citation in conference proceedings of Husser). 
-
-It may be possible to use a linelist from the group that produces the PHOENIX spectra, which describes the element that gave the highest contribution to the opacity in that bin. Now, if the vanadium lines are bad, then we could have a prior that the other vanadium lines might also be bad. We could assemble a piecewise spectrum, where certain pixels are drawn from a different combination of $\vg$, and these pixels had an associated normalization constant so that the piecewise transition was smooth (if, say the bolometric temperature was different). 
-
-Class III errors might be difficult to fit in this approach. However, if the line width does not change dramatically, then we should be able to account for things this way.
+Rather than masking spectra, we could assemble a piecewise spectrum where regions of the spectrum might be drawn from a different combination of $\vg$, say with lower metallicity in order to account for a bad line strength. These regions would have to be normalized properly so that the composite spectrum is sufficiently smooth. Coupled with a linelist, one could tweak individual elemental abundances.
 
 \section{Validation tests}
-Comparison to main sequence stars of HAT-P-9, and WASP-14, from the TRES archive \citep{tfs+12}.
-
-Comparisons using HIRES data?
+Comparison to main sequence stars of HAT-P-9, and WASP-14, from the TRES archive \citep{tfs+12}. Possible comparisons using HIRES data.
 
 
 \acknowledgments

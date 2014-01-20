@@ -11,19 +11,19 @@
 \BOOKMARK [2][-]{subsection.3.3}{Including Gaussian priors on nuisance parameters}{section.3}% 11
 \BOOKMARK [2][-]{subsection.3.4}{Sampling a un-flux calibrated model}{section.3}% 12
 \BOOKMARK [2][-]{subsection.3.5}{Hierarchical modelling}{section.3}% 13
-\BOOKMARK [2][-]{subsection.3.6}{Sampling with emcee}{section.3}% 14
-\BOOKMARK [1][-]{section.4}{Moving beyond a perfect stellar model}{}% 15
-\BOOKMARK [2][-]{subsection.4.1}{Additional sources of noise beyond Poisson}{section.4}% 16
-\BOOKMARK [2][-]{subsection.4.2}{Noise, Masking, Residuals, and Alternative likelihood functions}{section.4}% 17
-\BOOKMARK [2][-]{subsection.4.3}{Masking}{section.4}% 18
-\BOOKMARK [1][-]{section.5}{Gallery of likelihood functions}{}% 19
-\BOOKMARK [2][-]{subsection.5.1}{Bad data model}{section.5}% 20
-\BOOKMARK [2][-]{subsection.5.2}{Spatial correlations of pixels}{section.5}% 21
-\BOOKMARK [2][-]{subsection.5.3}{Simple correlation between pixels}{section.5}% 22
-\BOOKMARK [2][-]{subsection.5.4}{Correlation between yi}{section.5}% 23
-\BOOKMARK [2][-]{subsection.5.5}{Different flags and weights}{section.5}% 24
-\BOOKMARK [2][-]{subsection.5.6}{Hyperparameters}{section.5}% 25
-\BOOKMARK [2][-]{subsection.5.7}{Sampling such a model}{section.5}% 26
-\BOOKMARK [1][-]{section.6}{Injection of fake lines}{}% 27
-\BOOKMARK [1][-]{section.7}{Validation tests}{}% 28
+\BOOKMARK [2][-]{subsection.3.6}{Sampling the posterior and performance of the 2 likelihood}{section.3}% 14
+\BOOKMARK [1][-]{section.4}{Baby steps beyond a perfect stellar model}{}% 15
+\BOOKMARK [2][-]{subsection.4.1}{Additional sources of noise}{section.4}% 16
+\BOOKMARK [2][-]{subsection.4.2}{Masking}{section.4}% 17
+\BOOKMARK [2][-]{subsection.4.3}{Gallery of likelihood functions}{section.4}% 18
+\BOOKMARK [2][-]{subsection.4.4}{Bad data model}{section.4}% 19
+\BOOKMARK [2][-]{subsection.4.5}{Spatial correlations of pixels}{section.4}% 20
+\BOOKMARK [3][-]{subsubsection.4.5.1}{Mixture of multiple components}{subsection.4.5}% 21
+\BOOKMARK [3][-]{subsubsection.4.5.2}{Correlation of the qi flags}{subsection.4.5}% 22
+\BOOKMARK [3][-]{subsubsection.4.5.3}{Correlation of adjacent fM\(\)}{subsection.4.5}% 23
+\BOOKMARK [2][-]{subsection.4.6}{Hyperparameters}{section.4}% 24
+\BOOKMARK [2][-]{subsection.4.7}{Sampling such a model}{section.4}% 25
+\BOOKMARK [1][-]{section.5}{Injection of fake lines}{}% 26
+\BOOKMARK [2][-]{subsection.5.1}{Piecewise metallicity model}{section.5}% 27
+\BOOKMARK [1][-]{section.6}{Validation tests}{}% 28
 \BOOKMARK [1][-]{appendix.A}{Simplification for small c0 perturbations}{}% 29

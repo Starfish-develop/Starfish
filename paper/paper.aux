@@ -17,6 +17,7 @@
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{tfs+12,blj+12,ssm+13}
+\citation{kan14}
 \citation{dm97,bca+02}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction and review of existing methods}{1}{section.1}}
 \citation{nci+14}
@@ -60,12 +61,12 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2}General problems with the spectral library approach}{8}{section.2}}
 \citation{blj+12}
 \citation{hwd+13}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The four classes of line behavior, from left to right: \textbf  {Class 0}: the model behaves as expected. \textbf  {Class I}: a spectral line is present in the data but missing from the model (in this case, the line is also blended). \textbf  {Class II}: a spectral line exists in the model where there is only continuum in the data. \textbf  {Class III}: lines exist in both the data and model, however they are of the wrong strength. Some lines are too strong while others are too weak. The lower panels show the residual spectra in units of the observational uncertainty (Poisson uncertainty only).}}{9}{figure.1}}
-\newlabel{fig:lineclasses}{{1}{9}{The four classes of line behavior, from left to right: \textbf {Class 0}: the model behaves as expected. \textbf {Class I}: a spectral line is present in the data but missing from the model (in this case, the line is also blended). \textbf {Class II}: a spectral line exists in the model where there is only continuum in the data. \textbf {Class III}: lines exist in both the data and model, however they are of the wrong strength. Some lines are too strong while others are too weak. The lower panels show the residual spectra in units of the observational uncertainty (Poisson uncertainty only)}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Classes of synthetic spectral line behavior}{9}{subsection.2.1}}
+\@writefile{toc}{\contentsline {paragraph}{Class 0}{9}{section*.11}}
+\@writefile{toc}{\contentsline {paragraph}{Class I}{9}{section*.12}}
 \citation{kpb+09,mga13}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Classes of synthetic spectral line behavior}{10}{subsection.2.1}}
-\@writefile{toc}{\contentsline {paragraph}{Class 0}{10}{section*.11}}
-\@writefile{toc}{\contentsline {paragraph}{Class I}{10}{section*.12}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The four classes of line behavior, from left to right: \textbf  {Class 0}: the model behaves as expected. \textbf  {Class I}: a spectral line is present in the data but missing from the model (in this case, the line is also blended). \textbf  {Class II}: a spectral line exists in the model where there is only continuum in the data. \textbf  {Class III}: lines exist in both the data and model, however they are of the wrong strength. Some lines are too strong while others are too weak. The lower panels show the residual spectra in units of the observational uncertainty (Poisson uncertainty only).}}{10}{figure.1}}
+\newlabel{fig:lineclasses}{{1}{10}{The four classes of line behavior, from left to right: \textbf {Class 0}: the model behaves as expected. \textbf {Class I}: a spectral line is present in the data but missing from the model (in this case, the line is also blended). \textbf {Class II}: a spectral line exists in the model where there is only continuum in the data. \textbf {Class III}: lines exist in both the data and model, however they are of the wrong strength. Some lines are too strong while others are too weak. The lower panels show the residual spectra in units of the observational uncertainty (Poisson uncertainty only)}{figure.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Class II}{10}{section*.13}}
 \newlabel{eqn:derivative}{{4}{11}{Class II}{equation.2.4}{}}
 \@writefile{toc}{\contentsline {paragraph}{Class III}{11}{section*.14}}
@@ -77,11 +78,11 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Applied to a Gaussian likelihood function}{13}{subsection.3.1}}
 \citation{elh+06}
 \newlabel{eqn:lnprob}{{9}{14}{Applied to a Gaussian likelihood function}{equation.3.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Nuisance parameters}{14}{subsection.3.2}}
-\newlabel{sec:nuisance}{{3.2}{14}{Nuisance parameters}{subsection.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Nuisance parameters}{15}{subsection.3.2}}
+\newlabel{sec:nuisance}{{3.2}{15}{Nuisance parameters}{subsection.3.2}{}}
 \newlabel{eqn:k_new}{{11}{15}{Nuisance parameters}{equation.3.11}{}}
 \newlabel{eqn:lnprob2}{{14}{15}{Nuisance parameters}{equation.3.14}{}}
-\newlabel{eqn:lnprob_lambda}{{15}{15}{Nuisance parameters}{equation.3.15}{}}
+\newlabel{eqn:lnprob_lambda}{{15}{16}{Nuisance parameters}{equation.3.15}{}}
 \newlabel{eqn:expanded}{{16}{16}{Nuisance parameters}{equation.3.16}{}}
 \citation{sgd+09}
 \newlabel{eqn:lnprob_matrix}{{28}{17}{Nuisance parameters}{equation.3.28}{}}
@@ -89,38 +90,47 @@
 \newlabel{sec:priors}{{3.3}{18}{Including Gaussian priors on nuisance parameters}{subsection.3.3}{}}
 \newlabel{eqn:nuisance_prior}{{35}{18}{Including Gaussian priors on nuisance parameters}{equation.3.35}{}}
 \newlabel{eqn:posterior_prior}{{38}{19}{Including Gaussian priors on nuisance parameters}{equation.3.38}{}}
-\citation{fhl+12}
-\citation{gw10}
-\citation{asa+13}
+\newlabel{eqn:lnprob_lognormal}{{44}{19}{Including Gaussian priors on nuisance parameters}{equation.3.44}{}}
+\newlabel{eqn:lnprob_lognormal_marg}{{45}{20}{Including Gaussian priors on nuisance parameters}{equation.3.45}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Sampling a un-flux calibrated model}{20}{subsection.3.4}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Hierarchical modelling}{20}{subsection.3.5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Sampling with emcee}{20}{subsection.3.6}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Moving beyond a perfect stellar model}{20}{section.4}}
-\newlabel{sec:residuals}{{4}{20}{Moving beyond a perfect stellar model}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Additional sources of noise beyond Poisson}{20}{subsection.4.1}}
-\citation{pre97,dbl10}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Noise, Masking, Residuals, and Alternative likelihood functions}{21}{subsection.4.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Masking}{21}{subsection.4.3}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Gallery of likelihood functions}{21}{section.5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Bad data model}{22}{subsection.5.1}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Spatial correlations of pixels}{23}{subsection.5.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Simple correlation between pixels}{24}{subsection.5.3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Correlation between $y_i$}{25}{subsection.5.4}}
-\citation{rw05}
+\citation{gw10}
+\citation{fhl+12}
+\citation{asa+13}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Hierarchical modelling}{21}{subsection.3.5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Sampling the posterior and performance of the $\chi ^2$ likelihood}{21}{subsection.3.6}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Baby steps beyond a perfect stellar model}{21}{section.4}}
+\newlabel{sec:residuals}{{4}{21}{Baby steps beyond a perfect stellar model}{section.4}{}}
+\citation{hus12}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Additional sources of noise}{22}{subsection.4.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Masking}{22}{subsection.4.2}}
+\citation{ss06}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Gallery of likelihood functions}{23}{subsection.4.3}}
+\@writefile{toc}{\contentsline {paragraph}{Combination of Gaussian with exponential wings}{23}{section*.17}}
+\@writefile{toc}{\contentsline {paragraph}{Sivia's model}{23}{section*.18}}
+\citation{hbl10}
+\citation{pre97,hbl10}
+\@writefile{toc}{\contentsline {paragraph}{$\chi ^2$ with flat tails}{24}{section*.19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Bad data model}{24}{subsection.4.4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Spatial correlations of pixels}{25}{subsection.4.5}}
+\citation{gcs+04}
 \citation{mga13}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.1}Mixture of multiple components}{26}{subsubsection.4.5.1}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.2}Correlation of the $q_i$ flags}{27}{subsubsection.4.5.2}}
+\citation{rw05}
 \citation{mb13}
-\citation{sdm+07}
 \citation{kru10}
-\citation{sdm+07}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Different flags and weights}{26}{subsection.5.5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Hyperparameters}{26}{subsection.5.6}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Sampling such a model}{27}{subsection.5.7}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Injection of fake lines}{27}{section.6}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.3}Correlation of adjacent $f_{\rm  M}(\lambda )$}{28}{subsubsection.4.5.3}}
+\citation{gcs+04}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Hyperparameters}{29}{subsection.4.6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Sampling such a model}{29}{subsection.4.7}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Injection of fake lines}{29}{section.5}}
+\citation{hus12}
 \citation{tfs+12}
 \citation{art+13}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Validation tests}{28}{section.7}}
-\@writefile{toc}{\contentsline {section}{\numberline {A}Simplification for small $c_0$ perturbations}{28}{appendix.A}}
-\newlabel{sec:gaussian_simplification}{{A}{28}{Simplification for small $c_0$ perturbations}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Piecewise metallicity model}{30}{subsection.5.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Validation tests}{30}{section.6}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Simplification for small $c_0$ perturbations}{31}{appendix.A}}
+\newlabel{sec:gaussian_simplification}{{A}{31}{Simplification for small $c_0$ perturbations}{appendix.A}{}}
 \bibdata{disks,bayesian,master}
 \bibcite{asa+13}{{1}{2013}{{{Akeret} {et~al.}}}{{{Akeret}, {Seehars}, {Amara}, {Refregier}, \& {Csillaghy}}}}
 \bibcite{art+13}{{2}{2013}{{{Astropy Collaboration} {et~al.}}}{{{Astropy Collaboration}, {Robitaille}, {Tollerud}, {Greenfield}, {Droettboom}, {Bray}, {Aldcroft}, {Davis}, {Ginsburg}, {Price-Whelan}, {Kerzendorf}, {Conley}, {Crighton}, {Barbary}, {Muna}, {Ferguson}, {Grollier}, {Parikh}, {Nair}, {Unther}, {Deil}, {Woillez}, {Conseil}, {Kramer}, {Turner}, {Singer}, {Fox}, {Weaver}, {Zabalza}, {Edwards}, {Azalee Bostroem}, {Burke}, {Casey}, {Crawford}, {Dencheva}, {Ely}, {Jenness}, {Labrie}, {Lian Lim}, {Pierfederici}, {Pontzen}, {Ptak}, {Refsdal}, {Servillat}, \& {Streicher}}}}
@@ -134,27 +144,30 @@
 \bibcite{fhl+12}{{10}{2012}{{{Foreman-Mackey} {et~al.}}}{{{Foreman-Mackey}, {Hogg}, {Lang}, \& {Goodman}}}}
 \bibcite{gcs+04}{{11}{2004}{{Gelman {et~al.}}}{{Gelman, Carlin, Stern, \& Rubin}}}
 \bibcite{gw10}{{12}{2010}{{Goodman \& Weare}}{{}}}
-\bibcite{dbl10}{{13}{2010}{{{Hogg} {et~al.}}}{{{Hogg}, {Bovy}, \& {Lang}}}}
-\bibcite{hwd+13}{{14}{2013}{{{Husser} {et~al.}}}{{{Husser}, {Wende-von Berg}, {Dreizler}, {Homeier}, {Reiners}, {Barman}, \& {Hauschildt}}}}
-\bibcite{kpb+09}{{15}{2009}{{{Koleva} {et~al.}}}{{{Koleva}, {Prugniel}, {Bouchard}, \& {Wu}}}}
-\bibcite{kru10}{{16}{2010}{{Kruschke}}{{}}}
-\bibcite{lbs+08}{{17}{2008}{{{Lee} {et~al.}}}{{{Lee}, {Beers}, {Sivarani}, {Allende Prieto}, {Koesterke}, {Wilhelm}, {Re Fiorentin}, {Bailer-Jones}, {Norris}, {Rockosi}, {Yanny}, {Newberg}, {Covey}, {Zhang}, \& {Luo}}}}
-\bibcite{mb13}{{18}{2013}{{{Ma} \& {Berndsen}}}{{}}}
-\bibcite{mga13}{{19}{2013}{{{Mann} {et~al.}}}{{{Mann}, {Gaidos}, \& {Ansdell}}}}
-\bibcite{mc07}{{20}{2007}{{{Martins} \& {Coelho}}}{{}}}
-\bibcite{nci+14}{{21}{2014}{{{Newton} {et~al.}}}{{{Newton}, {Charbonneau}, {Irwin}, {Berta-Thompson}, {Rojas-Ayala}, {Covey}, \& {Lloyd}}}}
-\bibcite{ptb14}{{22}{2014}{{{Paletou} {et~al.}}}{{{Paletou}, {Trouilhet}, \& {Boehm}}}}
-\bibcite{pre97}{{23}{1997}{{Press}}{{}}}
-\bibcite{psk+07}{{24}{2007}{{{Prugniel} {et~al.}}}{{{Prugniel}, {Soubiran}, {Koleva}, \& {Le Borgne}}}}
-\bibcite{rw05}{{25}{2005}{{Rasmussen \& Williams}}{{}}}
-\bibcite{rbd06}{{26}{2006}{{{Recio-Blanco} {et~al.}}}{{{Recio-Blanco}, {Bijaoui}, \& {de Laverny}}}}
-\bibcite{sam+10}{{27}{2010}{{{S\'{a}nchez Almeida} {et~al.}}}{{{S\'{a}nchez Almeida}, {Aguerri}, {Mu\~{n}oz-Tu\~{n}\'{o}n}, \& {de Vicente}}}}
-\bibcite{ssm+13}{{28}{2013}{{{Santos} {et~al.}}}{{{Santos}, {Sousa}, {Mortier}, {Neves}, {Adibekyan}, {Tsantaki}, {Delgado Mena}, {Bonfils}, {Israelian}, {Mayor}, \& {Udry}}}}
-\bibcite{sb13}{{29}{2013}{{{Schoenrich} \& {Bergemann}}}{{}}}
-\bibcite{sdm+07}{{30}{2007}{{{Shkedy} {et~al.}}}{{{Shkedy}, {Decin}, {Molenberghs}, \& {Aerts}}}}
-\bibcite{sne73}{{31}{1973}{{Sneden}}{{}}}
-\bibcite{svt+11}{{32}{2011}{{{Sordo} {et~al.}}}{{{Sordo}, {Vallenari}, {Tantalo}, {Liu}, {Smith}, {Allard}, {Blomme}, {Bouret}, {Brott}, {de Laverny}, {Edvardsson}, {Fr\'{e}mat}, {Heber}, {Josselin}, {Kochukhov}, {Korn}, {Lanzafame}, {Martayan}, {Martins}, {Plez}, {Schweitzer}, {Th\'{e}venin}, \& {Zorec}}}}
-\bibcite{sgd+09}{{33}{2009}{{Stoof {et~al.}}}{{Stoof, Gubbels, \& Dickerscheid}}}
-\bibcite{tfs+12}{{34}{2012}{{{Torres} {et~al.}}}{{{Torres}, {Fischer}, {Sozzetti}, {Buchhave}, {Winn}, {Holman}, \& {Carter}}}}
-\bibcite{vp96}{{35}{1996}{{{Valenti} \& {Piskunov}}}{{}}}
+\bibcite{hbl10}{{13}{2010}{{{Hogg} {et~al.}}}{{{Hogg}, {Bovy}, \& {Lang}}}}
+\bibcite{hus12}{{14}{2012}{{Husser}}{{}}}
+\bibcite{hwd+13}{{15}{2013}{{{Husser} {et~al.}}}{{{Husser}, {Wende-von Berg}, {Dreizler}, {Homeier}, {Reiners}, {Barman}, \& {Hauschildt}}}}
+\bibcite{kan14}{{16}{2014}{{Kane}}{{}}}
+\bibcite{kpb+09}{{17}{2009}{{{Koleva} {et~al.}}}{{{Koleva}, {Prugniel}, {Bouchard}, \& {Wu}}}}
+\bibcite{kru10}{{18}{2010}{{Kruschke}}{{}}}
+\bibcite{lbs+08}{{19}{2008}{{{Lee} {et~al.}}}{{{Lee}, {Beers}, {Sivarani}, {Allende Prieto}, {Koesterke}, {Wilhelm}, {Re Fiorentin}, {Bailer-Jones}, {Norris}, {Rockosi}, {Yanny}, {Newberg}, {Covey}, {Zhang}, \& {Luo}}}}
+\bibcite{mb13}{{20}{2013}{{{Ma} \& {Berndsen}}}{{}}}
+\bibcite{mga13}{{21}{2013}{{{Mann} {et~al.}}}{{{Mann}, {Gaidos}, \& {Ansdell}}}}
+\bibcite{mc07}{{22}{2007}{{{Martins} \& {Coelho}}}{{}}}
+\bibcite{nci+14}{{23}{2014}{{{Newton} {et~al.}}}{{{Newton}, {Charbonneau}, {Irwin}, {Berta-Thompson}, {Rojas-Ayala}, {Covey}, \& {Lloyd}}}}
+\bibcite{ptb14}{{24}{2014}{{{Paletou} {et~al.}}}{{{Paletou}, {Trouilhet}, \& {Boehm}}}}
+\bibcite{pre97}{{25}{1997}{{Press}}{{}}}
+\bibcite{psk+07}{{26}{2007}{{{Prugniel} {et~al.}}}{{{Prugniel}, {Soubiran}, {Koleva}, \& {Le Borgne}}}}
+\bibcite{rw05}{{27}{2005}{{Rasmussen \& Williams}}{{}}}
+\bibcite{rbd06}{{28}{2006}{{{Recio-Blanco} {et~al.}}}{{{Recio-Blanco}, {Bijaoui}, \& {de Laverny}}}}
+\bibcite{sam+10}{{29}{2010}{{{S\'{a}nchez Almeida} {et~al.}}}{{{S\'{a}nchez Almeida}, {Aguerri}, {Mu\~{n}oz-Tu\~{n}\'{o}n}, \& {de Vicente}}}}
+\bibcite{ssm+13}{{30}{2013}{{{Santos} {et~al.}}}{{{Santos}, {Sousa}, {Mortier}, {Neves}, {Adibekyan}, {Tsantaki}, {Delgado Mena}, {Bonfils}, {Israelian}, {Mayor}, \& {Udry}}}}
+\bibcite{sb13}{{31}{2013}{{{Schoenrich} \& {Bergemann}}}{{}}}
+\bibcite{sdm+07}{{32}{2007}{{{Shkedy} {et~al.}}}{{{Shkedy}, {Decin}, {Molenberghs}, \& {Aerts}}}}
+\bibcite{ss06}{{33}{2006}{{Sivia \& Skilling}}{{}}}
+\bibcite{sne73}{{34}{1973}{{Sneden}}{{}}}
+\bibcite{svt+11}{{35}{2011}{{{Sordo} {et~al.}}}{{{Sordo}, {Vallenari}, {Tantalo}, {Liu}, {Smith}, {Allard}, {Blomme}, {Bouret}, {Brott}, {de Laverny}, {Edvardsson}, {Fr\'{e}mat}, {Heber}, {Josselin}, {Kochukhov}, {Korn}, {Lanzafame}, {Martayan}, {Martins}, {Plez}, {Schweitzer}, {Th\'{e}venin}, \& {Zorec}}}}
+\bibcite{sgd+09}{{36}{2009}{{Stoof {et~al.}}}{{Stoof, Gubbels, \& Dickerscheid}}}
+\bibcite{tfs+12}{{37}{2012}{{{Torres} {et~al.}}}{{{Torres}, {Fischer}, {Sozzetti}, {Buchhave}, {Winn}, {Holman}, \& {Carter}}}}
+\bibcite{vp96}{{38}{1996}{{{Valenti} \& {Piskunov}}}{{}}}
 \bibstyle{hapj}

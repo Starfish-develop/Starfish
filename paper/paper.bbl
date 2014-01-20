@@ -1,4 +1,4 @@
-\begin{thebibliography}{35}
+\begin{thebibliography}{38}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
 
 \bibitem[{{Akeret} {et~al.}(2013){Akeret}, {Seehars}, {Amara}, {Refregier}, \&
@@ -62,14 +62,21 @@ Gelman, A., Carlin, J.~B., Stern, H.~S., \& Rubin, D.~B. 2004, {Bayesian data
 Goodman, J., \& Weare, J. 2010, Communications in Applied Mathematics and
   Computational Science, 5, 65
 
-\bibitem[{{Hogg} {et~al.}(2010){Hogg}, {Bovy}, \& {Lang}}]{dbl10}
+\bibitem[{{Hogg} {et~al.}(2010){Hogg}, {Bovy}, \& {Lang}}]{hbl10}
 {Hogg}, D.~W., {Bovy}, J., \& {Lang}, D. 2010, ArXiv e-prints, 1008.4686
+
+\bibitem[{Husser(2012)}]{hus12}
+Husser, T.-O. 2012, {3D-Spectroscopy of Dense Stellar Populations}
+  (Universit\"{a}tsverlag G\"{o}ttingen)
 
 \bibitem[{{Husser} {et~al.}(2013){Husser}, {Wende-von Berg}, {Dreizler},
   {Homeier}, {Reiners}, {Barman}, \& {Hauschildt}}]{hwd+13}
 {Husser}, T.-O., {Wende-von Berg}, S., {Dreizler}, S., {Homeier}, D.,
   {Reiners}, A., {Barman}, T., \& {Hauschildt}, P.~H. 2013, \aap, 553, A6,
   1303.5632
+
+\bibitem[{{Kane}(2014)}]{kan14}
+{Kane}, S.~R. 2014, ArXiv e-prints, 1401.3349
 
 \bibitem[{{Koleva} {et~al.}(2009){Koleva}, {Prugniel}, {Bouchard}, \&
   {Wu}}]{kpb+09}
@@ -140,8 +147,12 @@ Rasmussen, C.~E., \& Williams, C. K.~I. 2005, {Gaussian Processes for Machine
 {Shkedy}, Z., {Decin}, L., {Molenberghs}, G., \& {Aerts}, C. 2007, \mnras, 377,
   120, arXiv:astro-ph/0701449
 
+\bibitem[{Sivia \& Skilling(2006)}]{ss06}
+Sivia, D., \& Skilling, J. 2006, {Data analysis: a Bayesian tutorial} (Oxford
+  University Press, USA)
+
 \bibitem[{{Sneden}(1973)}]{sne73}
-{Sneden}, C.~A. 1973, PhD thesis, THE UNIVERSITY OF TEXAS AT AUSTIN.
+{Sneden}, C.~A. 1973, PhD thesis, The University of Texas at Austin.
 
 \bibitem[{{Sordo} {et~al.}(2011){Sordo}, {Vallenari}, {Tantalo}, {Liu},
   {Smith}, {Allard}, {Blomme}, {Bouret}, {Brott}, {de Laverny}, {Edvardsson},
