@@ -80,8 +80,8 @@ def main():
         print(outdir, "already exists, overwriting.")
 
     #Copy config.yaml and SLURM script to this directory
-    shutil.copy(confname, outdir + confname)
-    shutil.copy('run', outdir + 'run')
+    #shutil.copy(confname, outdir + confname)
+    #shutil.copy('run', outdir + 'run')
 
     # Choose an initial set of walker parameter positions, randomly distributed across a reasonable range of parameters.
     temp = np.random.uniform(low=wr['temp'][0], high=wr['temp'][1], size=(nwalkers,))
