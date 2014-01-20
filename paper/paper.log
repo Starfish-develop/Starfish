@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  19 JAN 2014 03:41
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Arch Linux) (format=pdflatex 2013.9.18)  20 JAN 2014 01:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -318,20 +318,20 @@ LaTeX Info: Redefining \bm on input line 204.
 ) (./paper.aux)
 \openout1 = `paper.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 32.
-LaTeX Font Info:    ... okay on input line 32.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 33.
+LaTeX Font Info:    ... okay on input line 33.
 
 (/usr/share/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
@@ -363,7 +363,7 @@ e
 ))
 AAS preprint substyle, v5.2 <12 Dec 2003>.
 \AtBeginShipoutBox=\box35
-Package hyperref Info: Link coloring OFF on input line 32.
+Package hyperref Info: Link coloring OFF on input line 33.
 (/usr/share/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
 
@@ -372,9 +372,9 @@ Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
 )
 \c@section@level=\count128
 )
-LaTeX Info: Redefining \ref on input line 32.
-LaTeX Info: Redefining \pageref on input line 32.
-LaTeX Info: Redefining \nameref on input line 32.
+LaTeX Info: Redefining \ref on input line 33.
+LaTeX Info: Redefining \pageref on input line 33.
+LaTeX Info: Redefining \nameref on input line 33.
  (./paper.out)
 (./paper.out)
 \@outlinefile=\write3
@@ -415,38 +415,38 @@ LaTeX Info: Redefining \nameref on input line 32.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Try loading font information for U+lasy on input line 46.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 47.
 (/usr/share/texmf-dist/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 46.
+LaTeX Font Info:    Try loading font information for U+msa on input line 47.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 46.
+LaTeX Font Info:    Try loading font information for U+msb on input line 47.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <8> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 46.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 47.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <6> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 46.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 47.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <9> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 59.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 60.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <5> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 59.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 60.
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 95.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 96.
 
 (/usr/share/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 95.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 96.
  [4] [5] [6] [7] [8]
 Package epstopdf Info: Source file: <lineclasses.eps>
 (epstopdf)                    date: 2014-01-18 20:57:38
@@ -456,107 +456,135 @@ Package epstopdf Info: Source file: <lineclasses.eps>
 (epstopdf)                    size: 24255 bytes
 (epstopdf)             Command: <repstopdf --outfile=lineclasses-eps-converted-
 to.pdf lineclasses.eps>
-(epstopdf)             \includegraphics on input line 138.
+(epstopdf)             \includegraphics on input line 139.
 Package epstopdf Info: Output file is already uptodate.
 
-<lineclasses-eps-converted-to.pdf, id=276, 433.62pt x 289.08pt>
+<lineclasses-eps-converted-to.pdf, id=279, 433.62pt x 289.08pt>
 File: lineclasses-eps-converted-to.pdf Graphic file (type pdf)
 
 <use lineclasses-eps-converted-to.pdf>
 Package pdftex.def Info: lineclasses-eps-converted-to.pdf used on input line 13
-8.
+9.
 (pdftex.def)             Requested size: 433.61894pt x 289.07928pt.
 
-Overfull \hbox (3.61432pt too wide) in paragraph at lines 138--139
+Overfull \hbox (3.61432pt too wide) in paragraph at lines 139--140
  [] 
  []
 
-[9 <./lineclasses-eps-converted-to.pdf>] [10] [11] [12] [13] [14]
-Overfull \hbox (16.26598pt too wide) detected at line 246
-[][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
-it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[] []
- []
-
-[15]
-Overfull \hbox (16.26598pt too wide) detected at line 287
+[9] [10 <./lineclasses-eps-converted-to.pdf>] [11] [12] [13] [14] [15]
+Overfull \hbox (16.26598pt too wide) detected at line 248
 [][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
 it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[] []
  []
 
 
-Overfull \hbox (27.22354pt too wide) detected at line 290
+Overfull \hbox (16.26598pt too wide) detected at line 289
+[][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
+it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[] []
+ []
+
+
+Overfull \hbox (27.22354pt too wide) detected at line 292
 [][]\OML/cmm/m/it/10.95 p\OT1/cmr/m/n/10.95 ([]\OMS/cmsy/m/n/10.95 j\OML/cmm/m/
 it/10.95 ^^U[]\OT1/cmr/m/n/10.95 )[] \OMS/cmsy/m/n/10.95 / ^^@[][] [] [] \OML/c
 mm/m/it/10.95 c[]T[]c[]T[] \OT1/cmr/m/n/10.95 + [] [] \OML/cmm/m/it/10.95 c[]T[
 ] \OMS/cmsy/m/n/10.95 ^^@ []
  []
 
-[16] [17] [18] [19] [20] [21]
-Overfull \hbox (64.95595pt too wide) detected at line 460
+[16] [17] [18] [19] [20]
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 394.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `\chi' on input line 394.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `superscript' on input line 394.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 394.
+
+[21] [22] [23] [24]
+Overfull \hbox (23.38544pt too wide) detected at line 481
  []$[][]$ []  
  []
 
-[22] [23] [24]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 523.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 523.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 523.
-
 [25] [26]
-Overfull \hbox (0.22952pt too wide) in paragraph at lines 551--552
-[]\OT1/cmr/m/n/10.95 Presumably, each line would be a Gaus-sian pa-ram-e-ter-iz
-ed by $\OML/cmm/m/it/10.95 ^^U[]$\OT1/cmr/m/n/10.95 , strength, and FWHM.
- []
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 499.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `subscript' on input line 499.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 499.
 
 [27]
-Overfull \hbox (13.77396pt too wide) in paragraph at lines 570--571
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 547.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `subscript' on input line 547.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `\lambda' on input line 547.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 547.
+
+[28] [29]
+Overfull \hbox (13.77396pt too wide) in paragraph at lines 588--589
 []\OT1/cmr/m/n/10.95 IC would like to gra-ciously ac-knowl-edge Gre-gory Green,
  Kaisey Man-del, Doug Finkbeiner,
  []
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 574.
+(hyperref)                removing `math shift' on input line 592.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `subscript' on input line 574.
+(hyperref)                removing `subscript' on input line 592.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 574.
+(hyperref)                removing `math shift' on input line 592.
 
-[28] [29] (./paper.bbl [30] [31]pdfTeX warning (ext4): destination with the sam
-e identifier (name{Hfootnote.6}) has been already used, duplicate ignored
+[30] [31] [32] (./paper.bbl [33] [34]pdfTeX warning (ext4): destination with th
+e same identifier (name{Hfootnote.6}) has been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.165 \end{thebibliography}
+l.176 \end{thebibliography}
                            )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 666.
- [32]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 666.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 684.
+ [35]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 684.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 666.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 666.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 684.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 684.
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: AFAE6FC7754DCCEE681B6D39DC193272;2323.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 666.
+(rerunfilecheck)             Checksum: C8B97A8DECB8B2C204AD651A6BB728A9;2364.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 684.
  ) 
 Here is how much of TeX's memory you used:
- 7816 strings out of 493311
- 107242 string characters out of 6143650
- 210371 words of memory out of 5000000
- 10950 multiletter control sequences out of 15000+600000
+ 7844 strings out of 493311
+ 107611 string characters out of 6143650
+ 210645 words of memory out of 5000000
+ 10964 multiletter control sequences out of 15000+600000
  18863 words of font info for 73 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
- 34i,14n,31p,1777b,460s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 34i,14n,31p,2062b,488s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf-dist/fon
 ts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texmf-dist/fonts/type1/publi
@@ -576,10 +604,10 @@ nts/type1/public/amsfonts/cm/cmti9.pfb></usr/share/texmf-dist/fonts/type1/publi
 c/amsfonts/cm/cmtt10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/
 cmtt9.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb
 >
-Output written on paper.pdf (32 pages, 363947 bytes).
+Output written on paper.pdf (35 pages, 381913 bytes).
 PDF statistics:
- 670 PDF objects out of 1000 (max. 8388607)
- 606 compressed objects within 7 object streams
- 198 named destinations out of 1000 (max. 500000)
+ 710 PDF objects out of 1000 (max. 8388607)
+ 643 compressed objects within 7 object streams
+ 212 named destinations out of 1000 (max. 500000)
  238 words of extra memory for PDF output out of 10000 (max. 10000000)
 

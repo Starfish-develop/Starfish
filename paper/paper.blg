@@ -16,20 +16,28 @@ Repeated entry---line 19 of file bayesian.bib
  : @article{fhl+12
  :                ,
 I'm skipping whatever remains of this entry
+Repeated entry---line 46 of file bayesian.bib
+ : @article{hbl10
+ :               ,
+I'm skipping whatever remains of this entry
 Database file #3: master.bib
-Repeated entry---line 461 of file master.bib
+Repeated entry---line 459 of file master.bib
  : @book{gcs+04
  :             ,
 I'm skipping whatever remains of this entry
-Repeated entry---line 1484 of file master.bib
+Repeated entry---line 1482 of file master.bib
  : @article{fhl+12
  :                ,
 I'm skipping whatever remains of this entry
-Repeated entry---line 1498 of file master.bib
+Repeated entry---line 1496 of file master.bib
  : @article{gw10
  :              ,
 I'm skipping whatever remains of this entry
-Repeated entry---line 1522 of file master.bib
+Repeated entry---line 1506 of file master.bib
+ : @article{hbl10
+ :               ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 1520 of file master.bib
  : @inproceedings{pre97
  :                     ,
 I'm skipping whatever remains of this entry
@@ -42,45 +50,45 @@ while executing---line 1659 of file hapj.bst
 Name 1 in "{Astropy Collaboration}, and {Robitaille}, T.~P. and {Tollerud}, E.~J. and {Greenfield}, P. and {Droettboom}, M. and {Bray}, E. and {Aldcroft}, T. and {Davis}, M. and {Ginsburg}, A. and {Price-Whelan}, A.~M. and {Kerzendorf}, W.~E. and {Conley}, A. and {Crighton}, N. and {Barbary}, K. and {Muna}, D. and {Ferguson}, H. and {Grollier}, F. and {Parikh}, M.~M. and {Nair}, P.~H. and {Unther}, H.~M. and {Deil}, C. and {Woillez}, J. and {Conseil}, S. and {Kramer}, R. and {Turner}, J.~E.~H. and {Singer}, L. and {Fox}, R. and {Weaver}, B.~A. and {Zabalza}, V. and {Edwards}, Z.~I. and {Azalee Bostroem}, K. and {Burke}, D.~J. and {Casey}, A.~R. and {Crawford}, S.~M. and {Dencheva}, N. and {Ely}, J. and {Jenness}, T. and {Labrie}, K. and {Lian Lim}, P. and {Pierfederici}, F. and {Pontzen}, A. and {Ptak}, A. and {Refsdal}, B. and {Servillat}, M. and {Streicher}, O." has a comma at the end for entry art+13
 while executing---line 1659 of file hapj.bst
 Reallocated wiz_functions (elt_size=8) to 6000 items from 3000.
-You've used 35 entries,
+You've used 38 entries,
             3002 wiz_defined-function locations,
-            864 strings with 12744 characters,
-and the built_in function-call counts, 19517 in all, are:
-= -- 1588
-> -- 1615
-< -- 12
-+ -- 597
-- -- 562
-* -- 1796
-:= -- 3671
-add.period$ -- 35
-call.type$ -- 35
-change.case$ -- 374
-chr.to.int$ -- 35
-cite$ -- 35
-duplicate$ -- 683
-empty$ -- 1027
-format.name$ -- 676
-if$ -- 3712
+            876 strings with 13043 characters,
+and the built_in function-call counts, 20551 in all, are:
+= -- 1674
+> -- 1658
+< -- 15
++ -- 612
+- -- 574
+* -- 1862
+:= -- 3866
+add.period$ -- 38
+call.type$ -- 38
+change.case$ -- 390
+chr.to.int$ -- 38
+cite$ -- 38
+duplicate$ -- 736
+empty$ -- 1125
+format.name$ -- 695
+if$ -- 3924
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 32
-newline$ -- 109
-num.names$ -- 141
-pop$ -- 412
+missing$ -- 35
+newline$ -- 118
+num.names$ -- 153
+pop$ -- 434
 preamble$ -- 1
-purify$ -- 373
+purify$ -- 389
 quote$ -- 0
-skip$ -- 544
+skip$ -- 593
 stack$ -- 0
-substring$ -- 644
+substring$ -- 677
 swap$ -- 6
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 303
+type$ -- 324
 warning$ -- 0
-while$ -- 126
+while$ -- 135
 width$ -- 0
-write$ -- 371
-(There were 11 error messages)
+write$ -- 401
+(There were 13 error messages)
