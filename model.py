@@ -153,6 +153,7 @@ grids = {"PHOENIX": {'T_points': np.array(
      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
                      'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': np.array([-1., -0.5, 0.0, 0.5, 1.0])},
+                     #'alpha_points': np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
          "kurucz": {'T_points': np.arange(3500, 9751, 250),
                     'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': np.array([-0.5, 0.0, 0.5])},
          "BTSettl": {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
@@ -173,6 +174,7 @@ grid = grids[config['grid']]
 T_points = grid['T_points']
 logg_points = grid['logg_points']
 Z_points = grid['Z_points']
+#alpha_points = grid['alpha_points']
 
 #Limit grid size to relevant region
 grid_params = config['grid_params']
@@ -191,6 +193,11 @@ Z_low, Z_high = grid_params['Z_range']
 Z_ind = (Z_points >= Z_low) & (Z_points <= Z_high)
 Z_points = Z_points[Z_ind]
 Z_arg = np.where(Z_ind)[0]
+
+#A_low, A_high = grid_params['alpha_range']
+#A_ind = (alpha_points >= A_low) & (alpha_points <= A_high)
+#A_points = alpha_points[A_ind]
+#A_arg = np.where(A_ind)[0]
 
 #Load the data to fit
 base = 'data/' + config['dataset']
@@ -291,6 +298,81 @@ def load_hdf5_spectrum(temp, logg, Z, grid_name, LIB_filename):
     f = LIB[T, G, Z]
     return f
 
+def quadlinear_interpolator():
+    '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
+    fhdf5 = h5py.File(LIB_filename, 'r')
+    LIB = fhdf5['LIB']
+
+    #Load only those indexes we want into a grid in memory
+    grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, A_arg[0]:A_arg[-1] + 1, ind] #weird syntax because
+    #sequence indexing is not supported for more than one axis in h5py
+    lenT, lenG, lenZ, lenA, lenF = grid.shape
+
+    #Create index interpolators
+    T_intp = interp1d(T_points, np.arange(lenT), kind='linear')
+    logg_intp = interp1d(logg_points, np.arange(lenG), kind='linear')
+    Z_intp = interp1d(Z_points, np.arange(lenZ), kind='linear')
+    A_intp = interp1d(alpha_points, np.arange(lenA), kind='linear')
+
+    fluxes = np.empty((16, lenF))
+    zeros = np.zeros(lenF)
+
+    def intp_func(temp, logg, Z, alpha):
+        if (logg < g_low) or (logg > g_high) or (temp < T_low) or (temp > T_high) or (Z < Z_low) or (Z > Z_high)\
+            or (alpha < A_low) or (alpha > A_high):
+            return zeros
+        else:
+            '''Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/'''
+            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z), A_intp(alpha)))
+            ui = np.ceil(indexes) #upper cube vertices
+            li = np.floor(indexes) #lower cube vertices
+            #print(li,ui)
+            w, x, y, z = (indexes - li) #range between 0 - 1
+            wu, xu, yu, zu = ui
+            wl, xl, yl, zl = li
+            fluxes[:] = np.array([
+                grid[wl, xl, yl, zl],
+                grid[wu, xl, yl, zl],
+                grid[wl, xu, yl, zl],
+                grid[wl, xl, yu, zl],
+                grid[wu, xl, yu, zl],
+                grid[wl, xu, yu, zl],
+                grid[wu, xu, yl, zl],
+                grid[wu, xu, yu, zl],
+                grid[wl, xl, yl, zu],
+                grid[wu, xl, yl, zu],
+                grid[wl, xu, yl, zu],
+                grid[wl, xl, yu, zu],
+                grid[wu, xl, yu, zu],
+                grid[wl, xu, yu, zu],
+                grid[wu, xu, yl, zu],
+                grid[wu, xu, yu, zu],
+                ])
+
+            weights = np.array([
+                (1 - w) * (1 - x) * (1 - y) * (1 - z),
+                w * (1 - x) * (1 - y) * (1 - z),
+                (1 - w) * x * (1 - y) * (1 - z),
+                (1 - w) * (1 - x) * y * (1 - z),
+                w * (1 - x) * y * (1 - z),
+                (1 - w) * x * y * (1 - z),
+                w * x * (1 - y) * (1 - z),
+                w * x * y * (1 - z),
+                (1 - w) * (1 - x) * (1 - y) * z,
+                w * (1 - x) * (1 - y) * z,
+                (1 - w) * x * (1 - y) * z,
+                (1 - w) * (1 - x) * y * z,
+                w * (1 - x) * y * z,
+                (1 - w) * x * y * z,
+                w * x * (1 - y) * z,
+                w * x * y * z])
+
+            #print(weights)
+            #print(np.sum(weights))
+
+            return np.average(fluxes, axis=0, weights=weights)
+
+    return intp_func
 
 def trilinear_interpolator():
     '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
@@ -549,6 +631,56 @@ def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
 
     #Loads the ENTIRE spectrum, not limited to a specific order
     f_full[:] = flux_factor * flux(temp, logg, Z)
+    #f_full = flux_factor * flux(temp, logg, Z)
+
+
+    #Take FFT of f_grid
+    #FF = fft(f_full)
+    fft_object()
+
+    ss[0] = 0.01 #junk so we don't get a divide by zero error
+    ub = 2. * np.pi * vsini * ss
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+    #set zeroth frequency to 1 separately (DC term)
+    sb[0] = 1.
+
+    FF[:] *= sb #institute velocity taper
+    #FF *= sb
+
+    #do ifft
+    ifft_object()
+    #blended_real = np.abs(ifft(FF))
+
+    blended_real[:] = np.abs(blended) #remove tiny complex component
+
+    #redden spectrum
+    red = blended_real / 10 ** (0.4 * Av * red_grid)
+    #red = blended_real
+
+    #do synthetic photometry to compare to points
+
+    f = InterpolatedUnivariateSpline(wave_grid, red)
+    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels
+    result = np.reshape(fresult, (norder, -1))
+    del f
+    gc.collect() #necessary to prevent memory leak!
+    return result
+
+def model_alpha(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor):
+    '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
+    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
+    blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+    #wlsz has length norders
+
+    #M = M * M_sun #g
+    #R = R * R_sun #cm
+    #d = d * pc #cm
+
+    #logg = np.log10(G * M / R**2)
+    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
+
+    #Loads the ENTIRE spectrum, not limited to a specific order
+    f_full[:] = flux_factor * flux(temp, logg, Z, alpha)
     #f_full = flux_factor * flux(temp, logg, Z)
 
 
@@ -963,7 +1095,10 @@ def lnprob_mixed(p):
               - 0.5 * (Av - mu_Av) ** 2 / sigma_Av
         #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \
         #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini
-        return lnp
+        if np.isnan(lnp):
+            return -np.inf
+        else:
+            return lnp
 
 def wrap_lnprob(lnprob, temp, logg, z, vsini):
     '''Return a lnprob function that keeps these parameters fixed'''
