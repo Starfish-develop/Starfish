@@ -13,7 +13,11 @@ import pyfftw
 import emcee
 
 if len(sys.argv) > 1:
-    confname = sys.argv[1]
+    for arg in sys.argv:
+        if ".yaml" in arg:
+            confname = arg
+        else:
+            confname = 'config.yaml'
 else:
     confname = 'config.yaml'
 f = open(confname)
@@ -55,18 +59,31 @@ R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
 
+class TestBaseSpectrum:
+    def setup_class(self):
+        self.spec = BaseSpectrum(np.linspace(5000, 5100, num=3000), np.random.normal(size=(3000,)))
+
+    def test_metadata(self):
+        print(self.spec.metadata)
+        self.spec.add_metadata(("hello","hi"))
+        print(self.spec.metadata)
+
+        anotherSpec = BaseSpectrum(np.linspace(5000, 5100, num=3000), np.random.normal(size=(3000,)))
+        print(anotherSpec.metadata)
+        anotherSpec.add_metadata(("hello","hi"))
+        print(anotherSpec.metadata)
+
 
 class BaseSpectrum:
-    def __init__(self, wl, fl, fl_type="flam", air=True, vel=0.0):
+    def __init__(self, wl, fl, fl_type="flam", air=True, vel=0.0, metadata=None):
         #TODO: convert fl_type to use astropy units for later conversions
         assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
         self.wl_raw = wl
         self.fl = fl
-        self.shape = self.wl_raw.shape
         self.fl_type = fl_type
         self.air = air
         self.velocity = vel #creates self.wl_vel
-
+        self.metadata = {} if metadata is None else metadata
 
     def convert_units(self):
         raise NotImplementedError
@@ -78,6 +95,7 @@ class BaseSpectrum:
 
     @air.setter
     def air(self, air):
+        #TODO: rewrite this to be more specific about which c
         assert type(air) == type(True)
         self._air = air
         if self.air:
@@ -94,6 +112,15 @@ class BaseSpectrum:
         '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
         self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
         self._velocity = vz
+
+    def add_metadata(self, keyVal):
+        key, val = keyVal
+        if key in self.metadata.keys():
+            self.metadata[key]+= val
+        else:
+            self.metadata[key] = val
+
+
 
 
 class DataSpectrum(BaseSpectrum):
@@ -118,13 +145,14 @@ class ModelSpectrum(BaseSpectrum):
 
 
 class Base1DSpectrum(BaseSpectrum):
-    def __init__(self, wl, fl, fl_type="flam", air=True):
-        super().__init__(wl, fl, fl_type=fl_type, air=air)
+    def __init__(self, wl, fl, fl_type="flam", air=True, metadata=None):
         assert len(wl.shape) == 1, "1D spectrum must be 1D"
+        #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
+        wl_sorted, ind = np.unique(wl, return_index=True)
+        fl_sorted = fl[ind]
+        super().__init__(wl_sorted, fl_sorted, fl_type=fl_type, air=air, metadata=metadata)
 
-    def convert_to_log_lambda(self):
-        #Sort grid, make values unique
-
+    def convert_to_log_lambda(self, vel_resolution, oversample=3.):
         #Inspect grid and find minimum spacing in velocity space
 
         #Create log-lamb grid spaced from min to max

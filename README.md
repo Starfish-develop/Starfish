@@ -127,6 +127,146 @@ Put the decorator `@profile` over the function you want to profile
 
 	python -m memory_profiler model.py
 
+
+# Object oriented rewrite
+
+## grid_tools.py
+
+Specify allowable parameters as a frozen set. Each object will have different requirements. We separate parameters
+into "grid parameters" and "post processing parameters"
+
+Grid Interface
+The grid interfaces require for each variable a frozen set of allowed grid points in the grid parameters.
+* Check to see that any spectrum that is loaded must be in the allowed grid points.
+
+When it comes to writing other grids
+* The length of grid parameters determines tri vs. quad linear interpolator
+* whether vsini is included also changes whether we interpolate in this or leave at 0.
+
+The Model and lnprob classes will require a full suite.
+
+If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+
+Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
+* specify grid locations
+* check grid bounds (otherwise raise custom error, which can be handeled by grid processor?)
+* load and return a raw flux file wrapped in spectrum object
+* PHOENIX, Kurucz, etc inherit the Grid base class
+
+Spectrum object can resample to log-linear
+* air to vac conversion
+* How to specify a log-linear grid? With what wavelength spacing? Should I erase wave_grid and just store this as a
+separate dataset (the first?) in the HDF5 file? Perhaps
+
+Master HDF5 File creation
+* uses a grid interface (composite type)
+* (log lam spacing, same wl grid, etc).
+
+Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific grid
+* grid locations
+* grid bounds
+* grid name
+* All of these attributes are stored in the HDF5 file itself, or can be determined from it's attributes.
+* No need to subclass? Same interface for both master file and instrument file
+* Has a writer class variable that can be set, which has a write_to_FITS() method
+
+Interpolator object
+* uses a HDF5 file Interface, either master or for an instrument
+* determines if interpolating in T,G,M or T,G,M,A (tri vs quad linear)
+* caches 8 or 16 (or twice as many) nearby spectra depending on how many T,G,M or T,G,M,A
+* handles edge cases (or uses HDF5 edge handling ability)
+
+Effbot: Two other uses are local caches/memoization; e.g.
+
+def calculate(a, b, c, memo={}):
+    try:
+        value = memo[a, b, c] # return already calculated value
+    except KeyError:
+        value = heavy_calculation(a, b, c)
+        memo[a, b, c] = value # update the memo dictionary
+    return value
+
+Memoization of python, using a decorator might be helpful, to have a dict of which grid parameters have been loaded
+* https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
+* can set a max number of spectra to keep in cache
+
+Instrument grid creation
+* takes a Master HDF5 grid, and instrument object, creates a new grid with the same attributes, does the
+ interpolation, convolution, vsini, etc.
+
+
+First create a master HDF5 file from the raw spectra, and then make Willie's derivative grids from this. Specific to an
+instrument, or a wl range, etc.
+
+Could have a decorator for the BT-Settl grid which checks to make sure no duplicates
+
+# Tasks:
+* library generation
+    * specify grid locations
+    * check grid bounds
+    * specify grid dimensions different spacing in T, G, M, vsini (plus how to specify these ranges?)
+    * load a raw flux file (different method for PHOENIX, Kurucz, BT-Settl)
+    * depending on which instrument,
+        * FWHM
+        * wavelength range
+        * wavelength spacing
+    * but also ability to interpolate a spectrum, if needed
+    * output to generic file storage (either FITS or HDF5 for now)
+
+* convolution might work on a spectrum object (either spectrum object has a .convolve method, or the instrument
+            object has a convolve method which takes a spectrum object as an argument)
+
+* a "writer" object as a composite type that will set keywords, like log lam, etc. Should the link from grid object
+to writer go both ways? So that the writer can query the grid properties (like wl spacing)? Create the writer object specifically inside the grid to preserve the link?
+* writer has an HDF5 .open() and .close() method
+
+* create an intermediate spectrum object?
+    * has tasks to resample to a different wl
+    * can do air to vac conversion
+
+* will need a grid interpolator
+    * uses different wavelength spacing
+    * also different spacing in T, G, M, A, don't know how many to use
+    * check grid bounds
+    * can determine whether it needs to interpolate in 3 or 4 dimensions
+    * if we don't expect to have anything other than these variables, we can hard code it
+    * otherwise we can come up with a paradigm that will allow arbitrary variables (stored as ordered dict?)
+    * caches 8 or 16 spectra from the previous evaluation
+    * will also need to interface to an HDF5 file (we can hardcode this, never a FITS)
+
+### How to implement
+* multiple inheritance
+* composite objects
+* decorator pattern is good over multiple inheritance when you want to choose between optional behaviours
+
+# lnprob
+
+* MCMC object could use a lnprob method or class, which takes a Model object and a Data object and compares the two
+* this could also implement priors depending on the type of model and parameter lists
+* fix parameters using dictionary keywords
+* what about certain model specific parameters, like Chebyshev coefficients
+
+### Data object
+* contains spectrum object, which also has masks and an error spectrum
+* photometry object
+* also a link to the specific instrument which created it
+
+### Model object
+* contains spectrum object
+* photometry object
+* instrument object? do we want to fit for FWHM or kernel? What about Gauss-Hermite polynomials?
+* this might require a link to the data to know exactly what wl and how many orders to downsample to
+* if no data is linked to, it just outputs the raw wl
+* can set degree of polynomial fits based to call to instrument. Does this also need a link to the instrument object?
+Or can it use the link through the data object.
+
+## A major problem is how to elegantly handle multiple length parameter lists
+* arises for grid, lnprob, model, etc...
+* could use **kwargs and then have a parameters.update() dictionary, only the parameters that are in the dictionary are
+fit for, otherwise there are default values for each function?
+* this looks like it will work well
+
+
 # Stellar parameter papers
 
 * Dong 2013 LAMOST v. KIC
