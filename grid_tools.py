@@ -2,6 +2,8 @@ import numpy as np
 from numpy.fft import fft, ifft, fftfreq
 import astropy.io.fits as pf
 from astropy.io import ascii,fits
+import warnings
+import pytest
 
 import multiprocessing as mp
 
@@ -25,45 +27,140 @@ L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 R_sun = 6.955e10 #cm
 F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
-class BaseGrid:
-    def __init__(self, name, temp_points, logg_points, Z_points, alpha_points=None, air=True):
+#Testing suite
+def pytest_funcargs__valid_rawgrid_interface(request):
+    return RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
+
+class TestRawGridInterface:
+    def setup_class(self):
+        print("Creating RawGridInterface")
+        self.rawgrid = RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
+
+    def test_check_params(self):
+        print("Parameter checking")
+        self.rawgrid.check_params({"temp":5100, "logg":3.5, "Z":0.0})
+
+    def test_check_params_extra(self):
+        print("Checking to see if GridError properly raised")
+        with pytest.raises(GridError) as e:
+            self.rawgrid.check_params({"temp":5100, "logg":3.5, "bunny":0.0})
+        print(e.value)
+
+    def test_check_params_outside(self):
+        print("Checking to see if GridError properly raised")
+        with pytest.raises(GridError) as e:
+            self.rawgrid.check_params({"temp":100, "logg":3.5, "Z":0.0})
+        print(e.value)
+
+class TestPHOENIXGridInterface(TestRawGridInterface):
+    def setup_class(self):
+        print("Creating PHOENIXGridInterface")
+        self.rawgrid = PHOENIXGridInterface(air=True, norm=True)
+
+    def test_check_params_alpha(self):
+        print("Checking alpha")
+        self.rawgrid.check_params({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.2})
+
+    def test_load_alpha(self):
+        self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0})
+        self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+        with pytest.raises(GridError) as e:
+            self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.2})
+        print(e.value)
+
+    def test_load_file(self):
+        print("Testing loading of file")
+        spec = self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+        print(spec.metadata)
+
+
+#Allowed grid parameters
+grid_parameters = frozenset(("temp", "logg", "Z", "alpha"))
+
+#Allowed "post processing parameters"
+pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega"))
+
+#All allowed parameters, the union of grid_parameters and pp_parameters
+all_parameters = grid_parameters | pp_parameters
+
+#Dictionary of allowed variables with default values
+var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "Omega":1.0}
+
+class GridError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+class Base:
+    def __init__(self, parameters):
+        '''Parameters are given as a dictionary, which is cycled through and instantiates self.parameters.
+         If the parameter is not found allowed parameters, raise a warning and do not instantiate it. Further down the
+         line, if a method needs a value for a parameter, it can query the default value, otherwise it can act as
+         a short circuit if this parameter is not in the dictionary.'''
+        self.parameters = set([])
+        assert type(parameters) is dict, "Parameters must be a dictionary"
+        for key, value in parameters.items():
+            if key in var_default.keys():
+                self.parameters[key] = value
+            else:
+                warnings.warn("{0} is not an allowed parameter, skipping".format(key), UserWarning)
+
+    def __str__(self):
+        prtstr = "".join(["{0} : {1:.2f} \n".format(key, value) for key,value in self.parameters.items()])
+        return prtstr
+
+
+class RawGridInterface:
+    '''Takes in points, which is a dictionary with key values as parameters and values the sets of grid points.'''
+    def __init__(self, name, points, air=True, wl_range=[3000,13000]):
         self.name = name
-        self.temp_points = temp_points
-        self.logg_points = logg_points
-        self.Z_points = Z_points
-        self.alpha_points = np.array([0.0]) if (alpha_points is None) else alpha_points
+        self.points = {}
+        assert type(points) is dict, "points must be a dictionary."
+        for key, value in points.items():
+            if key in grid_parameters:
+                self.points[key] = value
+            else:
+                warnings.warn("{0} is not an allowed parameter, skipping".format(key), UserWarning)
+
         self.air = air #read files in air wavelengths?
+        self.wl_range = wl_range #values to truncate grid
 
-    def check_params(self, temp, logg, Z, alpha=0.0):
-        '''Checks to see if parameter combo is in the list, otherwise returns an error.'''
-        if (temp in self.temp_points) and (logg in self.logg_points) \
-            and (Z in self.Z_points) and (alpha in self.alpha_points):
-            return True
-        else:
-            raise IndexError("Temp: {temp:.0f}, logg: {logg:.1f}, [Fe/H]: {Z:.1f}, "
-                             "[alpha/Fe]: {alpha:.1f} not in {grid} grid".format(temp=temp,
-                                                logg=logg, Z=Z, alpha=alpha, grid=self.name))
+    def check_params(self, parameters):
+        '''Checks to see if parameter dict is a subset of allowed parameters, otherwise raises an AssertionError,
+        which can be chosen to be handled later..'''
+        if not set(parameters.keys()) <= grid_parameters:
+            raise GridError("{} not in allowable grid parameters {}".format(parameters.keys(), grid_parameters))
 
-    def load_file(self, temp, logg, Z, alpha=0.0):
-        '''Designed to be extended'''
-        self.check_params(temp, logg, Z, alpha)
+        for key,value in parameters.items():
+            if value not in self.points[key]:
+                raise GridError("{} not in the grid points {}".format(value, sorted(self.points[key])))
+
+    def load_file(self, parameters, norm=True):
+        '''Designed to be overwritten by an extended class'''
+        self.check_params(parameters)
+        #loads file
+        #truncates to wl_range
         #returns a spectrum object defined by subclass
+        #also includes metadata from the FITS header
 
-
-class PHOENIXGrid(BaseGrid):
-    def __init__(self, air=True, wl_range=[3000,13000]):
+class PHOENIXGridInterface(RawGridInterface):
+    def __init__(self, air=True, norm=True):
         super().__init__("PHOENIX",
-        temp_points = np.array(
-     [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
+        {"temp":
+      np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
       4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
       6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
       9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-        logg_points = np.arange(0.0, 6.1, 0.5),
-        Z_points = np.arange(-1., 1.1, 0.5),
-        alpha_points = np.array([0.0, 0.2, 0.4, 0.6, 0.8]),
-        air=air)
+        "logg":np.arange(0.0, 6.1, 0.5),
+        "Z":np.arange(-1., 1.1, 0.5),
+        "alpha":np.array([0.0, 0.2, 0.4, 0.6, 0.8])},
+        air=air, wl_range=[3000,13000])
+
+        self.norm = norm #Normalize to 1 solar luminosity?
         self.rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
         self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+        self.alpha_dict = {-0.2:".Alpha=-0.20", 0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40", 0.6:".Alpha=+0.60",
+                           0.8:".Alpha=+0.80"}
+
         #if air is true, convert the normally vacuum file to air wls.
         wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         w_full = wl_file[0].data
@@ -73,28 +170,57 @@ class PHOENIXGrid(BaseGrid):
         else:
             self.wl_full = w_full
 
-        self.wl_range = wl_range
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
-        self.norm = True
-        self.wl_short = self.wl_full[self.ind]
+        self.wl = self.wl_full[self.ind]
+        self.rname = "raw_grids/PHOENIX/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+                     ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
-    def load_file(self, temp, logg, Z, alpha=0.0):
-        super().load_file(temp, logg, Z, alpha)
+    def load_file(self, parameters):
+        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
 
-        rname = self.rname.format(temp=temp, logg=logg, Z=self.Z_dict[Z])
-        flux_file = pf.open(rname)
-        f = flux_file[0].data
-        flux_file.close()
+        str_parameters = parameters.copy()
+        #Rewrite Z
+        Z = parameters["Z"]
+        str_parameters["Z"] = self.Z_dict[Z]
 
+        #Rewrite alpha, allow alpha to be missing from parameters
+        try:
+            alpha = parameters["alpha"]
+        except KeyError:
+            alpha = 0.0
+            parameters["alpha"] = alpha
+        str_parameters["alpha"] = self.alpha_dict[alpha]
+
+        fname = self.rname.format(**str_parameters)
+
+        #Still need to check that file is in the grid, otherwise raise a GridError
+        #Read all metadata in from the FITS header, and append to spectrum
+        try:
+            flux_file = pf.open(fname)
+            f = flux_file[0].data
+            hdr = flux_file[0].header
+            flux_file.close()
+        except OSError:
+            raise GridError("{} is not on disk.".format(fname))
+
+        #If we want to normalize the spectra, we must do it now since later we won't have the full EM range
         if self.norm:
             f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
             F_bol = trapz(f, self.wl_full)
             f = f * (F_sun / F_bol) #bolometric luminosity is always 1 L_sun
 
-        return Base1DSpectrum(self.wl_short, f[self.ind], air=self.air)
+        #Add temp, logg, Z, alpha, norm to the metadata
+        header = parameters
+        header["norm"] = self.norm
+        #Keep only the relevant PHOENIX keywords, which start with PHX
+        for key, value in hdr.items():
+            if key[:3] == "PHX":
+                header[key] = value
+
+        return Base1DSpectrum(self.wl, f[self.ind], metadata=header, air=self.air)
 
 
-class KuruczGrid(BaseGrid):
+class KuruczGridInterface:
     def __init__(self):
         super().__init__("Kurucz", "Kurucz/",
         temp_points = np.arange(3500, 9751, 250),
@@ -109,8 +235,11 @@ class KuruczGrid(BaseGrid):
         '''Includes an interface that can map a queried number to the actual string'''
         super().load_file(temp, logg, Z)
 
+class BTSettlGridInterface:
+    def __init__(self):
+        pass
 
-class HDF5Interface(BaseGrid):
+class HDF5Interface:
     '''Connect to an HDF5 file that stores spectra. Properly close the file when done.
     Useful for creating grid when using a GridProcessor, or when reading from the
     HDF5 grid in model or general use.'''
@@ -164,12 +293,12 @@ class HDF5Interface(BaseGrid):
         self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :] = flux
 
 
-class FITSInterface(BaseGrid):
+class FITSInterface:
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 class GridProcessor:
-    def __init__(self, grid=PHOENIXGrid, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
+    def __init__(self, grid=None, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
                  alpha_range=[0, np.inf], chunksize=20):
         self.grid = grid
 
@@ -858,8 +987,8 @@ def main():
     #print(CDELT1)
     #print(NAXIS)
     #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
-    process_PHOENIX_to_grid(6000, 4.5, "-0.0", None, 8, 14.4)
-    process_PHOENIX_to_grid(4000, 4.5, "-0.0", None, 4, 14.4)
+    #process_PHOENIX_to_grid(6000, 4.5, "-0.0", None, 8, 14.4)
+    #process_PHOENIX_to_grid(4000, 4.5, "-0.0", None, 4, 14.4)
     #def test():
     #    HDF5 = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w", np.linspace(5000, 6000), np.array([6000, 6100]), np.array([3.5, 4.0]),
     #                     np.array([-0.5, 0.0]), np.array([0.0, 0.2]))
