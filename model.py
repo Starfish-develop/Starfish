@@ -144,9 +144,9 @@ class Base1DSpectrum(BaseSpectrum):
         dif = np.diff(self.wl_vel)
         min_wl = np.min(dif)
         wl_at_min = self.wl_vel[np.argmin(dif)]
-        (log_lam_grid, CRVAL1, CDELT1, NAXIS1) = create_log_lam_grid(wl_start=self.wl_vel[0],
-                                                           wl_end=self.wl_vel[-1], min_WL=(min_wl, wl_at_min))
-        return log_lam_grid
+        wl_dict = create_log_lam_grid(wl_start=self.wl_vel[0], wl_end=self.wl_vel[-1], min_WL=(min_wl, wl_at_min))
+        #(log_lam_grid, CRVAL1, CDELT1, NAXIS1)
+        return wl_dict
 
     def resample_to_grid(self, grid):
         '''Resamples to a new grid. For other methods, Grid does not necessarily have to be 1D.'''
