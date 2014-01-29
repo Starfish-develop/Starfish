@@ -18,6 +18,7 @@ import gc
 import bz2
 import h5py
 from functools import partial
+import itertools
 
 from model import Base1DSpectrum, LogLambdaSpectrum
 
@@ -26,53 +27,6 @@ c_ang = 2.99792458e18 #A s^-1
 L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
 R_sun = 6.955e10 #cm
 F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
-
-#Testing suite
-def pytest_funcargs__valid_rawgrid_interface(request):
-    return RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
-
-class TestRawGridInterface:
-    def setup_class(self):
-        print("Creating RawGridInterface")
-        self.rawgrid = RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
-
-    def test_check_params(self):
-        print("Parameter checking")
-        self.rawgrid.check_params({"temp":5100, "logg":3.5, "Z":0.0})
-
-    def test_check_params_extra(self):
-        print("Checking to see if GridError properly raised")
-        with pytest.raises(GridError) as e:
-            self.rawgrid.check_params({"temp":5100, "logg":3.5, "bunny":0.0})
-        print(e.value)
-
-    def test_check_params_outside(self):
-        print("Checking to see if GridError properly raised")
-        with pytest.raises(GridError) as e:
-            self.rawgrid.check_params({"temp":100, "logg":3.5, "Z":0.0})
-        print(e.value)
-
-class TestPHOENIXGridInterface(TestRawGridInterface):
-    def setup_class(self):
-        print("Creating PHOENIXGridInterface")
-        self.rawgrid = PHOENIXGridInterface(air=True, norm=True)
-
-    def test_check_params_alpha(self):
-        print("Checking alpha")
-        self.rawgrid.check_params({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.2})
-
-    def test_load_alpha(self):
-        self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0})
-        self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
-        with pytest.raises(GridError) as e:
-            self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.2})
-        print(e.value)
-
-    def test_load_file(self):
-        print("Testing loading of file")
-        spec = self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
-        print(spec.metadata)
-
 
 #Allowed grid parameters
 grid_parameters = frozenset(("temp", "logg", "Z", "alpha"))
@@ -144,8 +98,8 @@ class RawGridInterface:
 
 class PHOENIXGridInterface(RawGridInterface):
     def __init__(self, air=True, norm=True):
-        super().__init__("PHOENIX",
-        {"temp":
+        super().__init__(name="PHOENIX",
+        points={"temp":
       np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
       4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
       6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
@@ -153,7 +107,7 @@ class PHOENIXGridInterface(RawGridInterface):
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-1., 1.1, 0.5),
         "alpha":np.array([0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=[3000,13000])
+        air=air, wl_range=[3000, 13000])
 
         self.norm = norm #Normalize to 1 solar luminosity?
         self.rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
@@ -239,6 +193,108 @@ class BTSettlGridInterface:
     def __init__(self):
         pass
 
+def process_flux(tup):
+    HDF5, parameters = tup
+    print(parameters)
+    #HDF5Obj.process_flux(parameters)
+
+class HDF5Holder:
+    def __init__(self, fname):
+        self.file = h5py.File(fname, "w")
+
+class HDF5GridCreator:
+    '''Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
+    file with the proper attributes.
+
+    HDF5 file has the following levels
+    /
+
+    wl
+       - CRVAL1
+       - CRDELT1
+       - NAXIS1
+       - vres
+
+    flux/
+        t6000g3.5z0.0a0.0
+           - temp
+           - logg
+           - Z
+           - alpha
+           - PHX params
+           - anything else
+
+        t6100g3.5z0.0a0.0
+        etc...
+       '''
+    def __init__(self, GridInterface, ranges, filename, wldict, chunksize):
+        self.GridInterface = GridInterface
+        self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
+        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.chunksize = chunksize
+
+        #Discern between HDF5GridCreator points and GridInterface points using ranges
+        self.points = {}
+        for key, value in ranges.items():
+            valid_points  = self.GridInterface.points[key]
+            low,high = value
+            ind = (valid_points >= low) & (valid_points <= high)
+            self.points[key] = valid_points[ind]
+
+        #wldict is the output from create_log_lam_grid, containing CRVAL1, CDELT1, etc...
+        self.wl = wldict.pop("wl")
+        self.wl_params = wldict
+
+        with h5py.File(self.filename, "w") as hdf5:
+            hdf5.attrs["grid_name"] = GridInterface.name
+            hdf5.flux_group = hdf5.create_group("flux")
+            hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
+            self.create_wl(hdf5)
+
+        #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
+
+        #TODO: check alpha behavior
+        #TODO: store points as attr of fl folder, eh, too much to store though
+
+    def create_wl(self, hdf5):
+        wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f", compression='gzip', compression_opts=9)
+        wl_dset[:] = self.wl
+        for key, value in self.wl_params.items():
+            wl_dset.attrs[key] = value
+            wl_dset.attrs["air"] = self.GridInterface.air
+
+    def process_flux(self, parameters):
+        #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
+        #the GridInterface actually has alpha or not.'''
+        try:
+            spec = self.GridInterface.load_file(parameters) #this
+            spec.resample_to_grid(self.wl) #and this are the two slow methods
+            return (parameters,spec)
+
+        except GridError:
+            print("Not able to process file with parameters {}".format(parameters))
+
+    def process_grid(self):
+        #Take all parameter permutations in self.points and create a list
+        param_list = [] #list of parameter dictionaries
+        keys,values = self.points.keys(),self.points.values()
+
+        #use itertools.product to create permutations of all possible values
+        for i in itertools.product(*values):
+            param_list.append(dict(zip(keys,i)))
+
+        pool = mp.Pool(4)
+        with h5py.File(self.filename, "r+") as hdf5:
+            for parameters, spec in pool.imap(self.process_flux, param_list): #python 3 is lazy map
+                flux = hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(spec.fl),),
+                                                      dtype="f", compression='gzip', compression_opts=9)
+                flux[:] = spec.fl
+
+                #Store header keywords as attributes in HDF5 file
+                for key,value in spec.metadata.items():
+                    flux.attrs[key] = value
+
+
 class HDF5Interface:
     '''Connect to an HDF5 file that stores spectra. Properly close the file when done.
     Useful for creating grid when using a GridProcessor, or when reading from the
@@ -291,11 +347,6 @@ class HDF5Interface:
     def write_flux(self, flux, temp, logg, Z, alpha):
         assert len(flux) == len(self.wave_grid)
         self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :] = flux
-
-
-class FITSInterface:
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
 class GridProcessor:
     def __init__(self, grid=None, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
@@ -454,6 +505,34 @@ def create_wave_grid(v=1., start=3700., end=10000):
         i += 1
         lam_grid[i] = lam_new
     return lam_grid[np.nonzero(lam_grid)][:-1]
+
+def create_log_lam_grid(wl_start=3000., wl_end=13000., min_WL=None, min_V=None):
+    '''min_WL = (delta_WL, WL). Takes the finer of the two specified.'''
+    if (min_WL is None) and (min_V is None):
+        raise ValueError("You need to specify either min_WL or min_V")
+    if min_WL is not None:
+        delta_wl, wl = min_WL #unpack
+        Vwl = delta_wl/wl
+        min_vc = Vwl
+    if min_V is not None:
+        Vv = min_V/c_kms
+        min_vc = Vv
+    if (min_WL is not None) and (min_V is not None):
+        min_vc = Vwl if Vwl < Vv else Vv
+
+    CDELT_temp = np.log10(min_vc +1)
+    CRVAL1 = np.log10(wl_start)
+    CRVALN = np.log10(wl_end)
+    N = (CRVALN - CRVAL1)/CDELT_temp
+    NAXIS1 = 2
+    while NAXIS1 < N: #Make NAXIS1 an integer power of 2 for FFT purposes
+        NAXIS1 *= 2
+
+    CDELT1 = (CRVALN - CRVAL1)/(NAXIS1 - 1)
+
+    p = np.arange(NAXIS1)
+    wl = 10 ** (CRVAL1 + CDELT1 * p)
+    return {"wl":wl, "CRVAL1":CRVAL1, "CDELT1":CDELT1, "NAXIS1":NAXIS1}
 
 
 def create_fine_and_coarse_wave_grid():
@@ -968,6 +1047,11 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
 
 def main():
     ncores = mp.cpu_count()
+    wldict = create_log_lam_grid(min_V=2.)
+    rawgrid = PHOENIXGridInterface(air=True, norm=True)
+    HDF5Creator = HDF5GridCreator(rawgrid, ranges={"temp":(5000, 6000), "logg":(3.5, 4.5), "Z":(0.0,0.0),
+                                                         "alpha":(0.0, 0.0)}, outfile="test.hdf5", wldict=wldict)
+    HDF5Creator.process_grid()
     #create_fine_and_coarse_wave_grid()
     #create_coarse_wave_grid_kurucz()
 

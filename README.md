@@ -143,6 +143,8 @@ When it comes to writing other grids
 * The length of grid parameters determines tri vs. quad linear interpolator
 * whether vsini is included also changes whether we interpolate in this or leave at 0.
 
+
+
 The Model and lnprob classes will require a full suite.
 
 If a function requires a parameter and it's not in the parameter list, it looks up the default value.
@@ -153,14 +155,19 @@ Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
 * load and return a raw flux file wrapped in spectrum object
 * PHOENIX, Kurucz, etc inherit the Grid base class
 
+Ways to resample wavelengths
+* Willie's spectra will require a wl grid specified by FITS headers
+* When spectra are convolved with instrumental resolution, they can be downsampled
+
 Spectrum object can resample to log-linear
 * air to vac conversion
-* How to specify a log-linear grid? With what wavelength spacing? Should I erase wave_grid and just store this as a
-separate dataset (the first?) in the HDF5 file? Perhaps
+* could store wave_grid in a separate dataset of the HDF5 file?
 
 Master HDF5 File creation
+* more tests
+* check with/without alpha
 * uses a grid interface (composite type)
-* (log lam spacing, same wl grid, etc).
+*
 
 Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific grid
 * grid locations
@@ -169,6 +176,10 @@ Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific 
 * All of these attributes are stored in the HDF5 file itself, or can be determined from it's attributes.
 * No need to subclass? Same interface for both master file and instrument file
 * Has a writer class variable that can be set, which has a write_to_FITS() method
+
+MasterHD5F grid to instrument specific grids
+* Search through attributes of master HDF5 file to locate all valid param combos
+
 
 Interpolator object
 * uses a HDF5 file Interface, either master or for an instrument
