@@ -144,6 +144,18 @@ When it comes to writing other grids
 * whether vsini is included also changes whether we interpolate in this or leave at 0.
 
 
+#Tests
+* Create good tests for PHOENIXGridInterface
+    * different base library locations
+    * make Odyssey directories the same as local drive
+* Create good tests for GridCreator
+    * try using different ranges
+    * what about giving it bad parameters
+
+
+#Move all execution scripts (that use objects) into separate code. Perhaps a script directory?
+
+
 
 The Model and lnprob classes will require a full suite.
 
