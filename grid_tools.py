@@ -3,7 +3,6 @@ from numpy.fft import fft, ifft, fftfreq
 import astropy.io.fits as pf
 from astropy.io import ascii,fits
 import warnings
-import pytest
 
 import multiprocessing as mp
 
@@ -65,7 +64,7 @@ class Base:
 
 class RawGridInterface:
     '''Takes in points, which is a dictionary with key values as parameters and values the sets of grid points.'''
-    def __init__(self, name, points, air=True, wl_range=[3000,13000]):
+    def __init__(self, name, points, air=True, wl_range=[3000,13000], base=None):
         self.name = name
         self.points = {}
         assert type(points) is dict, "points must be a dictionary."
@@ -77,6 +76,7 @@ class RawGridInterface:
 
         self.air = air #read files in air wavelengths?
         self.wl_range = wl_range #values to truncate grid
+        self.base = base
 
     def check_params(self, parameters):
         '''Checks to see if parameter dict is a subset of allowed parameters, otherwise raises an AssertionError,
@@ -97,7 +97,7 @@ class RawGridInterface:
         #also includes metadata from the FITS header
 
 class PHOENIXGridInterface(RawGridInterface):
-    def __init__(self, air=True, norm=True):
+    def __init__(self, air=True, norm=True, base="raw_grids/PHOENIX/"):
         super().__init__(name="PHOENIX",
         points={"temp":
       np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
@@ -107,9 +107,7 @@ class PHOENIXGridInterface(RawGridInterface):
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-1., 1.1, 0.5),
         "alpha":np.array([0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=[3000, 13000])
-
-        base = "/n/home07/iczekala/holyscratch/raw_libraries/PHOENIX/HiResFITS/"
+        air=air, wl_range=[3000, 13000], base=base)
 
         self.norm = norm #Normalize to 1 solar luminosity?
         self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
@@ -117,7 +115,7 @@ class PHOENIXGridInterface(RawGridInterface):
                            0.8:".Alpha=+0.80"}
 
         #if air is true, convert the normally vacuum file to air wls.
-        wl_file = pf.open(base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+        wl_file = pf.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         w_full = wl_file[0].data
         wl_file.close()
         if self.air:
@@ -127,7 +125,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = base + "PHOENIX-ACES-AGSS-COND-2011/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+        self.rname = self.base + "Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
                      ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
     def load_file(self, parameters):
@@ -458,8 +456,6 @@ class Instrument:
         self.response_kernel
         self.min_resolution
         pass
-
-
 
 
 
@@ -1052,40 +1048,7 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
 
 def main():
 
-    rawgrid = PHOENIXGridInterface(air=True, norm=True)
-    spec = rawgrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
-    wldict = spec.calculate_log_lam_grid()
-
-    base = "/n/home07/iczekala/holyscratch/master_grids/"
-
-    HDF5Creator = HDF5GridCreator(rawgrid, filename=base + "PHOENIX_master.hdf5", wldict=wldict)
-    HDF5Creator.process_grid()
-    #create_fine_and_coarse_wave_grid()
-    #create_coarse_wave_grid_kurucz()
-
-    #create_grid_parallel(ncores, "LIB_kurucz_2kms_air.hdf5", grid_name="kurucz")
-    #create_grid_parallel(ncores, "LIB_PHOENIX_2kms_air.hdf5", grid_name="PHOENIX", convolve=True)
-    #create_grid_parallel(ncores, "LIB_PHOENIX_0.35kms_air.hdf5", grid_name="PHOENIX", convolve=False)
-    #load_flux_full(5900, 7.0, "-0.0", norm=False, vsini=0, grid="PHOENIX")
-
-    #create_grid_parallel(ncores, "LIB_BTSettl_2kms_air.hdf5", grid_name="BTSettl", convolve=True)
-    #create_grid_parallel(ncores, "LIB_BTSettl_0.35kms_air.hdf5", grid_name="BTSettl", convolve=False)
-    #n = np.linspace(6200, 6700, num=11627)
-    #create_fits("test.fits", n, 3.7923916895, 2.89729125382e-06, dict={"Author":"Ian Czekala"})
-    #wl, CRVAL1, CDELT1, NAXIS = create_FITS_wavegrid(6200, 6700, 2.)
-    #np.save("wave_grids/willie_custom_2kms.npy", wl)
-    #print(wl)
-    #print(CRVAL1)
-    #print(CDELT1)
-    #print(NAXIS)
-    #out_grid = np.load("wave_grids/willie_custom_2kms.npy")
-    #process_PHOENIX_to_grid(6000, 4.5, "-0.0", None, 8, 14.4)
-    #process_PHOENIX_to_grid(4000, 4.5, "-0.0", None, 4, 14.4)
-    #def test():
-    #    HDF5 = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w", np.linspace(5000, 6000), np.array([6000, 6100]), np.array([3.5, 4.0]),
-    #                     np.array([-0.5, 0.0]), np.array([0.0, 0.2]))
-    #test()
-    #processor = TRES_PHOENIX_HDF5_Processor()
+    pass
 
 
 if __name__ == "__main__":
