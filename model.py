@@ -48,7 +48,6 @@ c_kms = 2.99792458e5 #km s^-1
 #n @ 6000: 1.0002769832562917
 #n @ 8000: 1.0002750477973053
 
-
 n_air = 1.000277
 c_ang_air = c_ang/n_air
 c_kms_air = c_kms/n_air
@@ -58,20 +57,6 @@ M_sun = 1.99e33 #g
 R_sun = 6.955e10 #cm
 pc = 3.0856776e18 #cm
 AU = 1.4959787066e13 #cm
-
-class TestBaseSpectrum:
-    def setup_class(self):
-        self.spec = BaseSpectrum(np.linspace(5000, 5100, num=3000), np.random.normal(size=(3000,)))
-
-    def test_metadata(self):
-        print(self.spec.metadata)
-        self.spec.add_metadata(("hello","hi"))
-        print(self.spec.metadata)
-
-        anotherSpec = BaseSpectrum(np.linspace(5000, 5100, num=3000), np.random.normal(size=(3000,)))
-        print(anotherSpec.metadata)
-        anotherSpec.add_metadata(("hello","hi"))
-        print(anotherSpec.metadata)
 
 
 class BaseSpectrum:
@@ -121,6 +106,8 @@ class BaseSpectrum:
             self.metadata[key] = val
 
 
+    def __str__(self):
+        return "Spectrum object."
 
 
 class DataSpectrum(BaseSpectrum):
@@ -152,11 +139,25 @@ class Base1DSpectrum(BaseSpectrum):
         fl_sorted = fl[ind]
         super().__init__(wl_sorted, fl_sorted, fl_type=fl_type, air=air, metadata=metadata)
 
-    def convert_to_log_lambda(self, vel_resolution, oversample=3.):
-        #Inspect grid and find minimum spacing in velocity space
+    def calculate_log_lam_grid(self):
+        from grid_tools import create_log_lam_grid
+        dif = np.diff(self.wl_vel)
+        min_wl = np.min(dif)
+        wl_at_min = self.wl_vel[np.argmin(dif)]
+        (log_lam_grid, CRVAL1, CDELT1, NAXIS1) = create_log_lam_grid(wl_start=self.wl_vel[0],
+                                                           wl_end=self.wl_vel[-1], min_WL=(min_wl, wl_at_min))
+        return log_lam_grid
 
-        #Create log-lamb grid spaced from min to max
-        raise NotImplementedError
+    def resample_to_grid(self, grid):
+        '''Resamples to a new grid. For other methods, Grid does not necessarily have to be 1D.'''
+        #TODO: how to properly set the velocity of the new grid when resampling?
+        assert len(grid.shape) == 1, "grid must be 1D"
+        interp = InterpolatedUnivariateSpline(self.wl_vel, self.fl)
+        self.fl = interp(grid)
+        del interp
+        gc.collect()
+        self.wl_vel = grid
+
 
 
 class LogLambdaSpectrum(Base1DSpectrum):
