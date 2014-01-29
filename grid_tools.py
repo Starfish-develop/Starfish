@@ -109,14 +109,15 @@ class PHOENIXGridInterface(RawGridInterface):
         "alpha":np.array([0.0, 0.2, 0.4, 0.6, 0.8])},
         air=air, wl_range=[3000, 13000])
 
+        base = "/n/home07/iczekala/holyscratch/raw_libraries/PHOENIX/HiResFITS/"
+
         self.norm = norm #Normalize to 1 solar luminosity?
-        self.rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
         self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         self.alpha_dict = {-0.2:".Alpha=-0.20", 0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40", 0.6:".Alpha=+0.60",
                            0.8:".Alpha=+0.80"}
 
         #if air is true, convert the normally vacuum file to air wls.
-        wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+        wl_file = pf.open(base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         w_full = wl_file[0].data
         wl_file.close()
         if self.air:
@@ -126,7 +127,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = "raw_grids/PHOENIX/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+        self.rname = base + "PHOENIX-ACES-AGSS-COND-2011/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
                      ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
     def load_file(self, parameters):
@@ -227,7 +228,8 @@ class HDF5GridCreator:
         t6100g3.5z0.0a0.0
         etc...
        '''
-    def __init__(self, GridInterface, ranges, filename, wldict, chunksize):
+    def __init__(self, GridInterface, filename, wldict, ranges={"temp":(0,np.inf),
+                            "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, chunksize=20):
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
@@ -273,6 +275,7 @@ class HDF5GridCreator:
 
         except GridError:
             print("Not able to process file with parameters {}".format(parameters))
+            return (None,None)
 
     def process_grid(self):
         #Take all parameter permutations in self.points and create a list
@@ -286,6 +289,8 @@ class HDF5GridCreator:
         pool = mp.Pool(4)
         with h5py.File(self.filename, "r+") as hdf5:
             for parameters, spec in pool.imap(self.process_flux, param_list): #python 3 is lazy map
+                if parameters is None:
+                    continue
                 flux = hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(spec.fl),),
                                                       dtype="f", compression='gzip', compression_opts=9)
                 flux[:] = spec.fl
@@ -1046,11 +1051,14 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
     pass
 
 def main():
-    ncores = mp.cpu_count()
-    wldict = create_log_lam_grid(min_V=2.)
+
     rawgrid = PHOENIXGridInterface(air=True, norm=True)
-    HDF5Creator = HDF5GridCreator(rawgrid, ranges={"temp":(5000, 6000), "logg":(3.5, 4.5), "Z":(0.0,0.0),
-                                                         "alpha":(0.0, 0.0)}, outfile="test.hdf5", wldict=wldict)
+    spec = rawgrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
+    wldict = spec.calculate_log_lam_grid()
+
+    base = "/n/home07/iczekala/holyscratch/master_grids/"
+
+    HDF5Creator = HDF5GridCreator(rawgrid, filename=base + "PHOENIX_master.hdf5", wldict=wldict)
     HDF5Creator.process_grid()
     #create_fine_and_coarse_wave_grid()
     #create_coarse_wave_grid_kurucz()
