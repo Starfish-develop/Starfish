@@ -11,18 +11,18 @@ import sys
 from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 import pyfftw
 import emcee
+import os
 
 if len(sys.argv) > 1:
     for arg in sys.argv:
         if ".yaml" in arg:
             confname = arg
-        else:
-            confname = 'config.yaml'
+            f = open(confname)
+            config = yaml.load(f)
+            f.close()
 else:
-    confname = 'config.yaml'
-f = open(confname)
-config = yaml.load(f)
-f.close()
+    import StellarSpectra #this triggers the __init__.py code
+    config = StellarSpectra.default_config
 
 '''
 Coding convention:
@@ -188,14 +188,17 @@ grids = {"PHOENIX": {'T_points': np.array(
          "BTSettl": {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
                      'Z_points': np.array([-0.5, 0.0, 0.5])}}
 
+base = os.path.dirname(__file__) + "/"
+
+
 if config['grid'] == 'PHOENIX':
-    wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
+    wave_grid = np.load(base + "wave_grids/PHOENIX_2kms_air.npy")
     LIB_filename = "libraries/LIB_PHOENIX_2kms_air.hdf5"
 elif config['grid'] == "kurucz":
-    wave_grid = np.load("wave_grids/kurucz_2kms_air.npy")
+    wave_grid = np.load(base + "wave_grids/kurucz_2kms_air.npy")
     LIB_filename = "libraries/LIB_kurucz_2kms_air.hdf5"
 elif config['grid'] == 'BTSettl':
-    wave_grid = np.load("wave_grids/PHOENIX_2kms_air.npy")
+    wave_grid = np.load(base + "wave_grids/PHOENIX_2kms_air.npy")
     LIB_filename = "libraries/LIB_BTSettl_2kms_air.hdf5"
 
 grid = grids[config['grid']]
@@ -228,75 +231,78 @@ Z_arg = np.where(Z_ind)[0]
 #A_points = alpha_points[A_ind]
 #A_arg = np.where(A_ind)[0]
 
-#Load the data to fit
-base = 'data/' + config['dataset']
-wls = np.load(base + ".wls.npy")
-fls = np.load(base + ".fls.npy")
-sigmas = np.load(base + ".sigma.npy")
-masks = np.load(base + ".mask.npy")
+#Will want to use pgutil.get_data http://docs.python.org/2/library/pkgutil.html
+#http://stackoverflow.com/questions/10935127/way-to-access-resource-files-in-python
 
-orders = np.array(config['orders'])
-norder = len(orders)
+#Load the data to fit
+#database = base + 'data/' + config['dataset']
+#wls = np.load(database + ".wls.npy")
+#fls = np.load(database + ".fls.npy")
+#sigmas = np.load(database + ".sigma.npy")
+#masks = np.load(database + ".mask.npy")
+
+#orders = np.array(config['orders'])
+#norder = len(orders)
 
 #Truncate the data to include only those orders you wish to fit
-wls = wls[orders]
-fls = fls[orders]
-sigmas = sigmas[orders]
-masks = masks[orders]
+#wls = wls[orders]
+#fls = fls[orders]
+#sigmas = sigmas[orders]
+#masks = masks[orders]
 
 #sigma for Gaussian priors on nuisance coefficients
-sigmac = config['sigmac']
-sigmac0 = config['sigmac0']
-
-wr = config['walker_ranges']
-
-len_wl = len(wls[0])
-
-wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts
-wl_min = wls[0, 0] - wl_buffer
-wl_max = wls[-1, -1] + wl_buffer
+#sigmac = config['sigmac']
+#sigmac0 = config['sigmac0']
+#
+#wr = config['walker_ranges']
+#
+#len_wl = len(wls[0])
+#
+#wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts
+#wl_min = wls[0, 0] - wl_buffer
+#wl_max = wls[-1, -1] + wl_buffer
 
 
 # Truncate wave_grid and red_grid to include only the regions necessary for fitting the specified orders.
 # but do it in such a way that it is a power of 2 to speed up the FFT
 
-len_wg = len(wave_grid)
-
-len_data = np.sum((wave_grid > wl_min) & (wave_grid < wl_max))
-
-if len_data < (len_wg / 16):
-    chunk = int(len_wg / 16)
-elif len_data < (len_wg / 8):
-    chunk = int(len_wg / 8)
-elif len_data < (len_wg / 4):
-    chunk = int(len_wg / 4)
-elif len_data < (len_wg / 2):
-    chunk = int(len_wg / 2)
-else:
-    #use the  full spectrum
-    chunk = len_wg
-    ind = np.ones_like(wave_grid, dtype='bool')
-
-if chunk < len_wg:
-    ind_wg = np.arange(len_wg)
-    #Determine if the data region is closer to the start or end of the wave_grid
-    if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
-        #the data region is closer to the start
-        #find starting index
-        #start at index corresponding to wl_min and go chunk forward
-        start_ind = np.argwhere(wave_grid > wl_min)[0][0]
-        end_ind = start_ind + chunk
-        ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
-
-    else:
-        # the data region is closer to the finish
+#len_wg = len(wave_grid)
+#
+#len_data = np.sum((wave_grid > wl_min) & (wave_grid < wl_max))
+#
+#if len_data < (len_wg / 16):
+#    chunk = int(len_wg / 16)
+#elif len_data < (len_wg / 8):
+#    chunk = int(len_wg / 8)
+#elif len_data < (len_wg / 4):
+#    chunk = int(len_wg / 4)
+#elif len_data < (len_wg / 2):
+#    chunk = int(len_wg / 2)
+#else:
+#    use the  full spectrum
+    #chunk = len_wg
+    #ind = np.ones_like(wave_grid, dtype='bool')
+#
+#if chunk < len_wg:
+#    ind_wg = np.arange(len_wg)
+#    Determine if the data region is closer to the start or end of the wave_grid
+    #if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
+    #    the data region is closer to the start
+    #    find starting index
+    #    start at index corresponding to wl_min and go chunk forward
+        #start_ind = np.argwhere(wave_grid > wl_min)[0][0]
+        #end_ind = start_ind + chunk
+        #ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
+    #
+    #else:
+    #    the data region is closer to the finish
         # start at index corresponding to wl_max and go chunk backward
-        end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
-        start_ind = end_ind - chunk
-        ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
+        #end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
+        #start_ind = end_ind - chunk
+        #ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
 
-wave_grid = wave_grid[ind]
-red_grid = np.load('red_grid.npy')[ind]
+#wave_grid = wave_grid[ind]
+#red_grid = np.load(base + 'red_grid.npy')[ind]
 
 
 def load_hdf5_spectrum(temp, logg, Z, grid_name, LIB_filename):
@@ -461,7 +467,7 @@ def trilinear_interpolator():
     return intp_func
 
 
-flux = trilinear_interpolator()
+#flux = trilinear_interpolator()
 
 ##################################################
 #Stellar Broadening
@@ -510,9 +516,9 @@ def shift_vz(lam_source, vz):
     return lam_observe
 
 
-def shift_TRES(vz, wls=wls):
-    wlsz = shift_vz(wls, vz)
-    return wlsz
+#def shift_TRES(vz, wls=wls):
+#    wlsz = shift_vz(wls, vz)
+#    return wlsz
 
 ##################################################
 #TRES Instrument Broadening
@@ -584,66 +590,66 @@ def downsample(w_m, f_m, w_TRES):
 # Models
 ##################################################
 
-def old_model(wlsz, temp, logg, vsini, flux_factor):
-    '''Does the vsini and TRES broadening using convolution rather than Fourier tricks
-    Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
-    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
-    blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
-    #wlsz has length norders
-
-    #M = M * M_sun #g
-    #R = R * R_sun #cm
-    #d = d * pc #cm
-
-    #logg = np.log10(G * M / R**2)
-    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
-
-    #Loads the ENTIRE spectrum, not limited to a specific order
-    f_full = flux_factor * flux(temp, logg)
-
-    model_flux = np.zeros_like(wlsz)
-    #Cycle through all the orders in the echelle spectrum
-    #might be able to np.vectorize this
-    for i, wlz in enumerate(wlsz):
-        #print("Processing order %s" % (orders[i]+1,))
-
-        #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra
-        # 5 angstroms to be sure.
-        ind = (w_full > (wlz[0] - 5.)) & (w_full < (wlz[-1] + 5.))
-        w = w_full[ind]
-        f = f_full[ind]
-
-        #convolve with stellar broadening (sb)
-        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order
-        f_sb = convolve(f, k)
-
-        dlam = w[1] - w[0] # spacing of model points for TRES resolution kernel
-
-        #convolve with filter to resolution of TRES
-        filt = gauss_series(dlam, lam0=np.mean(wlz))
-        f_TRES = convolve(f_sb, filt)
-
-        #downsample to TRES bins
-        dsamp = downsample(w, f_TRES, wlz)
-        #red = dsamp/deredden(wlz,Av,mags=False)
-
-        #If the redenning interpolation is taking a while here, we could save the points for a given redenning and
-        # simply multiply each again
-
-        model_flux[i] = dsamp
-
-    #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
-    return model_flux
+#def old_model(wlsz, temp, logg, vsini, flux_factor):
+#    '''Does the vsini and TRES broadening using convolution rather than Fourier tricks
+#    Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
+#    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply
+#    blueshift. Assumes M, R are in solar units, and that d is in parsecs'''
+#    #wlsz has length norders
+#
+#    #M = M * M_sun #g
+#    #R = R * R_sun #cm
+#    #d = d * pc #cm
+#
+#    #logg = np.log10(G * M / R**2)
+#    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux
+#
+#    #Loads the ENTIRE spectrum, not limited to a specific order
+#    f_full = flux_factor * flux(temp, logg)
+#
+#    model_flux = np.zeros_like(wlsz)
+#    #Cycle through all the orders in the echelle spectrum
+#    #might be able to np.vectorize this
+#    for i, wlz in enumerate(wlsz):
+#        #print("Processing order %s" % (orders[i]+1,))
+#
+#        #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra
+#        # 5 angstroms to be sure.
+#        ind = (w_full > (wlz[0] - 5.)) & (w_full < (wlz[-1] + 5.))
+#        w = w_full[ind]
+#        f = f_full[ind]
+#
+#        #convolve with stellar broadening (sb)
+#        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order
+#        f_sb = convolve(f, k)
+#
+#        dlam = w[1] - w[0] # spacing of model points for TRES resolution kernel
+#
+#        #convolve with filter to resolution of TRES
+#        filt = gauss_series(dlam, lam0=np.mean(wlz))
+#        f_TRES = convolve(f_sb, filt)
+#
+#        #downsample to TRES bins
+#        dsamp = downsample(w, f_TRES, wlz)
+#        #red = dsamp/deredden(wlz,Av,mags=False)
+#
+#        #If the redenning interpolation is taking a while here, we could save the points for a given redenning and
+#        # simply multiply each again
+#
+#        model_flux[i] = dsamp
+#
+#    #Only returns the fluxes, because the wlz is actually the TRES wavelength vector
+#    return model_flux
 
 #Constant for all models
-ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
-
-f_full = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
-FF = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
-blended = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
-blended_real = pyfftw.n_byte_align_empty(chunk, 16, "float64")
-fft_object = pyfftw.FFTW(f_full, FF)
-ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
+#ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid
+#
+#f_full = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+#FF = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+#blended = pyfftw.n_byte_align_empty(chunk, 16, 'complex128')
+#blended_real = pyfftw.n_byte_align_empty(chunk, 16, "float64")
+#fft_object = pyfftw.FFTW(f_full, FF)
+#ifft_object = pyfftw.FFTW(FF, blended, direction='FFTW_BACKWARD')
 
 def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):
     '''Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.
@@ -827,31 +833,31 @@ def model_p(p):
         return [wlsz, refluxed, k, flatchain]
 
 
-xs = np.arange(len_wl)
-T0 = np.ones_like(xs)
-Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
-T1 = Ch1(xs)
-Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])
-T2 = Ch2(xs)
-Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])
-T3 = Ch3(xs)
-
-if (config['lnprob'] == "lnprob_gaussian") or (config['lnprob'] == 'lnprob_gaussian_marg'):
-    T = np.array([T0, T1, T2, T3])
-    TT = np.einsum("in,jn->ijn", T, T)
-    mu = np.array([1, 0, 0, 0])
-    D = sigmac ** (-2) * np.eye(4)
-    Dmu = np.einsum("ij,j->j", D, mu)
-    muDmu = np.einsum("j,j->", mu, Dmu)
-
-if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg') \
-    or (config['lnprob'] == 'lnprob_mixed'):
-    T = np.array([T1, T2, T3])
-    TT = np.einsum("in,jn->ijn", T, T)
-    mu = np.array([0, 0, 0])
-    D = sigmac ** (-2) * np.eye(3)
-    Dmu = np.einsum("ij,j->j", D, mu)
-    muDmu = np.einsum("j,j->", mu, Dmu)
+#xs = np.arange(len_wl)
+#T0 = np.ones_like(xs)
+#Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
+#T1 = Ch1(xs)
+#Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])
+#T2 = Ch2(xs)
+#Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])
+#T3 = Ch3(xs)
+#
+#if (config['lnprob'] == "lnprob_gaussian") or (config['lnprob'] == 'lnprob_gaussian_marg'):
+#    T = np.array([T0, T1, T2, T3])
+#    TT = np.einsum("in,jn->ijn", T, T)
+#    mu = np.array([1, 0, 0, 0])
+#    D = sigmac ** (-2) * np.eye(4)
+#    Dmu = np.einsum("ij,j->j", D, mu)
+#    muDmu = np.einsum("j,j->", mu, Dmu)
+#
+#if (config['lnprob'] == "lnprob_lognormal") or (config['lnprob'] == 'lnprob_lognormal_marg') \
+#    or (config['lnprob'] == 'lnprob_mixed'):
+#    T = np.array([T1, T2, T3])
+#    TT = np.einsum("in,jn->ijn", T, T)
+#    mu = np.array([0, 0, 0])
+#    D = sigmac ** (-2) * np.eye(3)
+#    Dmu = np.einsum("ij,j->j", D, mu)
+#    muDmu = np.einsum("j,j->", mu, Dmu)
 
 ############################################################
 # Various lnprob functions
@@ -1041,10 +1047,10 @@ def lnprob_lognormal_marg(p):
         return lnp
 
 
-A = 0.4
-var_G = (1.5 * sigmas) ** 2
-sigma_E = 3.0 * sigmas
-
+#A = 0.4
+#var_G = (1.5 * sigmas) ** 2
+#sigma_E = 3.0 * sigmas
+#
 
 def lnprob_mixed_exp(p):
     temp, logg, Z, vsini, vz, Av, flux_factor = p[:config['nparams']]
@@ -1246,12 +1252,12 @@ def main():
     #fake_params = (5900., 3.5, 0.0, 5., 2.0, 0.0, 1e-10)
     #generate_fake_data(30., *fake_params)
     #generate_fake_data(50., *fake_params)
-    wl = np.linspace(0,10)
-    fl = np.linspace(0,20)
-    spec = BaseSpectrum(wl, fl)
-    spec.velocity = 10.
-    print(spec.velocity)
-    print(wl, spec.wl_vel)
+    #wl = np.linspace(0,10)
+    #fl = np.linspace(0,20)
+    #spec = BaseSpectrum(wl, fl)
+    #spec.velocity = 10.
+    #print(spec.velocity)
+    #print(wl, spec.wl_vel)
 
 
     pass
