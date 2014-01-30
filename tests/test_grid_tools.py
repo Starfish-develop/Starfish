@@ -102,4 +102,6 @@ class TestHDF5Interface:
         print(self.interface.wl_header)
         #print(self.interface.flux_name_dict)
 
+    def test_bounds(self):
+        print(self.interface.bounds)
 
