@@ -154,7 +154,9 @@ When it comes to writing other grids
 
 
 
-The Model and lnprob classes will require a full suite.
+The Model and lnprob classes will require their own full suite that will be different than grid_tools
+
+For example, a model spectrum will have a static variable
 
 If a function requires a parameter and it's not in the parameter list, it looks up the default value.
 
@@ -176,18 +178,17 @@ Master HDF5 File creation
 * more tests
 * check with/without alpha
 * uses a grid interface (composite type)
-*
 
-# Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific grid
-* Automatically discover all of the attributes of the grid from the HDF5 file
-* grid locations
-* grid bounds
-* grid name
 
 can take an "instrument object", which specifies wl_grid, FWHM, etc.
 * creates a new HDF5 object
 
 
+Instrument grid creation
+* takes a Master HDF5 grid, and instrument object, creates a new grid with the same attributes, does the
+ interpolation, convolution, vsini, etc.
+
+#Where should the convolution, vsini, be done? On the LogLambda spectrum object?
 
 
 * No need to subclass? Same interface for both master file and instrument file
@@ -214,15 +215,10 @@ Memoization of python, using a decorator might be helpful, to have a dict of whi
 * https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 * can set a max number of spectra to keep in cache
 
-Instrument grid creation
-* takes a Master HDF5 grid, and instrument object, creates a new grid with the same attributes, does the
- interpolation, convolution, vsini, etc.
-
 
 First create a master HDF5 file from the raw spectra, and then make Willie's derivative grids from this. Specific to an
 instrument, or a wl range, etc.
 
-Could have a decorator for the BT-Settl grid which checks to make sure no duplicates
 
 # Tasks:
 * library generation

@@ -127,6 +127,10 @@ class DataSpectrum(BaseSpectrum):
 
 class ModelSpectrum(BaseSpectrum):
     '''Specifically designed to match the shape of the data.'''
+
+    wl = None #This wl is a "static" variable. Or, does it make sense because there will only be one model per
+    #process, to just keep updating the flux and wl? Rather than forcing one.
+
     def __init__(self, wl, fl, dataSpectrum, fl_type="flam"):
         super().__init__(wl, fl, fl_type)
         self.dataSpectrum = dataSpectrum
@@ -160,7 +164,6 @@ class Base1DSpectrum(BaseSpectrum):
         self.wl_vel = grid
 
 
-
 class LogLambdaSpectrum(Base1DSpectrum):
     def __init__(self):
         super().__init__(wl, fl, fl_type)
@@ -168,8 +171,21 @@ class LogLambdaSpectrum(Base1DSpectrum):
     def resample(self):
             raise NotImplementedError
 
+    def downsample(self):
+        pass
+
     def convolve(self):
         raise NotImplementedError
+
+    def instrument_convolve(self, instrument, downsample=True):
+        pass
+
+    def stellar_convolve(self, vsini, downsample=True):
+        pass
+
+    def instrument_and_stellar_convolve(self, instrument, vsini, downsample=True):
+        pass
+
 
 
 

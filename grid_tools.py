@@ -265,6 +265,7 @@ class HDF5Interface:
     '''Connect to an HDF5 file that stores spectra.'''
     def __init__(self, filename, mode=None):
         self.filename = filename
+        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
             self.name = hdf5.attrs["grid_name"]
@@ -278,27 +279,44 @@ class HDF5Interface:
                 grid_points.append({k: hdr[k] for k in grid_parameters})
             self.grid_points = grid_points
 
-        bounds = {"temp":[0,10000] , "logg": [3.5,4.5], "Z":[0.0,0.0] , "alpha":[0.0,0.0]}
+        #determine the bounding regions of the grid by sorting the grid_points
+        temp, logg, Z, alpha = [],[],[],[]
+        for param in grid_points:
+            temp.append(param['temp'])
+            logg.append(param['logg'])
+            Z.append(param['Z'])
+            alpha.append(param['alpha'])
 
-        for k in grid_parameters:
-            pass
+        self.bounds = {"temp": (min(temp),max(temp)), "logg": (min(logg), max(logg)), "Z": (min(Z), max(Z)),
+        "alpha":(min(alpha),max(alpha))}
 
+    def load_file(self, parameters):
+        '''Loads a file and returns it as a LogLambdaSpectrum. (Does it have to assume something about the keywords?
+        Perhaps there is a EXFlag or disp type present in the HDF5 attributes.'''
+        key = self.flux_name.format(**parameters)
+        with h5py.File(self.filename, "r")['flux'] as fluxgrp:
+            fl = fluxgrp[key][:]
 
-        #Now sort the parameter_list to determine the grid bounds
+        return LogLambdaSpectrum(self.wl, fl, metadata={})
+
 
     def write_to_FITS(self):
         pass
 
 
 class MasterToInstrumentProcessor:
-    #Take an HDF5 master interface, an instrument object, and some grid ranges, and create a new HDF5 file processed
+    #Take an HDF5 master interface, an instrument object, and some grid points, and create a new HDF5 file processed
     # to that instrument.
     #Will also need to do vsini ranges. If vsini = 0, you can skip.
     #Might also need to interpolate.
     #Will need to update keywords for each flux object
-    def __init__(self, grid=None, ranges={"temp":(0,np.inf), "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf),
-                                          "alpha":(-np.inf, np.inf), "vsini":(-np.inf,np.inf)}, chunksize=20):
-        pass
+    #Loads files
+    def __init__(self, hdf5interface, instrument, points, chunksize=20):
+        #points is a dictionary with which values to spit out
+        self.instrument = instrument
+        self.hdf5 = hdf5interface
+        self.points = points
+
 
     def process_all(self):
         pass
@@ -345,6 +363,9 @@ class MasterToInstrumentProcessor:
 
 class Interpolator:
     '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
+
+    #Takes an HDF5Interface object
+
     pass
 
 class Instrument:
