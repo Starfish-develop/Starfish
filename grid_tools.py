@@ -34,6 +34,10 @@ class GridError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
+class InterpolationError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
 class Base:
     def __init__(self, parameters):
         '''Parameters are given as a dictionary, which is cycled through and instantiates self.parameters.
@@ -229,7 +233,7 @@ class HDF5GridCreator:
         #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
         #the GridInterface actually has alpha or not.'''
         assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
-        print("processing", parameters)
+        print("Processing", parameters)
         try:
             spec = self.GridInterface.load_file(parameters)
             spec.resample_to_grid(self.wl)
@@ -237,8 +241,7 @@ class HDF5GridCreator:
             return (parameters,spec)
 
         except GridError as e:
-            print("Not able to process file with parameters {}".format(parameters))
-            print(e)
+            print("No file with parameters {}. GridError: {}".format(parameters, e))
             sys.stdout.flush()
             return (None,None)
 
@@ -253,7 +256,7 @@ class HDF5GridCreator:
 
         pool = mp.Pool(self.nprocesses)
 
-        for parameters, spec in pool.imap_unordered(self.process_flux, param_list, chunksize=self.chunksize): #python 3 is lazy map
+        for parameters, spec in pool.imap_unordered(self.process_flux, param_list, chunksize=self.chunksize): #lazy map
             if parameters is None:
                 continue
             with h5py.File(self.filename, "r+") as hdf5:
@@ -330,7 +333,17 @@ class Interpolator:
         #create an interpolator between grid points indices. Given a temp, produce fractional index between two points
         self.index_interpolators = {key:interp1d(self.interface.points[key], np.arange(lengths[key]), kind="linear")
                                     for key in lengths.keys()}
+        lenF = len(self.interface.wl)
+        fluxes = np.empty((8, lenF))
 
+        self.cache = {}
+        #cache is a list of variables describing (t_low, t_high), (l_low, l_high), etc..
+        #whenever any variable is updated, we must reload all of the variables. So why not just reload everything?
+
+        #cartesian product gives us the parameter combinations that describe the grid edges
+
+
+        #Raise an InterpolationError
 
     def trilinear(self, parameters):
         '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
