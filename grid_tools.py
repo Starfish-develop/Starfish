@@ -189,11 +189,11 @@ class HDF5GridCreator:
     '''Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
     file with the proper attributes. '''
     def __init__(self, GridInterface, filename, wldict, ranges={"temp":(0,np.inf),
-                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, ncount = 20, chunksize=1):
+                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, nprocesses = 4, chunksize=1):
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.ncount = ncount
+        self.nprocesses = nprocesses
         self.chunksize = chunksize
 
         #Discern between HDF5GridCreator points and GridInterface points using ranges
@@ -248,11 +248,12 @@ class HDF5GridCreator:
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
 
-        pool = mp.Pool(self.ncount)
-        with h5py.File(self.filename, "r+") as hdf5:
-            for parameters, spec in pool.imap(self.process_flux, param_list, chunksize=self.chunksize): #python 3 is lazy map
-                if parameters is None:
-                    continue
+        pool = mp.Pool(self.nprocesses)
+
+        for parameters, spec in pool.imap(self.process_flux, param_list, chunksize=self.chunksize): #python 3 is lazy map
+            if parameters is None:
+                continue
+            with h5py.File(self.filename, "r+") as hdf5:
                 flux = hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(spec.fl),),
                                                       dtype="f", compression='gzip', compression_opts=9)
                 flux[:] = spec.fl
