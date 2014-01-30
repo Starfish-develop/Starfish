@@ -111,4 +111,9 @@ class TestHDF5Interface:
 
 class TestInterpolator:
     def setup_class(self):
+        hdf5interface = HDF5Interface("test.hdf5")
+        self.interpolator = Interpolator(hdf5interface)
         pass
+
+    def test_parameters(self):
+        print(self.interpolator.parameters)
