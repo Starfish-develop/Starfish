@@ -227,13 +227,15 @@ class HDF5GridCreator:
         #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
         #the GridInterface actually has alpha or not.'''
         assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
+        print("processing", parameters)
         try:
             spec = self.GridInterface.load_file(parameters)
             spec.resample_to_grid(self.wl)
             return (parameters,spec)
 
-        except GridError:
+        except GridError as e:
             print("Not able to process file with parameters {}".format(parameters))
+            print(e)
             return (None,None)
 
     def process_grid(self):
