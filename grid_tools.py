@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
-import astropy.io.fits as pf
 from astropy.io import ascii,fits
 import warnings
 
@@ -9,9 +8,6 @@ import multiprocessing as mp
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, UnivariateSpline
 from scipy.integrate import trapz
 from scipy.special import j1
-
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter as FSF
 
 import gc
 import bz2
@@ -23,19 +19,13 @@ from model import Base1DSpectrum, LogLambdaSpectrum
 
 c_kms = 2.99792458e5 #km s^-1
 c_ang = 2.99792458e18 #A s^-1
-L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
+L_sun = 3.839e33 #erg/s
 R_sun = 6.955e10 #cm
 F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
-#Allowed grid parameters
-grid_parameters = frozenset(("temp", "logg", "Z", "alpha"))
-
-#Allowed "post processing parameters"
-pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega"))
-
-#All allowed parameters, the union of grid_parameters and pp_parameters
-all_parameters = grid_parameters | pp_parameters
-
+grid_parameters = frozenset(("temp", "logg", "Z", "alpha")) #Allowed grid parameters
+pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post processing parameters"
+all_parameters = grid_parameters | pp_parameters #the union of grid_parameters and pp_parameters
 #Dictionary of allowed variables with default values
 var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "Omega":1.0}
 
@@ -106,7 +96,7 @@ class PHOENIXGridInterface(RawGridInterface):
       9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-1., 1.1, 0.5),
-        "alpha":np.array([0.0, 0.2, 0.4, 0.6, 0.8])},
+        "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
         air=air, wl_range=[3000, 13000], base=base)
 
         self.norm = norm #Normalize to 1 solar luminosity?
@@ -115,7 +105,11 @@ class PHOENIXGridInterface(RawGridInterface):
                            0.8:".Alpha=+0.80"}
 
         #if air is true, convert the normally vacuum file to air wls.
-        wl_file = pf.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+        try:
+            wl_file = fits.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+        except OSError:
+            raise GridError("Wavelength file improperly specified.")
+
         w_full = wl_file[0].data
         wl_file.close()
         if self.air:
@@ -149,7 +143,7 @@ class PHOENIXGridInterface(RawGridInterface):
         #Still need to check that file is in the grid, otherwise raise a GridError
         #Read all metadata in from the FITS header, and append to spectrum
         try:
-            flux_file = pf.open(fname)
+            flux_file = fits.open(fname)
             f = flux_file[0].data
             hdr = flux_file[0].header
             flux_file.close()
@@ -172,7 +166,6 @@ class PHOENIXGridInterface(RawGridInterface):
 
         return Base1DSpectrum(self.wl, f[self.ind], metadata=header, air=self.air)
 
-
 class KuruczGridInterface:
     def __init__(self):
         super().__init__("Kurucz", "Kurucz/",
@@ -192,40 +185,9 @@ class BTSettlGridInterface:
     def __init__(self):
         pass
 
-def process_flux(tup):
-    HDF5, parameters = tup
-    print(parameters)
-    #HDF5Obj.process_flux(parameters)
-
-class HDF5Holder:
-    def __init__(self, fname):
-        self.file = h5py.File(fname, "w")
-
 class HDF5GridCreator:
     '''Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
-    file with the proper attributes.
-
-    HDF5 file has the following levels
-    /
-
-    wl
-       - CRVAL1
-       - CRDELT1
-       - NAXIS1
-       - vres
-
-    flux/
-        t6000g3.5z0.0a0.0
-           - temp
-           - logg
-           - Z
-           - alpha
-           - PHX params
-           - anything else
-
-        t6100g3.5z0.0a0.0
-        etc...
-       '''
+    file with the proper attributes. '''
     def __init__(self, GridInterface, filename, wldict, ranges={"temp":(0,np.inf),
                             "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, chunksize=20):
         self.GridInterface = GridInterface
@@ -242,6 +204,7 @@ class HDF5GridCreator:
             self.points[key] = valid_points[ind]
 
         #wldict is the output from create_log_lam_grid, containing CRVAL1, CDELT1, etc...
+        wldict = wldict.copy()
         self.wl = wldict.pop("wl")
         self.wl_params = wldict
 
@@ -253,9 +216,6 @@ class HDF5GridCreator:
 
         #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
 
-        #TODO: check alpha behavior
-        #TODO: store points as attr of fl folder, eh, too much to store though
-
     def create_wl(self, hdf5):
         wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f", compression='gzip', compression_opts=9)
         wl_dset[:] = self.wl
@@ -266,9 +226,10 @@ class HDF5GridCreator:
     def process_flux(self, parameters):
         #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
         #the GridInterface actually has alpha or not.'''
+        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
         try:
-            spec = self.GridInterface.load_file(parameters) #this
-            spec.resample_to_grid(self.wl) #and this are the two slow methods
+            spec = self.GridInterface.load_file(parameters)
+            spec.resample_to_grid(self.wl)
             return (parameters,spec)
 
         except GridError:
@@ -284,7 +245,7 @@ class HDF5GridCreator:
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
 
-        pool = mp.Pool(4)
+        pool = mp.Pool(mp.cpu_count())
         with h5py.File(self.filename, "r+") as hdf5:
             for parameters, spec in pool.imap(self.process_flux, param_list): #python 3 is lazy map
                 if parameters is None:
@@ -297,105 +258,52 @@ class HDF5GridCreator:
                 for key,value in spec.metadata.items():
                     flux.attrs[key] = value
 
-
 class HDF5Interface:
-    '''Connect to an HDF5 file that stores spectra. Properly close the file when done.
-    Useful for creating grid when using a GridProcessor, or when reading from the
-    HDF5 grid in model or general use.'''
-    def __init__(self, name, filename, mode, wave_grid, temp_points, logg_points, Z_points, alpha_points=None):
-        super().__init__(name, temp_points, logg_points, Z_points, alpha_points)
-        self.wave_grid = wave_grid
-        lenT, lenG, lenZ, lenA, lenwl = (len(self.temp_points), len(self.logg_points),
-            len(self.Z_points), len(self.alpha_points), len(self.wave_grid))
-        if lenA == 1:
-            self.shape = (lenT, lenG, lenZ, lenwl)
-        else:
-            self.shape = (lenT, lenG, lenZ, lenA, lenwl)
+    '''Connect to an HDF5 file that stores spectra.'''
+    def __init__(self, filename, mode=None):
+        self.filename = filename
 
-        #Create index lookup
-        self.temp_index = dict(zip(self.temp_points, np.arange(lenT)))
-        self.logg_index = dict(zip(self.logg_points, np.arange(lenG)))
-        self.Z_index = dict(zip(self.Z_points, np.arange(lenZ)))
-        self.alpha_index = dict(zip(self.alpha_points, np.arange(lenA)))
+        with h5py.File(self.filename, "r") as hdf5:
+            self.name = hdf5.attrs["grid_name"]
+            self.wl = hdf5["wl"][:]
+            self.wl_header = dict(hdf5["wl"].attrs.items())
 
-        if mode == "w": #write
-            self.new(filename)
-        elif mode == "r": #read
-            self.open(filename)
+            grid_points = []
+            for key in hdf5["flux"].keys():
+                #assemble all temp, logg, Z, alpha keywords into a giant list
+                hdr = hdf5['flux'][key].attrs
+                grid_points.append({k: hdr[k] for k in grid_parameters})
+            self.grid_points = grid_points
 
-    def __del__(self):
-        self.close()
+        bounds = {"temp":[0,10000] , "logg": [3.5,4.5], "Z":[0.0,0.0] , "alpha":[0.0,0.0]}
 
-    def open(self, filename):
-        self.HDF5_file = h5py.File(filename, 'r')
-        self.dset = self.HDF5_file['LIB']
-
-    def new(self, filename):
-        self.HDF5_file = h5py.File(filename, "w")
-        self.dset = self.HDF5_file.create_dataset("LIB", self.shape, dtype="f", compression='gzip', compression_opts=9)
-
-    def close(self):
-        print("closing file")
-        self.HDF5_file.close()
-
-    def load_flux(self, temp, logg, Z, alpha=0.0):
-        super().load_file(temp, logg, Z, alpha)
-        return self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :]
-
-    def load_spectrum(self, temp, logg, Z, alpha=0.0):
-        super().load_file(temp, logg, Z, alpha)
-        flux = self.load_flux(temp, logg, Z, alpha)
-        return Base1DSpectrum(self.wave_grid, flux, air=self.air)
-
-    def write_flux(self, flux, temp, logg, Z, alpha):
-        assert len(flux) == len(self.wave_grid)
-        self.dset[self.temp_index[temp], self.logg_index[logg], self.Z_index[Z], self.alpha_index[alpha], :] = flux
-
-class GridProcessor:
-    def __init__(self, grid=None, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
-                 alpha_range=[0, np.inf], chunksize=20):
-        self.grid = grid
-
-        #Create interface object using range, and parameters of host grid
-        self.out_grid = HDF5Interface("PHOENIX", "PHOENIX.h5py", "w",
-        temp_points=grid.temp_points[(grid.temp_points >= temp_range[0]) & (grid.temp_points <= temp_range[1])],
-        logg_points=grid.logg_points[(grid.logg_points >= logg_range[0]) & (grid.logg_points <= logg_range[1])],
-        Z_points=grid.Z_points[(grid.Z_points >= Z_range[0]) & (grid.Z_points <= Z_range[1])],
-        alpha_points=grid.alpha_points[(grid.alpha_points >= alpha_range[0]) & (grid.alpha_points <= alpha_range[1])])
-
-        #Uses grid.wave_grid as in_grid
-
-        #If grid.wave_grid is not log-lambda spaced, it converts it
-
-        #Uses interface wave_grid as out_grid
+        for k in grid_parameters:
+            pass
 
 
-        self.pool = mp.Pool(mp.cpu_count())
-        self.chunksize = chunksize
+        #Now sort the parameter_list to determine the grid bounds
+
+    def write_to_FITS(self):
+        pass
+
+
+class MasterToInstrumentProcessor:
+    #Take an HDF5 master interface, an instrument object, and some grid ranges, and create a new HDF5 file processed
+    # to that instrument.
+    #Will also need to do vsini ranges. If vsini = 0, you can skip.
+    #Might also need to interpolate.
+    #Will need to update keywords for each flux object
+    def __init__(self, grid=None, ranges={"temp":(0,np.inf), "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf),
+                                          "alpha":(-np.inf, np.inf), "vsini":(-np.inf,np.inf)}, chunksize=20):
+        pass
 
     def process_all(self):
-        self.index_combos = []
-        self.var_combos = []
-        for t, temp in enumerate(self.temp_points):
-            for l, logg in enumerate(self.logg_points):
-                for z, Z in enumerate(self.Z_points):
-                    for a, A in enumerate(self.alpha_points):
-                        self.index_combos.append([t, l, z, a])
-                        self.var_combos.append([temp, logg, Z, A])
-
-        spec_gen = self.pool.imap(self.process_spectrum, self.var_combos, chunksize=20)
-
-        for i, spec in enumerate(spec_gen):
-            #t, l, z, a = index_combos[i]
-            self.save(self.index_combos[i], spec)
+        pass
 
     def process_spectrum(self, var_combos):
         '''This depends on what you want to do (resample, convolve, etc) and must be defined in a subclass.'''
         spec = self.grid.load_file(var_combos)
 
-        #Convert to a LogLamb grid
-
-        raise NotImplementedError
 
     def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
         '''Take a full-resolution PHOENIX model spectrum `f`, with raw spacing wg_raw, resample it to wg_fine
@@ -432,63 +340,51 @@ class GridProcessor:
 
         return f_coarse
 
-    def save(self, i, spec):
-        raise NotImplementedError
-
-    def run(self):
-        raise NotImplementedError
-
-class TRES_PHOENIX_HDF5_Processor(GridProcessor):
-    def __init__(self, temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
-                 alpha_range=[0, np.inf]):
-        super().__init__(temp_range=[0, np.inf], logg_range=[0, np.inf], Z_range=[0, np.inf],
-                         alpha_range=[0, np.inf])
-
-        #Set the interface as a HDF5 grid
-        #Set the grid as a PHOENIX grid
-        #Set the instrument as TRES
-
-
-        #Gets the output grid parameters from the instrument
+class Interpolator:
+    '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
+    pass
 
 class Instrument:
+    def __init__(self, name, FWHM, wl_range=(-np.inf, np.inf), oversampling=3.5):
+        self.name = name
+        self.FWHM = FWHM #km/s
+        self.wl_range = wl_range
+        self.oversampling = oversampling
+        self.vel_spacing = self.FWHM/self.oversampling #km/s
+
+
+class TRES(Instrument):
     def __init__(self):
-        self.response_kernel
-        self.min_resolution
-        pass
+        super().__init__(name="TRES", FWHM=6.8, wl_range=(-np.inf, np.inf))
+        #sets the FWHM and wl_range
+
+class Reticon(Instrument):
+    def __init__(self):
+        super().__init__(name="Reticon", FWHM=8.5, wl_range=(5150,5250))
+
+class KPNO(Instrument):
+    def __init__(self):
+        super().__init__(name="KPNO", FWHM=14.4)
 
 
 
-wl_file = pf.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
-w_full = wl_file[0].data
-wl_file.close()
-ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
+#wl_file = fits.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+#w_full = wl_file[0].data
+#wl_file.close()
+#ind = (w_full > 3000.) & (w_full < 13000.) #this corresponds to some extra space around the
 # shortest U and longest z band
 
-global w
-w = w_full[ind]
-len_p = len(w)
+#global w
+#w = w_full[ind]
+#len_p = len(w)
 
-wave_grid_raw_PHOENIX = np.load("wave_grids/PHOENIX_raw_trim_air.npy")
-wave_grid_fine = np.load('wave_grids/PHOENIX_0.35kms_air.npy')
-wave_grid_coarse = np.load('wave_grids/PHOENIX_2kms_air.npy')
-wave_grid_kurucz_raw = np.load("wave_grids/kurucz_raw.npy")
-wave_grid_2kms_kurucz = np.load("wave_grids/kurucz_2kms_air.npy") #same wl as PHOENIX_2kms_air, but trimmed
+#wave_grid_raw_PHOENIX = np.load("wave_grids/PHOENIX_raw_trim_air.npy")
+#wave_grid_fine = np.load('wave_grids/PHOENIX_0.35kms_air.npy')
+#wave_grid_coarse = np.load('wave_grids/PHOENIX_2kms_air.npy')
+#wave_grid_kurucz_raw = np.load("wave_grids/kurucz_raw.npy")
+#wave_grid_2kms_kurucz = np.load("wave_grids/kurucz_2kms_air.npy") #same wl as PHOENIX_2kms_air, but trimmed
 
-L_sun = 3.839e33 #erg/s, PHOENIX header says W, but is really erg/s
-R_sun = 6.955e10 #cm
-
-F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
-
-grids = {"PHOENIX": {'T_points': np.array(
-    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
-     4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
-     6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-                     'logg_points': np.arange(0.0, 6.1, 0.5), 'Z_points': ['-1.0', '-0.5', '-0.0', '+0.5', '+1.0'],
-                     'alpha_points': [".Alpha=-0.20", "", ".Alpha=+0.20", ".Alpha=+0.40", ".Alpha=+0.60",
-                                      ".Alpha=+0.80"]},
-         "kurucz": {'T_points': np.arange(3500, 9751, 250),
+grids = {"kurucz": {'T_points': np.arange(3500, 9751, 250),
                     'logg_points': np.arange(1.0, 5.1, 0.5), 'Z_points': ["m05", "p00", "p05"]},
          'BTSettl': {'T_points': np.arange(3000, 7001, 100), 'logg_points': np.arange(2.5, 5.6, 0.5),
                      'Z_points': ['-0.5a+0.2', '-0.0a+0.0', '+0.5a+0.0']}}
@@ -555,10 +451,6 @@ def create_coarse_wave_grid_kurucz():
     np.save('wave_grid_2kms_kurucz.npy', wave_grid_2kms_kurucz)
 
 
-def grid_loader():
-    pass
-
-
 @np.vectorize
 def vacuum_to_air(wl):
     '''CA Prieto recommends this as more accurate than the IAU standard. Ciddor 1996.'''
@@ -590,15 +482,10 @@ def air_to_vacuum(wl):
     return vac
 
 
-def rewrite_wl():
-    np.save("ind.npy", ind)
-    np.save("wave_trim.npy", w)
-
-
 def get_wl_kurucz():
     '''The Kurucz grid is already convolved with a FWHM=6.8km/s Gaussian. WL is log-linear spaced.'''
     sample_file = "Kurucz/t06000g45m05v000.fits"
-    flux_file = pf.open(sample_file)
+    flux_file = fits.open(sample_file)
     hdr = flux_file[0].header
     num = len(flux_file[0].data)
     p = np.arange(num)
@@ -606,10 +493,6 @@ def get_wl_kurucz():
     dw = hdr['CDELT1']
     wl = 10 ** (w1 + dw * p)
     return wl
-
-
-def get_wl_BTSettl():
-    pass
 
 
 @np.vectorize
@@ -669,7 +552,7 @@ def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX
         print("No grid %s" % (grid))
         return 1
 
-    flux_file = pf.open(rname)
+    flux_file = fits.open(rname)
     f = flux_file[0].data
 
     if norm:
@@ -838,140 +721,6 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
     f.close()
 
 
-def interpolate_raw_test_temp():
-    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-    wls = np.load(base + "wls.npy")
-    fls = np.load(base + "fls.npy")
-    wl = wls[22]
-    ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
-    w = m.w_full[ind2]
-    f58 = load_flux_npy(5800, 3.5)[ind2]
-    f59 = load_flux_npy(5900, 3.5)[ind2]
-    f60 = load_flux_npy(6000, 3.5)[ind2]
-
-    bit = np.array([5800, 6000])
-    f = np.array([f58, f60]).T
-    func = interp1d(bit, f)
-    f59i = func(5900)
-
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    ax.axhline(0, color="k")
-    ax.plot(w, (f59 - f59i) * 100 / f59)
-    ax.set_xlabel(r"$\lambda\quad[\AA]$")
-    ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax.set_ylabel("Fractional Error [\%]")
-    fig.savefig("plots/interp_tests/5800_5900_6000_logg3.5.png")
-
-
-def interpolate_raw_test_logg():
-    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-    wls = np.load(base + "wls.npy")
-    fls = np.load(base + "fls.npy")
-
-    wl = wls[22]
-    ind2 = (m.w_full > wl[0]) & (m.w_full < wl[-1])
-    w = m.w_full[ind2]
-    f3 = load_flux_npy(5900, 3.0)[ind2]
-    f3_5 = load_flux_npy(5900, 3.5)[ind2]
-    f4 = load_flux_npy(5900, 4.0)[ind2]
-
-    bit = np.array([3.0, 4.0])
-    f = np.array([f3, f4]).T
-    func = interp1d(bit, f)
-    f3_5i = func(3.5)
-
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    ax.axhline(0, color="k")
-    ax.plot(w, (f3_5 - f3_5i) * 100 / f3_5)
-    ax.set_xlabel(r"$\lambda\quad[\AA]$")
-    ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax.set_ylabel("Fractional Error [\%]")
-    fig.savefig("plots/interp_tests/5900_logg3_3.5_4.png")
-
-
-def interpolate_test_temp():
-    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-    wls = np.load(base + "wls.npy")
-    fls = np.load(base + "fls.npy")
-
-    f58 = load_flux_npy(2400, 3.5)
-    f59 = load_flux_npy(2500, 3.5)
-    f60 = load_flux_npy(2600, 3.5)
-    bit = np.array([2400, 2600])
-    f = np.array([f58, f60]).T
-    func = interp1d(bit, f)
-    f59i = func(2500)
-
-    d59 = m.degrade_flux(wl, m.w_full, f59)
-    d59i = m.degrade_flux(wl, m.w_full, f59i)
-
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    ax.axhline(0, color="k")
-    ax.plot(wl, (d59 - d59i) * 100 / d59)
-    ax.set_xlabel(r"$\lambda\quad[\AA]$")
-    ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax.set_ylabel("Fractional Error [\%]")
-    fig.savefig("plots/interp_tests/2400_2500_2600_logg3.5_degrade.png")
-
-
-def interpolate_test_logg():
-    base = 'data/LkCa15//LkCa15_2013-10-13_09h37m31s_cb.flux.spec.'
-    wls = np.load(base + "wls.npy")
-    fls = np.load(base + "fls.npy")
-
-    wl = wls[22]
-
-    f3 = load_flux_npy(2400, 3.0)
-    f3_5 = load_flux_npy(2500, 3.5)
-    f4 = load_flux_npy(2600, 4.0)
-
-    bit = np.array([3.0, 4.0])
-    f = np.array([f3, f4]).T
-    func = interp1d(bit, f)
-    f3_5i = func(3.5)
-
-    d3_5 = m.degrade_flux(wl, m.w_full, f3_5)
-    d3_5i = m.degrade_flux(wl, m.w_full, f3_5i)
-
-    fig = plt.figure(figsize=(11, 8))
-    ax = fig.add_subplot(111)
-    ax.axhline(0, color="k")
-    ax.plot(wl, (d3_5 - d3_5i) * 100 / d3_5)
-    ax.set_xlabel(r"$\lambda\quad[\AA]$")
-    ax.xaxis.set_major_formatter(FSF("%.0f"))
-    ax.set_ylabel("Fractional Error [\%]")
-    fig.savefig("plots/interp_tests/2500logg3_3.5_4_degrade.png")
-
-
-def compare_PHOENIX_TRES_spacing():
-    fig = plt.figure(figsize=(8, 4))
-    ax = fig.add_subplot(111)
-    wave_TRES = trunc_tres()
-    #index as percentage of full grid
-    #ind = (wave_grid > wave_TRES[0]) & (wave_grid < wave_TRES[-1])
-    #w_grid = wave_grid[ind]
-    #w_pixels = np.arange(0,len(w_grid),1)/len(w_grid)
-    #ax.plot(w_grid[:-1], v(w_grid[:-1],w_grid[1:]),label="Constant V")
-
-    #t_pixels = np.arange(0,len(wave_TRES),1)/len(wave_TRES)
-    #linear = np.linspace(wave_TRES[0],wave_TRES[-1])
-    #l_pixels = np.arange(0,len(linear),1)/len(linear)
-
-    ax.plot(wave_TRES[:-1], v(wave_TRES[:-1], wave_TRES[1:]), "g", label="TRES")
-    ax.axhline(2.5)
-    #ax.plot(linear[:-1], v(linear[:-1],linear[1:]),label="Linear")
-
-    ax.set_xlabel(r"$\lambda$ [\AA]")
-    ax.set_ylabel(r"$\Delta v$ [km/s]")
-    ax.legend(loc='best')
-    ax.set_ylim(2.2, 2.8)
-    #plt.show()
-    fig.savefig("plots/pixel_spacing_v.png")
-
-
 @np.vectorize
 def v(ls, lo):
     return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
@@ -1042,9 +791,6 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
                                                                 "AUTHOR": "Ian Czekala",
                                                                 "COMMENT" : "Adapted from PHOENIX"})
 
-
-
-    pass
 
 def main():
 
