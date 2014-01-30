@@ -105,3 +105,10 @@ class TestHDF5Interface:
     def test_bounds(self):
         print(self.interface.bounds)
 
+    def test_load_file(self):
+        pass
+
+
+class TestInterpolator:
+    def setup_class(self):
+        pass
