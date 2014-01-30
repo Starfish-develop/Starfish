@@ -140,7 +140,7 @@ class Base1DSpectrum(BaseSpectrum):
         super().__init__(wl_sorted, fl_sorted, fl_type=fl_type, air=air, metadata=metadata)
 
     def calculate_log_lam_grid(self):
-        from grid_tools import create_log_lam_grid
+        from .grid_tools import create_log_lam_grid
         dif = np.diff(self.wl_vel)
         min_wl = np.min(dif)
         wl_at_min = self.wl_vel[np.argmin(dif)]

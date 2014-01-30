@@ -1,8 +1,8 @@
-import grid_tools
+from StellarSpectra import grid_tools
 
 raw_library_path = "/n/home07/iczekala/holyscratch/raw_libraries/PHOENIX/"
 
-mygrid = grid_tools.PHOENIXGridInterface(air=True, norm=True)
+mygrid = grid_tools.PHOENIXGridInterface(air=True, norm=True, base=raw_library_path)
 spec = mygrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
 wldict = spec.calculate_log_lam_grid()
 
