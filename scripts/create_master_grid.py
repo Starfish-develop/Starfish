@@ -14,16 +14,16 @@ print("calculated spec")
 
 out_path = "/n/holyscratch/panstarrs/iczekala/master_grids/" + "PHOENIX_master.hdf5"
 
-HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path,
-                                    ranges={"temp":(6000, 7000), "logg":(2.0,6.0), "Z":(0.0,0.0), "alpha":(0.0,0.0)},
-                                         wldict=wldict, nprocesses=4, chunksize=1)
+HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=4, chunksize=1)
+                                         #ranges={"temp":(6000, 7000), "logg":(2.0,6.0), "Z":(0.0,0.0), "alpha":(0.0,0.0)},
+
 print("created HDF5creator")
 HDF5Creator.process_grid()
 print("processed grid")
 
 
 #Local
-#
+##
 #mygrid = grid_tools.PHOENIXGridInterface(air=True, norm=True)
 #print("creating mygrid")
 #
@@ -34,8 +34,8 @@ print("processed grid")
 #out_path = "PHOENIX_master.hdf5"
 #
 #HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=4, chunksize=1,
-#                            ranges={"temp":(2300, 10000), "logg":(2.0,6.0), "Z":(0.0,0.0), "alpha":(0.0,0.0)})
+#                            ranges={"temp":(5000, 6000), "logg":(2.0,6.0), "Z":(0.0,0.0), "alpha":(0.0,0.0)})
 #print("created HDF5creator")
 #HDF5Creator.process_grid()
 #print("processed grid")
-
+#

@@ -250,7 +250,7 @@ class HDF5GridCreator:
 
         pool = mp.Pool(self.nprocesses)
 
-        for parameters, spec in pool.imap(self.process_flux, param_list, chunksize=self.chunksize): #python 3 is lazy map
+        for parameters, spec in pool.imap_unordered(self.process_flux, param_list, chunksize=self.chunksize): #python 3 is lazy map
             if parameters is None:
                 continue
             with h5py.File(self.filename, "r+") as hdf5:
@@ -304,9 +304,24 @@ class HDF5Interface:
     def write_to_FITS(self):
         pass
 
+class Interpolator:
+    '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
+
+    #Takes an HDF5Interface object
+    def __init__(self, interface):
+        self.interface = interface
+
+        #Determines all parameters
+
+        #If alpha only includes one value, then do trilinear interpolation
+
+        #Handle edge cases
+
+    pass
+
 
 class MasterToInstrumentProcessor:
-    #Take an HDF5 master interface, an instrument object, and some grid points, and create a new HDF5 file processed
+    #Take an Interpolator, an instrument object, and some grid points, and create a new HDF5 file processed
     # to that instrument.
     #Will also need to do vsini ranges. If vsini = 0, you can skip.
     #Might also need to interpolate.
@@ -362,12 +377,7 @@ class MasterToInstrumentProcessor:
 
         return f_coarse
 
-class Interpolator:
-    '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
 
-    #Takes an HDF5Interface object
-
-    pass
 
 class Instrument:
     def __init__(self, name, FWHM, wl_range=(-np.inf, np.inf), oversampling=3.5):
