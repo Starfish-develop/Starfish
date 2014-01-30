@@ -189,7 +189,7 @@ class HDF5GridCreator:
     '''Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
     file with the proper attributes. '''
     def __init__(self, GridInterface, filename, wldict, ranges={"temp":(0,np.inf),
-                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, ncount = 20, chunksize=20):
+                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, ncount = 20, chunksize=1):
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
