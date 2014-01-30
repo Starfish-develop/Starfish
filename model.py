@@ -13,6 +13,7 @@ import pyfftw
 import emcee
 import os
 
+config = None
 if len(sys.argv) > 1:
     for arg in sys.argv:
         if ".yaml" in arg:
@@ -20,7 +21,7 @@ if len(sys.argv) > 1:
             f = open(confname)
             config = yaml.load(f)
             f.close()
-else:
+if config is None:
     import StellarSpectra #this triggers the __init__.py code
     config = StellarSpectra.default_config
 
