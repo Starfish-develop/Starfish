@@ -15,7 +15,7 @@ import h5py
 from functools import partial
 import itertools
 
-from model import Base1DSpectrum, LogLambdaSpectrum
+from .model import Base1DSpectrum, LogLambdaSpectrum
 
 c_kms = 2.99792458e5 #km s^-1
 c_ang = 2.99792458e18 #A s^-1
