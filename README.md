@@ -143,15 +143,12 @@ When it comes to writing other grids
 * The length of grid parameters determines tri vs. quad linear interpolator
 * whether vsini is included also changes whether we interpolate in this or leave at 0.
 
-
 #Tests
-* Create good tests for PHOENIXGridInterface
-    * different base library locations
-    * make Odyssey directories the same as local drive
 * Create good tests for GridCreator
     * try using different ranges
     * what about giving it bad parameters
 
+#Learn how to setup sample test directories
 
 #Move all execution scripts (that use objects) into separate code. Perhaps a script directory?
 
@@ -181,16 +178,20 @@ Master HDF5 File creation
 * uses a grid interface (composite type)
 *
 
-Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific grid
+# Master HDF5 File Interface (same wl grid), and HDF5 file interface for specific grid
+* Automatically discover all of the attributes of the grid from the HDF5 file
 * grid locations
 * grid bounds
 * grid name
-* All of these attributes are stored in the HDF5 file itself, or can be determined from it's attributes.
+
+can take an "instrument object", which specifies wl_grid, FWHM, etc.
+* creates a new HDF5 object
+
+
+
+
 * No need to subclass? Same interface for both master file and instrument file
 * Has a writer class variable that can be set, which has a write_to_FITS() method
-
-MasterHD5F grid to instrument specific grids
-* Search through attributes of master HDF5 file to locate all valid param combos
 
 
 Interpolator object
