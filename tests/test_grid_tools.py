@@ -1,5 +1,5 @@
 import pytest
-from grid_tools import *
+from StellarSpectra.grid_tools import *
 
 
 def test_create_log_lam_grid():

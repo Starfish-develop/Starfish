@@ -9,4 +9,5 @@ wldict = spec.calculate_log_lam_grid()
 out_path = "/n/home07/iczekala/holyscratch/master_grids/" + "PHOENIX_master.hdf5"
 
 HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path, wldict=wldict)
+HDF5Creator.process_grid()
 
