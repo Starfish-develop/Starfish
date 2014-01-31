@@ -145,6 +145,12 @@ Spectrum object can resample to log-linear
 * could store wave_grid in a separate dataset of the HDF5 file?
 
 
+#Master grid creation. This isn't tested, but what is probably happening is that the slowest process is actually
+the writing to the file (takes about 0.25 times the "processing" of a file). The queue then becomes saturated.
+Honestly, there isn't really a way around this, because there is one "master process" that is doing all the reading/writing
+to the HDF5 file. Even with MPI/HDF5, this situation isn't much improved because we need to have all the attributes
+updated properly.
+
 can take an "instrument object", which specifies wl_grid, FWHM, etc.
 * creates a new HDF5 object
 
