@@ -10,7 +10,7 @@ spec = mygrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
 wldict = spec.calculate_log_lam_grid()
 
 out_path = "/n/holyscratch/panstarrs/iczekala/master_grids/" + "PHOENIX_master.hdf5"
-HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=32, chunksize=1)
+HDF5Creator = grid_tools.HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=10, chunksize=1)
                                          #ranges={"temp":(6000, 7000), "logg":(2.0,6.0), "Z":(0.0,0.0), "alpha":(0.0,0.0)},
 
 HDF5Creator.process_grid()

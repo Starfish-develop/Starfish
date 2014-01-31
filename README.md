@@ -132,38 +132,8 @@ Put the decorator `@profile` over the function you want to profile
 
 ## grid_tools.py
 
-Specify allowable parameters as a frozen set. Each object will have different requirements. We separate parameters
-into "grid parameters" and "post processing parameters"
-
-Grid Interface
-The grid interfaces require for each variable a frozen set of allowed grid points in the grid parameters.
-* Check to see that any spectrum that is loaded must be in the allowed grid points.
-
-When it comes to writing other grids
-* The length of grid parameters determines tri vs. quad linear interpolator
-* whether vsini is included also changes whether we interpolate in this or leave at 0.
-
-#Tests
-* Create good tests for GridCreator
-    * try using different ranges
-    * what about giving it bad parameters
-
-#Learn how to setup sample test directories
-
-#Move all execution scripts (that use objects) into separate code. Perhaps a script directory?
-
-
-
-The Model and lnprob classes will require their own full suite that will be different than grid_tools
-
-For example, a model spectrum will have a static variable
-
-If a function requires a parameter and it's not in the parameter list, it looks up the default value.
 
 Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
-* specify grid locations
-* check grid bounds (otherwise raise custom error, which can be handeled by grid processor?)
-* load and return a raw flux file wrapped in spectrum object
 * PHOENIX, Kurucz, etc inherit the Grid base class
 
 Ways to resample wavelengths
@@ -173,11 +143,6 @@ Ways to resample wavelengths
 Spectrum object can resample to log-linear
 * air to vac conversion
 * could store wave_grid in a separate dataset of the HDF5 file?
-
-Master HDF5 File creation
-* more tests
-* check with/without alpha
-* uses a grid interface (composite type)
 
 
 can take an "instrument object", which specifies wl_grid, FWHM, etc.
@@ -194,12 +159,22 @@ Instrument grid creation
 * No need to subclass? Same interface for both master file and instrument file
 * Has a writer class variable that can be set, which has a write_to_FITS() method
 
-
 Interpolator object
 * uses a HDF5 file Interface, either master or for an instrument
 * determines if interpolating in T,G,M or T,G,M,A (tri vs quad linear)
+* can determine whether it needs to interpolate in 3 or 4 dimensions
 * caches 8 or 16 (or twice as many) nearby spectra depending on how many T,G,M or T,G,M,A
+* check grid bounds
 * handles edge cases (or uses HDF5 edge handling ability)
+
+
+#Tests
+* Learn how to setup sample test directories with test files
+
+The Model and lnprob classes will require their own full suite that will be different than grid_tools
+
+If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+
 
 Effbot: Two other uses are local caches/memoization; e.g.
 
@@ -220,39 +195,11 @@ First create a master HDF5 file from the raw spectra, and then make Willie's der
 instrument, or a wl range, etc.
 
 
-# Tasks:
-* library generation
-    * specify grid locations
-    * check grid bounds
-    * specify grid dimensions different spacing in T, G, M, vsini (plus how to specify these ranges?)
-    * load a raw flux file (different method for PHOENIX, Kurucz, BT-Settl)
-    * depending on which instrument,
-        * FWHM
-        * wavelength range
-        * wavelength spacing
-    * but also ability to interpolate a spectrum, if needed
-    * output to generic file storage (either FITS or HDF5 for now)
-
-* convolution might work on a spectrum object (either spectrum object has a .convolve method, or the instrument
-            object has a convolve method which takes a spectrum object as an argument)
-
-* a "writer" object as a composite type that will set keywords, like log lam, etc. Should the link from grid object
-to writer go both ways? So that the writer can query the grid properties (like wl spacing)? Create the writer object specifically inside the grid to preserve the link?
-* writer has an HDF5 .open() and .close() method
-
 * create an intermediate spectrum object?
     * has tasks to resample to a different wl
     * can do air to vac conversion
 
-* will need a grid interpolator
-    * uses different wavelength spacing
-    * also different spacing in T, G, M, A, don't know how many to use
-    * check grid bounds
-    * can determine whether it needs to interpolate in 3 or 4 dimensions
-    * if we don't expect to have anything other than these variables, we can hard code it
-    * otherwise we can come up with a paradigm that will allow arbitrary variables (stored as ordered dict?)
-    * caches 8 or 16 spectra from the previous evaluation
-    * will also need to interface to an HDF5 file (we can hardcode this, never a FITS)
+
 
 ### How to implement
 * multiple inheritance
