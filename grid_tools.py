@@ -16,13 +16,9 @@ import h5py
 from functools import partial
 import itertools
 
-from .model import Base1DSpectrum, LogLambdaSpectrum
+from StellarSpectra.model import Base1DSpectrum, LogLambdaSpectrum
+import StellarSpectra.constants as C
 
-c_kms = 2.99792458e5 #km s^-1
-c_ang = 2.99792458e18 #A s^-1
-L_sun = 3.839e33 #erg/s
-R_sun = 6.955e10 #cm
-F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
 grid_parameters = frozenset(("temp", "logg", "Z", "alpha")) #Allowed grid parameters
 pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post processing parameters"
@@ -159,7 +155,7 @@ class PHOENIXGridInterface(RawGridInterface):
         if self.norm:
             f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
             F_bol = trapz(f, self.wl_full)
-            f = f * (F_sun / F_bol) #bolometric luminosity is always 1 L_sun
+            f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
 
         #Add temp, logg, Z, alpha, norm to the metadata
         header = parameters
@@ -194,10 +190,12 @@ class HDF5GridCreator:
     '''Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
     file with the proper attributes. '''
     def __init__(self, GridInterface, filename, wldict, ranges={"temp":(0,np.inf),
-                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}, nprocesses = 4, chunksize=1):
+                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)},
+                 parallel=True, nprocesses = 4, chunksize=1):
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.parallel = parallel
         self.nprocesses = nprocesses
         self.chunksize = chunksize
 
@@ -229,10 +227,11 @@ class HDF5GridCreator:
             wl_dset.attrs[key] = value
             wl_dset.attrs["air"] = self.GridInterface.air
 
+    #@profile
     def process_flux(self, parameters):
         #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
         #the GridInterface actually has alpha or not.'''
-        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
+        #assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
         print("Processing", parameters)
         try:
             spec = self.GridInterface.load_file(parameters)
@@ -245,6 +244,7 @@ class HDF5GridCreator:
             sys.stdout.flush()
             return (None,None)
 
+    #@profile
     def process_grid(self):
         #Take all parameter permutations in self.points and create a list
         param_list = [] #list of parameter dictionaries
@@ -254,9 +254,13 @@ class HDF5GridCreator:
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
 
-        pool = mp.Pool(self.nprocesses)
+        if self.parallel:
+            pool = mp.Pool(self.nprocesses)
+            M = lambda x,y : pool.imap_unordered(x, y, chunksize=self.chunksize)
+        else:
+            M = map
 
-        for parameters, spec in pool.imap_unordered(self.process_flux, param_list, chunksize=self.chunksize): #lazy map
+        for parameters, spec in M(self.process_flux, param_list): #lazy map
             if parameters is None:
                 continue
             with h5py.File(self.filename, "r+") as hdf5:
@@ -337,6 +341,7 @@ class Interpolator:
         fluxes = np.empty((8, lenF))
 
         self.cache = {}
+        self.grid_pairs = {}
         #cache is a list of variables describing (t_low, t_high), (l_low, l_high), etc..
         #whenever any variable is updated, we must reload all of the variables. So why not just reload everything?
 
@@ -403,7 +408,6 @@ class Interpolator:
 
                 return np.average(fluxes, axis=0, weights=weights)
 
-        return intp_func
 
     def quadlinear(self):
         pass
@@ -524,40 +528,12 @@ def create_wave_grid(v=1., start=3700., end=10000):
     lam_grid = np.zeros((size,))
     i = 0
     lam_grid[i] = start
-    vel = np.sqrt((c_kms + v) / (c_kms - v))
+    vel = np.sqrt((C.c_kms + v) / (C.c_kms - v))
     while (lam_grid[i] < end) and (i < size - 1):
         lam_new = lam_grid[i] * vel
         i += 1
         lam_grid[i] = lam_new
     return lam_grid[np.nonzero(lam_grid)][:-1]
-
-def create_log_lam_grid(wl_start=3000., wl_end=13000., min_WL=None, min_V=None):
-    '''min_WL = (delta_WL, WL). Takes the finer of the two specified.'''
-    if (min_WL is None) and (min_V is None):
-        raise ValueError("You need to specify either min_WL or min_V")
-    if min_WL is not None:
-        delta_wl, wl = min_WL #unpack
-        Vwl = delta_wl/wl
-        min_vc = Vwl
-    if min_V is not None:
-        Vv = min_V/c_kms
-        min_vc = Vv
-    if (min_WL is not None) and (min_V is not None):
-        min_vc = Vwl if Vwl < Vv else Vv
-
-    CDELT_temp = np.log10(min_vc +1)
-    CRVAL1 = np.log10(wl_start)
-    CRVALN = np.log10(wl_end)
-    N = (CRVALN - CRVAL1)/CDELT_temp
-    NAXIS1 = 2
-    while NAXIS1 < N: #Make NAXIS1 an integer power of 2 for FFT purposes
-        NAXIS1 *= 2
-
-    CDELT1 = (CRVALN - CRVAL1)/(NAXIS1 - 1)
-
-    p = np.arange(NAXIS1)
-    wl = 10 ** (CRVAL1 + CDELT1 * p)
-    return {"wl":wl, "CRVAL1":CRVAL1, "CDELT1":CDELT1, "NAXIS1":NAXIS1}
 
 
 def create_fine_and_coarse_wave_grid():
@@ -648,7 +624,7 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
     if norm:
         F_bol = trapz(fl, wl)
-        fl = fl * (F_sun / F_bol)
+        fl = fl * (C.F_sun / F_bol)
         #this also means that the bolometric luminosity is always 1 L_sun
 
     if trunc:
@@ -664,7 +640,7 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
 
 def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX"):
-    '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to F_sun if desired.'''
+    '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to C.F_sun if desired.'''
 
     if grid == "PHOENIX":
         if alpha is not None:
@@ -686,10 +662,10 @@ def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX
     if norm:
         f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
         F_bol = trapz(f, w_full)
-        f = f * (F_sun / F_bol)
+        f = f * (C.F_sun / F_bol)
         #this also means that the bolometric luminosity is always 1 L_sun
     if grid == "kurucz":
-        f *= c_ang / wave_grid_kurucz_raw ** 2 #Convert from f_nu to f_lambda
+        f *= C.c_ang / wave_grid_kurucz_raw ** 2 #Convert from f_nu to f_lambda
 
     flux_file.close()
     #print("Loaded " + rname)
@@ -851,13 +827,13 @@ def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
 
 @np.vectorize
 def v(ls, lo):
-    return c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
+    return C.c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
 
 def create_FITS_wavegrid(wl_start, wl_end, vel_spacing):
     '''Taking the desired wavelengths, output CRVAL1, CDELT1, NAXIS1 and the actual wavelength array.
     vel_spacing in km/s, wavelengths in angstroms.'''
     CRVAL1 = np.log10(wl_start)
-    CDELT1 = np.log10(vel_spacing/c_kms + 1)
+    CDELT1 = np.log10(vel_spacing/C.c_kms + 1)
     NAXIS1 = int(np.ceil((np.log10(wl_end) - CRVAL1)/CDELT1)) + 1
     p = np.arange(NAXIS1)
     wl = 10 ** (CRVAL1 + CDELT1 * p)
@@ -910,7 +886,7 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
     f_lam = np.abs(ifft(FF))
 
     #convert to f_nu
-    f_nu = out_grid**2/c_ang * f_lam
+    f_nu = out_grid**2/C.c_ang * f_lam
 
     filename = "t{temp:0>5.0f}g{logg:.0f}p00v{vsini:0>3.0f}.fits".format(temp=temp,
     logg=10 * logg, vsini=vsini)
@@ -919,8 +895,26 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
                                                                 "AUTHOR": "Ian Czekala",
                                                                 "COMMENT" : "Adapted from PHOENIX"})
 
-
+#@profile
 def main():
+    print("Starting main")
+    mygrid = PHOENIXGridInterface(air=True, norm=True)
+
+
+    spec = mygrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
+    #spec.save("test_spec.npy")
+
+
+    wldict = spec.calculate_log_lam_grid()
+
+
+    out_path = "PHOENIX_master.hdf5"
+
+    HDF5Creator = HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=4, chunksize=1, parallel=True,
+                                ranges={"temp":(5000, 6000), "logg":(4.5,5.5), "Z":(0.0,0.0), "alpha":(0.0,0.0)})
+
+    HDF5Creator.process_grid()
+
 
     pass
 

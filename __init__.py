@@ -1,8 +1,7 @@
-__all__ = ["model", "grid_tools", "MCMC"]
+__all__ = ["model", "grid_tools", "MCMC", "constants"]
 
 import os
 import yaml
-
 
 #Could also hardcode all of the constants used throughout?
 
