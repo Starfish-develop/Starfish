@@ -1,4 +1,13 @@
-from model import *
+import pytest
+from StellarSpectra.model import *
+
+def test_create_log_lam_grid():
+    print(create_log_lam_grid(min_WL=(0.08,5000)))
+    print(create_log_lam_grid(min_V=2))
+    print(create_log_lam_grid(min_V=8))
+    with pytest.raises(ValueError) as e:
+        create_log_lam_grid()
+    print(e.value)
 
 class TestBaseSpectrum:
     def setup_class(self):

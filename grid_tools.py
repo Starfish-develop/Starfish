@@ -231,7 +231,7 @@ class HDF5GridCreator:
     def process_flux(self, parameters):
         #'''Assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
         #the GridInterface actually has alpha or not.'''
-        #assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
+        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
         print("Processing", parameters)
         try:
             spec = self.GridInterface.load_file(parameters)
@@ -325,11 +325,17 @@ class Interpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.__call__ = self.trilinear
+            self.interpolate = self.trilinear
             self.parameters = grid_parameters - set("alpha")
         else:
-            self.__call__ = self.quadlinear
+            self.interpolate = self.quadlinear
             self.parameters = grid_parameters
+
+        self.setup_index_interpolator_and_cache()
+
+    def __call__(self, parameters):
+        self.interpolate(parameters)
+        pass
 
     def setup_index_interpolator_and_cache(self):
         #get the length of each parameter list
@@ -354,63 +360,55 @@ class Interpolator:
         '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
         #Because we have three parameters, store both the high and low bordering value
 
-
-        fhdf5 = h5py.File(LIB_filename, 'r')
-        LIB = fhdf5['LIB']
-
-        #Load only those indexes we want into a grid in memory
-        grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, ind] #weird syntax because
-        #sequence indexing is not supported for more than one axis in h5py
-        lenT, lenG, lenZ, lenF = grid.shape
-
-        #Create index interpolators
-        T_intp = interp1d(T_points, np.arange(lenT), kind='linear')
-        logg_intp = interp1d(logg_points, np.arange(lenG), kind='linear')
-        Z_intp = interp1d(Z_points, np.arange(lenZ), kind='linear')
-
-        fluxes = np.empty((8, lenF))
-        zeros = np.zeros(lenF)
-
-        def intp_func(temp, logg, Z):
-            if (logg < g_low) or (logg > g_high) or (temp < T_low) or (temp > T_high) or (Z < Z_low) or (Z > Z_high):
-                return zeros
-            else:
-                '''Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/'''
-                indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))
-                ui = np.ceil(indexes) #upper cube vertices
-                li = np.floor(indexes) #lower cube vertices
-                #print(li,ui)
-                x, y, z = (indexes - li) #range between 0 - 1
-                xu, yu, zu = ui
-                xl, yl, zl = li
-                fluxes[:] = np.array([
-                    grid[xl, yl, zl],
-                    grid[xu, yl, zl],
-                    grid[xl, yu, zl],
-                    grid[xl, yl, zu],
-                    grid[xu, yl, zu],
-                    grid[xl, yu, zu],
-                    grid[xu, yu, zl],
-                    grid[xu, yu, zu]])
-
-                weights = np.array([
-                    (1 - x) * (1 - y) * (1 - z),
-                    x * (1 - y) * (1 - z),
-                    (1 - x) * y * (1 - z),
-                    (1 - x) * (1 - y) * z,
-                    x * (1 - y) * z,
-                    (1 - x) * y * z,
-                    x * y * (1 - z),
-                    x * y * z])
-
-                #print(weights)
-                #print(np.sum(weights))
-
-                return np.average(fluxes, axis=0, weights=weights)
+        indexes = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        print(indexes)
 
 
-    def quadlinear(self):
-        pass
+        #fluxes = np.empty((8, lenF))
+        #zeros = np.zeros(lenF)
+
+        #def intp_func(temp, logg, Z):
+        #    if (logg < g_low) or (logg > g_high) or (temp < T_low) or (temp > T_high) or (Z < Z_low) or (Z > Z_high):
+        #        return zeros
+        #    else:
+        #        '''Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/'''
+        #        indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))
+        #        ui = np.ceil(indexes) #upper cube vertices
+        #        li = np.floor(indexes) #lower cube vertices
+        #        #print(li,ui)
+        #        x, y, z = (indexes - li) #range between 0 - 1
+        #        xu, yu, zu = ui
+        #        xl, yl, zl = li
+        #        fluxes[:] = np.array([
+        #            grid[xl, yl, zl],
+        #            grid[xu, yl, zl],
+        #            grid[xl, yu, zl],
+        #            grid[xl, yl, zu],
+        #            grid[xu, yl, zu],
+        #            grid[xl, yu, zu],
+        #            grid[xu, yu, zl],
+        #            grid[xu, yu, zu]])
+        #
+        #        weights = np.array([
+        #            (1 - x) * (1 - y) * (1 - z),
+        #            x * (1 - y) * (1 - z),
+        #            (1 - x) * y * (1 - z),
+        #            (1 - x) * (1 - y) * z,
+        #            x * (1 - y) * z,
+        #            (1 - x) * y * z,
+        #            x * y * (1 - z),
+        #            x * y * z])
+        #
+        #        #print(weights)
+        #        #print(np.sum(weights))
+        #
+        #        return np.average(fluxes, axis=0, weights=weights)
+
+
+    def quadlinear(self, parameters):
+        indexes = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        print(indexes)
+
 
 
 

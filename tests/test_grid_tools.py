@@ -2,13 +2,8 @@ import pytest
 from StellarSpectra.grid_tools import *
 
 
-def test_create_log_lam_grid():
-    print(create_log_lam_grid(min_WL=(0.08,5000)))
-    print(create_log_lam_grid(min_V=2))
-    print(create_log_lam_grid(min_V=8))
-    with pytest.raises(ValueError) as e:
-        create_log_lam_grid()
-    print(e.value)
+
+
 
 def pytest_funcargs__valid_rawgrid_interface(request):
     return RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
@@ -38,6 +33,7 @@ class TestPHOENIXGridInterface(TestRawGridInterface):
     def setup_class(self):
         print("Creating PHOENIXGridInterface\n")
         self.rawgrid = PHOENIXGridInterface(air=True, norm=True)
+        #TODO: test that air wavelengths are properly set?
 
     def test_check_params_alpha(self):
         print("using alpha in check_params\n")
@@ -67,7 +63,8 @@ class TestPHOENIXGridInterface(TestRawGridInterface):
 
 class TestHDF5Creator:
     def setup_class(self):
-        self.wldict = create_log_lam_grid(min_V=0.2)
+        import StellarSpectra
+        self.wldict = StellarSpectra.model.create_log_lam_grid(min_V=0.2)
         self.rawgrid = PHOENIXGridInterface(air=True, norm=True)
         self.HDF5Creator = HDF5GridCreator(self.rawgrid, ranges={"temp":(5000, 6000), "logg":(3.5, 4.5), "Z":(0.0,0.0),
                                             "alpha":(0.0, 0.0)}, filename="test.hdf5", wldict=self.wldict, chunksize=20)
@@ -111,9 +108,17 @@ class TestHDF5Interface:
 
 class TestInterpolator:
     def setup_class(self):
-        hdf5interface = HDF5Interface("test.hdf5")
+        hdf5interface = HDF5Interface("PHOENIX_master.hdf5")
         self.interpolator = Interpolator(hdf5interface)
         pass
 
     def test_parameters(self):
         print(self.interpolator.parameters)
+
+    def test_trilinear(self):
+        pass
+
+    def test_quadlinear(self):
+        parameters = {"temp":5010, "logg":4.6, "Z":0.0, "alpha":0.0}
+        self.interpolator(parameters)
+        pass
