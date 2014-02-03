@@ -90,16 +90,22 @@ class TestHDF5Creator:
 
 class TestHDF5Interface:
     def setup_class(self):
-        self.interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        self.interface = HDF5Interface("libraries/PHOENIX_test.hdf5")
 
     def test_wl(self):
         print(self.interface.wl)
         print(self.interface.wl_header)
+        #check to see that it is log-linear spaced
+        wl = self.interface.wl
+        vcs = np.diff(wl)/wl[:-1] * C.c_kms_air
+        print(vcs)
+        assert np.allclose(vcs, vcs[0]), "wavelength array is not log-lambda spaced."
         #print(self.interface.flux_name_dict)
 
     def test_bounds(self):
         print(self.interface.bounds)
 
+    @pytest.mark.xfail
     def test_load_file(self):
         self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         pass
@@ -147,6 +153,7 @@ class TestInterpolator:
 
     def test_interpolation_quality(self):
         #Interpolate at the grid bounds and do a numpy.allclose() to see if the spectra match the grid edges
+        pass
 
     def test_cache(self):
         pass
@@ -166,3 +173,11 @@ class TestInterpolator:
 #would have to be specified by fixing alpha in the lnprob and only using the alpha=0 grid.
 #Should we carry the metadata when giving the grid to willie? Or just write out the final values. Or take the
 #Average (with weights) of all the other values?
+
+
+class TestInstrument:
+    def setup_class(self):
+        self.instrument = Reticon()
+
+    def test_initialized(self):
+        print(self.instrument)

@@ -155,6 +155,12 @@ Instrument grid creation
 * No need to subclass? Same interface for both master file and instrument file
 * Has a writer class variable that can be set, which has a write_to_FITS() method
 
+# Test battery
+
+LogLambdaSpectrum, track down where the submaster grid is wrong
+Round out ways to instantiate LogLambdaSpectrum
+
+
 
 #Tests
 * Learn how to setup sample test directories with test files
