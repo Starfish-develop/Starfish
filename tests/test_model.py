@@ -30,3 +30,6 @@ class TestBase1DSpectrum(TestBaseSpectrum):
     def test_calculate_log_lam_grid(self):
         log_lam_grid = self.spec.calculate_log_lam_grid()
         print(log_lam_grid)
+
+class TestLogLambdaSpectrum:
+    pass

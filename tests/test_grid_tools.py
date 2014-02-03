@@ -3,8 +3,6 @@ from StellarSpectra.grid_tools import *
 
 
 
-
-
 def pytest_funcargs__valid_rawgrid_interface(request):
     return RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
 
@@ -92,7 +90,7 @@ class TestHDF5Creator:
 
 class TestHDF5Interface:
     def setup_class(self):
-        self.interface = HDF5Interface("test.hdf5")
+        self.interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
 
     def test_wl(self):
         print(self.interface.wl)
@@ -103,12 +101,30 @@ class TestHDF5Interface:
         print(self.interface.bounds)
 
     def test_load_file(self):
+        self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         pass
+
+
+class TestIndexInterpolator:
+    def setup_class(self):
+        self.interpolator = IndexInterpolator([6000,6100,6200,6300,6400])
+
+    def test_interpolate(self):
+        ans = self.interpolator(6010)
+        print(ans)
+        assert ans == (0.1, 6000, 6100)
+
+    def test_interpolate_bounds(self):
+        with pytest.raises(InterpolationError) as e:
+            self.interpolator(5990)
+        print(e.value)
 
 
 class TestInterpolator:
     def setup_class(self):
-        hdf5interface = HDF5Interface("PHOENIX_master.hdf5")
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        #libraries/PHOENIX_submaster.hd5 should have the following bounds
+        #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(-0.2,0.0)}
         self.interpolator = Interpolator(hdf5interface)
         pass
 
@@ -118,7 +134,35 @@ class TestInterpolator:
     def test_trilinear(self):
         pass
 
-    def test_quadlinear(self):
-        parameters = {"temp":5010, "logg":4.6, "Z":0.0, "alpha":0.0}
-        self.interpolator(parameters)
+    def test_interpolate_bounds(self):
         pass
+
+    def test_quadlinear(self):
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1, "alpha":-0.1}
+        new_flux = self.interpolator(parameters)
+        #Use IPython and  %timeit -n1 -r1 mytest.interpolator({"temp":6010, "logg":5.1, "Z":-0.1, "alpha":-0.1})
+        #all uncached performance is 3.89 seconds
+        #1/2 uncached performance is 2.37 seconds
+        #Caching all of the values, preformance is 226 ms
+
+    def test_interpolation_quality(self):
+        #Interpolate at the grid bounds and do a numpy.allclose() to see if the spectra match the grid edges
+
+    def test_cache(self):
+        pass
+
+    def test_interpolate_keywords(self):
+        pass
+
+    #
+#* determines if interpolating in T,G,M or T,G,M,A (tri vs quad linear)
+#* can determine whether it needs to interpolate in 3 or 4 dimensions
+#* caches 8 or 16 (or twice as many) nearby spectra depending on how many T,G,M or T,G,M,A
+#* check grid bounds
+#* handles edge cases (or uses HDF5 edge handling ability)
+#* Set the cache size, and then when the cache is full, pop the first 25% that were loaded.
+
+#What about the weird case of interpolating in alpha, but when the grid is irregular? I think this situation
+#would have to be specified by fixing alpha in the lnprob and only using the alpha=0 grid.
+#Should we carry the metadata when giving the grid to willie? Or just write out the final values. Or take the
+#Average (with weights) of all the other values?

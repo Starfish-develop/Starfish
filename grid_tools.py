@@ -15,6 +15,7 @@ import bz2
 import h5py
 from functools import partial
 import itertools
+from collections import OrderedDict
 
 from StellarSpectra.model import Base1DSpectrum, LogLambdaSpectrum
 import StellarSpectra.constants as C
@@ -25,6 +26,14 @@ pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post
 all_parameters = grid_parameters | pp_parameters #the union of grid_parameters and pp_parameters
 #Dictionary of allowed variables with default values
 var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "Omega":1.0}
+
+def dict_to_tuple(mydict):
+    '''Take a parameter dictionary and convert it to a tuple in the aggreed upon order.'''
+    if "alpha" in mydict.keys():
+        return (mydict["temp"], mydict['logg'], mydict['Z'], mydict['alpha'])
+    else:
+        return (mydict["temp"], mydict['logg'], mydict['Z'], var_default['alpha'])
+
 
 class GridError(Exception):
     def __init__(self, msg):
@@ -306,14 +315,33 @@ class HDF5Interface:
         '''Loads a file and returns it as a LogLambdaSpectrum. (Does it have to assume something about the keywords?
         Perhaps there is a EXFlag or disp type present in the HDF5 attributes.'''
         key = self.flux_name.format(**parameters)
-        with h5py.File(self.filename, "r")['flux'] as fluxgrp:
-            fl = fluxgrp[key][:]
+        with h5py.File(self.filename, "r") as hdf5:
+            fl = hdf5['flux'][key][:]
 
         return LogLambdaSpectrum(self.wl, fl, metadata={})
 
 
     def write_to_FITS(self):
         pass
+
+class IndexInterpolator:
+    '''Index interpolator should return fractional index between two points (0 - 1) and the low and high values. For
+    example, given "temp":6010, the index interpolator should return (0.1, 6000, 6100). Then we create a structure
+     that has {"temp": (0.1, 6000, 6100), "logg": (0.7, 3.5, 4.0), etc.... }'''
+    def __init__(self, parameter_list):
+        self.parameter_list = np.unique(parameter_list)
+        self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
+        pass
+
+    def __call__(self, value):
+        try:
+            index = self.index_interpolator(value)
+        except ValueError as e:
+            raise InterpolationError("Requested value {} is out of bounds. {}".format(value, e))
+        high = np.ceil(index)
+        low = np.floor(index)
+        frac_index = index - low
+        return ((self.parameter_list[low], self.parameter_list[high]), ((1 - frac_index), frac_index))
 
 class Interpolator:
     '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
@@ -331,30 +359,21 @@ class Interpolator:
             self.interpolate = self.quadlinear
             self.parameters = grid_parameters
 
-        self.setup_index_interpolator_and_cache()
+        self.setup_index_interpolators()
+        self.cache = OrderedDict([])
 
     def __call__(self, parameters):
-        self.interpolate(parameters)
-        pass
+        return self.interpolate(parameters)
 
-    def setup_index_interpolator_and_cache(self):
-        #get the length of each parameter list
-        lengths = {key:len(val) for key,val in self.interface.points.items()}
+
+    def setup_index_interpolators(self):
         #create an interpolator between grid points indices. Given a temp, produce fractional index between two points
-        self.index_interpolators = {key:interp1d(self.interface.points[key], np.arange(lengths[key]), kind="linear")
-                                    for key in lengths.keys()}
+        self.index_interpolators = {key:IndexInterpolator(self.interface.points[key]) for key in self.parameters}
+
         lenF = len(self.interface.wl)
-        fluxes = np.empty((8, lenF))
-
-        self.cache = {}
-        self.grid_pairs = {}
-        #cache is a list of variables describing (t_low, t_high), (l_low, l_high), etc..
-        #whenever any variable is updated, we must reload all of the variables. So why not just reload everything?
-
-        #cartesian product gives us the parameter combinations that describe the grid edges
+        self.fluxes = np.empty((2**len(self.parameters), lenF))
 
 
-        #Raise an InterpolationError
 
     def trilinear(self, parameters):
         '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
@@ -364,55 +383,31 @@ class Interpolator:
         print(indexes)
 
 
-        #fluxes = np.empty((8, lenF))
-        #zeros = np.zeros(lenF)
-
-        #def intp_func(temp, logg, Z):
-        #    if (logg < g_low) or (logg > g_high) or (temp < T_low) or (temp > T_high) or (Z < Z_low) or (Z > Z_high):
-        #        return zeros
-        #    else:
-        #        '''Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/'''
-        #        indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))
-        #        ui = np.ceil(indexes) #upper cube vertices
-        #        li = np.floor(indexes) #lower cube vertices
-        #        #print(li,ui)
-        #        x, y, z = (indexes - li) #range between 0 - 1
-        #        xu, yu, zu = ui
-        #        xl, yl, zl = li
-        #        fluxes[:] = np.array([
-        #            grid[xl, yl, zl],
-        #            grid[xu, yl, zl],
-        #            grid[xl, yu, zl],
-        #            grid[xl, yl, zu],
-        #            grid[xu, yl, zu],
-        #            grid[xl, yu, zu],
-        #            grid[xu, yu, zl],
-        #            grid[xu, yu, zu]])
-        #
-        #        weights = np.array([
-        #            (1 - x) * (1 - y) * (1 - z),
-        #            x * (1 - y) * (1 - z),
-        #            (1 - x) * y * (1 - z),
-        #            (1 - x) * (1 - y) * z,
-        #            x * (1 - y) * z,
-        #            (1 - x) * y * z,
-        #            x * y * (1 - z),
-        #            x * y * z])
-        #
-        #        #print(weights)
-        #        #print(np.sum(weights))
-        #
-        #        return np.average(fluxes, axis=0, weights=weights)
-
-
     def quadlinear(self, parameters):
-        indexes = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
-        print(indexes)
+        edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        names = [key for key in edges.keys()]
+        params = [edges[key][0] for key in names]
+        weights = [edges[key][1] for key in names]
 
+        param_combos = itertools.product(*params)
+        weight_combos = itertools.product(*weights)
 
+        parameter_list = [dict(zip(names, param)) for param in param_combos]
+        key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
+        weight_list = [np.prod(weight) for weight in weight_combos]
+        #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
 
+        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
-        #Handle edge cases
+        #Assemble flux vector from cache
+        for i,param in enumerate(parameter_list):
+            key = key_list[i]
+            if key not in self.cache.keys():
+                self.cache[key] = self.interface.load_file(param).fl
+            self.fluxes[i,:] = self.cache[key]*weight_list[i]
+
+        return np.sum(self.fluxes, axis=0)
+
 
 
 class MasterToInstrumentProcessor:

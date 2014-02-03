@@ -128,6 +128,11 @@ Put the decorator `@profile` over the function you want to profile
 	python -m memory_profiler model.py
 
 
+#Test how long a single HDF5 write takes
+#What about over the holyscratch file system?
+#What about on the /scratch system?
+
+
 # Object oriented rewrite
 
 ## grid_tools.py
@@ -136,42 +141,19 @@ Put the decorator `@profile` over the function you want to profile
 Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
 * PHOENIX, Kurucz, etc inherit the Grid base class
 
-Ways to resample wavelengths
-* Willie's spectra will require a wl grid specified by FITS headers
-* When spectra are convolved with instrumental resolution, they can be downsampled
-
-Spectrum object can resample to log-linear
-* air to vac conversion
-* could store wave_grid in a separate dataset of the HDF5 file?
-
-
 #Master grid creation. This isn't tested, but what is probably happening is that the slowest process is actually
 the writing to the file (takes about 0.25 times the "processing" of a file). The queue then becomes saturated.
 Honestly, there isn't really a way around this, because there is one "master process" that is doing all the reading/writing
 to the HDF5 file. Even with MPI/HDF5, this situation isn't much improved because we need to have all the attributes
 updated properly.
-
-can take an "instrument object", which specifies wl_grid, FWHM, etc.
-* creates a new HDF5 object
+This might actually be a hangup with the holyscratch filesystem.
 
 
 Instrument grid creation
-* takes a Master HDF5 grid, and instrument object, creates a new grid with the same attributes, does the
+* takes a Master HDF5 grid, and instrument object, creates a new HDF5 grid with the same attributes, does the
  interpolation, convolution, vsini, etc.
-
-#Where should the convolution, vsini, be done? On the LogLambda spectrum object?
-
-
 * No need to subclass? Same interface for both master file and instrument file
 * Has a writer class variable that can be set, which has a write_to_FITS() method
-
-Interpolator object
-* uses a HDF5 file Interface, either master or for an instrument
-* determines if interpolating in T,G,M or T,G,M,A (tri vs quad linear)
-* can determine whether it needs to interpolate in 3 or 4 dimensions
-* caches 8 or 16 (or twice as many) nearby spectra depending on how many T,G,M or T,G,M,A
-* check grid bounds
-* handles edge cases (or uses HDF5 edge handling ability)
 
 
 #Tests
@@ -195,16 +177,6 @@ def calculate(a, b, c, memo={}):
 Memoization of python, using a decorator might be helpful, to have a dict of which grid parameters have been loaded
 * https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 * can set a max number of spectra to keep in cache
-
-
-First create a master HDF5 file from the raw spectra, and then make Willie's derivative grids from this. Specific to an
-instrument, or a wl range, etc.
-
-
-* create an intermediate spectrum object?
-    * has tasks to resample to a different wl
-    * can do air to vac conversion
-
 
 
 ### How to implement

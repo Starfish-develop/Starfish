@@ -134,19 +134,16 @@ class Base1DSpectrum(BaseSpectrum):
         gc.collect()
         self.wl_vel = grid
 
-def create_log_lam_grid(wl_start=3000., wl_end=13000., min_WL=None, min_V=None):
+def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
     '''min_WL = (delta_WL, WL). Takes the finer of the two specified.'''
-    if (min_WL is None) and (min_V is None):
-        raise ValueError("You need to specify either min_WL or min_V")
-    if min_WL is not None:
-        delta_wl, wl = min_WL #unpack
+    if (min_wl is None) and (min_vc is None):
+        raise ValueError("You need to specify either min_wl or min_vc")
+    if min_wl is not None:
+        delta_wl, wl = min_wl #unpack
         Vwl = delta_wl/wl
         min_vc = Vwl
-    if min_V is not None:
-        Vv = min_V/C.c_kms
-        min_vc = Vv
-    if (min_WL is not None) and (min_V is not None):
-        min_vc = Vwl if Vwl < Vv else Vv
+    if (min_wl is not None) and (min_vc is not None):
+        min_vc = Vwl if Vwl < min_vc else min_vc
 
     CDELT_temp = np.log10(min_vc +1)
     CRVAL1 = np.log10(wl_start)
@@ -162,35 +159,105 @@ def create_log_lam_grid(wl_start=3000., wl_end=13000., min_WL=None, min_V=None):
     wl = 10 ** (CRVAL1 + CDELT1 * p)
     return {"wl":wl, "CRVAL1":CRVAL1, "CDELT1":CDELT1, "NAXIS1":NAXIS1}
 
-class LogLambdaSpectrum(Base1DSpectrum):
-    def __init__(self):
-        super().__init__(wl, fl, fl_type)
 
-    def resample(self):
-            raise NotImplementedError
+class LogLambdaSpectrum(Base1DSpectrum):
+    def __init__(self, wl, fl, fl_type="flam", air=True, metadata=None, oversampling=3.5):
+        super().__init__(wl, fl, fl_type, air=air, metadata=metadata)
+        self.min_vc = 10**metadata["CDELT1"] - 1
+        self.oversampling = oversampling #taken to mean as how many points go across the FWHM of the Gaussian
 
     def downsample(self):
-        pass
+        #Takes the new min_vc and oversampling factor
+        min_vc = self.min_vc/self.oversampling
+        wldict = create_log_lam_grid(self.wl[0], self.wl[-1], min_vc=min_vc)
 
-    def convolve(self):
-        raise NotImplementedError
+        #creates new wl grid and updates header values
+        wl = wldict.pop("wl")
+        self.metadata.update(wldict)
+
+        #resamples the spectrum to these values and updates wl_grid
+        self.resample_to_grid(wl)
 
     def instrument_convolve(self, instrument, downsample=True):
-        pass
+        sigma = instrument.FWHM/2.35 # in km/s
+
+        FF = fft(self.fl)
+        #The frequencies (cycles/km) corresponding to each point
+        ss = fftfreq(len(self.fl), d=self.min_vc * C.c_kms_air)
+
+        #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
+        FF *= taper
+
+        #Take the broadened spectrum back to wavelength space
+        self.fl = ifft(FF)
+
+        #Update min_vc and oversampling, possibly downsample
+        if instrument.FWHM > self.min_vc:
+            self.min_vc = instrument.FWHM
+            self.oversampling = instrument.oversampling
+
+            if downsample:
+                #downsample the broadened spectrum to a coarser grid
+                self.downsample()
+
+        #TODO: this logic needs to be firmed up
+
 
     def stellar_convolve(self, vsini, downsample=True):
-        pass
+        #Take FFT of f_grid
+        FF = fft(self.fl)
+
+        ss = fftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
+        ss[0] = 0.01 #junk so we don't get a divide by zero error
+        ub = 2. * np.pi * vsini * ss
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+
+        #institute velocity taper
+        FF *= sb
+
+        #do ifft
+        self.fl = np.abs(ifft(FF))
+
+        #Update min_vc and oversampling, possibly downsample
+        if vsini > self.min_vc:
+            self.min_vc = vsini
+
+            if downsample:
+                #downsample the broadened spectrum to a coarser grid
+                self.downsample()
+
 
     def instrument_and_stellar_convolve(self, instrument, vsini, downsample=True):
-        pass
+        '''Does both instrument and stellar convolution in one step, in the Fourier domain.'''
+        ss = fftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
+        ss[0] = 0.01 #junk so we don't get a divide by zero error
+        ub = 2. * np.pi * vsini * ss
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+
+        sigma = instrument.FWHM/2.35 # in km/s
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
+
+        FF = fft(self.fl)
+        FF *= (taper * sb)
+
+        #Take the broadened spectrum back to wavelength space
+        self.fl = ifft(FF)
+
+        #Update min_vc and oversampling, possibly downsample
+        if instrument.FWHM > self.min_vc:
+            self.min_vc = instrument.FWHM
+            self.oversampling = instrument.oversampling
+
+            if downsample:
+                #downsample the broadened spectrum to a coarser grid
+                self.downsample()
 
 
-
-#
-#
-#
-#
-#
 #grids = {"PHOENIX": {'T_points': np.array(
 #    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
 #     4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
