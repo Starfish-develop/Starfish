@@ -1,13 +1,28 @@
 import pytest
 from StellarSpectra.model import *
+from StellarSpectra import grid_tools
+import StellarSpectra.constants as C
 
-def test_create_log_lam_grid():
-    print(create_log_lam_grid(min_WL=(0.08,5000)))
-    print(create_log_lam_grid(min_V=2))
-    print(create_log_lam_grid(min_V=8))
-    with pytest.raises(ValueError) as e:
-        create_log_lam_grid()
-    print(e.value)
+
+
+class TestCreateLogLamGrid:
+    def test_log_lam_grid_assert(self):
+        wldict = create_log_lam_grid(3000, 13000, min_vc=2/C.c_kms)
+        wl = wldict.pop("wl")
+        wl_params = wldict
+
+        vcs = np.diff(wl)/wl[:-1] * C.c_kms_air
+        print(vcs)
+        assert np.allclose(vcs, vcs[0]), "Array must be log-lambda spaced."
+
+    def test_create_log_lam_grid(self):
+        print(create_log_lam_grid(min_wl=(0.08,5000)))
+        print(create_log_lam_grid(min_vc=2/C.c_kms))
+        print(create_log_lam_grid(min_vc=8/C.c_kms))
+        with pytest.raises(ValueError) as e:
+            create_log_lam_grid()
+        print(e.value)
+
 
 class TestBaseSpectrum:
     def setup_class(self):
@@ -28,8 +43,30 @@ class TestBase1DSpectrum(TestBaseSpectrum):
         self.spec = Base1DSpectrum(np.linspace(5000, 5100, num=3000), np.random.normal(size=3000,))
 
     def test_calculate_log_lam_grid(self):
-        log_lam_grid = self.spec.calculate_log_lam_grid()
-        print(log_lam_grid)
+        wldict = self.spec.calculate_log_lam_grid()
+
+        wl = wldict.pop("wl")
+        wl_params = wldict
+
+        vcs = np.diff(wl)/wl[:-1] * C.c_kms_air
+        print(vcs)
+        assert np.allclose(vcs, vcs[0]), "Array must be log-lambda spaced."
+
+
 
 class TestLogLambdaSpectrum:
-    pass
+    def setup_class(self):
+        hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        wl = hdf5interface.wl
+        spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        #self.spectrum = LogLambdaSpectrum(wl, fl)
+
+
+    def test_load_from_HDF5(self):
+        pass
+
+    def test_create_from_scratch(self):
+        pass
+
+    def test_downsample(self):
+        pass

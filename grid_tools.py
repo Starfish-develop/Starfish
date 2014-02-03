@@ -230,7 +230,7 @@ class HDF5GridCreator:
         #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
 
     def create_wl(self, hdf5):
-        wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f", compression='gzip', compression_opts=9)
+        wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
         wl_dset[:] = self.wl
         for key, value in self.wl_params.items():
             wl_dset.attrs[key] = value
@@ -317,8 +317,11 @@ class HDF5Interface:
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
             fl = hdf5['flux'][key][:]
+            hdr = dict(hdf5['flux'][key].attrs)
 
-        return LogLambdaSpectrum(self.wl, fl, metadata={})
+        hdr.update(self.wl_header) #add the flux metadata to the wl data
+
+        return LogLambdaSpectrum(self.wl, fl, metadata=hdr)
 
 
     def write_to_FITS(self):
@@ -473,10 +476,12 @@ class Instrument:
     def __init__(self, name, FWHM, wl_range=(-np.inf, np.inf), oversampling=3.5):
         self.name = name
         self.FWHM = FWHM #km/s
-        self.wl_range = wl_range
         self.oversampling = oversampling
-        self.vel_spacing = self.FWHM/self.oversampling #km/s
+        self.wl_range = wl_range
 
+    def __str__(self):
+        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, wl_range: {}".format(self.name, self.FWHM,
+                                                                              self.oversampling, self.wl_range)
 
 class TRES(Instrument):
     def __init__(self):

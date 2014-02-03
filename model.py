@@ -97,15 +97,7 @@ class DataSpectrum(BaseSpectrum):
         assert self.mask.shape == self.shape, "mask array incompatible shape."
 
 
-class ModelSpectrum(BaseSpectrum):
-    '''Specifically designed to match the shape of the data.'''
 
-    wl = None #This wl is a "static" variable. Or, does it make sense because there will only be one model per
-    #process, to just keep updating the flux and wl? Rather than forcing one.
-
-    def __init__(self, wl, fl, dataSpectrum, fl_type="flam"):
-        super().__init__(wl, fl, fl_type)
-        self.dataSpectrum = dataSpectrum
 
 
 class Base1DSpectrum(BaseSpectrum):
@@ -120,7 +112,7 @@ class Base1DSpectrum(BaseSpectrum):
         dif = np.diff(self.wl_vel)
         min_wl = np.min(dif)
         wl_at_min = self.wl_vel[np.argmin(dif)]
-        wl_dict = create_log_lam_grid(wl_start=self.wl_vel[0], wl_end=self.wl_vel[-1], min_WL=(min_wl, wl_at_min))
+        wl_dict = create_log_lam_grid(wl_start=self.wl_vel[0], wl_end=self.wl_vel[-1], min_wl=(min_wl, wl_at_min))
         #(log_lam_grid, CRVAL1, CDELT1, NAXIS1)
         return wl_dict
 
@@ -163,7 +155,17 @@ def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None)
 class LogLambdaSpectrum(Base1DSpectrum):
     def __init__(self, wl, fl, fl_type="flam", air=True, metadata=None, oversampling=3.5):
         super().__init__(wl, fl, fl_type, air=air, metadata=metadata)
-        self.min_vc = 10**metadata["CDELT1"] - 1
+        #Super class already checks that the wavelengths are np.unique
+        #Need to check that the vc spacing of each pixel is the same.
+        vcs = np.diff(wl)/wl[:-1] * C.c_kms_air
+        print(vcs)
+        assert np.allclose(vcs, vcs[0]), "Array must be log-lambda spaced."
+
+        #Check to see if CDELT1 is defined, verify to make sure that these are the same.
+
+
+
+        self.min_vc = 10**self.metadata["CDELT1"] - 1
         self.oversampling = oversampling #taken to mean as how many points go across the FWHM of the Gaussian
 
     def downsample(self):
@@ -257,6 +259,16 @@ class LogLambdaSpectrum(Base1DSpectrum):
                 #downsample the broadened spectrum to a coarser grid
                 self.downsample()
 
+
+class ModelSpectrum(LogLambdaSpectrum):
+    '''Specifically designed to match the shape of the data.'''
+
+    wl = None #This wl is a "static" variable. Or, does it make sense because there will only be one model per
+    #process, to just keep updating the flux and wl? Rather than forcing one.
+
+    def __init__(self, wl, fl, dataSpectrum, fl_type="flam"):
+        super().__init__(wl, fl, fl_type)
+        self.dataSpectrum = dataSpectrum
 
 #grids = {"PHOENIX": {'T_points': np.array(
 #    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
