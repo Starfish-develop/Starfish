@@ -83,7 +83,7 @@ class BaseSpectrum:
 
 
     def __str__(self):
-        return "Spectrum object."
+        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
 
 
 class DataSpectrum(BaseSpectrum):
@@ -123,11 +123,12 @@ class Base1DSpectrum(BaseSpectrum):
         '''Resamples to a new grid. For other methods, Grid does not necessarily have to be 1D.'''
         #TODO: how to properly set the velocity of the new grid when resampling?
         assert len(grid.shape) == 1, "grid must be 1D"
-        interp = InterpolatedUnivariateSpline(self.wl_vel, self.fl)
+        interp = InterpolatedUnivariateSpline(self.wl_raw, self.fl)
         self.fl = interp(grid)
         del interp
         gc.collect()
-        self.wl_vel = grid
+        self.wl_raw = grid
+        self.metadata.update({"resampled":True})
 
 def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
     '''min_WL = (delta_WL, WL). Takes the finer of the two specified.'''
@@ -185,10 +186,17 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
         self.oversampling = oversampling #taken to mean as how many points go across the FWHM of the Gaussian
 
-    def downsample(self):
+    def downsample(self, instrument=None):
         #Takes the new min_vc and oversampling factor
+
         min_vc = self.min_vc/self.oversampling
-        wldict = create_log_lam_grid(self.wl_raw[0], self.wl_raw[-1], min_vc=min_vc)
+        if instrument is not None:
+            wl_low, wl_high = instrument.wl_range
+            wl_low = wl_low if wl_low > self.wl_raw[0] else self.wl_raw[0]
+            wl_high = wl_high if wl_high < self.wl_raw[-1] else self.wl_raw[-1]
+            wldict = create_log_lam_grid(wl_low, wl_high, min_vc=min_vc)
+        else:
+            wldict = create_log_lam_grid(self.wl_raw[0], self.wl_raw[-1], min_vc=min_vc)
 
         #creates new wl grid and updates header values
         wl = wldict.pop("wl")
@@ -197,7 +205,16 @@ class LogLambdaSpectrum(Base1DSpectrum):
         #resamples the spectrum to these values and updates wl_grid
         self.resample_to_grid(wl)
 
-    def instrument_convolve(self, instrument, downsample=True):
+    def downsample_to_grid(self, wldict, instrument=None):
+        #Assumes that new wl grid does not violate any sampling rules and updates header values. This is a speed function.
+        wl = wldict.pop("wl")
+        self.metadata.update(wldict)
+
+        #resamples the spectrum to these values and updates wl_grid
+        self.resample_to_grid(wl)
+
+
+    def instrument_convolve(self, instrument, downsample="no"):
         sigma = instrument.FWHM/2.35 # in km/s
 
         FF = fft(self.fl)
@@ -209,23 +226,27 @@ class LogLambdaSpectrum(Base1DSpectrum):
         FF *= taper
 
         #Take the broadened spectrum back to wavelength space
-        self.fl = ifft(FF)
+        self.fl = np.real_if_close(ifft(FF))
+        assert np.all(self.fl.dtype==np.float64), "Some imaginary parts still exist"
 
         #Update min_vc and oversampling, possibly downsample
         if instrument.FWHM > self.min_vc:
-            self.min_vc = instrument.FWHM
+            self.min_vc = instrument.FWHM/C.c_kms
             self.oversampling = instrument.oversampling
 
             #TODO:Truncate the wl range according to the instrument
 
-            if downsample:
+            if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
-                self.downsample()
+                self.downsample(instrument)
+            elif type(downsample) == np.ndarray:
+                self.downsample_to_grid(downsample, instrument)
+
 
         #TODO: this logic needs to be firmed up
 
 
-    def stellar_convolve(self, vsini, downsample=True):
+    def stellar_convolve(self, vsini, downsample="no"):
         #Take FFT of f_grid
         FF = fft(self.fl)
 
@@ -244,14 +265,17 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
         #Update min_vc and oversampling, possibly downsample
         if vsini > self.min_vc:
-            self.min_vc = vsini
+            self.min_vc = vsini/C.c_kms
 
-            if downsample:
+            if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
                 self.downsample()
+            elif type(downsample) == np.ndarray:
+                self.downsample_to_grid(downsample)
 
 
-    def instrument_and_stellar_convolve(self, instrument, vsini, downsample=True):
+
+    def instrument_and_stellar_convolve(self, instrument, vsini, downsample="no"):
         '''Does both instrument and stellar convolution in one step, in the Fourier domain.'''
         ss = fftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
         ss[0] = 0.01 #junk so we don't get a divide by zero error
@@ -270,13 +294,15 @@ class LogLambdaSpectrum(Base1DSpectrum):
         self.fl = ifft(FF)
 
         #Update min_vc and oversampling, possibly downsample
-        if instrument.FWHM > self.min_vc:
-            self.min_vc = instrument.FWHM
+        if (instrument.FWHM > self.min_vc) or (vsini > self.min_vc):
+            self.min_vc = instrument.FWHM/C.c_kms if instrument.FWHM > vsini else vsini/C.c_kms
             self.oversampling = instrument.oversampling
 
-            if downsample:
+            if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
-                self.downsample()
+                self.downsample(instrument)
+            elif type(downsample) == np.ndarray:
+                self.downsample_to_grid(downsample, instrument)
 
 
 class ModelSpectrum(LogLambdaSpectrum):
