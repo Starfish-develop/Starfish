@@ -12,7 +12,10 @@ from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
 import pyfftw
 import emcee
 import os
+import warnings
 import StellarSpectra.constants as C
+
+log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 
 
 def load_config():
@@ -157,21 +160,35 @@ class LogLambdaSpectrum(Base1DSpectrum):
         super().__init__(wl, fl, fl_type, air=air, metadata=metadata)
         #Super class already checks that the wavelengths are np.unique
         #Need to check that the vc spacing of each pixel is the same.
-        vcs = np.diff(wl)/wl[:-1] * C.c_kms_air
-        print(vcs)
-        assert np.allclose(vcs, vcs[0]), "Array must be log-lambda spaced."
+        vcs = np.diff(self.wl_raw)/self.wl_raw[:-1]
+        self.min_vc = np.min(vcs)
+        assert np.allclose(vcs, self.min_vc), "Array must be log-lambda spaced."
 
-        #Check to see if CDELT1 is defined, verify to make sure that these are the same.
+        #Calculate CDELT1, CRVAL1, and NAXIS1 (even if it's not power of 2)
+        CDELT1 = np.log10(self.min_vc + 1)
+        CRVAL1 = np.log10(self.wl_raw[0])
+        CRVALN = np.log10(self.wl_raw[-1])
+        NAXIS1 = int(np.ceil((CRVALN - CRVAL1)/CDELT1))
 
+        wldict = {"CDELT1": CDELT1, "CRVAL1": CRVAL1, "NAXIS1":NAXIS1}
 
+        if np.log(NAXIS1)/np.log(2) % 1 != 0:
+            warnings.warn("Calculated NAXIS1={}, which is not a power of 2. FFT will be slow.".format(NAXIS1), UserWarning)
 
-        self.min_vc = 10**self.metadata["CDELT1"] - 1
+        if log_lam_kws <= set(self.metadata.keys()):
+            assert np.allclose(np.array([self.metadata[key] for key in log_lam_kws]),
+                    np.array([wldict[key] for key in log_lam_kws])), "Header keywords do not match wl file."
+            #print("calculated", wldict)
+            #print("header_file", {key:self.metadata[key] for key in log_lam_kws})
+        else:
+            self.metadata.update(wldict)
+
         self.oversampling = oversampling #taken to mean as how many points go across the FWHM of the Gaussian
 
     def downsample(self):
         #Takes the new min_vc and oversampling factor
         min_vc = self.min_vc/self.oversampling
-        wldict = create_log_lam_grid(self.wl[0], self.wl[-1], min_vc=min_vc)
+        wldict = create_log_lam_grid(self.wl_raw[0], self.wl_raw[-1], min_vc=min_vc)
 
         #creates new wl grid and updates header values
         wl = wldict.pop("wl")
@@ -199,6 +216,8 @@ class LogLambdaSpectrum(Base1DSpectrum):
             self.min_vc = instrument.FWHM
             self.oversampling = instrument.oversampling
 
+            #TODO:Truncate the wl range according to the instrument
+
             if downsample:
                 #downsample the broadened spectrum to a coarser grid
                 self.downsample()
@@ -210,7 +229,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
         #Take FFT of f_grid
         FF = fft(self.fl)
 
-        ss = fftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
+        ss = fftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
         ss[0] = 0.01 #junk so we don't get a divide by zero error
         ub = 2. * np.pi * vsini * ss
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
@@ -234,7 +253,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
     def instrument_and_stellar_convolve(self, instrument, vsini, downsample=True):
         '''Does both instrument and stellar convolution in one step, in the Fourier domain.'''
-        ss = fftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
+        ss = fftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
         ss[0] = 0.01 #junk so we don't get a divide by zero error
         ub = 2. * np.pi * vsini * ss
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)

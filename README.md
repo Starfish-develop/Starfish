@@ -157,10 +157,12 @@ Instrument grid creation
 
 # Test battery
 
-LogLambdaSpectrum, track down where the submaster grid is wrong
+LogLambdaSpectrum, track down where the submaster grid is wrong = float32. wl needs to be float64 if we are going to deal with
+rounding errors.
+
 Round out ways to instantiate LogLambdaSpectrum
 
-
+Can add "skip methods" or robust=False to allow bypassing checks.
 
 #Tests
 * Learn how to setup sample test directories with test files

@@ -58,15 +58,30 @@ class TestLogLambdaSpectrum:
     def setup_class(self):
         hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         wl = hdf5interface.wl
-        spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
-        #self.spectrum = LogLambdaSpectrum(wl, fl)
-
+        self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        self.instrument = grid_tools.Reticon()
 
     def test_load_from_HDF5(self):
-        pass
+        hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        wl = hdf5interface.wl
+        spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
     def test_create_from_scratch(self):
+        hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        wl = hdf5interface.wl
+        spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        self.spectrum = LogLambdaSpectrum(wl, spec.fl)
+        print(self.spectrum.metadata)
         pass
 
     def test_downsample(self):
+        self.spec.oversampling = 0.1
+        self.spec.downsample()
+        print(self.spec.metadata)
+
+    def test_instrument_convolve(self):
+        self.spec.instrument_convolve(self.instrument, downsample=False)
+
+
+    def test_stellar_convolve(self):
         pass

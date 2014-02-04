@@ -90,7 +90,7 @@ class TestHDF5Creator:
 
 class TestHDF5Interface:
     def setup_class(self):
-        self.interface = HDF5Interface("libraries/PHOENIX_test.hdf5")
+        self.interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
 
     def test_wl(self):
         print(self.interface.wl)
@@ -105,7 +105,6 @@ class TestHDF5Interface:
     def test_bounds(self):
         print(self.interface.bounds)
 
-    @pytest.mark.xfail
     def test_load_file(self):
         self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         pass
