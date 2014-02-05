@@ -125,7 +125,7 @@ class Base1DSpectrum(BaseSpectrum):
         del interp
         gc.collect()
         self.wl_raw = grid
-        self.metadata.update({"resampled":True})
+        self.metadata.update({"resamp":True})
 
 def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
     '''min_WL = (delta_WL, WL). Takes the finer of the two specified.'''
@@ -187,7 +187,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
         #Takes the new min_vc and oversampling factor
 
         min_vc = self.min_vc/self.oversampling
-        print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
+        #print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
         if instrument is not None:
             wl_low, wl_high = instrument.wl_range
             wl_low = wl_low if wl_low > self.wl_raw[0] else self.wl_raw[0]
@@ -204,12 +204,15 @@ class LogLambdaSpectrum(Base1DSpectrum):
         self.resample_to_grid(wl)
 
     def downsample_to_grid(self, wldict, instrument=None):
+        #TODO: consistent parameter passing
         #Assumes that new wl grid does not violate any sampling rules and updates header values. This is a speed function.
-        wl = wldict.pop("wl")
+        wl = wldict["wl"]
         CDELT1 = wldict["CDELT1"]
         min_vc = 10**(CDELT1) - 1
-        print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
-        self.metadata.update(wldict)
+        #print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
+
+        hdr = {key:wldict[key] for key in log_lam_kws}
+        self.metadata.update(hdr)
 
         #resamples the spectrum to these values and updates wl_grid
         self.resample_to_grid(wl)
@@ -253,30 +256,34 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
 
     def stellar_convolve(self, vsini, downsample="no"):
-        #Take FFT of f_grid
-        chunk = len(self.fl)
-        influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
-        outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-        ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
+        if vsini > 0:
+            #Take FFT of f_grid
+            chunk = len(self.fl)
+            influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+            FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+            outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+            fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+            ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
 
-        influx[:] = self.fl
-        fft_object()
+            influx[:] = self.fl
+            fft_object()
 
-        ss = rfftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
-        ss[0] = 0.01 #junk so we don't get a divide by zero error
-        ub = 2. * np.pi * vsini * ss
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-        #set zeroth frequency to 1 separately (DC term)
-        sb[0] = 1.
+            ss = rfftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
+            ss[0] = 0.01 #junk so we don't get a divide by zero error
+            ub = 2. * np.pi * vsini * ss
+            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+            #set zeroth frequency to 1 separately (DC term)
+            sb[0] = 1.
 
-        #institute velocity taper
-        FF *= sb
+            #institute velocity taper
+            FF *= sb
 
-        #do ifft
-        ifft_object()
-        self.fl[:] = outflux
+            #do ifft
+            ifft_object()
+            self.fl[:] = outflux
+        else:
+            warnings.warn("vsini={}. No stellar convolution performed.".format(vsini), UserWarning)
+            vsini = 0.
 
         self.metadata.update({"vsini": vsini})
 
@@ -287,7 +294,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
             if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
                 self.downsample()
-            elif type(downsample) == np.ndarray:
+            elif type(downsample) == dict:
                 self.downsample_to_grid(downsample)
 
 
@@ -295,14 +302,20 @@ class LogLambdaSpectrum(Base1DSpectrum):
     def instrument_and_stellar_convolve(self, instrument, vsini, downsample="no"):
         '''Does both instrument and stellar convolution in one step, in the Fourier domain.'''
         ss = rfftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
-        ss[0] = 0.01 #junk so we don't get a divide by zero error
-        ub = 2. * np.pi * vsini * ss
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-        #set zeroth frequency to 1 separately (DC term)
-        sb[0] = 1.
 
         sigma = instrument.FWHM/2.35 # in km/s
         taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
+
+        if vsini > 0:
+            ss[0] = 0.01 #junk so we don't get a divide by zero error
+            ub = 2. * np.pi * vsini * ss
+            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+            #set zeroth frequency to 1 separately (DC term)
+            sb[0] = 1.
+        else:
+            warnings.warn("vsini={}. No stellar convolution performed.".format(vsini), UserWarning)
+            vsini = 0.
+            sb = 1.
 
         chunk = len(self.fl)
         influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
@@ -320,6 +333,8 @@ class LogLambdaSpectrum(Base1DSpectrum):
         ifft_object()
         self.fl[:] = outflux
 
+        self.metadata.update({"vsini": vsini})
+
         #Update min_vc and oversampling, possibly downsample
         if (instrument.FWHM > self.min_vc) or (vsini > self.min_vc):
             self.min_vc = instrument.FWHM/C.c_kms if instrument.FWHM > vsini else vsini/C.c_kms
@@ -328,7 +343,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
             if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
                 self.downsample(instrument)
-            elif type(downsample) == np.ndarray:
+            elif type(downsample) == dict:
                 self.downsample_to_grid(downsample, instrument)
 
 

@@ -220,16 +220,24 @@ class TestInstrument:
     def test_initialized(self):
         print(self.instrument)
 
+    def test_log_lam_grid(self):
+        print(self.instrument.wl_dict)
+
 
 class TestMasterToFITSProcessor:
     def setup_class(self):
+        test_points={"temp":np.arange(6000, 6251, 250), "logg":np.arange(4.0, 4.6, 0.5), "Z":np.arange(-0.5, 0.1, 0.5), "vsini":np.arange(4,9.,2)}
         myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
                      "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
                      "norm", "PHXVER", "PHXTEFF"])
-        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(),
-                outdir="willie/KPNO/", points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5),
-                                               "Z":np.arange(-0.5, 0.6, 0.5)})
+        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points, outdir="willie/KPNO/", )
 
     def test_param_list(self):
-        print(self.creator.param_list)
+        print("\n", self.creator.param_list, "\n")
+
+    def test_process_all(self):
+        self.creator.process_all()
+
+    def test_out_of_interp_range(self):
+        self.creator.process_spectrum({"temp":5000, "logg":4.5, "Z":0.0, "vsini":2})

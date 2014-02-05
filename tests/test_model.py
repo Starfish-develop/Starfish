@@ -110,6 +110,16 @@ class TestLogLambdaSpectrum:
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "stellar.png")
 
+    def test_0_stellar_convolve(self):
+        self.setup_class()
+        self.spec.stellar_convolve(0., downsample='yes')
+        print("Stellar convolved", self.spec)
+
+    def test_neg_stellar_convolve(self):
+        self.setup_class()
+        self.spec.stellar_convolve(-20., downsample='yes')
+        print("Stellar convolved", self.spec)
+
     def test_instrument_and_stellar_convolve(self):
         self.setup_class()
         self.spec.instrument_and_stellar_convolve(self.instrument, 10., downsample='yes')
@@ -118,6 +128,16 @@ class TestLogLambdaSpectrum:
         ax = fig.add_subplot(111)
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "instrument_and_stellar.png")
+
+    def test_0_instrument_and_stellar_convolve(self):
+        self.setup_class()
+        self.spec.instrument_and_stellar_convolve(self.instrument, 0., downsample='yes')
+        print("Instrument and Stellar convolved", self.spec)
+
+    def test_neg_instrument_and_stellar_convolve(self):
+        self.setup_class()
+        self.spec.instrument_and_stellar_convolve(self.instrument, 0., downsample='yes')
+        print("Instrument and Stellar convolved", self.spec)
 
     def test_straight_line(self):
         print("Straight line")
