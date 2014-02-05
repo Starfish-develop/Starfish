@@ -1,5 +1,6 @@
 import pytest
 from StellarSpectra.grid_tools import *
+import numpy as np
 
 
 
@@ -112,66 +113,104 @@ class TestHDF5Interface:
 
 class TestIndexInterpolator:
     def setup_class(self):
-        self.interpolator = IndexInterpolator([6000,6100,6200,6300,6400])
+        self.interpolator = IndexInterpolator([6000.,6100.,6200.,6300.,6400.])
 
     def test_interpolate(self):
         ans = self.interpolator(6010)
         print(ans)
-        assert ans == (0.1, 6000, 6100)
+        assert ans == ((6000, 6100), (0.9, 0.1))
 
     def test_interpolate_bounds(self):
         with pytest.raises(InterpolationError) as e:
             self.interpolator(5990)
         print(e.value)
 
+    def test_on_edge(self):
+        print(self.interpolator(6100.))
+
 
 class TestInterpolator:
     def setup_class(self):
-        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        self.hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         #libraries/PHOENIX_submaster.hd5 should have the following bounds
-        #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(-0.2,0.0)}
-        self.interpolator = Interpolator(hdf5interface)
-        pass
+        #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(0.0,0.4)}
+        self.interpolator = Interpolator(self.hdf5interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
+        "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
+        "norm", "PHXVER", "PHXTEFF", "BUNNIES"])
+
 
     def test_parameters(self):
         print(self.interpolator.parameters)
 
     def test_trilinear(self):
-        pass
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        hdf5interface.bounds['alpha'] = (0.,0.)
+        interpolator = Interpolator(hdf5interface)
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1}
+        new_flux = interpolator(parameters)
 
     def test_interpolate_bounds(self):
-        pass
+        with pytest.raises(InterpolationError) as e:
+            parameters = {"temp":5010, "logg":4.6, "Z":-0.1, "alpha":0.1}
+            new_flux = self.interpolator(parameters)
+        print(e.value)
+
 
     def test_quadlinear(self):
-        parameters = {"temp":6010, "logg":4.6, "Z":-0.1, "alpha":-0.1}
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1, "alpha":0.1}
         new_flux = self.interpolator(parameters)
         #Use IPython and  %timeit -n1 -r1 mytest.interpolator({"temp":6010, "logg":5.1, "Z":-0.1, "alpha":-0.1})
         #all uncached performance is 3.89 seconds
         #1/2 uncached performance is 2.37 seconds
         #Caching all of the values, preformance is 226 ms
 
-    def test_interpolation_quality(self):
-        #Interpolate at the grid bounds and do a numpy.allclose() to see if the spectra match the grid edges
-        pass
 
-    def test_cache(self):
-        pass
+    def test_cache_similar(self):
+        temp = np.random.uniform(6000, 6100, size=3)
+        logg = np.random.uniform(3.5, 4.0, size=3)
+        Z = np.random.uniform(-0.5, 0.0, size=2)
+        alpha = np.random.uniform(0.0, 0.2, size=2)
+        names = ["temp", "logg", "Z", "alpha"]
+        param_list = [dict(zip(names,param)) for param in itertools.product(temp, logg, Z, alpha)]
+        for param in param_list:
+            self.interpolator(param)
+            print("Cache length", len(self.interpolator.cache))
+
+
+    def test_cache_purge(self):
+        #create a random scattering of possible values, spread throughout a grid cell
+        temp = np.random.uniform(6000, 7000, size=3)
+        logg = np.random.uniform(3.5, 5.5, size=3)
+        Z = np.random.uniform(-1.0, 0.0, size=3)
+        alpha = np.random.uniform(0.0, 0.4, size=3)
+        names = ["temp", "logg", "Z", "alpha"]
+        param_list = [dict(zip(names,param)) for param in itertools.product(temp, logg, Z, alpha)]
+        #wait for the cache to purge
+        for param in param_list:
+            self.interpolator(param)
+            print("Cache length", len(self.interpolator.cache))
+            print()
+
+
 
     def test_interpolate_keywords(self):
-        pass
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1, "alpha":0.1}
+        new_flux = self.interpolator(parameters)
+        print(new_flux)
 
-    #
-#* determines if interpolating in T,G,M or T,G,M,A (tri vs quad linear)
-#* can determine whether it needs to interpolate in 3 or 4 dimensions
-#* caches 8 or 16 (or twice as many) nearby spectra depending on how many T,G,M or T,G,M,A
-#* check grid bounds
-#* handles edge cases (or uses HDF5 edge handling ability)
-#* Set the cache size, and then when the cache is full, pop the first 25% that were loaded.
+
+    def test_interpolation_quality(self):
+        #Interpolate at the grid bounds and do a numpy.allclose() to see if the spectra match the grid edges
+        #Compare to spectra loaded directly from self.hdf5interface
+        parameters = {"temp":6000, "logg":4.5, "Z":0.0, "alpha":0.0}
+        intp_spec = self.interpolator(parameters)
+        raw_spec = self.hdf5interface.load_file(parameters)
+        assert np.allclose(intp_spec.fl, raw_spec.fl)
+
+
 
 #What about the weird case of interpolating in alpha, but when the grid is irregular? I think this situation
 #would have to be specified by fixing alpha in the lnprob and only using the alpha=0 grid.
-#Should we carry the metadata when giving the grid to willie? Or just write out the final values. Or take the
-#Average (with weights) of all the other values?
 
 
 class TestInstrument:
@@ -180,3 +219,17 @@ class TestInstrument:
 
     def test_initialized(self):
         print(self.instrument)
+
+
+class TestMasterToFITSProcessor:
+    def setup_class(self):
+        myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
+                     "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
+                     "norm", "PHXVER", "PHXTEFF"])
+        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(),
+                outdir="willie/KPNO/", points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5),
+                                               "Z":np.arange(-0.5, 0.6, 0.5)})
+
+    def test_param_list(self):
+        print(self.creator.param_list)
