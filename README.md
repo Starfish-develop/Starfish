@@ -152,6 +152,22 @@ the chunk flagged by your rank.
 
 #rfftfreq not available in numpy 1.7 on cluster.
 
+#Use mpi4py to distribute FITS processing.
+Error occured at:
+
+Wrote t06000g0m10v200.fits to FITS
+ERROR: KeyError: "unable to open object (Symbol table: Can't open object)" [unknown]
+https://github.com/h5py/h5py/issues/316
+https://groups.google.com/forum/#!topic/h5py/5MRvJ-zyiu0
+Does this mean that the next object doesn't exist?
+t06000g0m10v200.fits so that would be t06100g0m10 or t06200 or t06300
+Could do KeyError handling.
+
+Implement: HDF5Interface def test_load_bad_file(self):
+
+Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
+
+
 
 #Create a simple lnprob using a class and see if EMCEE still does it correctly
 

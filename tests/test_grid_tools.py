@@ -110,6 +110,10 @@ class TestHDF5Interface:
         self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         pass
 
+    def test_load_bad_file(self):
+        self.interface.load_file({"temp":5100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        pass
+
 
 class TestIndexInterpolator:
     def setup_class(self):
