@@ -467,7 +467,6 @@ class MasterToFITSProcessor:
 
     def process_all(self):
         #do process_spectrum on each of the param_list entries
-
         for param in self.param_list:
             self.process_spectrum(param)
 

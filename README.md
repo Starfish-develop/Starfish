@@ -153,6 +153,15 @@ the chunk flagged by your rank.
 #rfftfreq not available in numpy 1.7 on cluster.
 
 
+#Create a simple lnprob using a class and see if EMCEE still does it correctly
+
+#Use triangle.py to make MCMC plots
+
+#Email to DFM about using emcee with objects and class methods
+
+#For example, this should be possible if the lnprob function did not needed to be initialized in the MPI pool to start with.
+
+
 Instrument grid creation
 * takes a Master HDF5 grid, and instrument object, creates a new HDF5 grid with the same attributes, does the
  interpolation, convolution, vsini, etc.
