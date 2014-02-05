@@ -320,6 +320,8 @@ class HDF5Interface:
             fl = hdf5['flux'][key][:]
             hdr = dict(hdf5['flux'][key].attrs)
 
+        #Note: will raise a KeyError if the file is not found.
+
         hdr.update(self.wl_header) #add the flux metadata to the wl data
 
         return LogLambdaSpectrum(self.wl, fl, metadata=hdr)
@@ -413,7 +415,10 @@ class Interpolator:
         for i,param in enumerate(parameter_list):
             key = key_list[i]
             if key not in self.cache.keys():
-                spec = self.interface.load_file(param)
+                try:
+                    spec = self.interface.load_file(param)
+                except KeyError as e:
+                    raise InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
                 self.cache[key] = spec.fl
                 self.hdr_cache[key] = spec.metadata
                 #Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
