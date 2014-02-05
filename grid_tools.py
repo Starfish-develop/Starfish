@@ -17,7 +17,7 @@ from functools import partial
 import itertools
 from collections import OrderedDict
 
-from StellarSpectra.model import Base1DSpectrum, LogLambdaSpectrum
+from StellarSpectra.model import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid
 import StellarSpectra.constants as C
 
 
@@ -325,9 +325,6 @@ class HDF5Interface:
         return LogLambdaSpectrum(self.wl, fl, metadata=hdr)
 
 
-    def write_to_FITS(self):
-        pass
-
 class IndexInterpolator:
     '''Index interpolator should return fractional index between two points (0 - 1) and the low and high values. For
     example, given "temp":6010, the index interpolator should return (0.1, 6000, 6100). Then we create a structure
@@ -441,73 +438,112 @@ class Interpolator:
 
         return LogLambdaSpectrum(self.wl, np.sum(self.fluxes, axis=0), metadata=comb_metadata)
 
+Kurucz_points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5), "Z":np.arange(-0.5, 0.6, 0.5)}
 
 class MasterToFITSProcessor:
     def __init__(self, interpolator, instrument, points, outdir):
         self.interpolator = interpolator
         self.instrument = instrument
         self.points = points #points is a dictionary with which values to spit out
-        self.filename = "t{temp:0>5.0f}g{logg:.0f}{Z_flag}{Z.0f}v{vsini:.1}.fits"
+        self.filename = "t{temp:0>5.0f}g{logg:.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.outdir = outdir
 
         names = points.keys()
-        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
+        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0, "vsini":1.0}, {"temp":8250, etc...}, etc...]
+
         self.param_list = [dict(zip(names,params)) for params in itertools.product(*points.values())]
 
-
-
         #Create a master wldict which correctly oversamples the instrumental kernel
+        self.wl_dict = self.instrument.wl_dict
+        self.wl = self.wl_dict["wl"]
 
-        #Check to make sure that the range of grid_parameters falls within the acceptable range of the interpolator bounds.
+        points.pop("vsini")
+        grid_points = points
+        for key,value in grid_points.items():
+            min_val, max_val = self.interpolator.interface.bounds[key]
+            assert np.min(self.points[key]) >= min_val,"Points below interpolator bound {}={}".format(key, min_val)
+            assert np.max(self.points[key]) <= max_val,"Points above interpolator bound {}={}".format(key, max_val)
+
 
     def process_all(self):
         #do process_spectrum on each of the param_list entries
-        pass
+        for param in self.param_list:
+            self.process_spectrum(param)
+            #print("Processed {}".format(param))
 
     def process_spectrum(self, parameters):
         #Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum
+        vsini = parameters.pop("vsini")
+        #print("in process spectrum, vsini=", vsini)
+        try:
+            spec = self.interpolator(parameters)
+            spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict)
 
-        #Do instrument_and_stellar_convolve(downsample=wl)
+            self.write_to_FITS(spec)
+        except InterpolationError as e:
+            print("{} cannot be interpolated from the grid.".format(parameters))
 
-        #Write LogLambdaSpectrum out to FITS
-
-        pass
 
     def write_to_FITS(self, spectrum):
         #Gather temp, logg, Z, alpha, and vsini from header, create filename.
         hdu = fits.PrimaryHDU(spectrum.fl)
         head = hdu.header
+
+        metadata = spectrum.metadata.copy()
+
         head["DISPTYPE"] = 'log lambda'
         head["DISPUNIT"] = 'log angstroms'
+        head["BUNIT"] = ('erg/s/cm^2/Hz', 'Unit of flux')
         head["CRPIX1"] = 1.
         head["DC-FLAG"] = 1
-        extra = {"BUNIT": ('erg/s/cm^2/Hz', 'Unit of flux'),
-         "AUTHOR": "Ian Czekala",
-         "COMMENT" : "Adapted from PHOENIX"}
-        head.update(spectrum.metadata)
+        for key in ['CRVAL1', 'CDELT1','temp','logg','Z','vsini']:
+            head[key] = metadata.pop(key)
+
+        #Alphebatize all other keywords, and add some comments
+        comments = {"PHXTEFF": "[K] effective temperature",
+                    "PHXLOGG": "[cm/s^2] log (surface gravity)",
+                    "PHXM_H": "[M/H] metallicity (rel. sol. - Asplund &a 2009)",
+                    "PHXALPHA": "[a/M] alpha element enhancement",
+                    "PHXDUST": "Dust in atmosphere",
+                    "PHXVER": "Phoenix version",
+                    "PHXXI_L": "[km/s] microturbulence velocity for LTE lines",
+                    "PHXXI_M": "[km/s] microturbulence velocity for molec lines",
+                    "PHXXI_N": "[km/s] microturbulence velocity for NLTE lines",
+                    "PHXMASS": "[g] Stellar mass",
+                    "PHXREFF": "[cm] Effective stellar radius",
+                    "PHXLUM": "[ergs] Stellar luminosity",
+                    "PHXMXLEN": "Mixing length",
+                    "air": "air wavelengths?"}
+
+        for key in sorted(comments.keys()):
+            head[key] = (metadata.pop(key), comments[key])
+            #print(comments[key])
+
+        extra = {"AUTHOR": "Ian Czekala", "COMMENT" : "Adapted from PHOENIX"}
+        head.update(metadata)
         head.update(extra)
 
         if head["Z"] < 0:
-            zflag = "w"
+            zflag = "m"
         else:
             zflag = "p"
 
-        filename = self.filename.format(temp=head["temp"], logg=10*head["logg"], Z=10*head["Z"], Z_flag=zflag, vsini=head["vsini"])
-        hdu.writeto(self.outdir + filename)
-        hdu.close()
+        filename = self.filename.format(temp=head["temp"], logg=10*head["logg"], Z=np.abs(10*head["Z"]), Z_flag=zflag, vsini=head["vsini"])
+        hdu.writeto(self.outdir + filename, clobber=True)
+        print("Wrote {} to FITS".format(filename))
 
 
 class Instrument:
-    def __init__(self, name, FWHM, wl_range=(-np.inf, np.inf), oversampling=3.5):
+    def __init__(self, name, FWHM, wl_range, oversampling=3.5):
         self.name = name
         self.FWHM = FWHM #km/s
         self.oversampling = oversampling
         self.wl_range = wl_range
 
-    def create_wldict(self):
-        '''Take the starting and ending wavelength ranges, the FWHM, and oversampling value and generate an outwl grid
-        that can be resampled to.'''
-        pass
+        self.wl_dict = create_log_lam_grid(*self.wl_range, min_vc=self.FWHM/(self.oversampling * C.c_kms))
+        #Take the starting and ending wavelength ranges, the FWHM,
+        # and oversampling value and generate an outwl grid  that can be resampled to.
+
 
     def __str__(self):
         return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, wl_range: {}".format(self.name, self.FWHM,
@@ -515,7 +551,13 @@ class Instrument:
 
 class TRES(Instrument):
     def __init__(self):
-        super().__init__(name="TRES", FWHM=6.8, wl_range=(-np.inf, np.inf))
+        super().__init__(name="TRES", FWHM=6.8, wl_range=(3500, 9500))
+        #sets the FWHM and wl_range
+
+class TRESPhotometry(Instrument):
+    '''This one has a wider wl range to allow for synthetic photometry comparisons.'''
+    def __init__(self):
+        super().__init__(name="TRES", FWHM=6.8, wl_range=(3000, 13000))
         #sets the FWHM and wl_range
 
 class Reticon(Instrument):
@@ -923,29 +965,8 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
                                                                 "AUTHOR": "Ian Czekala",
                                                                 "COMMENT" : "Adapted from PHOENIX"})
 
-#@profile
 def main():
-    print("Starting main")
-    mygrid = PHOENIXGridInterface(air=True, norm=True)
-
-
-    spec = mygrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
-    #spec.save("test_spec.npy")
-
-
-    wldict = spec.calculate_log_lam_grid()
-
-
-    out_path = "PHOENIX_master.hdf5"
-
-    HDF5Creator = HDF5GridCreator(mygrid, filename=out_path, wldict=wldict, nprocesses=4, chunksize=1, parallel=True,
-                                ranges={"temp":(5000, 6000), "logg":(4.5,5.5), "Z":(0.0,0.0), "alpha":(0.0,0.0)})
-
-    HDF5Creator.process_grid()
-
-
     pass
-
 
 if __name__ == "__main__":
     main()

@@ -127,10 +127,7 @@ Put the decorator `@profile` over the function you want to profile
 
 	python -m memory_profiler model.py
 
-
-#Test how long a single HDF5 write takes
-#What about over the holyscratch file system?
-#What about on the /scratch system?
+/scratch is about twice as fast as /holyscratch
 
 
 # Object oriented rewrite
@@ -148,6 +145,28 @@ to the HDF5 file. Even with MPI/HDF5, this situation isn't much improved because
 updated properly.
 This might actually be a hangup with the holyscratch filesystem.
 
+Filename needs work
+#t06750g45w-10v6e+00.fits
+
+#Header comment cards?
+Sort header keywords alphabetically
+
+TEMP
+LOGG
+Z
+VSINI
+
+CRVALS
+DISPUNIT
+DISPTYPE
+
+Ones that need a label:
+All PHX ones
+AIR
+
+AUTHOR
+COMMENT
+
 
 Instrument grid creation
 * takes a Master HDF5 grid, and instrument object, creates a new HDF5 grid with the same attributes, does the
@@ -156,6 +175,10 @@ Instrument grid creation
 * Has a writer class variable that can be set, which has a write_to_FITS() method
 
 # Test battery
+
+Test that 0 stellar convolution works OK, for both stellar_convolve and instrument_convolve
+pyFFTW wisdom and planning flags (might not be necessary for grid creation, but for actual model, perhaps)
+
 
 Round out Interpolator tests
 
