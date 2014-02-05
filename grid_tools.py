@@ -467,9 +467,10 @@ class MasterToFITSProcessor:
 
     def process_all(self):
         #do process_spectrum on each of the param_list entries
+
         for param in self.param_list:
             self.process_spectrum(param)
-            #print("Processed {}".format(param))
+
 
     def process_spectrum(self, parameters):
         #Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum
