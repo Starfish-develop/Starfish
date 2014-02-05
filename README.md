@@ -145,27 +145,12 @@ to the HDF5 file. Even with MPI/HDF5, this situation isn't much improved because
 updated properly.
 This might actually be a hangup with the holyscratch filesystem.
 
-Filename needs work
-#t06750g45w-10v6e+00.fits
+#Parallel methods
+*Rather than creating a map object which must pass data back and forth, really what we want is to have each process start
+up and run only on it's chunk of the parameter list. That is, break up the parameter list into $nrank chunks, and process
+the chunk flagged by your rank.
 
-#Header comment cards?
-Sort header keywords alphabetically
-
-TEMP
-LOGG
-Z
-VSINI
-
-CRVALS
-DISPUNIT
-DISPTYPE
-
-Ones that need a label:
-All PHX ones
-AIR
-
-AUTHOR
-COMMENT
+#rfftfreq not available in numpy 1.7 on cluster.
 
 
 Instrument grid creation
