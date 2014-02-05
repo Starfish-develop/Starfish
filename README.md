@@ -157,12 +157,15 @@ Instrument grid creation
 
 # Test battery
 
-LogLambdaSpectrum, track down where the submaster grid is wrong = float32. wl needs to be float64 if we are going to deal with
-rounding errors.
+Round out Interpolator tests
 
-Round out ways to instantiate LogLambdaSpectrum
+Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
+We will have to simply fix the interpolation to three parameters in this case, if we think Z will be positive.
+Likewise, if we think the model will be alpha enhanced, then we need to limit Z to less than 0.
 
 Can add "skip methods" or robust=False to allow bypassing checks.
+
+For production runs, can pre-determine wisdom for given array shapes, since they will be similar.
 
 #Tests
 * Learn how to setup sample test directories with test files
@@ -170,6 +173,13 @@ Can add "skip methods" or robust=False to allow bypassing checks.
 The Model and lnprob classes will require their own full suite that will be different than grid_tools
 
 If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+
+#When will we use only three paramaters?
+
+#The master grid (whether created from PHOENIX, Kurucz, or BT-Settl) will always have an alpha label.
+
+#We may actually only want to interpolate in 3 values, if we are fixing alpha. This means the interpolator can be
+#queried with only temp, logg, and Z.
 
 
 Effbot: Two other uses are local caches/memoization; e.g.

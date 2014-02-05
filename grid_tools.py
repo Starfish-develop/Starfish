@@ -314,6 +314,7 @@ class HDF5Interface:
     def load_file(self, parameters):
         '''Loads a file and returns it as a LogLambdaSpectrum. (Does it have to assume something about the keywords?
         Perhaps there is a EXFlag or disp type present in the HDF5 attributes.'''
+
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
             fl = hdf5['flux'][key][:]
@@ -330,7 +331,11 @@ class HDF5Interface:
 class IndexInterpolator:
     '''Index interpolator should return fractional index between two points (0 - 1) and the low and high values. For
     example, given "temp":6010, the index interpolator should return (0.1, 6000, 6100). Then we create a structure
-     that has {"temp": (0.1, 6000, 6100), "logg": (0.7, 3.5, 4.0), etc.... }'''
+     that has {"temp": (0.1, 6000, 6100), "logg": (0.7, 3.5, 4.0), etc.... }
+
+     If the interpolation request is right on a grid point, say for example 6100., it will return ((6100., 6100),(1.0, 0.0))
+
+     If the interpolation request is out of bounds, it will raise an InterpolationError'''
     def __init__(self, parameter_list):
         self.parameter_list = np.unique(parameter_list)
         self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
@@ -350,22 +355,30 @@ class Interpolator:
     '''Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.'''
 
     #Takes an HDF5Interface object
-    def __init__(self, interface):
+    def __init__(self, interface, cache_max=256, cache_dump=64, avg_hdr_keys=None):
         self.interface = interface
 
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.interpolate = self.trilinear
             self.parameters = grid_parameters - set("alpha")
         else:
-            self.interpolate = self.quadlinear
             self.parameters = grid_parameters
 
+        self.avg_hdr_keys = {} if avg_hdr_keys is None else avg_hdr_keys #These avg_hdr_keys specify the ones to average over
+
         self.setup_index_interpolators()
+        self.hdr_cache = OrderedDict([])
         self.cache = OrderedDict([])
+        self.cache_max = cache_max
+        self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
+        self.wl = self.interface.wl
+        self.wldict = self.interface.wl_header
 
     def __call__(self, parameters):
+        if len(self.cache) > self.cache_max:
+            [(self.cache.popitem(False), self.hdr_cache.popitem(False)) for i in range(self.cache_dump)]
+            self.cache_counter = 0
         return self.interpolate(parameters)
 
 
@@ -376,18 +389,13 @@ class Interpolator:
         lenF = len(self.interface.wl)
         self.fluxes = np.empty((2**len(self.parameters), lenF))
 
+    def interpolate(self, parameters):
+        try:
+            edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        except InterpolationError as e:
+            raise InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
-
-    def trilinear(self, parameters):
-        '''Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.'''
-        #Because we have three parameters, store both the high and low bordering value
-
-        indexes = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
-        print(indexes)
-
-
-    def quadlinear(self, parameters):
-        edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
         names = [key for key in edges.keys()]
         params = [edges[key][0] for key in names]
         weights = [edges[key][1] for key in names]
@@ -396,8 +404,10 @@ class Interpolator:
         weight_combos = itertools.product(*weights)
 
         parameter_list = [dict(zip(names, param)) for param in param_combos]
+        if "alpha" not in parameters.keys():
+            [param.update({"alpha":var_default["alpha"]}) for param in parameter_list]
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
-        weight_list = [np.prod(weight) for weight in weight_combos]
+        weight_list = np.array([np.prod(weight) for weight in weight_combos])
         #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
@@ -406,70 +416,85 @@ class Interpolator:
         for i,param in enumerate(parameter_list):
             key = key_list[i]
             if key not in self.cache.keys():
-                self.cache[key] = self.interface.load_file(param).fl
+                spec = self.interface.load_file(param)
+                self.cache[key] = spec.fl
+                self.hdr_cache[key] = spec.metadata
+                #Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
-        return np.sum(self.fluxes, axis=0)
+        comb_metadata = self.wldict.copy()
+        if "alpha" not in parameters.keys():
+            parameters.update({"alpha":var_default["alpha"]})
+        comb_metadata.update(parameters)
+
+        for hdr_key in self.avg_hdr_keys:
+            try:
+                values = np.array([self.hdr_cache[key][hdr_key] for key in key_list])
+                try:
+                    value = np.average(values, weights=weight_list)
+                except TypeError:
+                    value = values[0]
+            except KeyError:
+                continue
+
+            comb_metadata[hdr_key] = value
+
+        return LogLambdaSpectrum(self.wl, np.sum(self.fluxes, axis=0), metadata=comb_metadata)
 
 
-
-class MasterToInstrumentProcessor:
-    #Take an Interpolator, an instrument object, and some grid points, and create a new HDF5 file processed
-    # to that instrument.
-    #Will also need to do vsini ranges. If vsini = 0, you can skip.
-    #Might also need to interpolate.
-    #Will need to update keywords for each flux object
-    #Loads files
-    def __init__(self, hdf5interface, instrument, points, chunksize=20):
-        #points is a dictionary with which values to spit out
+class MasterToFITSProcessor:
+    def __init__(self, interpolator, instrument, points, outdir):
+        self.interpolator = interpolator
         self.instrument = instrument
-        self.hdf5 = hdf5interface
-        self.points = points
+        self.points = points #points is a dictionary with which values to spit out
+        self.filename = "t{temp:0>5.0f}g{logg:.0f}{Z_flag}{Z.0f}v{vsini:.1}.fits"
+        self.outdir = outdir
 
+        names = points.keys()
+        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
+        self.param_list = [dict(zip(names,params)) for params in itertools.product(*points.values())]
+
+
+
+        #Create a master wldict which correctly oversamples the instrumental kernel
+
+        #Check to make sure that the range of grid_parameters falls within the acceptable range of the interpolator bounds.
 
     def process_all(self):
+        #do process_spectrum on each of the param_list entries
         pass
 
-    def process_spectrum(self, var_combos):
-        '''This depends on what you want to do (resample, convolve, etc) and must be defined in a subclass.'''
-        spec = self.grid.load_file(var_combos)
+    def process_spectrum(self, parameters):
+        #Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum
 
+        #Do instrument_and_stellar_convolve(downsample=wl)
 
-    def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
-        '''Take a full-resolution PHOENIX model spectrum `f`, with raw spacing wg_raw, resample it to wg_fine
-        (done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
-        then resample it to wg_coarse. sigma in km/s.'''
+        #Write LogLambdaSpectrum out to FITS
 
-        #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline. First check to make sure there
-        #are no duplicates and the wavelength is increasing, otherwise the spline will fail and return NaN.
-        wl_sorted, ind = np.unique(wg_raw, return_index=True)
-        fl_sorted = f[ind]
-        interp_fine = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
-        f_grid = interp_fine(wg_fine)
+        pass
 
-        #Fourier Transform
-        out = fft(f_grid)
-        #The frequencies (cycles/km) corresponding to each point
-        freqs = fftfreq(len(f_grid), d=wg_fine_d)
+    def write_to_FITS(self, spectrum):
+        #Gather temp, logg, Z, alpha, and vsini from header, create filename.
+        hdu = fits.PrimaryHDU(spectrum.fl)
+        head = hdu.header
+        head["DISPTYPE"] = 'log lambda'
+        head["DISPUNIT"] = 'log angstroms'
+        head["CRPIX1"] = 1.
+        head["DC-FLAG"] = 1
+        extra = {"BUNIT": ('erg/s/cm^2/Hz', 'Unit of flux'),
+         "AUTHOR": "Ian Czekala",
+         "COMMENT" : "Adapted from PHOENIX"}
+        head.update(spectrum.metadata)
+        head.update(extra)
 
-        #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space (corresponding to FWHM 6.8km/s)
-        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (freqs ** 2))
-        tout = out * taper
+        if head["Z"] < 0:
+            zflag = "w"
+        else:
+            zflag = "p"
 
-        #Take the broadened spectrum back to wavelength space
-        f_grid6 = ifft(tout)
-        #print("Total of imaginary components", np.sum(np.abs(np.imag(f_grid6))))
-
-        #Resample the broadened spectrum to a uniform coarse grid
-        interp_coarse = InterpolatedUnivariateSpline(wg_fine, np.abs(f_grid6))
-        f_coarse = interp_coarse(wg_coarse)
-
-        del interp_fine
-        del interp_coarse
-        gc.collect() #necessary to prevent memory leak!
-
-        return f_coarse
-
+        filename = self.filename.format(temp=head["temp"], logg=10*head["logg"], Z=10*head["Z"], Z_flag=zflag, vsini=head["vsini"])
+        hdu.writeto(self.outdir + filename)
+        hdu.close()
 
 
 class Instrument:
@@ -478,6 +503,11 @@ class Instrument:
         self.FWHM = FWHM #km/s
         self.oversampling = oversampling
         self.wl_range = wl_range
+
+    def create_wldict(self):
+        '''Take the starting and ending wavelength ranges, the FWHM, and oversampling value and generate an outwl grid
+        that can be resampled to.'''
+        pass
 
     def __str__(self):
         return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, wl_range: {}".format(self.name, self.FWHM,
@@ -494,7 +524,7 @@ class Reticon(Instrument):
 
 class KPNO(Instrument):
     def __init__(self):
-        super().__init__(name="KPNO", FWHM=14.4)
+        super().__init__(name="KPNO", FWHM=14.4, wl_range=(6200,6700))
 
 
 

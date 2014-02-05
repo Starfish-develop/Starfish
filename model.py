@@ -8,7 +8,7 @@ import h5py
 import yaml
 import gc
 import sys
-from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift
+from numpy.fft import fft, ifft, fftfreq, rfftfreq
 import pyfftw
 import emcee
 import os
@@ -100,9 +100,6 @@ class DataSpectrum(BaseSpectrum):
         assert self.mask.shape == self.shape, "mask array incompatible shape."
 
 
-
-
-
 class Base1DSpectrum(BaseSpectrum):
     def __init__(self, wl, fl, fl_type="flam", air=True, metadata=None):
         assert len(wl.shape) == 1, "1D spectrum must be 1D"
@@ -190,6 +187,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
         #Takes the new min_vc and oversampling factor
 
         min_vc = self.min_vc/self.oversampling
+        print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
         if instrument is not None:
             wl_low, wl_high = instrument.wl_range
             wl_low = wl_low if wl_low > self.wl_raw[0] else self.wl_raw[0]
@@ -208,6 +206,9 @@ class LogLambdaSpectrum(Base1DSpectrum):
     def downsample_to_grid(self, wldict, instrument=None):
         #Assumes that new wl grid does not violate any sampling rules and updates header values. This is a speed function.
         wl = wldict.pop("wl")
+        CDELT1 = wldict["CDELT1"]
+        min_vc = 10**(CDELT1) - 1
+        print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
         self.metadata.update(wldict)
 
         #resamples the spectrum to these values and updates wl_grid
@@ -215,26 +216,34 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
 
     def instrument_convolve(self, instrument, downsample="no"):
+        '''If downsample='no', then the region will not be wavelength truncated.'''
         sigma = instrument.FWHM/2.35 # in km/s
 
-        FF = fft(self.fl)
+        chunk = len(self.fl)
+        influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+        outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
+
+        influx[:] = self.fl
+        fft_object()
+
         #The frequencies (cycles/km) corresponding to each point
-        ss = fftfreq(len(self.fl), d=self.min_vc * C.c_kms_air)
+        ss = rfftfreq(len(self.fl), d=self.min_vc * C.c_kms_air)
 
         #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
         taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
         FF *= taper
 
         #Take the broadened spectrum back to wavelength space
-        self.fl = np.real_if_close(ifft(FF))
-        assert np.all(self.fl.dtype==np.float64), "Some imaginary parts still exist"
+        ifft_object()
+        self.fl[:] = outflux
 
         #Update min_vc and oversampling, possibly downsample
         if instrument.FWHM > self.min_vc:
             self.min_vc = instrument.FWHM/C.c_kms
             self.oversampling = instrument.oversampling
-
-            #TODO:Truncate the wl range according to the instrument
 
             if downsample == "yes":
                 #downsample the broadened spectrum to a coarser grid
@@ -243,14 +252,19 @@ class LogLambdaSpectrum(Base1DSpectrum):
                 self.downsample_to_grid(downsample, instrument)
 
 
-        #TODO: this logic needs to be firmed up
-
-
     def stellar_convolve(self, vsini, downsample="no"):
         #Take FFT of f_grid
-        FF = fft(self.fl)
+        chunk = len(self.fl)
+        influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+        outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
 
-        ss = fftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
+        influx[:] = self.fl
+        fft_object()
+
+        ss = rfftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
         ss[0] = 0.01 #junk so we don't get a divide by zero error
         ub = 2. * np.pi * vsini * ss
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
@@ -261,7 +275,10 @@ class LogLambdaSpectrum(Base1DSpectrum):
         FF *= sb
 
         #do ifft
-        self.fl = np.abs(ifft(FF))
+        ifft_object()
+        self.fl[:] = outflux
+
+        self.metadata.update({"vsini": vsini})
 
         #Update min_vc and oversampling, possibly downsample
         if vsini > self.min_vc:
@@ -277,7 +294,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
     def instrument_and_stellar_convolve(self, instrument, vsini, downsample="no"):
         '''Does both instrument and stellar convolution in one step, in the Fourier domain.'''
-        ss = fftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
+        ss = rfftfreq(len(self.wl_raw), d=self.min_vc * C.c_kms_air)
         ss[0] = 0.01 #junk so we don't get a divide by zero error
         ub = 2. * np.pi * vsini * ss
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
@@ -287,11 +304,21 @@ class LogLambdaSpectrum(Base1DSpectrum):
         sigma = instrument.FWHM/2.35 # in km/s
         taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
 
-        FF = fft(self.fl)
+        chunk = len(self.fl)
+        influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+        outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
+
+        influx[:] = self.fl
+        fft_object()
+
         FF *= (taper * sb)
 
-        #Take the broadened spectrum back to wavelength space
-        self.fl = ifft(FF)
+        #do ifft
+        ifft_object()
+        self.fl[:] = outflux
 
         #Update min_vc and oversampling, possibly downsample
         if (instrument.FWHM > self.min_vc) or (vsini > self.min_vc):
@@ -303,6 +330,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
                 self.downsample(instrument)
             elif type(downsample) == np.ndarray:
                 self.downsample_to_grid(downsample, instrument)
+
 
 
 class ModelSpectrum(LogLambdaSpectrum):

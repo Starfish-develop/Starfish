@@ -3,8 +3,8 @@ from StellarSpectra.model import *
 from StellarSpectra import grid_tools
 import StellarSpectra.constants as C
 import matplotlib.pyplot as plt
-from numpy.fft import fft, ifft, fftfreq, fftshift, ifftshift, rfft
 import numpy as np
+
 
 testdir = 'tests/plots/'
 
@@ -60,20 +60,6 @@ class TestBase1DSpectrum(TestBaseSpectrum):
         print(vcs)
         assert np.allclose(vcs, vcs[0]), "Array must be log-lambda spaced."
 
-class TestRealIfClose:
-    def setup_class(self):
-        hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
-        self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
-        self.fl = self.spec.fl
-
-    def test_real_if_close(self):
-        print(np.finfo(np.float).eps)
-        FF = rfft(self.fl)
-        self.fl = np.real_if_close(ifft(FF))
-        print(np.max(np.real(self.fl)))
-        print(np.max(np.imag(self.fl)))
-        assert np.all(self.fl.dtype==np.float64), "Some imaginary parts still exist"
-
 class TestLogLambdaSpectrum:
     def setup_class(self):
         hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
@@ -92,7 +78,6 @@ class TestLogLambdaSpectrum:
         spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         self.spectrum = LogLambdaSpectrum(wl, spec.fl)
         print("Raw Spectrum", self.spectrum)
-        pass
 
     def test_downsample(self):
         self.setup_class()
@@ -106,14 +91,15 @@ class TestLogLambdaSpectrum:
 
     def test_instrument_convolve(self):
         self.setup_class()
+        print("setup class")
         self.spec.instrument_convolve(self.instrument)
-        self.spec.instrument_convolve(self.instrument, downsample='yes')
         print("Instrument convolved", self.spec)
+        self.spec.instrument_convolve(self.instrument, downsample='yes')
+        print("Instrument convolved, downsampled", self.spec)
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "instrument.png")
-
 
     def test_stellar_convolve(self):
         self.setup_class()
@@ -123,7 +109,6 @@ class TestLogLambdaSpectrum:
         ax = fig.add_subplot(111)
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "stellar.png")
-        plt.show()
 
     def test_instrument_and_stellar_convolve(self):
         self.setup_class()
@@ -133,5 +118,21 @@ class TestLogLambdaSpectrum:
         ax = fig.add_subplot(111)
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "instrument_and_stellar.png")
+
+    def test_straight_line(self):
+        print("Straight line")
+        wldict = create_log_lam_grid(3000, 13000, min_vc=2/C.c_kms)
+        wl = wldict.pop("wl")
+        fl = wl.copy()
+        self.spectrum = LogLambdaSpectrum(wl,fl)
+        self.spectrum.stellar_convolve(50., downsample='yes')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.spectrum.wl_raw, self.spectrum.fl)
+        fig.savefig(testdir + "line_stellar.png")
+        #Basically, this shows that the up and down behaviour of the Fourier blending is not a problem. It is just
+        #blending as if the spectrum wraps. Therefore the two edges are going to match as if it was circular.
+
+
 
 #These multiple commands should not repeat the same shortening, but they seem to be.
