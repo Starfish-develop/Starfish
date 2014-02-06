@@ -467,7 +467,7 @@ class MasterToFITSProcessor:
         self.interpolator = interpolator
         self.instrument = instrument
         self.points = points #points is a dictionary with which values to spit out
-        self.filename = "t{temp:0>5.0f}g{logg:.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
+        self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.outdir = outdir
         self.processes = processes
         self.pids = []
