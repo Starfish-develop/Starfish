@@ -1,73 +1,107 @@
 import multiprocessing as mp
 import numpy as np
-import copyreg
-import types
+import os
+#
+#def info(title):
+#    print(title)
+#    print( 'module name:', __name__)
+#    if hasattr(os, 'getppid'):  # only available on Unix
+#        print( 'parent process:', os.getppid())
+#    print( 'process id:', os.getpid())
+#
+#def f(name):
+#    info('function f')
+#    print('hello', name)
+#
+#if __name__ == '__main__':
+#    info('main line')
+#    p = mp.Process(target=f, args=('bob',))
+#    p.start()
+#    p.join()
 
-def _pickle_method(method):
-    # Author: Steven Bethard
-    # http://bytes.com/topic/python/answers/552476-why-cant-you-pickle-instancemethods
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    cls_name = ''
-    if func_name.startswith('__') and not func_name.endswith('__'):
-        cls_name = cls.__name__.lstrip('_')
-    if cls_name:
-        func_name = '_' + cls_name + func_name
-    return _unpickle_method, (func_name, obj, cls)
 
-def _unpickle_method(func_name, obj, cls):
-    # Author: Steven Bethard
-    # http://bytes.com/topic/python/answers/552476-why-cant-you-pickle-instancemethods
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-    return func.__get__(obj, cls)
+#from multiprocessing import Process, Queue
+#
+#def f(q):
+#    q.put([42, None, 'hello'])
+#
+#if __name__ == '__main__':
+#    q = Queue()
+#    p = Process(target=f, args=(q,))
+#    p.start()
+#    print(q.get())    # prints "[42, None, 'hello']"
+#    p.join()
+#class Parallel:
+#    def __init__(self):
+#        #self.pool = mp.Pool(4)
+#        #self.process = process
+#        pass
+#
+#    def process(self, parameters):
+#        print(parameters)
+#
+#    def do_parallel(self):
+#        pass
+#
+#def f(args):
+#    print(args)
 
-class Parallel:
-    def __init__(self):
-        #self.pool = mp.Pool(4)
-        #self.process = process
-        pass
+#p = mp.Process(target=f, args=('bob',))
+#p.start()
+#p.join()
 
-    def process(self, parameters):
-        print(parameters)
 
-    def do_parallel(self):
-        pool = mp.Pool(4)
-        param_list = np.arange(30)
+import time
+import multiprocessing as mp
 
-        list(pool.map(self.process, param_list))
+import numpy as np
 
-copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
-class MyClass(object):
 
-    def __init__(self):
-        self.my_args = [1,2,3,4]
-        self.output  = {}
+class AsyncPlotter():
 
-    def my_single_function(self, arg):
-        return arg**2
+    def __init__(self, processes=mp.cpu_count()):
+        self.processes = processes
+        self.pids = []
+        self.pid = os.getpid()
+        self.sqrt = np.sqrt
 
-    def my_parallelized_function(self):
-        # Use map or map_async to map my_single_function onto the
-        # list of self.my_args, and append the return values into
-        # self.output, using each arg in my_args as the key.
+        #Stuff queue
 
-        # The result should make self.output become
-        # {1:1, 2:4, 3:9, 4:16}
-        self.output = dict(zip(self.my_args,
-                               pool.map(self.my_single_function, self.my_args)))
 
-pool = mp.Pool()
-foo = MyClass()
-foo.my_parallelized_function()
-print(foo.output)
+    def async_plotter(self, fig, filename):
+        fig.savefig(filename)
+        plt.close(fig)
+
+
+    def join(self):
+        for i in range(10):
+            # Generate random points
+            x = np.random.random(10000)
+            y = np.random.random(10000)
+
+            # Generate figure
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.scatter(x, y)
+
+            # Add figure to queue
+            p = mp.Process(target=self.async_plotter, args=(fig, '%04i.png' % i))
+            p.start()
+            self.pids.append(p)
+
+        for p in self.pids:
+            p.join()
+
+# Create instance of Asynchronous plotter
+a = AsyncPlotter()
+a.join()
+
 
 #Class parallel methods will work
 #1) If the function is defined at the top level of the module, or the class does not include Pool

@@ -72,6 +72,13 @@ class TestLogLambdaSpectrum:
         wl = hdf5interface.wl
         spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
+
+    def test_copy(self):
+        spec = self.spec.copy()
+        spec.wl_raw = np.linspace(0,20)
+        print(spec.wl_raw)
+        print(self.spec.wl_raw)
+
     def test_create_from_scratch(self):
         hdf5interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         wl = hdf5interface.wl
