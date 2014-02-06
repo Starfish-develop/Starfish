@@ -11,15 +11,29 @@ from scipy.special import j1
 
 import sys
 import gc
+import os
 import bz2
 import h5py
 from functools import partial
 import itertools
 from collections import OrderedDict
 
+#from mpi4py import MPI
+#rank = MPI.COMM_WORLD.rank  # The process ID
+#nprocesses = MPI.COMM_WORLD.size #The number of processes running
+
 from StellarSpectra.model import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid
 import StellarSpectra.constants as C
 
+def chunk_list(mylist, n=mp.cpu_count()):
+    length = len(mylist)
+    size = int(length / n)
+    chunks = [mylist[0+size*i : size*(i+1)] for i in range(n)] #fill with evenly divisible
+    leftover = length - size*n
+    edge = size*n
+    for i in range(leftover): #backfill each with the last item
+        chunks[i%n].append(mylist[edge+i])
+    return chunks
 
 grid_parameters = frozenset(("temp", "logg", "Z", "alpha")) #Allowed grid parameters
 pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post processing parameters"
@@ -429,6 +443,8 @@ class Interpolator:
             parameters.update({"alpha":var_default["alpha"]})
         comb_metadata.update(parameters)
 
+
+
         for hdr_key in self.avg_hdr_keys:
             try:
                 values = np.array([self.hdr_cache[key][hdr_key] for key in key_list])
@@ -437,6 +453,7 @@ class Interpolator:
                 except TypeError:
                     value = values[0]
             except KeyError:
+                value = None
                 continue
 
             comb_metadata[hdr_key] = value
@@ -446,48 +463,59 @@ class Interpolator:
 Kurucz_points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5), "Z":np.arange(-0.5, 0.6, 0.5)}
 
 class MasterToFITSProcessor:
-    def __init__(self, interpolator, instrument, points, outdir):
+    def __init__(self, interpolator, instrument, points, outdir, processes=mp.cpu_count()):
         self.interpolator = interpolator
         self.instrument = instrument
         self.points = points #points is a dictionary with which values to spit out
         self.filename = "t{temp:0>5.0f}g{logg:.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.outdir = outdir
+        self.processes = processes
+        self.pids = []
 
-        names = points.keys()
-        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0, "vsini":1.0}, {"temp":8250, etc...}, etc...]
+        self.vsini_points = self.points.pop("vsini")
+        names = self.points.keys()
 
-        self.param_list = [dict(zip(names,params)) for params in itertools.product(*points.values())]
+        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
+        #Does not contain vsini
+        self.param_list = [dict(zip(names,params)) for params in itertools.product(*self.points.values())]
 
         #Create a master wldict which correctly oversamples the instrumental kernel
         self.wl_dict = self.instrument.wl_dict
         self.wl = self.wl_dict["wl"]
 
-        points.pop("vsini")
-        grid_points = points
-        for key,value in grid_points.items():
+        #Check that temp, logg, Z are within bounds
+        for key,value in self.points.items():
             min_val, max_val = self.interpolator.interface.bounds[key]
             assert np.min(self.points[key]) >= min_val,"Points below interpolator bound {}={}".format(key, min_val)
             assert np.max(self.points[key]) <= max_val,"Points above interpolator bound {}={}".format(key, max_val)
 
-
     def process_all(self):
-        #do process_spectrum on each of the param_list entries
-        for param in self.param_list:
-            self.process_spectrum(param)
+        chunks = chunk_list(self.param_list, n=self.processes)
+        for chunk in chunks:
+            p = mp.Process(target=self.process_chunk, args=(chunk,))
+            p.start()
+            self.pids.append(p)
 
+        for p in self.pids:
+            #Make sure all threads have finished
+            p.join()
+
+    def process_chunk(self, chunk):
+        print("Process {} processing chunk {}".format(os.getpid(), chunk))
+        for param in chunk:
+            self.process_spectrum(param)
 
     def process_spectrum(self, parameters):
         #Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum
-        vsini = parameters.pop("vsini")
-        #print("in process spectrum, vsini=", vsini)
         try:
-            spec = self.interpolator(parameters)
-            spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict)
-
-            self.write_to_FITS(spec)
+            master_spec = self.interpolator(parameters)
+            #Now process the spectrum for all values of vsini
+            for vsini in self.vsini_points:
+                spec = master_spec.copy()
+                spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict)
+                self.write_to_FITS(spec)
         except InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
-
 
     def write_to_FITS(self, spectrum):
         #Gather temp, logg, Z, alpha, and vsini from header, create filename.
@@ -521,8 +549,10 @@ class MasterToFITSProcessor:
                     "air": "air wavelengths?"}
 
         for key in sorted(comments.keys()):
-            head[key] = (metadata.pop(key), comments[key])
-            #print(comments[key])
+            try:
+                head[key] = (metadata.pop(key), comments[key])
+            except KeyError:
+                continue
 
         extra = {"AUTHOR": "Ian Czekala", "COMMENT" : "Adapted from PHOENIX"}
         head.update(metadata)
@@ -971,7 +1001,14 @@ def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
                                                                 "COMMENT" : "Adapted from PHOENIX"})
 
 def main():
-    pass
+    test_points={"temp":np.arange(6000, 6251, 250), "logg":np.arange(4.0, 4.6, 0.5), "Z":np.arange(-0.5, 0.1, 0.5), "vsini":np.arange(4,9.,2)}
+    myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+    myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
+                                                                 "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
+                                                                 "norm", "PHXVER", "PHXTEFF"])
+    creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points, outdir="willie/KPNO/", )
+    creator.process_all()
+
 
 if __name__ == "__main__":
     main()

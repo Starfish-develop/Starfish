@@ -235,7 +235,7 @@ class TestMasterToFITSProcessor:
         myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
                      "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
                      "norm", "PHXVER", "PHXTEFF"])
-        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points, outdir="willie/KPNO/", )
+        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points, outdir="willie/KPNO/", processes=2)
 
     def test_param_list(self):
         print("\n", self.creator.param_list, "\n")

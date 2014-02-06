@@ -14,6 +14,7 @@ import emcee
 import os
 import warnings
 import StellarSpectra.constants as C
+import copy
 
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 
@@ -121,6 +122,9 @@ class BaseSpectrum:
 
     def __str__(self):
         return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
+
+    def copy(self):
+        return copy.copy(self)
 
 
 class DataSpectrum(BaseSpectrum):
