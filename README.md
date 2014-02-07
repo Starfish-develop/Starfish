@@ -167,13 +167,10 @@ Implement: HDF5Interface def test_load_bad_file(self):
 
 Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
 
-Need 0>2: on g
-
 Wrote t05000g0p00v200.fits to FITS
 ERROR: KeyError: 'PHXDUST' [StellarSpectra.grid_tools]
 About to be either t05100g0p00v0 or t05200 or t05300
 
-Might need to chekc at line 524, in metadata before pop?
 
 lte05300-0.00-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits does not have any of the regular values, because it was interpolated.
 
