@@ -526,7 +526,7 @@ class MasterToFITSProcessor:
 
         head["DISPTYPE"] = 'log lambda'
         head["DISPUNIT"] = 'log angstroms'
-        head["BUNIT"] = ('erg/s/cm^2/Hz', 'Unit of flux')
+        head["BUNIT"] = ('erg/s/cm^2/A', 'Unit of flux')
         head["CRPIX1"] = 1.
         head["DC-FLAG"] = 1
         for key in ['CRVAL1', 'CDELT1','temp','logg','Z','vsini']:
