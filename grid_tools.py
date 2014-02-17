@@ -512,7 +512,8 @@ class MasterToFITSProcessor:
             #Now process the spectrum for all values of vsini
             for vsini in self.vsini_points:
                 spec = master_spec.copy()
-                spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict)
+                #Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
+                spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict, integrate=True)
                 self.write_to_FITS(spec)
         except InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))

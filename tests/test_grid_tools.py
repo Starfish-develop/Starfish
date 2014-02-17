@@ -245,3 +245,4 @@ class TestMasterToFITSProcessor:
 
     def test_out_of_interp_range(self):
         self.creator.process_spectrum({"temp":5000, "logg":4.5, "Z":0.0, "vsini":2})
+

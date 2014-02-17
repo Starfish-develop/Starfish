@@ -96,6 +96,17 @@ class TestLogLambdaSpectrum:
         ax.plot(self.spec.wl_raw, self.spec.fl)
         fig.savefig(testdir + "downsample.png")
 
+    def test_instrument_convolve_integrate(self):
+        self.setup_class()
+        print("setup class")
+        self.spec.instrument_convolve(self.instrument, downsample='yes', integrate=True)
+        print("Instrument convolved, downsampled", self.spec)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.spec.wl_raw, self.spec.fl)
+        fig.savefig(testdir + "instrument_integrate.png")
+
+
     def test_instrument_convolve(self):
         self.setup_class()
         print("setup class")
