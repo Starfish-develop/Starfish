@@ -14,6 +14,9 @@ n_air = 1.000277
 c_ang_air = c_ang/n_air
 c_kms_air = c_kms/n_air
 
+h = 6.6260755e-27 #erg s
+
+
 G = 6.67259e-8 #cm3 g-1 s-2
 M_sun = 1.99e33 #g
 R_sun = 6.955e10 #cm
