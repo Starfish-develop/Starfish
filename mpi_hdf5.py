@@ -16,7 +16,6 @@ class Parallel:
     def do_parallel(self):
         self.dset[rank] = self.process(rank)
         self.dset.attrs["monkey"] = "chimp" #OK because it is done by all processes
-        #list(pool.map(self.process, param_list))
 
     def __del__(self):
         self.file.close()
@@ -26,11 +25,3 @@ par.do_parallel()
 
 #In the paradigm of the HDF5 grid creator, we'll have to create all the folders and attributes collectively
 #However, the actual processing of the data will have to be done in parallel
-
-
-#How could we rewrite the GridCreator such that the
-#1) Loading of the file
-#2) File interpolation
-
-# Is done in parallel, but the reading to the HDF5 file is not?
-# Basically, you can't have the function or the variables bound to the same object as the HDF5 file is
