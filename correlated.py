@@ -55,10 +55,19 @@ def chi2(b, m, aG, muG, sigmaG):
     return chi_val[0,0]
 
 def lnprob(p):
-    return - chi2(*p) - p[2]
+    b, m, a, mu, sigma = p
+    if sigma <= 0 or a < 0 or mu < xs[0] or mu > xs[-1]:
+        return -np.inf
+    else:
+        return - chi2(*p) - a
 
 def main():
-    print(lnprob(np.array([10, 0.2, 10**5, 0, 1])))
+    #print(lnprob(np.array([10, 0.2, 10**5, 0, 1])))
+    #print(lnprob(np.array([10, 0.2, 15, 0, 10])))
+    #print(lnprob(np.array([10, 0.2, 15, 0, 5])))
+    #print(lnprob(np.array([10, 0.2, 15, 0, 2])))
+    #print(lnprob(np.array([10, 0.2, 15, 0, 5])))
+
     pass
 
 if __name__=="__main__":
@@ -70,7 +79,7 @@ import emcee
 
 # Initialize the sampler with the chosen specs.
 nwalkers = 30
-burn_in = 1000
+burn_in = 200
 ndim = 5
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
 
@@ -90,7 +99,7 @@ print("Burned in chain")
 sampler.reset()
 
 #Now run for 100 samples
-sampler.run_mcmc(pos, 1000, rstate0=state)
+sampler.run_mcmc(pos, 200, rstate0=state)
 
 import triangle
 
