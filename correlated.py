@@ -79,7 +79,7 @@ import emcee
 
 # Initialize the sampler with the chosen specs.
 nwalkers = 30
-burn_in = 200
+burn_in = 500
 ndim = 5
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
 
