@@ -51,7 +51,7 @@ def chi2(b, m, aG, muG, sigmaG):
     return chi_val[0,0]
 
 def lnprob(p):
-    return - chi2(*p)
+    return - chi2(*p) - p[3]
 
 def main():
     pass
