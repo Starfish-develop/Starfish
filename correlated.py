@@ -1,6 +1,7 @@
 import scipy.sparse as sp
 import numpy as np
 from numpy.linalg import inv
+from scipy.sparse.linalg import inv as sinv
 import matplotlib.pyplot as plt
 
 def gauss(x, amp, mu, sigma):
@@ -25,7 +26,7 @@ def plot_line():
 plot_line()
 
 
-def Cinv(amp, mu, sigma, var=1):
+def C(amp, mu, sigma, var=1):
     '''Return the inverse of the covariance matrix as a sparse array'''
     S = sp.dok_matrix((npoints, npoints), dtype=np.float64)
     for i in range(npoints):
@@ -39,23 +40,26 @@ def Cinv(amp, mu, sigma, var=1):
                     S[i,j] = amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
             elif i == j:
                 S[i,j] = var
-    return inv(S.todense())
+    return S
+
 
 def chi2(b, m, aG, muG, sigmaG):
     model = line(xs, b, m)
     diff = ys - model
     diff.shape = (-1, 1)
-    Sinv = Cinv(amp=aG, mu=muG, sigma=sigmaG)
+    S = C(amp=aG, mu=muG, sigma=sigmaG)
+    Scsc = S.tocsc()
+    Sinv = sinv(Scsc)
     result = Sinv.dot(diff)
     chi_val = diff.T.dot(result)
     return chi_val[0,0]
 
 def lnprob(p):
-    return - chi2(*p) - p[3]
+    return - chi2(*p) - p[2]
 
 def main():
+    print(lnprob(np.array([10, 0.2, 10**5, 0, 1])))
     pass
-    #chi2(10, 0.2, 15, 0, 1)
 
 if __name__=="__main__":
     main()
