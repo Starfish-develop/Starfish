@@ -66,7 +66,7 @@ import emcee
 
 # Initialize the sampler with the chosen specs.
 nwalkers = 30
-burn_in = 100
+burn_in = 1000
 ndim = 5
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
 
@@ -86,12 +86,12 @@ print("Burned in chain")
 sampler.reset()
 
 #Now run for 100 samples
-sampler.run_mcmc(pos, 100, rstate0=state)
+sampler.run_mcmc(pos, 1000, rstate0=state)
 
 import triangle
 
 samples = sampler.flatchain
-figure = triangle.corner(samples, labels=[r"$m$", r"$b$", r"$a$", r"$\mu$", r"$\sigma$"], truths=[10., 0.2, 15, 0, 1],
+figure = triangle.corner(samples, labels=[r"$b$", r"$m$", r"$a$", r"$\mu$", r"$\sigma$"], truths=[10., 0.2, 15, 0, 1],
                          quantiles=[0.16, 0.5, 0.84],
                          show_titles=True, title_args={"fontsize": 12})
 figure.savefig("plots/triangle.png")
