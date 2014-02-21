@@ -2,11 +2,10 @@ import cProfile
 import pstats
 
 #Your module here
-import model
-#import plot_MCMC
+import correlated
 
 
-cProfile.run("model.main()", "prof")
+cProfile.run("correlated.main()", "prof")
 #cProfile.run("plot_MCMC.main()", "prof")
 
 
