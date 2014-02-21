@@ -59,7 +59,7 @@ def lnprob(p):
     if sigma <= 0 or a < 0 or mu < xs[0] or mu > xs[-1]:
         return -np.inf
     else:
-        return - chi2(*p) - a
+        return - chi2(*p) - 0.1 * a
 
 def main():
     #print(lnprob(np.array([10, 0.2, 10**5, 0, 1])))
