@@ -79,16 +79,16 @@ import emcee
 
 # Initialize the sampler with the chosen specs.
 nwalkers = 30
-burn_in = 500
+burn_in = 400
 ndim = 5
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
 
 #Declare starting indexes
-m = np.random.uniform(low=5, high=15, size=(nwalkers,))
-b = np.random.uniform(low=-0.1, high=0.3, size=(nwalkers,))
-a = np.random.uniform(low=0, high=50, size=(nwalkers,))
-mu = np.random.uniform(low=-5, high=5, size=(nwalkers,))
-sigma = np.random.uniform(low=0.1, high=3, size=(nwalkers,))
+m = np.random.uniform(low=7, high=12, size=(nwalkers,))
+b = np.random.uniform(low=0.1, high=0.3, size=(nwalkers,))
+a = np.random.uniform(low=0, high=20, size=(nwalkers,))
+mu = np.random.uniform(low=-1, high=1, size=(nwalkers,))
+sigma = np.random.uniform(low=0.5, high=3, size=(nwalkers,))
 
 p0 = np.array([m, b, a, mu, sigma]).T
 
