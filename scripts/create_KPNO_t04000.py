@@ -16,6 +16,6 @@ vsini = np.hstack((vsini1, vsini2, vsini3, vsini4))
 
 outdir = "/n/holyscratch/panstarrs/iczekala/willie/KPNO/"
 mycreator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=myInstrument, outdir=outdir,
-    points={"temp":np.array([4000, 4250]), "logg":np.array([4.0,4.5]), "Z":np.array([-0.5,0.0]), "vsini":vsini}, processes=1)
+    points={"temp":np.array([4000, 4250]), "logg":np.array([4.0,4.5]), "Z":np.array([-0.5,0.0]), "vsini":vsini}, processes=32)
 
 mycreator.process_all()
