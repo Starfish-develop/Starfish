@@ -134,70 +134,15 @@ Put the decorator `@profile` over the function you want to profile
 
 ## grid_tools.py
 
-
 Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
 * PHOENIX, Kurucz, etc inherit the Grid base class
 
-#Master grid creation. This isn't tested, but what is probably happening is that the slowest process is actually
-the writing to the file (takes about 0.25 times the "processing" of a file). The queue then becomes saturated.
-Honestly, there isn't really a way around this, because there is one "master process" that is doing all the reading/writing
-to the HDF5 file. Even with MPI/HDF5, this situation isn't much improved because we need to have all the attributes
-updated properly.
-This might actually be a hangup with the holyscratch filesystem.
 
-#Parallel methods
-*Rather than creating a map object which must pass data back and forth, really what we want is to have each process start
-up and run only on it's chunk of the parameter list. That is, break up the parameter list into $nrank chunks, and process
-the chunk flagged by your rank.
-
-#rfftfreq not available in numpy 1.7 on cluster.
-
-#Use mpi4py to distribute FITS processing.
-Error occured at:
-
-Wrote t06000g0m10v200.fits to FITS
-ERROR: KeyError: "unable to open object (Symbol table: Can't open object)" [unknown]
-https://github.com/h5py/h5py/issues/316
-https://groups.google.com/forum/#!topic/h5py/5MRvJ-zyiu0
-Does this mean that the next object doesn't exist?
-t06000g0m10v200.fits so that would be t06100g0m10 or t06200 or t06300
-Could do KeyError handling.
+#Easy method for a grid to generate just one spectrum
 
 Implement: HDF5Interface def test_load_bad_file(self):
 
 Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
-
-Wrote t05000g0p00v200.fits to FITS
-ERROR: KeyError: 'PHXDUST' [StellarSpectra.grid_tools]
-About to be either t05100g0p00v0 or t05200 or t05300
-
-
-lte05300-0.00-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits does not have any of the regular values, because it was interpolated.
-
-SIMPLE  =                    T / file does conform to FITS standard
-BITPIX  =                  -32 / number of bits per data pixel
-NAXIS   =                    1 / number of data axes
-NAXIS1  =              1569128 / length of data axis 1
-EXTEND  =                    T / FITS dataset may contain extensions
-COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
-COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H WAVE    = '../../WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
-PHXTEFF =               5300.0 / [K] effective temperature
-PHXLOGG =                  0.0 / [cm/s^2] log (surface gravity)
-PHXM_H  =    0.0 / [M/H] metallicity (rel. sol. - Asplund &a 2009)
-PHXALPHA=                  0.0 / [a/M] alpha element enhancement
-DATE    = '2013-04-03 13:36:32' / [local] finishing date of model calculation
-INTERPOL=                    T / T if spectrum is result of interpolation       END
-
-
-
-
-#Create a simple lnprob using a class and see if EMCEE still does it correctly
-
-#Use triangle.py to make MCMC plots
-
-#Email to DFM about using emcee with objects and class methods
-
-#For example, this should be possible if the lnprob function did not needed to be initialized in the MPI pool to start with.
 
 
 Instrument grid creation
@@ -237,21 +182,6 @@ If a function requires a parameter and it's not in the parameter list, it looks 
 #queried with only temp, logg, and Z.
 
 
-Effbot: Two other uses are local caches/memoization; e.g.
-
-def calculate(a, b, c, memo={}):
-    try:
-        value = memo[a, b, c] # return already calculated value
-    except KeyError:
-        value = heavy_calculation(a, b, c)
-        memo[a, b, c] = value # update the memo dictionary
-    return value
-
-Memoization of python, using a decorator might be helpful, to have a dict of which grid parameters have been loaded
-* https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
-* can set a max number of spectra to keep in cache
-
-
 ### How to implement
 * multiple inheritance
 * composite objects
@@ -283,6 +213,8 @@ Or can it use the link through the data object.
 * could use **kwargs and then have a parameters.update() dictionary, only the parameters that are in the dictionary are
 fit for, otherwise there are default values for each function?
 * this looks like it will work well
+
+
 
 
 # Stellar parameter papers
