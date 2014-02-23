@@ -9,12 +9,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   spectrum
    grid_tools
    model
-
-.. math::
-
-   \pi_T(x) = \left[ l(x) \right]^{\frac{1}{T}} p(x)
 
 Copyright Ian Czekala 2013, 2014
 

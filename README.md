@@ -136,17 +136,15 @@ Put the decorator `@profile` over the function you want to profile
 * Update interpolator so that it can draw from HDF5 in parallel/mpi
 * Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
 
-Documentation: Check out astropy documentation and sphinx files
+* standardize naming of wldict vs wl_dict (i prefer 2nd)
+
+# Update FITS writer to choose the unit correctly
 
 # Object oriented rewrite
 
 ## grid_tools.py
 
-* script to use grid processor to generate just one spectrum
-
-Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
-* PHOENIX, Kurucz, etc inherit the Grid base class
-
+* script to use grid processor to generate just one FITS spectrum
 
 # Test battery
 
