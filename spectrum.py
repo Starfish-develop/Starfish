@@ -114,7 +114,7 @@ class Base1DSpectrum(BaseSpectrum):
     Initialization sorts the wl array to make sure all points are sequential and unique.
     '''
 
-    def __init__(self, wl, fl, fl_type="flam", air=True, metadata=None):
+    def __init__(self, wl, fl, fl_type="f_lam", air=True, metadata=None):
         assert len(wl.shape) == 1, "1D spectrum must be 1D"
         #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl_sorted, ind = np.unique(wl, return_index=True)
@@ -145,6 +145,8 @@ class Base1DSpectrum(BaseSpectrum):
         assert len(grid.shape) == 1, "grid must be 1D"
 
         if integrate:
+            assert self.fl_type == "f_lam", "Current Integration routine assumes f_lam"
+            assert "rebin" not in self.metadata.keys(), "Spectrum has already been rebinned"
             interp = InterpolatedUnivariateSpline(self.wl, self.fl * self.wl/(C.h * C.c_ang_air))
             #Assume that grid specifies the pixel centers. Now, need to calculate the edges.
             edges = np.empty((len(grid) + 1,))
@@ -155,10 +157,10 @@ class Base1DSpectrum(BaseSpectrum):
             starts = edges[:-1]
             ends = edges[1:]
 
-            #Perhaps we want to do spline interpolation?
+            #do spline integration
             vint = np.vectorize(interp.integral)
             pix = vint(starts, ends)
-            #Normalize the average counts to 100
+            #Normalize the average counts/pixel to 100
             avgcounts = np.average(pix)
             pix = pix/avgcounts * 100
             self.fl = pix
@@ -219,6 +221,7 @@ def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None)
 class LogLambdaSpectrum(Base1DSpectrum):
     '''
     A spectrum that has log lambda spaced wavelengths.
+
     :param wl: wavelength array
     :type wl: np.array
     :param fl: flux array
@@ -259,33 +262,24 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
         self.oversampling = oversampling #taken to mean as how many points go across the FWHM of the Gaussian
 
-    def downsample(self, instrument=None, integrate=False):
-        #Takes the new min_vc and oversampling factor
+    def downsample_to_grid(self, wl_dict, integrate=False):
+        '''
+        Resample/interate the spectrum to a new log lambda grid.
+        Updates the :attr:`wl`, :attr:`fl`, and log_lam_kws in the :attr:`metadata`. This method is slightly
+        different than :meth:`resample_to_grid` since it uses :attr:`wl_dict` to ensure that the spectrum
+        remains log lambda spaced and ``N_points`` is a power of 2.
 
-        min_vc = self.min_vc/self.oversampling
-        #print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
-        if instrument is not None:
-            wl_low, wl_high = instrument.wl_range
-            wl_low = wl_low if wl_low > self.wl[0] else self.wl[0]
-            wl_high = wl_high if wl_high < self.wl[-1] else self.wl[-1]
-            wl_dict = create_log_lam_grid(wl_low, wl_high, min_vc=min_vc)
-        else:
-            wl_dict = create_log_lam_grid(self.wl[0], self.wl[-1], min_vc=min_vc)
+        :param wl_dict: dictionary of log lam wavelength properties to resample to
+        :type wl_dict: dict
+        :param integrate: integrate flux to counts/pixel?
+        :type integrate: bool
 
-        #creates new wl grid and updates header values
-        wl = wl_dict.pop("wl")
-        self.metadata.update(wl_dict)
+        .. note::
 
-        #resamples the spectrum to these values and updates wl_grid
-        self.resample_to_grid(wl, integrate=integrate)
+            Assumes that new wl grid does not violate any sampling rules and updates header values.
+        '''
 
-    def downsample_to_grid(self, wl_dict, instrument=None, integrate=False):
-        #TODO: consistent parameter passing
-        #Assumes that new wl grid does not violate any sampling rules and updates header values. This is a speed function.
         wl = wl_dict["wl"]
-        CDELT1 = wl_dict["CDELT1"]
-        min_vc = 10**(CDELT1) - 1
-        #print("Grid spacing now at {:.2f} km/s".format(min_vc * C.c_kms))
 
         hdr = {key:wl_dict[key] for key in log_lam_kws}
         self.metadata.update(hdr)
@@ -295,7 +289,10 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
 
     def instrument_convolve(self, instrument, downsample="no", integrate=False):
-        '''If downsample='no', then the region will not be wavelength truncated.'''
+        '''
+        Convolve the spectrum with the instrumental profile
+
+        If downsample='no', then the region will not be wavelength truncated.'''
         sigma = instrument.FWHM/2.35 # in km/s
 
         chunk = len(self.fl)
@@ -424,7 +421,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
 
 class DataSpectrum(BaseSpectrum):
-    def __init__(self, wl, fl, sigma, mask=None, fl_type="flam"):
+    def __init__(self, wl, fl, sigma, mask=None, fl_type="f_lam"):
         super().__init__(wl, fl, fl_type)
         self.sigma = sigma
 
@@ -441,7 +438,7 @@ class VelocitySpectrum:
     '''
     Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
     '''
-    def __init__(self, wl, fl, fl_type="flam", air=True, vel=0.0, metadata=None):
+    def __init__(self, wl, fl, fl_type="f_lam", air=True, vel=0.0, metadata=None):
         #TODO: convert fl_type to use astropy units for later conversions
         assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
         self.wl_raw = wl
