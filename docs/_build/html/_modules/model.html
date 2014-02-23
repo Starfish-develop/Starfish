@@ -1,0 +1,1599 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>model &mdash; StellarSpectra 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StellarSpectra 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">StellarSpectra 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for model</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span><span class="p">,</span> <span class="n">LinearNDInterpolator</span><span class="p">,</span> <span class="n">InterpolatedUnivariateSpline</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage.filters</span> <span class="kn">import</span> <span class="n">convolve</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">j1</span>
+<span class="kn">from</span> <span class="nn">numpy.polynomial</span> <span class="kn">import</span> <span class="n">Chebyshev</span> <span class="k">as</span> <span class="n">Ch</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="kn">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">fftfreq</span><span class="c"># rfftfreq</span>
+<span class="kn">import</span> <span class="nn">pyfftw</span>
+<span class="kn">import</span> <span class="nn">emcee</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">StellarSpectra.constants</span> <span class="kn">as</span> <span class="nn">C</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
+
+<div class="viewcode-block" id="rfftfreq"><a class="viewcode-back" href="../model.html#model.rfftfreq">[docs]</a><span class="k">def</span> <span class="nf">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Return the Discrete Fourier Transform sample frequencies</span>
+<span class="sd">(for usage with rfft, irfft).</span>
+
+<span class="sd">The returned float array `f` contains the frequency bin centers in cycles</span>
+<span class="sd">per unit of the sample spacing (with zero at the start). For instance, if</span>
+<span class="sd">the sample spacing is in seconds, then the frequency unit is cycles/second.</span>
+
+<span class="sd">Given a window length `n` and a sample spacing `d`::</span>
+
+<span class="sd">f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even</span>
+<span class="sd">f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd</span>
+
+<span class="sd">Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)</span>
+<span class="sd">the Nyquist frequency component is considered to be positive.</span>
+
+<span class="sd">Parameters</span>
+<span class="sd">----------</span>
+<span class="sd">n : int</span>
+<span class="sd">Window length.</span>
+<span class="sd">d : scalar, optional</span>
+<span class="sd">Sample spacing (inverse of the sampling rate). Defaults to 1.</span>
+
+<span class="sd">Returns</span>
+<span class="sd">-------</span>
+<span class="sd">f : ndarray</span>
+<span class="sd">Array of length ``n//2 + 1`` containing the sample frequencies.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;n should be an integer&quot;</span><span class="p">)</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">n</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span> <span class="o">*</span> <span class="n">val</span>
+
+</div>
+<span class="k">def</span> <span class="nf">load_config</span><span class="p">():</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&quot;.yaml&quot;</span> <span class="ow">in</span> <span class="n">arg</span><span class="p">:</span>
+                <span class="n">confname</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">confname</span><span class="p">)</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">StellarSpectra</span> <span class="c">#this triggers the __init__.py code</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">StellarSpectra</span><span class="o">.</span><span class="n">default_config</span>
+
+<span class="k">class</span> <span class="nc">BaseSpectrum</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="s">&quot;flam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#TODO: convert fl_type to use astropy units for later conversions</span>
+        <span class="k">assert</span> <span class="n">wl</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">fl</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;Spectrum wavelength and flux arrays must have the same shape.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">=</span> <span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">fl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl_type</span> <span class="o">=</span> <span class="n">fl_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air</span> <span class="o">=</span> <span class="n">air</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">vel</span> <span class="c">#creates self.wl_vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="c">#Set air as a property which will update self.c it uses to calculate velocities</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">air</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_air</span>
+
+    <span class="nd">@air.setter</span>
+    <span class="k">def</span> <span class="nf">air</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">air</span><span class="p">):</span>
+        <span class="c">#TODO: rewrite this to be more specific about which c</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">air</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_air</span> <span class="o">=</span> <span class="n">air</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">air</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_velocity</span>
+
+    <span class="nd">@velocity.setter</span>
+    <span class="k">def</span> <span class="nf">velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vz</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">vz</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="n">vz</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_velocity</span> <span class="o">=</span> <span class="n">vz</span>
+
+    <span class="k">def</span> <span class="nf">add_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyVal</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">keyVal</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">+=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;&#39;&#39;Spectrum object</span><span class="se">\n</span><span class="s">&#39;&#39;&#39;</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;{}:{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())])</span>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DataSpectrum</span><span class="p">(</span><span class="n">BaseSpectrum</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="s">&quot;flam&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;bool&#39;</span><span class="p">)</span> <span class="c">#create mask of all True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;sigma array incompatible shape.&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;mask array incompatible shape.&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">Base1DSpectrum</span><span class="p">(</span><span class="n">BaseSpectrum</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="s">&quot;flam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">wl</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;1D spectrum must be 1D&quot;</span>
+        <span class="c">#&quot;Clean&quot; the wl and flux points. Remove duplicates, sort in increasing wl</span>
+        <span class="n">wl_sorted</span><span class="p">,</span> <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">fl_sorted</span> <span class="o">=</span> <span class="n">fl</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl_sorted</span><span class="p">,</span> <span class="n">fl_sorted</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="n">fl_type</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="n">air</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">calculate_log_lam_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dif</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">)</span>
+        <span class="n">min_wl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dif</span><span class="p">)</span>
+        <span class="n">wl_at_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dif</span><span class="p">)]</span>
+        <span class="n">wl_dict</span> <span class="o">=</span> <span class="n">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wl_end</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">min_wl</span><span class="o">=</span><span class="p">(</span><span class="n">min_wl</span><span class="p">,</span> <span class="n">wl_at_min</span><span class="p">))</span>
+        <span class="c">#(log_lam_grid, CRVAL1, CDELT1, NAXIS1)</span>
+        <span class="k">return</span> <span class="n">wl_dict</span>
+
+    <span class="k">def</span> <span class="nf">resample_to_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Resamples to a new grid. For other methods, Grid does not necessarily have to be 1D.&#39;&#39;&#39;</span>
+        <span class="c">#TODO: how to properly set the velocity of the new grid when resampling?</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;grid must be 1D&quot;</span>
+
+        <span class="k">if</span> <span class="n">integrate</span><span class="p">:</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="o">/</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_ang_air</span><span class="p">))</span>
+            <span class="c">#Assume that grid specifies the pixel centers. Now, need to calculate the edges.</span>
+            <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,))</span>
+            <span class="n">difs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+            <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">difs</span>
+            <span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">difs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">difs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">starts</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ends</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+            <span class="c">#Perhaps we want to do spline interpolation?</span>
+            <span class="n">vint</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">interp</span><span class="o">.</span><span class="n">integral</span><span class="p">)</span>
+            <span class="n">pix</span> <span class="o">=</span> <span class="n">vint</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">ends</span><span class="p">)</span>
+            <span class="c">#Normalize the average counts to 100</span>
+            <span class="n">avgcounts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">pix</span><span class="p">)</span>
+            <span class="n">pix</span> <span class="o">=</span> <span class="n">pix</span><span class="o">/</span><span class="n">avgcounts</span> <span class="o">*</span> <span class="mi">100</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">pix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl_type</span> <span class="o">=</span> <span class="s">&#39;counts&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;rebin&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">})</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">interp</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;resamp&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">})</span>
+
+        <span class="k">del</span> <span class="n">interp</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">=</span> <span class="n">grid</span>
+
+
+<div class="viewcode-block" id="create_log_lam_grid"><a class="viewcode-back" href="../model.html#model.create_log_lam_grid">[docs]</a><span class="k">def</span> <span class="nf">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_start</span><span class="o">=</span><span class="mf">3000.</span><span class="p">,</span> <span class="n">wl_end</span><span class="o">=</span><span class="mf">13000.</span><span class="p">,</span> <span class="n">min_wl</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">min_vc</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;min_WL = (delta_WL, WL). Takes the finer of the two specified.&#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;You need to specify either min_wl or min_vc&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">delta_wl</span><span class="p">,</span> <span class="n">wl</span> <span class="o">=</span> <span class="n">min_wl</span> <span class="c">#unpack</span>
+        <span class="n">Vwl</span> <span class="o">=</span> <span class="n">delta_wl</span><span class="o">/</span><span class="n">wl</span>
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span> <span class="k">if</span> <span class="n">Vwl</span> <span class="o">&lt;</span> <span class="n">min_vc</span> <span class="k">else</span> <span class="n">min_vc</span>
+
+    <span class="n">CDELT_temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">min_vc</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_start</span><span class="p">)</span>
+    <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_end</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="n">CDELT_temp</span>
+    <span class="n">NAXIS1</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">while</span> <span class="n">NAXIS1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span> <span class="c">#Make NAXIS1 an integer power of 2 for FFT purposes</span>
+        <span class="n">NAXIS1</span> <span class="o">*=</span> <span class="mi">2</span>
+
+    <span class="n">CDELT1</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">NAXIS1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span>
+    <span class="n">wl</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">CRVAL1</span> <span class="o">+</span> <span class="n">CDELT1</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s">&quot;wl&quot;</span><span class="p">:</span><span class="n">wl</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span><span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;CDELT1&quot;</span><span class="p">:</span><span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span><span class="n">NAXIS1</span><span class="p">}</span>
+
+</div>
+<span class="k">class</span> <span class="nc">LogLambdaSpectrum</span><span class="p">(</span><span class="n">Base1DSpectrum</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="s">&quot;flam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">oversampling</span><span class="o">=</span><span class="mf">3.5</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="n">air</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="c">#Super class already checks that the wavelengths are np.unique</span>
+        <span class="c">#Need to check that the vc spacing of each pixel is the same.</span>
+        <span class="n">vcs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">vcs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">vcs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">),</span> <span class="s">&quot;Array must be log-lambda spaced.&quot;</span>
+
+        <span class="c">#Calculate CDELT1, CRVAL1, and NAXIS1 (even if it&#39;s not power of 2)</span>
+        <span class="n">CDELT1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">NAXIS1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="n">CDELT1</span><span class="p">))</span>
+
+        <span class="n">wldict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;CDELT1&quot;</span><span class="p">:</span> <span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span> <span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span><span class="n">NAXIS1</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Calculated NAXIS1={}, which is not a power of 2. FFT will be slow.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log_lam_kws</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">]),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">wldict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">])),</span> <span class="s">&quot;Header keywords do not match wl file.&quot;</span>
+            <span class="c">#print(&quot;calculated&quot;, wldict)</span>
+            <span class="c">#print(&quot;header_file&quot;, {key:self.metadata[key] for key in log_lam_kws})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wldict</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">oversampling</span> <span class="c">#taken to mean as how many points go across the FWHM of the Gaussian</span>
+
+    <span class="k">def</span> <span class="nf">downsample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="c">#Takes the new min_vc and oversampling factor</span>
+
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span>
+        <span class="c">#print(&quot;Grid spacing now at {:.2f} km/s&quot;.format(min_vc * C.c_kms))</span>
+        <span class="k">if</span> <span class="n">instrument</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">wl_low</span><span class="p">,</span> <span class="n">wl_high</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">wl_range</span>
+            <span class="n">wl_low</span> <span class="o">=</span> <span class="n">wl_low</span> <span class="k">if</span> <span class="n">wl_low</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">wl_high</span> <span class="o">=</span> <span class="n">wl_high</span> <span class="k">if</span> <span class="n">wl_high</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">wldict</span> <span class="o">=</span> <span class="n">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_low</span><span class="p">,</span> <span class="n">wl_high</span><span class="p">,</span> <span class="n">min_vc</span><span class="o">=</span><span class="n">min_vc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wldict</span> <span class="o">=</span> <span class="n">create_log_lam_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">min_vc</span><span class="o">=</span><span class="n">min_vc</span><span class="p">)</span>
+
+        <span class="c">#creates new wl grid and updates header values</span>
+        <span class="n">wl</span> <span class="o">=</span> <span class="n">wldict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&quot;wl&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wldict</span><span class="p">)</span>
+
+        <span class="c">#resamples the spectrum to these values and updates wl_grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resample_to_grid</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">downsample_to_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wldict</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="c">#TODO: consistent parameter passing</span>
+        <span class="c">#Assumes that new wl grid does not violate any sampling rules and updates header values. This is a speed function.</span>
+        <span class="n">wl</span> <span class="o">=</span> <span class="n">wldict</span><span class="p">[</span><span class="s">&quot;wl&quot;</span><span class="p">]</span>
+        <span class="n">CDELT1</span> <span class="o">=</span> <span class="n">wldict</span><span class="p">[</span><span class="s">&quot;CDELT1&quot;</span><span class="p">]</span>
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="n">CDELT1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="c">#print(&quot;Grid spacing now at {:.2f} km/s&quot;.format(min_vc * C.c_kms))</span>
+
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="n">wldict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hdr</span><span class="p">)</span>
+
+        <span class="c">#resamples the spectrum to these values and updates wl_grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resample_to_grid</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">instrument_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="s">&quot;no&quot;</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;If downsample=&#39;no&#39;, then the region will not be wavelength truncated.&#39;&#39;&#39;</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="mf">2.35</span> <span class="c"># in km/s</span>
+
+        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+        <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+        <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+        <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+        <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+        <span class="n">fft_object</span><span class="p">()</span>
+
+        <span class="c">#The frequencies (cycles/km) corresponding to each point</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+
+        <span class="c">#Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space</span>
+        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">FF</span> <span class="o">*=</span> <span class="n">taper</span>
+
+        <span class="c">#Take the broadened spectrum back to wavelength space</span>
+        <span class="n">ifft_object</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+
+        <span class="c">#Update min_vc and oversampling, possibly downsample</span>
+        <span class="k">if</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">oversampling</span>
+
+            <span class="k">if</span> <span class="n">downsample</span> <span class="o">==</span> <span class="s">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="c">#downsample the broadened spectrum to a coarser grid</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">downsample</span><span class="p">)</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample_to_grid</span><span class="p">(</span><span class="n">downsample</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="s">&quot;no&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c">#Take FFT of f_grid</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+            <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+            <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+            <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+            <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+            <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+            <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+            <span class="n">fft_object</span><span class="p">()</span>
+
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+            <span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
+            <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">vsini</span> <span class="o">*</span> <span class="n">ss</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
+            <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+            <span class="c">#institute velocity taper</span>
+            <span class="n">FF</span> <span class="o">*=</span> <span class="n">sb</span>
+
+            <span class="c">#do ifft</span>
+            <span class="n">ifft_object</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;vsini={}. No stellar convolution performed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vsini</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">vsini</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;vsini&quot;</span><span class="p">:</span> <span class="n">vsini</span><span class="p">})</span>
+
+        <span class="c">#Update min_vc and oversampling, possibly downsample</span>
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">vsini</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+
+            <span class="k">if</span> <span class="n">downsample</span> <span class="o">==</span> <span class="s">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="c">#downsample the broadened spectrum to a coarser grid</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">downsample</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample_to_grid</span><span class="p">(</span><span class="n">downsample</span><span class="p">)</span>
+
+
+
+    <span class="k">def</span> <span class="nf">instrument_and_stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="s">&quot;no&quot;</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Does both instrument and stellar convolution in one step, in the Fourier domain.&#39;&#39;&#39;</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="mf">2.35</span> <span class="c"># in km/s</span>
+        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
+            <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">vsini</span> <span class="o">*</span> <span class="n">ss</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
+            <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;vsini={}. No stellar convolution performed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vsini</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">vsini</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="mf">1.</span>
+
+        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+        <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+        <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+        <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+        <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+        <span class="n">fft_object</span><span class="p">()</span>
+
+        <span class="n">FF</span> <span class="o">*=</span> <span class="p">(</span><span class="n">taper</span> <span class="o">*</span> <span class="n">sb</span><span class="p">)</span>
+
+        <span class="c">#do ifft</span>
+        <span class="n">ifft_object</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;vsini&quot;</span><span class="p">:</span> <span class="n">vsini</span><span class="p">})</span>
+
+        <span class="c">#Update min_vc and oversampling, possibly downsample</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">vsini</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="k">if</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="n">vsini</span> <span class="k">else</span> <span class="n">vsini</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">oversampling</span>
+
+            <span class="k">if</span> <span class="n">downsample</span> <span class="o">==</span> <span class="s">&quot;yes&quot;</span><span class="p">:</span>
+                <span class="c">#downsample the broadened spectrum to a coarser grid</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">downsample</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">downsample_to_grid</span><span class="p">(</span><span class="n">downsample</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+
+
+<div class="viewcode-block" id="ModelSpectrum"><a class="viewcode-back" href="../model.html#model.ModelSpectrum">[docs]</a><span class="k">class</span> <span class="nc">ModelSpectrum</span><span class="p">(</span><span class="n">LogLambdaSpectrum</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Specifically designed to match the shape of the data.&#39;&#39;&#39;</span>
+
+    <span class="n">wl</span> <span class="o">=</span> <span class="bp">None</span> <span class="c">#This wl is a &quot;static&quot; variable. Or, does it make sense because there will only be one model per</span>
+    <span class="c">#process, to just keep updating the flux and wl? Rather than forcing one.</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">dataSpectrum</span><span class="p">,</span> <span class="n">fl_type</span><span class="o">=</span><span class="s">&quot;flam&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">fl_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataSpectrum</span> <span class="o">=</span> <span class="n">dataSpectrum</span>
+
+<span class="c">#grids = {&quot;PHOENIX&quot;: {&#39;T_points&#39;: np.array(</span>
+<span class="c">#    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,</span>
+<span class="c">#     4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,</span>
+<span class="c">#     6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,</span>
+<span class="c">#     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),</span>
+<span class="c">#                     &#39;logg_points&#39;: np.arange(0.0, 6.1, 0.5), &#39;Z_points&#39;: np.array([-1., -0.5, 0.0, 0.5, 1.0])},</span>
+<span class="c">#                     #&#39;alpha_points&#39;: np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},</span>
+<span class="c">#         &quot;kurucz&quot;: {&#39;T_points&#39;: np.arange(3500, 9751, 250),</span>
+<span class="c">#                    &#39;logg_points&#39;: np.arange(1.0, 5.1, 0.5), &#39;Z_points&#39;: np.array([-0.5, 0.0, 0.5])},</span>
+<span class="c">#         &quot;BTSettl&quot;: {&#39;T_points&#39;: np.arange(3000, 7001, 100), &#39;logg_points&#39;: np.arange(2.5, 5.6, 0.5),</span>
+<span class="c">#                     &#39;Z_points&#39;: np.array([-0.5, 0.0, 0.5])}}</span>
+<span class="c">#</span>
+<span class="c">#base = os.path.dirname(__file__) + &quot;/&quot;</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##if config[&#39;grid&#39;] == &#39;PHOENIX&#39;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/PHOENIX_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_PHOENIX_2kms_air.hdf5&quot;</span>
+<span class="c">##elif config[&#39;grid&#39;] == &quot;kurucz&quot;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/kurucz_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_kurucz_2kms_air.hdf5&quot;</span>
+<span class="c">##elif config[&#39;grid&#39;] == &#39;BTSettl&#39;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/PHOENIX_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_BTSettl_2kms_air.hdf5&quot;</span>
+<span class="c">#</span>
+<span class="c">#grid = grids[config[&#39;grid&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#T_points = grid[&#39;T_points&#39;]</span>
+<span class="c">#logg_points = grid[&#39;logg_points&#39;]</span>
+<span class="c">#Z_points = grid[&#39;Z_points&#39;]</span>
+<span class="c">##alpha_points = grid[&#39;alpha_points&#39;]</span>
+<span class="c">#</span>
+<span class="c">##Limit grid size to relevant region</span>
+<span class="c">#grid_params = config[&#39;grid_params&#39;]</span>
+<span class="c">#</span>
+<span class="c">#T_low, T_high = grid_params[&#39;temp_range&#39;]</span>
+<span class="c">#T_ind = (T_points &gt;= T_low) &amp; (T_points &lt;= T_high)</span>
+<span class="c">#T_points = T_points[T_ind]</span>
+<span class="c">#T_arg = np.where(T_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">#g_low, g_high = grid_params[&#39;logg_range&#39;]</span>
+<span class="c">#logg_ind = (logg_points &gt;= g_low) &amp; (logg_points &lt;= g_high)</span>
+<span class="c">#logg_points = logg_points[logg_ind]</span>
+<span class="c">#logg_arg = np.where(logg_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">#Z_low, Z_high = grid_params[&#39;Z_range&#39;]</span>
+<span class="c">#Z_ind = (Z_points &gt;= Z_low) &amp; (Z_points &lt;= Z_high)</span>
+<span class="c">#Z_points = Z_points[Z_ind]</span>
+<span class="c">#Z_arg = np.where(Z_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">##A_low, A_high = grid_params[&#39;alpha_range&#39;]</span>
+<span class="c">##A_ind = (alpha_points &gt;= A_low) &amp; (alpha_points &lt;= A_high)</span>
+<span class="c">##A_points = alpha_points[A_ind]</span>
+<span class="c">##A_arg = np.where(A_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">##Will want to use pgutil.get_data http://docs.python.org/2/library/pkgutil.html</span>
+<span class="c">##http://stackoverflow.com/questions/10935127/way-to-access-resource-files-in-python</span>
+<span class="c">#</span>
+<span class="c">##Load the data to fit</span>
+<span class="c">##database = base + &#39;data/&#39; + config[&#39;dataset&#39;]</span>
+<span class="c">##wls = np.load(database + &quot;.wls.npy&quot;)</span>
+<span class="c">##fls = np.load(database + &quot;.fls.npy&quot;)</span>
+<span class="c">##sigmas = np.load(database + &quot;.sigma.npy&quot;)</span>
+<span class="c">##masks = np.load(database + &quot;.mask.npy&quot;)</span>
+<span class="c">#</span>
+<span class="c">##orders = np.array(config[&#39;orders&#39;])</span>
+<span class="c">##norder = len(orders)</span>
+<span class="c">#</span>
+<span class="c">##Truncate the data to include only those orders you wish to fit</span>
+<span class="c">##wls = wls[orders]</span>
+<span class="c">##fls = fls[orders]</span>
+<span class="c">##sigmas = sigmas[orders]</span>
+<span class="c">##masks = masks[orders]</span>
+<span class="c">#</span>
+<span class="c">##sigma for Gaussian priors on nuisance coefficients</span>
+<span class="c">##sigmac = config[&#39;sigmac&#39;]</span>
+<span class="c">##sigmac0 = config[&#39;sigmac0&#39;]</span>
+<span class="c">##</span>
+<span class="c">##wr = config[&#39;walker_ranges&#39;]</span>
+<span class="c">##</span>
+<span class="c">##len_wl = len(wls[0])</span>
+<span class="c">##</span>
+<span class="c">##wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts</span>
+<span class="c">##wl_min = wls[0, 0] - wl_buffer</span>
+<span class="c">##wl_max = wls[-1, -1] + wl_buffer</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">## Truncate wave_grid and red_grid to include only the regions necessary for fitting the specified orders.</span>
+<span class="c">## but do it in such a way that it is a power of 2 to speed up the FFT</span>
+<span class="c">#</span>
+<span class="c">##len_wg = len(wave_grid)</span>
+<span class="c">##</span>
+<span class="c">##len_data = np.sum((wave_grid &gt; wl_min) &amp; (wave_grid &lt; wl_max))</span>
+<span class="c">##</span>
+<span class="c">##if len_data &lt; (len_wg / 16):</span>
+<span class="c">##    chunk = int(len_wg / 16)</span>
+<span class="c">##elif len_data &lt; (len_wg / 8):</span>
+<span class="c">##    chunk = int(len_wg / 8)</span>
+<span class="c">##elif len_data &lt; (len_wg / 4):</span>
+<span class="c">##    chunk = int(len_wg / 4)</span>
+<span class="c">##elif len_data &lt; (len_wg / 2):</span>
+<span class="c">##    chunk = int(len_wg / 2)</span>
+<span class="c">##else:</span>
+<span class="c">##    use the  full spectrum</span>
+<span class="c">#    #chunk = len_wg</span>
+<span class="c">#    #ind = np.ones_like(wave_grid, dtype=&#39;bool&#39;)</span>
+<span class="c">##</span>
+<span class="c">##if chunk &lt; len_wg:</span>
+<span class="c">##    ind_wg = np.arange(len_wg)</span>
+<span class="c">##    Determine if the data region is closer to the start or end of the wave_grid</span>
+<span class="c">#    #if (wl_min - wave_grid[0]) &lt; (wave_grid[-1] - wl_max):</span>
+<span class="c">#    #    the data region is closer to the start</span>
+<span class="c">#    #    find starting index</span>
+<span class="c">#    #    start at index corresponding to wl_min and go chunk forward</span>
+<span class="c">#        #start_ind = np.argwhere(wave_grid &gt; wl_min)[0][0]</span>
+<span class="c">#        #end_ind = start_ind + chunk</span>
+<span class="c">#        #ind = (ind_wg &gt;= start_ind) &amp; (ind_wg &lt; end_ind)</span>
+<span class="c">#    #</span>
+<span class="c">#    #else:</span>
+<span class="c">#    #    the data region is closer to the finish</span>
+<span class="c">#        # start at index corresponding to wl_max and go chunk backward</span>
+<span class="c">#        #end_ind = np.argwhere(wave_grid &lt; wl_max)[-1][0]</span>
+<span class="c">#        #start_ind = end_ind - chunk</span>
+<span class="c">#        #ind = (ind_wg &gt; start_ind) &amp; (ind_wg &lt;= end_ind)</span>
+<span class="c">#</span>
+<span class="c">##wave_grid = wave_grid[ind]</span>
+<span class="c">##red_grid = np.load(base + &#39;red_grid.npy&#39;)[ind]</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def load_hdf5_spectrum(temp, logg, Z, grid_name, LIB_filename):</span>
+<span class="c">#    &#39;&#39;&#39;Load a spectrum (nearest in grid point) from the specified HDF5 library and return it without interpolation.</span>
+<span class="c">#    User should check that the loading message is the same as the one they specified.&#39;&#39;&#39;</span>
+<span class="c">#    grid = grids[grid_name]</span>
+<span class="c">#    T_points = grid[&#39;T_points&#39;]</span>
+<span class="c">#    lenT = len(T_points)</span>
+<span class="c">#</span>
+<span class="c">#    logg_points = grid[&#39;logg_points&#39;]</span>
+<span class="c">#    lenG = len(logg_points)</span>
+<span class="c">#</span>
+<span class="c">#    Z_points = grid[&#39;Z_points&#39;]</span>
+<span class="c">#    lenZ = len(Z_points)</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;nearest&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;nearest&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;nearest&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    T = int(T_intp(temp))</span>
+<span class="c">#    G = int(logg_intp(logg))</span>
+<span class="c">#    Z = int(Z_intp(Z))</span>
+<span class="c">#    print(&quot;Loading&quot;, T_points[T], logg_points[G], Z_points[Z], grid_name)</span>
+<span class="c">#    f = LIB[T, G, Z]</span>
+<span class="c">#    return f</span>
+<span class="c">#</span>
+<span class="c">#def quadlinear_interpolator():</span>
+<span class="c">#    &#39;&#39;&#39;Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.&#39;&#39;&#39;</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    #Load only those indexes we want into a grid in memory</span>
+<span class="c">#    grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, A_arg[0]:A_arg[-1] + 1, ind] #weird syntax because</span>
+<span class="c">#    #sequence indexing is not supported for more than one axis in h5py</span>
+<span class="c">#    lenT, lenG, lenZ, lenA, lenF = grid.shape</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;linear&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;linear&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;linear&#39;)</span>
+<span class="c">#    A_intp = interp1d(alpha_points, np.arange(lenA), kind=&#39;linear&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fluxes = np.empty((16, lenF))</span>
+<span class="c">#    zeros = np.zeros(lenF)</span>
+<span class="c">#</span>
+<span class="c">#    def intp_func(temp, logg, Z, alpha):</span>
+<span class="c">#        if (logg &lt; g_low) or (logg &gt; g_high) or (temp &lt; T_low) or (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high)\</span>
+<span class="c">#            or (alpha &lt; A_low) or (alpha &gt; A_high):</span>
+<span class="c">#            return zeros</span>
+<span class="c">#        else:</span>
+<span class="c">#            &#39;&#39;&#39;Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/&#39;&#39;&#39;</span>
+<span class="c">#            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z), A_intp(alpha)))</span>
+<span class="c">#            ui = np.ceil(indexes) #upper cube vertices</span>
+<span class="c">#            li = np.floor(indexes) #lower cube vertices</span>
+<span class="c">#            #print(li,ui)</span>
+<span class="c">#            w, x, y, z = (indexes - li) #range between 0 - 1</span>
+<span class="c">#            wu, xu, yu, zu = ui</span>
+<span class="c">#            wl, xl, yl, zl = li</span>
+<span class="c">#            fluxes[:] = np.array([</span>
+<span class="c">#                grid[wl, xl, yl, zl],</span>
+<span class="c">#                grid[wu, xl, yl, zl],</span>
+<span class="c">#                grid[wl, xu, yl, zl],</span>
+<span class="c">#                grid[wl, xl, yu, zl],</span>
+<span class="c">#                grid[wu, xl, yu, zl],</span>
+<span class="c">#                grid[wl, xu, yu, zl],</span>
+<span class="c">#                grid[wu, xu, yl, zl],</span>
+<span class="c">#                grid[wu, xu, yu, zl],</span>
+<span class="c">#                grid[wl, xl, yl, zu],</span>
+<span class="c">#                grid[wu, xl, yl, zu],</span>
+<span class="c">#                grid[wl, xu, yl, zu],</span>
+<span class="c">#                grid[wl, xl, yu, zu],</span>
+<span class="c">#                grid[wu, xl, yu, zu],</span>
+<span class="c">#                grid[wl, xu, yu, zu],</span>
+<span class="c">#                grid[wu, xu, yl, zu],</span>
+<span class="c">#                grid[wu, xu, yu, zu],</span>
+<span class="c">#                ])</span>
+<span class="c">#</span>
+<span class="c">#            weights = np.array([</span>
+<span class="c">#                (1 - w) * (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                w * (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - w) * x * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - w) * (1 - x) * y * (1 - z),</span>
+<span class="c">#                w * (1 - x) * y * (1 - z),</span>
+<span class="c">#                (1 - w) * x * y * (1 - z),</span>
+<span class="c">#                w * x * (1 - y) * (1 - z),</span>
+<span class="c">#                w * x * y * (1 - z),</span>
+<span class="c">#                (1 - w) * (1 - x) * (1 - y) * z,</span>
+<span class="c">#                w * (1 - x) * (1 - y) * z,</span>
+<span class="c">#                (1 - w) * x * (1 - y) * z,</span>
+<span class="c">#                (1 - w) * (1 - x) * y * z,</span>
+<span class="c">#                w * (1 - x) * y * z,</span>
+<span class="c">#                (1 - w) * x * y * z,</span>
+<span class="c">#                w * x * (1 - y) * z,</span>
+<span class="c">#                w * x * y * z])</span>
+<span class="c">#</span>
+<span class="c">#            #print(weights)</span>
+<span class="c">#            #print(np.sum(weights))</span>
+<span class="c">#</span>
+<span class="c">#            return np.average(fluxes, axis=0, weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#    return intp_func</span>
+<span class="c">#</span>
+<span class="c">#def trilinear_interpolator():</span>
+<span class="c">#    &#39;&#39;&#39;Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.&#39;&#39;&#39;</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    #Load only those indexes we want into a grid in memory</span>
+<span class="c">#    grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, ind] #weird syntax because</span>
+<span class="c">#    #sequence indexing is not supported for more than one axis in h5py</span>
+<span class="c">#    lenT, lenG, lenZ, lenF = grid.shape</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;linear&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;linear&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;linear&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fluxes = np.empty((8, lenF))</span>
+<span class="c">#    zeros = np.zeros(lenF)</span>
+<span class="c">#</span>
+<span class="c">#    def intp_func(temp, logg, Z):</span>
+<span class="c">#        if (logg &lt; g_low) or (logg &gt; g_high) or (temp &lt; T_low) or (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high):</span>
+<span class="c">#            return zeros</span>
+<span class="c">#        else:</span>
+<span class="c">#            &#39;&#39;&#39;Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/&#39;&#39;&#39;</span>
+<span class="c">#            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))</span>
+<span class="c">#            ui = np.ceil(indexes) #upper cube vertices</span>
+<span class="c">#            li = np.floor(indexes) #lower cube vertices</span>
+<span class="c">#            #print(li,ui)</span>
+<span class="c">#            x, y, z = (indexes - li) #range between 0 - 1</span>
+<span class="c">#            xu, yu, zu = ui</span>
+<span class="c">#            xl, yl, zl = li</span>
+<span class="c">#            fluxes[:] = np.array([</span>
+<span class="c">#                grid[xl, yl, zl],</span>
+<span class="c">#                grid[xu, yl, zl],</span>
+<span class="c">#                grid[xl, yu, zl],</span>
+<span class="c">#                grid[xl, yl, zu],</span>
+<span class="c">#                grid[xu, yl, zu],</span>
+<span class="c">#                grid[xl, yu, zu],</span>
+<span class="c">#                grid[xu, yu, zl],</span>
+<span class="c">#                grid[xu, yu, zu]])</span>
+<span class="c">#</span>
+<span class="c">#            weights = np.array([</span>
+<span class="c">#                (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                x * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - x) * y * (1 - z),</span>
+<span class="c">#                (1 - x) * (1 - y) * z,</span>
+<span class="c">#                x * (1 - y) * z,</span>
+<span class="c">#                (1 - x) * y * z,</span>
+<span class="c">#                x * y * (1 - z),</span>
+<span class="c">#                x * y * z])</span>
+<span class="c">#</span>
+<span class="c">#            #print(weights)</span>
+<span class="c">#            #print(np.sum(weights))</span>
+<span class="c">#</span>
+<span class="c">#            return np.average(fluxes, axis=0, weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#    return intp_func</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##flux = trilinear_interpolator()</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Stellar Broadening</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">#def karray(center, width, res):</span>
+<span class="c">#    &#39;&#39;&#39;Creates a kernel array with an odd number of elements, the central element centered at `center` and spanning</span>
+<span class="c">#    out to +/- width in steps of resolution. Works similar to arange in that it may or may not get all the way to the</span>
+<span class="c">#    edge.&#39;&#39;&#39;</span>
+<span class="c">#    neg = np.arange(center - res, center - width, -res)[::-1]</span>
+<span class="c">#    pos = np.arange(center, center + width, res)</span>
+<span class="c">#    kar = np.concatenate([neg, pos])</span>
+<span class="c">#    return kar</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def vsini_ang(lam0, vsini, dlam=0.01, epsilon=0.6):</span>
+<span class="c">#    &#39;&#39;&#39;vsini in km/s. Epsilon is the limb-darkening coefficient, typically 0.6. Formulation uses Eqn 18.14 from Gray,</span>
+<span class="c">#    The Observation and Analysis of Stellar Photospheres, 3rd Edition.&#39;&#39;&#39;</span>
+<span class="c">#    lamL = vsini * 1e13 * lam0 / C.c_ang</span>
+<span class="c">#    lam = karray(0, lamL, dlam)</span>
+<span class="c">#    c1 = 2. * (1 - epsilon) / (np.pi * lamL * (1 - epsilon / 3.))</span>
+<span class="c">#    c2 = epsilon / (2. * lamL * (1 - epsilon / 3.))</span>
+<span class="c">#    series = c1 * np.sqrt(1. - (lam / lamL) ** 2) + c2 * (1. - (lam / lamL) ** 2) ** 2</span>
+<span class="c">#    return series / np.sum(series)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def G(s, vL):</span>
+<span class="c">#    &#39;&#39;&#39;vL in km/s. Gray pg 475&#39;&#39;&#39;</span>
+<span class="c">#    if s != 0:</span>
+<span class="c">#        ub = 2. * np.pi * vL * s</span>
+<span class="c">#        return j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    else:</span>
+<span class="c">#        return 1.</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Radial Velocity Shift</span>
+<span class="c">###################################################</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def shift_vz(lam_source, vz):</span>
+<span class="c">#    &#39;&#39;&#39;Given the source wavelength, lam_sounce, return the observed wavelength based upon a radial velocity vz in</span>
+<span class="c">#    km/s. Negative velocities are towards the observer (blueshift).&#39;&#39;&#39;</span>
+<span class="c">#    lam_observe = lam_source * np.sqrt((C.c_kms + vz) / (C.c_kms - vz))</span>
+<span class="c">#    #TODO: when applied to full spectrum, this sqrt is repeated</span>
+<span class="c">#    return lam_observe</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##def shift_TRES(vz, wls=wls):</span>
+<span class="c">##    wlsz = shift_vz(wls, vz)</span>
+<span class="c">##    return wlsz</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##TRES Instrument Broadening</span>
+<span class="c">###################################################</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def gauss_kernel(dlam, lam0, V=6.8):</span>
+<span class="c">#    &#39;&#39;&#39;V is the FWHM in km/s. lam0 is the central wavelength in A&#39;&#39;&#39;</span>
+<span class="c">#    sigma = V / 2.355 * 1e13 #A/s</span>
+<span class="c">#    return np.exp(- (C.c_ang * dlam / lam0) ** 2 / (2. * sigma ** 2))</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def gauss_series(dlam, lam0, V=6.8):</span>
+<span class="c">#    &#39;&#39;&#39;sampled from +/- 3sigma at dlam. V is the FWHM in km/s&#39;&#39;&#39;</span>
+<span class="c">#    sigma_l = V / (2.355 * C.c_kms) * lam0 # sigma in AA (lambda)</span>
+<span class="c">#    wl = karray(0., 6 * sigma_l, dlam) # Gaussian kernel stretching +/- 6 sigma in lambda (AA)</span>
+<span class="c">#    gk = gauss_kernel(wl, lam0, V)</span>
+<span class="c">#    return gk / np.sum(gk)</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Downsample to TRES bins</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">#ones = np.ones((10,))</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def downsample(w_m, f_m, w_TRES):</span>
+<span class="c">#    out_flux = np.zeros_like(w_TRES)</span>
+<span class="c">#    len_mod = len(w_m)</span>
+<span class="c">#</span>
+<span class="c">#    #Determine the TRES bin edges</span>
+<span class="c">#    len_TRES = len(w_TRES)</span>
+<span class="c">#    edges = np.empty((len_TRES + 1,))</span>
+<span class="c">#    difs = np.diff(w_TRES) / 2.</span>
+<span class="c">#    edges[1:-1] = w_TRES[:-1] + difs</span>
+<span class="c">#    edges[0] = w_TRES[0] - difs[0]</span>
+<span class="c">#    edges[-1] = w_TRES[-1] + difs[-1]</span>
+<span class="c">#</span>
+<span class="c">#    #Determine PHOENIX bin edges</span>
+<span class="c">#    Pedges = np.empty((len_mod + 1,))</span>
+<span class="c">#    Pdifs = np.diff(w_m) / 2.</span>
+<span class="c">#    Pedges[1:-1] = w_m[:-1] + Pdifs</span>
+<span class="c">#    Pedges[0] = w_m[0] - Pdifs[0]</span>
+<span class="c">#    Pedges[-1] = w_m[-1] + Pdifs[-1]</span>
+<span class="c">#</span>
+<span class="c">#    i_start = np.argwhere((edges[0] &lt; Pedges))[0][</span>
+<span class="c">#                  0] - 1 #return the first starting index for the model wavelength edges array (Pedges)</span>
+<span class="c">#</span>
+<span class="c">#    edges_i = 1</span>
+<span class="c">#    left_weight = (Pedges[i_start + 1] - edges[0]) / (Pedges[i_start + 1] - Pedges[i_start])</span>
+<span class="c">#</span>
+<span class="c">#    for i in range(len_mod + 1):</span>
+<span class="c">#</span>
+<span class="c">#        if Pedges[i] &gt; edges[edges_i]:</span>
+<span class="c">#            right_weight = (edges[edges_i] - Pedges[i - 1]) / (Pedges[i] - Pedges[i - 1])</span>
+<span class="c">#            weights = ones[:(i - i_start)].copy()</span>
+<span class="c">#            weights[0] = left_weight</span>
+<span class="c">#            weights[-1] = right_weight</span>
+<span class="c">#</span>
+<span class="c">#            out_flux[edges_i - 1] = np.average(f_m[i_start:i], weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#            edges_i += 1</span>
+<span class="c">#            i_start = i - 1</span>
+<span class="c">#            left_weight = 1. - right_weight</span>
+<span class="c">#            if edges_i &gt; len_TRES:</span>
+<span class="c">#                break</span>
+<span class="c">#    return out_flux</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">## Models</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">##def old_model(wlsz, temp, logg, vsini, flux_factor):</span>
+<span class="c">##    &#39;&#39;&#39;Does the vsini and TRES broadening using convolution rather than Fourier tricks</span>
+<span class="c">##    Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">##    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">##    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">##    #wlsz has length norders</span>
+<span class="c">##</span>
+<span class="c">##    #M = M * M_sun #g</span>
+<span class="c">##    #R = R * R_sun #cm</span>
+<span class="c">##    #d = d * pc #cm</span>
+<span class="c">##</span>
+<span class="c">##    #logg = np.log10(G * M / R**2)</span>
+<span class="c">##    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">##</span>
+<span class="c">##    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">##    f_full = flux_factor * flux(temp, logg)</span>
+<span class="c">##</span>
+<span class="c">##    model_flux = np.zeros_like(wlsz)</span>
+<span class="c">##    #Cycle through all the orders in the echelle spectrum</span>
+<span class="c">##    #might be able to np.vectorize this</span>
+<span class="c">##    for i, wlz in enumerate(wlsz):</span>
+<span class="c">##        #print(&quot;Processing order %s&quot; % (orders[i]+1,))</span>
+<span class="c">##</span>
+<span class="c">##        #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra</span>
+<span class="c">##        # 5 angstroms to be sure.</span>
+<span class="c">##        ind = (w_full &gt; (wlz[0] - 5.)) &amp; (w_full &lt; (wlz[-1] + 5.))</span>
+<span class="c">##        w = w_full[ind]</span>
+<span class="c">##        f = f_full[ind]</span>
+<span class="c">##</span>
+<span class="c">##        #convolve with stellar broadening (sb)</span>
+<span class="c">##        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order</span>
+<span class="c">##        f_sb = convolve(f, k)</span>
+<span class="c">##</span>
+<span class="c">##        dlam = w[1] - w[0] # spacing of model points for TRES resolution kernel</span>
+<span class="c">##</span>
+<span class="c">##        #convolve with filter to resolution of TRES</span>
+<span class="c">##        filt = gauss_series(dlam, lam0=np.mean(wlz))</span>
+<span class="c">##        f_TRES = convolve(f_sb, filt)</span>
+<span class="c">##</span>
+<span class="c">##        #downsample to TRES bins</span>
+<span class="c">##        dsamp = downsample(w, f_TRES, wlz)</span>
+<span class="c">##        #red = dsamp/deredden(wlz,Av,mags=False)</span>
+<span class="c">##</span>
+<span class="c">##        #If the redenning interpolation is taking a while here, we could save the points for a given redenning and</span>
+<span class="c">##        # simply multiply each again</span>
+<span class="c">##</span>
+<span class="c">##        model_flux[i] = dsamp</span>
+<span class="c">##</span>
+<span class="c">##    #Only returns the fluxes, because the wlz is actually the TRES wavelength vector</span>
+<span class="c">##    return model_flux</span>
+<span class="c">#</span>
+<span class="c">##Constant for all models</span>
+<span class="c">##ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid</span>
+<span class="c">##</span>
+<span class="c">##f_full = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##FF = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##blended = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##blended_real = pyfftw.n_byte_align_empty(chunk, 16, &quot;float64&quot;)</span>
+<span class="c">##fft_object = pyfftw.FFTW(f_full, FF)</span>
+<span class="c">##ifft_object = pyfftw.FFTW(FF, blended, direction=&#39;FFTW_BACKWARD&#39;)</span>
+<span class="c">#</span>
+<span class="c">#def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):</span>
+<span class="c">#    &#39;&#39;&#39;Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">#    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">#    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">#    #wlsz has length norders</span>
+<span class="c">#</span>
+<span class="c">#    #M = M * M_sun #g</span>
+<span class="c">#    #R = R * R_sun #cm</span>
+<span class="c">#    #d = d * pc #cm</span>
+<span class="c">#</span>
+<span class="c">#    #logg = np.log10(G * M / R**2)</span>
+<span class="c">#    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">#</span>
+<span class="c">#    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">#    f_full[:] = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#    #f_full = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#    #Take FFT of f_grid</span>
+<span class="c">#    #FF = fft(f_full)</span>
+<span class="c">#    fft_object()</span>
+<span class="c">#</span>
+<span class="c">#    ss[0] = 0.01 #junk so we don&#39;t get a divide by zero error</span>
+<span class="c">#    ub = 2. * np.pi * vsini * ss</span>
+<span class="c">#    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    #set zeroth frequency to 1 separately (DC term)</span>
+<span class="c">#    sb[0] = 1.</span>
+<span class="c">#</span>
+<span class="c">#    FF[:] *= sb #institute velocity taper</span>
+<span class="c">#    #FF *= sb</span>
+<span class="c">#</span>
+<span class="c">#    #do ifft</span>
+<span class="c">#    ifft_object()</span>
+<span class="c">#    #blended_real = np.abs(ifft(FF))</span>
+<span class="c">#</span>
+<span class="c">#    blended_real[:] = np.abs(blended) #remove tiny complex component</span>
+<span class="c">#</span>
+<span class="c">#    #redden spectrum</span>
+<span class="c">#    red = blended_real / 10 ** (0.4 * Av * red_grid)</span>
+<span class="c">#    #red = blended_real</span>
+<span class="c">#</span>
+<span class="c">#    #do synthetic photometry to compare to points</span>
+<span class="c">#</span>
+<span class="c">#    f = InterpolatedUnivariateSpline(wave_grid, red)</span>
+<span class="c">#    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels</span>
+<span class="c">#    result = np.reshape(fresult, (norder, -1))</span>
+<span class="c">#    del f</span>
+<span class="c">#    gc.collect() #necessary to prevent memory leak!</span>
+<span class="c">#    return result</span>
+<span class="c">#</span>
+<span class="c">#def model_alpha(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor):</span>
+<span class="c">#    &#39;&#39;&#39;Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">#    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">#    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">#    #wlsz has length norders</span>
+<span class="c">#</span>
+<span class="c">#    #M = M * M_sun #g</span>
+<span class="c">#    #R = R * R_sun #cm</span>
+<span class="c">#    #d = d * pc #cm</span>
+<span class="c">#</span>
+<span class="c">#    #logg = np.log10(G * M / R**2)</span>
+<span class="c">#    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">#</span>
+<span class="c">#    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">#    f_full[:] = flux_factor * flux(temp, logg, Z, alpha)</span>
+<span class="c">#    #f_full = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#    #Take FFT of f_grid</span>
+<span class="c">#    #FF = fft(f_full)</span>
+<span class="c">#    fft_object()</span>
+<span class="c">#</span>
+<span class="c">#    ss[0] = 0.01 #junk so we don&#39;t get a divide by zero error</span>
+<span class="c">#    ub = 2. * np.pi * vsini * ss</span>
+<span class="c">#    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    #set zeroth frequency to 1 separately (DC term)</span>
+<span class="c">#    sb[0] = 1.</span>
+<span class="c">#</span>
+<span class="c">#    FF[:] *= sb #institute velocity taper</span>
+<span class="c">#    #FF *= sb</span>
+<span class="c">#</span>
+<span class="c">#    #do ifft</span>
+<span class="c">#    ifft_object()</span>
+<span class="c">#    #blended_real = np.abs(ifft(FF))</span>
+<span class="c">#</span>
+<span class="c">#    blended_real[:] = np.abs(blended) #remove tiny complex component</span>
+<span class="c">#</span>
+<span class="c">#    #redden spectrum</span>
+<span class="c">#    red = blended_real / 10 ** (0.4 * Av * red_grid)</span>
+<span class="c">#    #red = blended_real</span>
+<span class="c">#</span>
+<span class="c">#    #do synthetic photometry to compare to points</span>
+<span class="c">#</span>
+<span class="c">#    f = InterpolatedUnivariateSpline(wave_grid, red)</span>
+<span class="c">#    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels</span>
+<span class="c">#    result = np.reshape(fresult, (norder, -1))</span>
+<span class="c">#    del f</span>
+<span class="c">#    gc.collect() #necessary to prevent memory leak!</span>
+<span class="c">#    return result</span>
+<span class="c">#</span>
+<span class="c">#def model_partI():</span>
+<span class="c">#    &#39;&#39;&#39;Take care of temp, logg, Z, vsini&#39;&#39;&#39;</span>
+<span class="c">#    pass</span>
+<span class="c">#</span>
+<span class="c">#def model_partII():</span>
+<span class="c">#    &#39;&#39;&#39;Take care of vz, Av, flux_factor&#39;&#39;&#39;</span>
+<span class="c">#    pass</span>
+<span class="c">#</span>
+<span class="c">#def draw_cheb_vectors(p):</span>
+<span class="c">#    &#39;&#39;&#39;This function is only worthwhile in the lnprob_XXX_marg cases, and is used to generate samples of the nuisance</span>
+<span class="c">#    parameters that have already been marginalized over analytically. This means we wish to draw samples from the</span>
+<span class="c">#    un-marginalized probability function. Doing that analytically is tough, but there is no reason emcee can&#39;t help us</span>
+<span class="c">#     out. Intake a set of stellar parameters, run emcee to determine the nuisance parameters. Returns the many</span>
+<span class="c">#     samples from the posterior.&#39;&#39;&#39;</span>
+<span class="c">#</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;):</span>
+<span class="c">#        print(&quot;Mini chain not designed to work on un-marginalized function&quot;)</span>
+<span class="c">#        return 0</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;) or (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;):</span>
+<span class="c">#        #Appropriately translate the parameter chain into something that can be split up for each order.</span>
+<span class="c">#        if (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;):</span>
+<span class="c">#            print(&quot;Not implemented yet&quot;)</span>
+<span class="c">#            return 0</span>
+<span class="c">#        if (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;):</span>
+<span class="c">#            lnprob_mini = lnprob_lognormal_nuis_func(p)</span>
+<span class="c">#</span>
+<span class="c">#            #sample cns with emcee</span>
+<span class="c">#            ndim = (config[&#39;ncoeff&#39;] - 1) * norder</span>
+<span class="c">#            nwalkers = 4 * ndim</span>
+<span class="c">#            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_mini)</span>
+<span class="c">#            p0 = np.random.uniform(low=wr[&#39;cs&#39;][0], high=wr[&#39;cs&#39;][1], size=(nwalkers, ndim))</span>
+<span class="c">#            pos, prob, state = sampler.run_mcmc(p0, 1000)</span>
+<span class="c">#            sampler.reset()</span>
+<span class="c">#            print(&quot;Burned in cheb mini-chain&quot;)</span>
+<span class="c">#            sampler.run_mcmc(pos, 500, rstate0=state)</span>
+<span class="c">#            flatchain = sampler.flatchain</span>
+<span class="c">#            return flatchain</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def model_p(p):</span>
+<span class="c">#    &#39;&#39;&#39;Post processing routine that can take all parameter values and return the model.</span>
+<span class="c">#    Actual sampling does not require the use of this method since it is slow. Returns flatchain.&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#    coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;) \</span>
+<span class="c">#        or (config[&#39;lnprob&#39;] == &#39;lnprob_mixed&#39;):</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        #print(&quot;Tc.shape&quot;,Tc.shape)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;,k.shape)</span>
+<span class="c">#        #print(&quot;fmods.shape&quot;,fmods.shape)</span>
+<span class="c">#        refluxed = k * fmods</span>
+<span class="c">#        return [wlsz, refluxed, k, None]</span>
+<span class="c">#</span>
+<span class="c">#    if config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;:</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#</span>
+<span class="c">#        #get flatchain</span>
+<span class="c">#        flatchain = draw_cheb_vectors(p)</span>
+<span class="c">#</span>
+<span class="c">#        #get random k vector</span>
+<span class="c">#        ind = np.random.choice(np.arange(len(flatchain)))</span>
+<span class="c">#        cns = flatchain[ind]</span>
+<span class="c">#        cns.shape = ((norder, -1))</span>
+<span class="c">#</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        refluxed = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        return [wlsz, refluxed, k, flatchain]</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##xs = np.arange(len_wl)</span>
+<span class="c">##T0 = np.ones_like(xs)</span>
+<span class="c">##Ch1 = Ch([0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T1 = Ch1(xs)</span>
+<span class="c">##Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T2 = Ch2(xs)</span>
+<span class="c">##Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T3 = Ch3(xs)</span>
+<span class="c">##</span>
+<span class="c">##if (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;) or (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;):</span>
+<span class="c">##    T = np.array([T0, T1, T2, T3])</span>
+<span class="c">##    TT = np.einsum(&quot;in,jn-&gt;ijn&quot;, T, T)</span>
+<span class="c">##    mu = np.array([1, 0, 0, 0])</span>
+<span class="c">##    D = sigmac ** (-2) * np.eye(4)</span>
+<span class="c">##    Dmu = np.einsum(&quot;ij,j-&gt;j&quot;, D, mu)</span>
+<span class="c">##    muDmu = np.einsum(&quot;j,j-&gt;&quot;, mu, Dmu)</span>
+<span class="c">##</span>
+<span class="c">##if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;) \</span>
+<span class="c">##    or (config[&#39;lnprob&#39;] == &#39;lnprob_mixed&#39;):</span>
+<span class="c">##    T = np.array([T1, T2, T3])</span>
+<span class="c">##    TT = np.einsum(&quot;in,jn-&gt;ijn&quot;, T, T)</span>
+<span class="c">##    mu = np.array([0, 0, 0])</span>
+<span class="c">##    D = sigmac ** (-2) * np.eye(3)</span>
+<span class="c">##    Dmu = np.einsum(&quot;ij,j-&gt;j&quot;, D, mu)</span>
+<span class="c">##    muDmu = np.einsum(&quot;j,j-&gt;&quot;, mu, Dmu)</span>
+<span class="c">#</span>
+<span class="c">#############################################################</span>
+<span class="c">## Various lnprob functions</span>
+<span class="c">#############################################################</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_gaussian_marg(p):</span>
+<span class="c">#    &#39;&#39;&#39;New lnprob, no nuisance coeffs&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths to output spectra to.</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks #mask all the bad model points</span>
+<span class="c">#</span>
+<span class="c">#        a = fmods ** 2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#        detA = np.array(list(map(np.linalg.det, Ap)))</span>
+<span class="c">#        invA = np.array(list(map(np.linalg.inv, Ap)))</span>
+<span class="c">#</span>
+<span class="c">#        b = fmods * fls / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 * fls ** 2 / sigmas ** 2 * masks</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        invAB = np.einsum(&quot;ijk,ik-&gt;ij&quot;, invA, Bp)</span>
+<span class="c">#        BAB = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, invAB)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(0.5 * np.log((2. * np.pi) ** norder / detA) + 0.5 * BAB + Gp)</span>
+<span class="c">#</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #This does correctly unpack the coefficients into c0s, cns by order 11/17/13</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        Ac = np.einsum(&quot;ijk,ik-&gt;ij&quot;, Ap, cns)</span>
+<span class="c">#        cAc = np.einsum(&quot;ij,ij-&gt;i&quot;, cns, Ac)</span>
+<span class="c">#        Bc = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, cns)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(</span>
+<span class="c">#            np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s) ** 2 / (2 * sigmac0 ** 2))</span>
+<span class="c">#</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal_nuis_func(p):</span>
+<span class="c">#    &#39;&#39;&#39;Used for sampling the lnprob_lognormal at a fixed p for the cns.&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#    def nuis_func(cns):</span>
+<span class="c">#        &#39;&#39;&#39;input as flat array&#39;&#39;&#39;</span>
+<span class="c">#        cns.shape = (norder, -1)</span>
+<span class="c">#        Ac = np.einsum(&quot;ijk,ik-&gt;ij&quot;, Ap, cns)</span>
+<span class="c">#        cAc = np.einsum(&quot;ij,ij-&gt;i&quot;, cns, Ac)</span>
+<span class="c">#        Bc = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, cns)</span>
+<span class="c">#        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(</span>
+<span class="c">#            np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s) ** 2 / (2 * sigmac0 ** 2))</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#    return nuis_func</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#mu_temp = 6462</span>
+<span class="c">#sigma_temp = 400</span>
+<span class="c">#mu_logg = 4.29</span>
+<span class="c">#sigma_logg = 0.0001</span>
+<span class="c">#mu_Z = -0.13</span>
+<span class="c">#sigma_Z = 0.7</span>
+<span class="c">#mu_vsini = 3.5</span>
+<span class="c">#sigma_vsini = 0.9</span>
+<span class="c">#mu_Av = 0.0</span>
+<span class="c">#sigma_Av = 0.01</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal_marg(p):</span>
+<span class="c">#    &#39;&#39;&#39;Sample only in c0&#39;s  &#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks</span>
+<span class="c">#</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#        detA = np.array(list(map(np.linalg.det, Ap)))</span>
+<span class="c">#        invA = np.array(list(map(np.linalg.inv, Ap)))</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + masks * fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        invAB = np.einsum(&quot;ijk,ik-&gt;ij&quot;, invA, Bp)</span>
+<span class="c">#        BAB = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, invAB)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(0.5 * np.log((2. * np.pi) ** norder / detA) + 0.5 * BAB + Gp) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * (temp - mu_temp) ** 2 / sigma_temp ** 2 - 0.5 * (logg - mu_logg) ** 2 / sigma_logg ** 2 \</span>
+<span class="c">#              - 0.5 * (Z - mu_Z) ** 2 / sigma_Z ** 2 - 0.5 * (vsini - mu_vsini) ** 2 / sigma_vsini \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##A = 0.4</span>
+<span class="c">##var_G = (1.5 * sigmas) ** 2</span>
+<span class="c">##sigma_E = 3.0 * sigmas</span>
+<span class="c">##</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_mixed_exp(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #print(&quot;c0s.shape&quot;, c0s.shape)</span>
+<span class="c">#        #print(&quot;cns.shape&quot;, cns.shape)</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        #now create polynomials for each order, and multiply through fls</span>
+<span class="c">#        #print(&quot;T.shape&quot;, T.shape)</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;, k.shape)</span>
+<span class="c">#        kf = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(np.log(np.exp(-0.5 * (fls - kf) ** 2 / var_G) + A * np.exp(- np.abs(fls - kf) / sigma_E))) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * np.sum(cns ** 2 / sigmac ** 2) \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \</span>
+<span class="c">#        #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_mixed(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #print(&quot;c0s.shape&quot;, c0s.shape)</span>
+<span class="c">#        #print(&quot;cns.shape&quot;, cns.shape)</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        #now create polynomials for each order, and multiply through fls</span>
+<span class="c">#        #print(&quot;T.shape&quot;, T.shape)</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;, k.shape)</span>
+<span class="c">#        kf = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        R = (fls - kf)/sigmas</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(np.log((1 - np.exp(-0.5 * R**2))/R**2)) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * np.sum(cns ** 2 / sigmac ** 2) \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \</span>
+<span class="c">#        #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini</span>
+<span class="c">#        if np.isnan(lnp):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#        else:</span>
+<span class="c">#            return lnp</span>
+<span class="c">#</span>
+<span class="c">#def wrap_lnprob(lnprob, temp, logg, z, vsini):</span>
+<span class="c">#    &#39;&#39;&#39;Return a lnprob function that keeps these parameters fixed&#39;&#39;&#39;</span>
+<span class="c">#    def func_lnprob(p):</span>
+<span class="c">#        &#39;&#39;&#39;This lnprob only takes vz, Av, fluxfactor, + nuisance coeffs&#39;&#39;&#39;</span>
+<span class="c">#</span>
+<span class="c">#        #Ideally, this does all the FFT transforming.</span>
+<span class="c">#</span>
+<span class="c">#        pnew = np.hstack((np.array([temp, logg, z, vsini]), p))</span>
+<span class="c">#        return lnprob(pnew)</span>
+<span class="c">#    return func_lnprob</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_classic(p):</span>
+<span class="c">#    &#39;&#39;&#39;p is the parameter vector, contains both theta_s and theta_n&#39;&#39;&#39;</span>
+<span class="c">#    #print(p)</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (np.abs(Z) &gt;= 0.5) or (Av &lt; 0):</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #print(coefs)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        print(coefs_arr)</span>
+<span class="c">#</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms + vz) / (C.c_kms - vz))</span>
+<span class="c">#</span>
+<span class="c">#        flsc = data(coefs_arr, wlsz, fls)</span>
+<span class="c">#</span>
+<span class="c">#        fs = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        chi2 = np.sum(((flsc - fs) / sigmas) ** 2)</span>
+<span class="c">#        L = -0.5 * chi2</span>
+<span class="c">#        #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))</span>
+<span class="c">#        prior = 0</span>
+<span class="c">#        return L + prior</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def degrade_flux(wl, w, f_full):</span>
+<span class="c">#    vsini = 40.</span>
+<span class="c">#    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5</span>
+<span class="c">#    # angstroms to be sure.</span>
+<span class="c">#    ind = (w_full &gt; (wl[0] - 5.)) &amp; (w_full &lt; (wl[-1] + 5.))</span>
+<span class="c">#    w = w_full[ind]</span>
+<span class="c">#    f = f_full[ind]</span>
+<span class="c">#    #convolve with stellar broadening (sb)</span>
+<span class="c">#    k = vsini_ang(np.mean(wl), vsini) #stellar rotation kernel centered at order</span>
+<span class="c">#    f_sb = convolve(f, k)</span>
+<span class="c">#</span>
+<span class="c">#    dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel</span>
+<span class="c">#</span>
+<span class="c">#    #convolve with filter to resolution of TRES</span>
+<span class="c">#    filt = gauss_series(dlam, lam0=np.mean(wl))</span>
+<span class="c">#    f_TRES = convolve(f_sb, filt)</span>
+<span class="c">#</span>
+<span class="c">#    #downsample to TRES bins</span>
+<span class="c">#    dsamp = downsample(w, f_TRES, wl)</span>
+<span class="c">#</span>
+<span class="c">#    return dsamp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def data(coefs_arr, wls, fls):</span>
+<span class="c">#    &#39;&#39;&#39;coeff is a (norders, npoly) shape array&#39;&#39;&#39;</span>
+<span class="c">#    flsc = np.zeros_like(fls)</span>
+<span class="c">#    for i, coefs in enumerate(coefs_arr):</span>
+<span class="c">#        #do this to keep constant fixed at 1</span>
+<span class="c">#        flsc[i] = Ch(np.append([1], coefs), domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]</span>
+<span class="c">#        #do this to allow tweaks to each order</span>
+<span class="c">#        #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]</span>
+<span class="c">#    return flsc</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):</span>
+<span class="c">#    import os</span>
+<span class="c">#</span>
+<span class="c">#    &#39;&#39;&#39;Generate an echelle-like spectrum to test method. SNR is quoted per-resolution element,</span>
+<span class="c">#    and so is converted to per-pixel via the formula on 10/31/13. The sigma is created at the Poisson level only.&#39;&#39;&#39;</span>
+<span class="c">#    SNR_pix = SNR / 1.65 #convert to per-pixel for TRES</span>
+<span class="c">#</span>
+<span class="c">#    #use LkCa15 wl grid, shifted</span>
+<span class="c">#    LkCa15_wls = np.load(&#39;data/LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec.wls.npy&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    #When running this, also need to set config[&#39;orders&#39;] = all</span>
+<span class="c">#    wlsz = shift_TRES(vz, wls=LkCa15_wls)</span>
+<span class="c">#    fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) #create flux on a shifted grid</span>
+<span class="c">#    sigmas = fls_fake / SNR_pix</span>
+<span class="c">#</span>
+<span class="c">#    print(&quot;Generated data with SNR:{SNR:}, temp:{temp:}, logg:{logg:}, Z:{Z:}, &quot;</span>
+<span class="c">#          &quot;vsini:{vsini:}, vz: {vz:}, Av:{Av:}, flux-factor:{ff:}&quot;.format(SNR=SNR, temp=temp,</span>
+<span class="c">#                                                                          logg=logg, Z=Z, vsini=vsini, vz=vz, Av=Av,</span>
+<span class="c">#                                                                          ff=flux_factor))</span>
+<span class="c">#</span>
+<span class="c">#    #func = lambda x: np.random.normal(loc=0,scale=x)</span>
+<span class="c">#    #noise = np.array(list(map(func,sigmas)))</span>
+<span class="c">#    noise = np.random.normal(loc=0, scale=sigmas, size=fls_fake.shape)</span>
+<span class="c">#    fls_noise = fls_fake + noise</span>
+<span class="c">#    mask = np.ones_like(fls_noise, dtype=&#39;bool&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    basedir = &#39;data/Fake/%.0f/&#39; % SNR #create in a subfolder that has the SNR labelled</span>
+<span class="c">#    #Create necessary output directories using os.mkdir, if it does not exist</span>
+<span class="c">#    if not os.path.exists(basedir):</span>
+<span class="c">#        os.mkdir(basedir)</span>
+<span class="c">#        print(&quot;Created output directory&quot;, basedir)</span>
+<span class="c">#    else:</span>
+<span class="c">#        print(basedir, &quot;already exists, overwriting.&quot;)</span>
+<span class="c">#    base = basedir + &#39;Fake&#39;</span>
+<span class="c">#    np.save(base + &#39;.wls.npy&#39;, LkCa15_wls) #write original, unshifted grid</span>
+<span class="c">#    np.save(base + &#39;.fls.npy&#39;, fls_noise)</span>
+<span class="c">#    np.save(base + &#39;.true.fls.npy&#39;, fls_fake)</span>
+<span class="c">#    np.save(base + &#39;.sigma.npy&#39;, noise)</span>
+<span class="c">#    np.save(base + &#39;.mask.npy&#39;, mask)</span>
+
+<span class="c">#@profile</span></div>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Starting main of model&quot;</span><span class="p">)</span>
+
+    <span class="k">pass</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">StellarSpectra 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>
