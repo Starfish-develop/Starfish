@@ -17,7 +17,7 @@ f = open(confname)
 config = yaml.load(f)
 f.close()
 
-templateLoader = jinja2.FileSystemLoader(searchpath="_templates")
+templateLoader = jinja2.FileSystemLoader(searchpath="templates")
 # An environment provides the data necessary to read and
 # parse our templates.  We pass in the loader object here.
 templateEnv = jinja2.Environment(loader=templateLoader)

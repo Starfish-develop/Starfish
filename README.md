@@ -129,33 +129,35 @@ Put the decorator `@profile` over the function you want to profile
 
 /scratch is about twice as fast as /holyscratch
 
+# Roadmap
+
+* use the full PHOENIX spectrum from the master grid (and interpolator), then downsample to the TRES instrument
+* Finish necessary grid_tools fixes/tests in order to guarantee the Master grid is correct for the production run
+* Update interpolator so that it can draw from HDF5 in parallel/mpi
+* Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
+
+Documentation: Check out astropy documentation and sphinx files
 
 # Object oriented rewrite
 
 ## grid_tools.py
 
+* script to use grid processor to generate just one spectrum
+
 Grid Interface (different for PHOENIX, Kurucz, BT-Settl)
 * PHOENIX, Kurucz, etc inherit the Grid base class
 
 
-#Easy method for a grid to generate just one spectrum
-
-Implement: HDF5Interface def test_load_bad_file(self):
-
-Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
-
-
-Instrument grid creation
-* takes a Master HDF5 grid, and instrument object, creates a new HDF5 grid with the same attributes, does the
- interpolation, convolution, vsini, etc.
-* No need to subclass? Same interface for both master file and instrument file
-* Has a writer class variable that can be set, which has a write_to_FITS() method
-
 # Test battery
+
+Is the Master grid correct? Test resample techniques.
+
+HDF5Interface
+def test_load_bad_file(self):
+Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
 
 Test that 0 stellar convolution works OK, for both stellar_convolve and instrument_convolve
 pyFFTW wisdom and planning flags (might not be necessary for grid creation, but for actual model, perhaps)
-
 
 Round out Interpolator tests
 
@@ -165,10 +167,14 @@ Likewise, if we think the model will be alpha enhanced, then we need to limit Z 
 
 Can add "skip methods" or robust=False to allow bypassing checks.
 
-For production runs, can pre-determine wisdom for given array shapes, since they will be similar.
+For production runs, can pre-determine wisdom for FFTW for given array shapes, since they will be similar.
 
-#Tests
-* Learn how to setup sample test directories with test files
+* Learn how to setup sample test directories with test files, like HDF5 objects.
+
+# Model class
+
+* Need own LogLam spectrum object that is fast
+
 
 The Model and lnprob classes will require their own full suite that will be different than grid_tools
 

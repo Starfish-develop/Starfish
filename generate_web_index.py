@@ -8,7 +8,7 @@ def modification_date(filename):
     t = os.path.getmtime(filename)
     return datetime.datetime.fromtimestamp(t)
 
-templateLoader = jinja2.FileSystemLoader(searchpath="_templates")
+templateLoader = jinja2.FileSystemLoader(searchpath="templates")
 templateEnv = jinja2.Environment(loader=templateLoader)
 template = templateEnv.get_template('index.jinja')
 

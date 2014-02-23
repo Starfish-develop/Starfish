@@ -190,7 +190,8 @@ class PHOENIXGridInterface(RawGridInterface):
 
         return Base1DSpectrum(self.wl, f[self.ind], metadata=header, air=self.air)
 
-class KuruczGridInterface:
+class KuruczGridInterface(RawGridInterface):
+    '''Kurucz grid interface.'''
     def __init__(self):
         super().__init__("Kurucz", "Kurucz/",
         temp_points = np.arange(3500, 9751, 250),
@@ -205,7 +206,8 @@ class KuruczGridInterface:
         '''Includes an interface that can map a queried number to the actual string'''
         super().load_file(temp, logg, Z)
 
-class BTSettlGridInterface:
+class BTSettlGridInterface(RawGridInterface):
+    '''BTSettl grid interface.'''
     def __init__(self):
         pass
 
@@ -344,11 +346,11 @@ class HDF5Interface:
 class IndexInterpolator:
     '''Index interpolator should return fractional index between two points (0 - 1) and the low and high values. For
     example, given "temp":6010, the index interpolator should return (0.1, 6000, 6100). Then we create a structure
-     that has {"temp": (0.1, 6000, 6100), "logg": (0.7, 3.5, 4.0), etc.... }
+    that has {"temp": (0.1, 6000, 6100), "logg": (0.7, 3.5, 4.0), etc.... }
 
-     If the interpolation request is right on a grid point, say for example 6100., it will return ((6100., 6100),(1.0, 0.0))
+    If the interpolation request is right on a grid point, say for example 6100., it will return ((6100., 6100),(1.0, 0.0))
 
-     If the interpolation request is out of bounds, it will raise an InterpolationError'''
+    If the interpolation request is out of bounds, it will raise an InterpolationError'''
     def __init__(self, parameter_list):
         self.parameter_list = np.unique(parameter_list)
         self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
@@ -570,6 +572,7 @@ class MasterToFITSProcessor:
 
 
 class Instrument:
+    '''Class describing instruments.'''
     def __init__(self, name, FWHM, wl_range, oversampling=3.5):
         self.name = name
         self.FWHM = FWHM #km/s
@@ -586,23 +589,26 @@ class Instrument:
                                                                               self.oversampling, self.wl_range)
 
 class TRES(Instrument):
-    def __init__(self):
-        super().__init__(name="TRES", FWHM=6.8, wl_range=(3500, 9500))
+    '''TRES instrument'''
+    def __init__(self, name="TRES", FWHM=6.8, wl_range=(3500, 9500)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         #sets the FWHM and wl_range
 
 class TRESPhotometry(Instrument):
     '''This one has a wider wl range to allow for synthetic photometry comparisons.'''
-    def __init__(self):
-        super().__init__(name="TRES", FWHM=6.8, wl_range=(3000, 13000))
+    def __init__(self, name="TRES", FWHM=6.8, wl_range=(3000, 13000)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         #sets the FWHM and wl_range
 
 class Reticon(Instrument):
-    def __init__(self):
-        super().__init__(name="Reticon", FWHM=8.5, wl_range=(5150,5250))
+    '''Reticon Instrument'''
+    def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5150,5250)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 class KPNO(Instrument):
-    def __init__(self):
-        super().__init__(name="KPNO", FWHM=14.4, wl_range=(6200,6700))
+    '''KNPO Instrument'''
+    def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6200,6700)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 

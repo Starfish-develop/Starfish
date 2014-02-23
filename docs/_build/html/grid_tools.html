@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Grid Tools &mdash; StellarSpectra 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StellarSpectra 0.1 documentation" href="index.html" />
+    <link rel="next" title="Model" href="model.html" />
+    <link rel="prev" title="StellarSpectra documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="Model"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="StellarSpectra documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">StellarSpectra 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="grid-tools">
+<h1>Grid Tools<a class="headerlink" href="#grid-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-grid_tools">
+<span id="module-level-methods"></span><h2>Module level methods<a class="headerlink" href="#module-grid_tools" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="grid_tools.resample_and_convolve">
+<tt class="descclassname">grid_tools.</tt><tt class="descname">resample_and_convolve</tt><big>(</big><em>f</em>, <em>wg_raw</em>, <em>wg_fine</em>, <em>wg_coarse</em>, <em>wg_fine_d=0.35</em>, <em>sigma=2.89</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#resample_and_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.resample_and_convolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a full-resolution PHOENIX model spectrum <cite>f</cite>, with raw spacing wg_raw, resample it to wg_fine
+(done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
+then resample it to wg_coarse. sigma in km/s.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="grid_tools.GridError">
+<em class="property">exception </em><tt class="descclassname">grid_tools.</tt><tt class="descname">GridError</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#GridError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.GridError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="grid_tools.InterpolationError">
+<em class="property">exception </em><tt class="descclassname">grid_tools.</tt><tt class="descname">InterpolationError</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#InterpolationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.InterpolationError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="grid-interfaces">
+<h2>Grid Interfaces<a class="headerlink" href="#grid-interfaces" title="Permalink to this headline">¶</a></h2>
+<p class="graphviz">
+<img src="_images/inheritance-996ec9f12dbf4bb614cc7bc9458abb0787988eb0.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<map id="inheritance81448a7240" name="inheritance81448a7240">
+<area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
+<area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="Takes in points, which is a dictionary with key values as parameters and values the sets of grid points." alt="" coords="6,54,135,79"/>
+<area shape="rect" id="node3" title="Kurucz grid interface." alt="" coords="192,54,339,79"/>
+</map>
+</p>
+<span class="target" id="module-grid_tools"></span><dl class="class">
+<dt id="grid_tools.RawGridInterface">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">RawGridInterface</tt><big>(</big><em>name, points, air=True, wl_range=[3000, 13000], base=None</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#RawGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.RawGridInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes in points, which is a dictionary with key values as parameters and values the sets of grid points.</p>
+<dl class="method">
+<dt id="grid_tools.RawGridInterface.check_params">
+<tt class="descname">check_params</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#RawGridInterface.check_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.RawGridInterface.check_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks to see if parameter dict is a subset of allowed parameters, otherwise raises an AssertionError,
+which can be chosen to be handled later..</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="grid_tools.RawGridInterface.load_file">
+<tt class="descname">load_file</tt><big>(</big><em>parameters</em>, <em>norm=True</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#RawGridInterface.load_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.RawGridInterface.load_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Designed to be overwritten by an extended class</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="grid_tools.HDF5Interface">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>mode=None</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to an HDF5 file that stores spectra.</p>
+<dl class="method">
+<dt id="grid_tools.HDF5Interface.load_file">
+<tt class="descname">load_file</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5Interface.load_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5Interface.load_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads a file and returns it as a LogLambdaSpectrum. (Does it have to assume something about the keywords?
+Perhaps there is a EXFlag or disp type present in the HDF5 attributes.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-grid_tools">
+<span id="grid-creator"></span><h2>Grid Creator<a class="headerlink" href="#module-grid_tools" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="grid_tools.HDF5GridCreator">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wldict</em>, <em>ranges={'logg': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em>, <em>parallel=True</em>, <em>nprocesses=4</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5
+file with the proper attributes.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-grid_tools">
+<span id="interpolators"></span><h2>Interpolators<a class="headerlink" href="#module-grid_tools" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="grid_tools.IndexInterpolator">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">IndexInterpolator</tt><big>(</big><em>parameter_list</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#IndexInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.IndexInterpolator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index interpolator should return fractional index between two points (0 - 1) and the low and high values. For
+example, given &#8220;temp&#8221;:6010, the index interpolator should return (0.1, 6000, 6100). Then we create a structure
+that has {&#8220;temp&#8221;: (0.1, 6000, 6100), &#8220;logg&#8221;: (0.7, 3.5, 4.0), etc.... }</p>
+<p>If the interpolation request is right on a grid point, say for example 6100., it will return ((6100., 6100),(1.0, 0.0))</p>
+<p>If the interpolation request is out of bounds, it will raise an InterpolationError</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="grid_tools.Interpolator">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">Interpolator</tt><big>(</big><em>interface</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>avg_hdr_keys=None</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Interpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Interpolator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Naturally interfaces to the HDF5Grid in its own way, built for model evaluation.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="instruments">
+<h2>Instruments<a class="headerlink" href="#instruments" title="Permalink to this headline">¶</a></h2>
+<p class="graphviz">
+<img src="_images/inheritance-98e502332b501dc0a7091320349b3d1c8406a418.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
+<area shape="rect" id="node1" href="#grid_tools.Instrument" title="Class describing instruments." alt="" coords="6,54,98,79"/>
+<area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
+<area shape="rect" id="node3" href="#grid_tools.Reticon" title="Reticon Instrument" alt="" coords="147,54,219,79"/>
+<area shape="rect" id="node4" href="#grid_tools.TRES" title="TRES instrument" alt="" coords="147,103,219,129"/>
+</map>
+</p>
+<span class="target" id="module-grid_tools"></span><dl class="class">
+<dt id="grid_tools.Instrument">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">Instrument</tt><big>(</big><em>name</em>, <em>FWHM</em>, <em>wl_range</em>, <em>oversampling=3.5</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class describing instruments.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="grid_tools.KPNO">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">KPNO</tt><big>(</big><em>name='KPNO'</em>, <em>FWHM=14.4</em>, <em>wl_range=(6200</em>, <em>6700)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#KPNO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.KPNO" title="Permalink to this definition">¶</a></dt>
+<dd><p>KNPO Instrument</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="grid_tools.TRES">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">TRES</tt><big>(</big><em>name='TRES'</em>, <em>FWHM=6.8</em>, <em>wl_range=(3500</em>, <em>9500)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#TRES"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.TRES" title="Permalink to this definition">¶</a></dt>
+<dd><p>TRES instrument</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="grid_tools.Reticon">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">Reticon</tt><big>(</big><em>name='Reticon'</em>, <em>FWHM=8.5</em>, <em>wl_range=(5150</em>, <em>5250)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Reticon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Reticon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reticon Instrument</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Grid Tools</a><ul>
+<li><a class="reference internal" href="#module-grid_tools">Module level methods</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+<li><a class="reference internal" href="#grid-interfaces">Grid Interfaces</a></li>
+<li><a class="reference internal" href="#module-grid_tools">Grid Creator</a></li>
+<li><a class="reference internal" href="#module-grid_tools">Interpolators</a></li>
+<li><a class="reference internal" href="#instruments">Instruments</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">StellarSpectra documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="model.html"
+                        title="next chapter">Model</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/grid_tools.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="Model"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="StellarSpectra documentation"
+             >previous</a> |</li>
+        <li><a href="index.html">StellarSpectra 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

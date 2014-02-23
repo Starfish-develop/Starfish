@@ -1,0 +1,14 @@
+<map id="inheritance4c0ed87b04" name="inheritance4c0ed87b04">
+<area shape="rect" id="node3" href="#grid_tools.GridError" title="GridError" alt="" coords="50,449,129,474"/>
+<area shape="rect" id="node4" href="#grid_tools.HDF5GridCreator" title="Take a GridInterface, load all spectra in specified ranges (default all), and then stuff them into an HDF5" alt="" coords="24,399,155,425"/>
+<area shape="rect" id="node5" href="#grid_tools.HDF5Interface" title="Connect to an HDF5 file that stores spectra." alt="" coords="33,350,146,375"/>
+<area shape="rect" id="node6" href="#grid_tools.IndexInterpolator" title="Index interpolator should return fractional index between two points (0 &#45; 1) and the low and high values. For" alt="" coords="24,301,155,326"/>
+<area shape="rect" id="node7" href="#grid_tools.Instrument" title="Class describing instruments." alt="" coords="43,251,135,277"/>
+<area shape="rect" id="node10" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="267,178,339,203"/>
+<area shape="rect" id="node15" href="#grid_tools.Reticon" title="Reticon Instrument" alt="" coords="267,227,339,253"/>
+<area shape="rect" id="node16" href="#grid_tools.TRES" title="TRES instrument" alt="" coords="267,277,339,302"/>
+<area shape="rect" id="node17" title="This one has a wider wl range to allow for synthetic photometry comparisons." alt="" coords="238,326,367,351"/>
+<area shape="rect" id="node8" href="#grid_tools.InterpolationError" title="InterpolationError" alt="" coords="23,202,156,227"/>
+<area shape="rect" id="node9" href="#grid_tools.Interpolator" title="Naturally interfaces to the HDF5Grid in its own way, built for model evaluation." alt="" coords="41,153,137,178"/>
+<area shape="rect" id="node14" href="#grid_tools.RawGridInterface" title="Takes in points, which is a dictionary with key values as parameters and values the sets of grid points." alt="" coords="25,5,154,30"/>
+</map>
