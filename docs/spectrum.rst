@@ -59,10 +59,11 @@ The wavelength array and header keywords are often stored in a ``wl_dict`` dicti
 
 .. autofunction:: create_log_lam_grid
 
+The :obj:`LogLambdaSpectrum` is more of a workhorse than the previously defined spectra. Because it is regularly spaced
+in velocity, it is easier to perform convolution and downsampling operations.
+
 .. autoclass:: LogLambdaSpectrum
    :members:
-
-
 
 
 
