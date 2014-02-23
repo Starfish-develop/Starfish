@@ -31,6 +31,10 @@ sys.path.insert(0, os.path.abspath('../'))
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.pngmath',
               'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'sphinx.ext.graphviz', 'sphinx.ext.inheritance_diagram']
 
+#Autodocs parameters
+#autodoc_default_flags = ['show-inheritance']
+autodoc_docstring_signature = True #useful for @np.vectorize methods
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

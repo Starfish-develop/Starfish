@@ -51,40 +51,7 @@
             
   <div class="section" id="module-model">
 <span id="model"></span><h1>Model<a class="headerlink" href="#module-model" title="Permalink to this headline">¶</a></h1>
-<dl class="class">
-<dt id="model.ModelSpectrum">
-<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>dataSpectrum</em>, <em>fl_type='flam'</em><big>)</big><a class="reference internal" href="_modules/model.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Specifically designed to match the shape of the data.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="model.create_log_lam_grid">
-<tt class="descclassname">model.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>wl_start=3000.0</em>, <em>wl_end=13000.0</em>, <em>min_wl=None</em>, <em>min_vc=None</em><big>)</big><a class="reference internal" href="_modules/model.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>min_WL = (delta_WL, WL). Takes the finer of the two specified.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="model.rfftfreq">
-<tt class="descclassname">model.</tt><tt class="descname">rfftfreq</tt><big>(</big><em>n</em>, <em>d=1.0</em><big>)</big><a class="reference internal" href="_modules/model.html#rfftfreq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.rfftfreq" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Discrete Fourier Transform sample frequencies
-(for usage with rfft, irfft).</p>
-<p>The returned float array <cite>f</cite> contains the frequency bin centers in cycles
-per unit of the sample spacing (with zero at the start). For instance, if
-the sample spacing is in seconds, then the frequency unit is cycles/second.</p>
-<p>Given a window length <cite>n</cite> and a sample spacing <cite>d</cite>:</p>
-<p>f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even
-f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd</p>
-<p>Unlike <cite>fftfreq</cite> (but like <cite>scipy.fftpack.rfftfreq</cite>)
-the Nyquist frequency component is considered to be positive.</p>
-<p>n : int
-Window length.
-d : scalar, optional
-Sample spacing (inverse of the sampling rate). Defaults to 1.</p>
-<p>f : ndarray
-Array of length <tt class="docutils literal"><span class="pre">n//2</span> <span class="pre">+</span> <span class="pre">1</span></tt> containing the sample frequencies.</p>
-</dd></dl>
-
-</div>
+<span class="target" id="module-model"></span></div>
 
 
           </div>

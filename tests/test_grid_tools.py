@@ -116,6 +116,9 @@ class TestHDF5Interface:
 
 
 class TestIndexInterpolator:
+    #TODO: Easy trilinear vs. quadlinear?
+
+
     def setup_class(self):
         self.interpolator = IndexInterpolator([6000.,6100.,6200.,6300.,6400.])
 
