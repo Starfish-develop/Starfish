@@ -440,7 +440,7 @@ def rfftfreq(n, d=1.0):
     results = np.arange(0, N, dtype=np.int)
     return results * val
 
-def plot_spectrum(spec, filename):
+def plot_spectrum(spec, filename, wl_range=None):
     '''
     Plot a spectrum with `matplotlib` and save to a file.
 
@@ -453,6 +453,10 @@ def plot_spectrum(spec, filename):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot(spec.wl, spec.fl)
+    ax.set_xlabel(r"$\lambda (\AA)$")
+    if wl_range is not None:
+        low, high = wl_range
+        ax.set_xlim(low, high)
     fig.savefig(filename)
     plt.close('all')
 
