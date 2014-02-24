@@ -13,41 +13,38 @@ class TestRealSpectrum:
         wl = hdf5interface.wl
         self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         self.instrument = Reticon()
+        self.wl_range = (5160, 5180)
 
     def test_plot_spectrum(self):
-        pass
+        spec = self.spec.copy()
+        plot_spectrum(spec, "tests/plots/basic.png", self.wl_range)
 
     def test_stellar_convolve(self):
-        pass
+        spec = self.spec.copy()
+        spec.stellar_convolve(20.)
+        plot_spectrum(spec, "tests/plots/stellar.png", self.wl_range)
+        plot_spectrum(spec, "tests/plots/stellar_no_clip.png")
 
-        #
 
-        #    print("Instrument and Stellar convolved", self.spec)
-        #    fig = plt.figure()
-        #    ax = fig.add_subplot(111)
-        #    ax.plot(self.spec.wl_raw, self.spec.fl)
-        #    fig.savefig(testdir + "instrument_and_stellar.png")
-        #
-        #def test_0_instrument_and_stellar_convolve(self):
-        #    self.setup_class()
-        #    self.spec.instrument_and_stellar_convolve(self.instrument, 0., downsample='yes')
-        #    print("Instrument and Stellar convolved", self.spec)
-        #
-        #def test_neg_instrument_and_stellar_convolve(self):
-        #    self.setup_class()
-        #    self.spec.instrument_and_stellar_convolve(self.instrument, 0., downsample='yes')
-        #    print("Instrument and Stellar convolved", self.spec)
-        #
-        #def test_straight_line(self):
-        #    print("Straight line")
-        #    wldict = create_log_lam_grid(3000, 13000, min_vc=2/C.c_kms)
-        #    wl = wldict.pop("wl")
-        #    fl = wl.copy()
-        #    self.spectrum = LogLambdaSpectrum(wl,fl)
-        #    self.spectrum.stellar_convolve(50., downsample='yes')
-        #    fig = plt.figure()
-        #    ax = fig.add_subplot(111)
-        #    ax.plot(self.spectrum.wl_raw, self.spectrum.fl)
-        #    fig.savefig(testdir + "line_stellar.png")
-        #    #Basically, this shows that the up and down behaviour of the Fourier blending is not a problem. It is just
-        #    #blending as if the spectrum wraps. Therefore the two edges are going to match as if it was circular.
+    def test_instrument_convolve(self):
+        spec = self.spec.copy()
+        spec.instrument_convolve(self.instrument)
+        plot_spectrum(spec, "tests/plots/instrument.png")
+
+    def test_instrument_and_stellar_convolve(self):
+        spec = self.spec.copy()
+        spec.instrument_and_stellar_convolve(self.instrument, 20)
+        plot_spectrum(spec, "tests/plots/instrument_and_stellar.png")
+
+
+    def test_straight_line(self):
+        wl_dict = create_log_lam_grid(3000, 13000, min_vc=2/C.c_kms)
+        wl = wl_dict.pop("wl")
+        fl = wl.copy()
+        spec = LogLambdaSpectrum(wl,fl)
+        spec.stellar_convolve(50.)
+        plot_spectrum(spec, "tests/plots/straight_line.png")
+        #Basically, this shows that the up and down behaviour of the Fourier blending is not a problem. It is just
+        #blending as if the spectrum wraps. Therefore the two edges are going to match as if it was circular because
+        #the stellar kernel is CONVOLVING them TOGETHER, making what was once a 1 pixel transition from max to min now
+        #take place over a couple pixels. Thus, there will be edge-effects if the two ends of the spectra aren't very close
