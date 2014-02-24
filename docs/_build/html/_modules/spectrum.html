@@ -1,0 +1,629 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>spectrum &mdash; StellarSpectra 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="StellarSpectra 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">StellarSpectra 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for spectrum</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span><span class="p">,</span> <span class="n">InterpolatedUnivariateSpline</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">j1</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="kn">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">fftfreq</span><span class="c"># rfftfreq</span>
+<span class="kn">import</span> <span class="nn">pyfftw</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">StellarSpectra.constants</span> <span class="kn">as</span> <span class="nn">C</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
+<span class="n">flux_units</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;f_nu&quot;</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the Discrete Fourier Transform sample frequencies</span>
+<span class="sd">    (for usage with rfft, irfft).</span>
+
+<span class="sd">    The returned float array `f` contains the frequency bin centers in cycles</span>
+<span class="sd">    per unit of the sample spacing (with zero at the start). For instance, if</span>
+<span class="sd">    the sample spacing is in seconds, then the frequency unit is cycles/second.</span>
+
+<span class="sd">    Given a window length `n` and a sample spacing `d`::</span>
+
+<span class="sd">    f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even</span>
+<span class="sd">    f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd</span>
+
+<span class="sd">    Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)</span>
+<span class="sd">    the Nyquist frequency component is considered to be positive.</span>
+
+<span class="sd">    :param n : Window length</span>
+<span class="sd">    :type n: int</span>
+<span class="sd">    :param d: Sample spacing (inverse of the sampling rate). Defaults to 1.</span>
+<span class="sd">    ;type d: scalar, optional</span>
+<span class="sd">    :returns: f, Array of length ``n//2 + 1`` containing the sample frequencies.</span>
+<span class="sd">    :rtype: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;n should be an integer&quot;</span><span class="p">)</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">n</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span> <span class="o">*</span> <span class="n">val</span>
+
+<div class="viewcode-block" id="BaseSpectrum"><a class="viewcode-back" href="../spectrum.html#spectrum.BaseSpectrum">[docs]</a><span class="k">class</span> <span class="nc">BaseSpectrum</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The base spectrum object, designed to be inherited.</span>
+
+<span class="sd">    :param wl: wavelength array</span>
+<span class="sd">    :type wl: np.array</span>
+<span class="sd">    :param fl: flux array, must be the same shape as :attr:`wl`</span>
+<span class="sd">    :type fl: np.array</span>
+<span class="sd">    :param unit: flux unit (``f_lam``, or ``f_nu``)</span>
+<span class="sd">    :param air: is wavelength array measured in air?</span>
+<span class="sd">    :type air: bool</span>
+<span class="sd">    :param metadata: any extra metadata associated with the spectrum</span>
+<span class="sd">    :type metadat: dict</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#TODO: convert unit to use astropy units for later conversions</span>
+        <span class="k">assert</span> <span class="n">wl</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">fl</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;Spectrum wavelength and flux arrays must have the same shape.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">fl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air</span> <span class="o">=</span> <span class="n">air</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;air&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">air</span><span class="p">,</span> <span class="s">&quot;unit&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">})</span>
+
+<div class="viewcode-block" id="BaseSpectrum.convert_units"><a class="viewcode-back" href="../spectrum.html#spectrum.BaseSpectrum.convert_units">[docs]</a>    <span class="k">def</span> <span class="nf">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_nu&quot;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Convert between f_lam and f_nu. If :attr:`unit` == :attr:`self.unit`, do nothing.</span>
+
+<span class="sd">        :param unit: flux unit to convert to</span>
+<span class="sd">        :type unit: string</span>
+
+<span class="sd">        :raises AssertionError: if unit is not ``&quot;f_lam&quot;`` or ``&quot;f_nu&quot;``.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">flux_units</span><span class="p">,</span> <span class="s">&quot;{} must be one of {} flux units&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">flux_units</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;Flux already in {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">))</span>
+            <span class="k">return</span>
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_lam&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_nu&quot;</span><span class="p">:</span>
+            <span class="c">#Convert from f_nu to f_lam</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_ang</span><span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="o">**</span><span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;unit&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">})</span>
+
+        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_nu&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_lam&quot;</span><span class="p">:</span>
+            <span class="c">#Convert from f_lam to f_nu</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_ang</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;unit&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">})</span>
+
+</div>
+<div class="viewcode-block" id="BaseSpectrum.save"><a class="viewcode-back" href="../spectrum.html#spectrum.BaseSpectrum.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Save the spectrum as a 2D numpy array. wl = arr[0,:], fl = arr[1,:]</span>
+
+<span class="sd">        :param name: filename</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Print metadata of spectrum</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="s">&#39;&#39;&#39;Spectrum object</span><span class="se">\n</span><span class="s">&#39;&#39;&#39;</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;{}:{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())])</span>
+
+<div class="viewcode-block" id="BaseSpectrum.copy"><a class="viewcode-back" href="../spectrum.html#spectrum.BaseSpectrum.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        return a copy of the spectrum</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="Base1DSpectrum"><a class="viewcode-back" href="../spectrum.html#spectrum.Base1DSpectrum">[docs]</a><span class="k">class</span> <span class="nc">Base1DSpectrum</span><span class="p">(</span><span class="n">BaseSpectrum</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The base one-dimensional spectrum object, designed to be initialized with a generic spectrum.</span>
+
+<span class="sd">    :param wl: wavelength array</span>
+<span class="sd">    :type wl: np.array</span>
+<span class="sd">    :param fl: flux array</span>
+<span class="sd">    :type fl: np.array</span>
+<span class="sd">    :param unit: flux unit (``f_lam``, or ``f_nu``)</span>
+<span class="sd">    :param air: is wavelength array measured in air?</span>
+<span class="sd">    :type air: bool</span>
+<span class="sd">    :param metadata: any extra metadata associated with the spectrum</span>
+<span class="sd">    :type metadat: dict</span>
+
+<span class="sd">    Initialization sorts the wl array to make sure all points are sequential and unique.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">wl</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;1D spectrum must be 1D&quot;</span>
+        <span class="c">#must have this again in order to prevent an error for fl[ind]</span>
+        <span class="k">assert</span> <span class="n">wl</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">fl</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;Spectrum wavelength and flux arrays must have the same shape.&quot;</span>
+        <span class="c">#&quot;Clean&quot; the wl and flux points. Remove duplicates, sort in increasing wl</span>
+        <span class="n">wl_sorted</span><span class="p">,</span> <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">fl_sorted</span> <span class="o">=</span> <span class="n">fl</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl_sorted</span><span class="p">,</span> <span class="n">fl_sorted</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="n">air</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Base1DSpectrum.calculate_log_lam_grid"><a class="viewcode-back" href="../spectrum.html#spectrum.Base1DSpectrum.calculate_log_lam_grid">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_log_lam_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements.</span>
+
+<span class="sd">        :returns: wl_dict containing a log lam wl and header keywords.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">dif</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span>
+        <span class="n">min_wl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dif</span><span class="p">)</span>
+        <span class="n">wl_at_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dif</span><span class="p">)]</span>
+        <span class="n">wl_dict</span> <span class="o">=</span> <span class="n">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wl_end</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">min_wl</span><span class="o">=</span><span class="p">(</span><span class="n">min_wl</span><span class="p">,</span> <span class="n">wl_at_min</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">wl_dict</span>
+</div>
+<div class="viewcode-block" id="Base1DSpectrum.resample_to_grid"><a class="viewcode-back" href="../spectrum.html#spectrum.Base1DSpectrum.resample_to_grid">[docs]</a>    <span class="k">def</span> <span class="nf">resample_to_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Resample the spectrum to a new grid. Update :attr:`wl` and :attr:`fl`.</span>
+
+<span class="sd">        :param grid: the new wavelength grid to resample/rebin to</span>
+<span class="sd">        :type grid: np.array</span>
+<span class="sd">        :param integrate: rebin instead of resample?</span>
+<span class="sd">        :type integrate: bool</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;grid must be 1D&quot;</span>
+
+        <span class="k">if</span> <span class="n">integrate</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;Current Integration routine assumes f_lam&quot;</span>
+            <span class="k">assert</span> <span class="s">&quot;rebin&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s">&quot;Spectrum has already been rebinned&quot;</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="o">/</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_ang_air</span><span class="p">))</span>
+            <span class="c">#Assume that grid specifies the pixel centers. Now, need to calculate the edges.</span>
+            <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,))</span>
+            <span class="n">difs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+            <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">difs</span>
+            <span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">difs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">difs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">starts</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ends</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+            <span class="c">#do spline integration</span>
+            <span class="n">vint</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">interp</span><span class="o">.</span><span class="n">integral</span><span class="p">)</span>
+            <span class="n">pix</span> <span class="o">=</span> <span class="n">vint</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">ends</span><span class="p">)</span>
+            <span class="c">#Normalize the average counts/pixel to 100</span>
+            <span class="n">avgcounts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">pix</span><span class="p">)</span>
+            <span class="n">pix</span> <span class="o">=</span> <span class="n">pix</span><span class="o">/</span><span class="n">avgcounts</span> <span class="o">*</span> <span class="mi">100</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">pix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s">&#39;counts&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;rebin&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">})</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">interp</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;resamp&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">})</span>
+
+        <span class="k">del</span> <span class="n">interp</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="n">grid</span>
+
+</div></div>
+<div class="viewcode-block" id="create_log_lam_grid"><a class="viewcode-back" href="../spectrum.html#spectrum.create_log_lam_grid">[docs]</a><span class="k">def</span> <span class="nf">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_start</span><span class="o">=</span><span class="mf">3000.</span><span class="p">,</span> <span class="n">wl_end</span><span class="o">=</span><span class="mf">13000.</span><span class="p">,</span> <span class="n">min_wl</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">min_vc</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for ease of FFT.</span>
+
+<span class="sd">    :param wl_start: starting wavelength (inclusive)</span>
+<span class="sd">    :type wl_start: float</span>
+<span class="sd">    :param wl_end: ending wavelength (inclusive)</span>
+<span class="sd">    :type wl_end: float</span>
+<span class="sd">    :param min_wl: wavelength spacing at a specific wavelength</span>
+<span class="sd">    :type min_wl: (delta_wl, wl)</span>
+<span class="sd">    :param min_vc: tightest spacing</span>
+<span class="sd">    :type min_vc: float</span>
+<span class="sd">    :returns: a wavelength dictionary containing the specified properties.</span>
+<span class="sd">    :rtype: wl_dict</span>
+
+<span class="sd">    Takes the finer of min_WL or min_vc if both specified</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">assert</span> <span class="n">wl_start</span> <span class="o">&lt;</span> <span class="n">wl_end</span><span class="p">,</span> <span class="s">&quot;wl_start must be smaller than wl_end&quot;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;You need to specify either min_wl or min_vc&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">delta_wl</span><span class="p">,</span> <span class="n">wl</span> <span class="o">=</span> <span class="n">min_wl</span> <span class="c">#unpack</span>
+        <span class="n">Vwl</span> <span class="o">=</span> <span class="n">delta_wl</span><span class="o">/</span><span class="n">wl</span>
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span> <span class="k">if</span> <span class="n">Vwl</span> <span class="o">&lt;</span> <span class="n">min_vc</span> <span class="k">else</span> <span class="n">min_vc</span>
+
+    <span class="n">CDELT_temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">min_vc</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_start</span><span class="p">)</span>
+    <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_end</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="n">CDELT_temp</span>
+    <span class="n">NAXIS1</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">while</span> <span class="n">NAXIS1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span> <span class="c">#Make NAXIS1 an integer power of 2 for FFT purposes</span>
+        <span class="n">NAXIS1</span> <span class="o">*=</span> <span class="mi">2</span>
+
+    <span class="n">CDELT1</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">NAXIS1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span>
+    <span class="n">wl</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">CRVAL1</span> <span class="o">+</span> <span class="n">CDELT1</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s">&quot;wl&quot;</span><span class="p">:</span><span class="n">wl</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span><span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;CDELT1&quot;</span><span class="p">:</span><span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span><span class="n">NAXIS1</span><span class="p">}</span>
+
+</div>
+<div class="viewcode-block" id="LogLambdaSpectrum"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum">[docs]</a><span class="k">class</span> <span class="nc">LogLambdaSpectrum</span><span class="p">(</span><span class="n">Base1DSpectrum</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A spectrum that has log lambda spaced wavelengths.</span>
+
+<span class="sd">    :param wl: wavelength array</span>
+<span class="sd">    :type wl: np.array</span>
+<span class="sd">    :param fl: flux array</span>
+<span class="sd">    :type fl: np.array</span>
+<span class="sd">    :param unit: flux unit (``f_lam``, or ``f_nu``)</span>
+<span class="sd">    :param air: is wavelength array measured in air?</span>
+<span class="sd">    :type air: bool</span>
+<span class="sd">    :param metadata: any extra metadata associated with the spectrum</span>
+<span class="sd">    :type metadat: dict</span>
+<span class="sd">    :param oversampling: how many samples fit across the :attr:`FWHM`</span>
+<span class="sd">    :type oversampling: float</span>
+
+<span class="sd">    All of the class methods modify :attr:`wl` and :attr:`fl` in place.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Because of the difficulty of keeping track of convolution, you only get to do</span>
+<span class="sd">        {:meth:`instrument_convolve`, :meth:`stellar_convolve`} or</span>
+<span class="sd">        :meth:`instrument_and_stellar_convolve` once.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">oversampling</span><span class="o">=</span><span class="mf">3.5</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="n">air</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="c">#Super class already checks that the wavelengths are np.unique</span>
+        <span class="c">#check that the vc spacing of each pixel is the same.</span>
+        <span class="n">vcs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">vcs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">vcs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">),</span> <span class="s">&quot;Array must be log-lambda spaced.&quot;</span>
+
+        <span class="c">#Calculate CDELT1, CRVAL1, and NAXIS1 (even if it&#39;s not power of 2)</span>
+        <span class="n">CDELT1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">NAXIS1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span><span class="o">/</span><span class="n">CDELT1</span><span class="p">))</span>
+
+        <span class="n">wl_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;CDELT1&quot;</span><span class="p">:</span> <span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span> <span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span><span class="n">NAXIS1</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Calculated NAXIS1={}, which is not a power of 2. FFT will be slow.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+
+        <span class="c">#If wl_dict keys are in the metadata, check to make sure that they are the same ones just calculated.</span>
+        <span class="k">if</span> <span class="n">log_lam_kws</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">]),</span>
+                               <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">wl_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">])),</span> <span class="s">&quot;Header keywords do not match wl file.&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wl_dict</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">oversampling</span> <span class="c">#taken to mean as how many points go across the FWHM of the Gaussian</span>
+
+<div class="viewcode-block" id="LogLambdaSpectrum.downsample_to_grid"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum.downsample_to_grid">[docs]</a>    <span class="k">def</span> <span class="nf">downsample_to_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl_dict</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Resample/interate the spectrum to a new log lambda grid.</span>
+<span class="sd">        Updates the :attr:`wl`, :attr:`fl`, and log_lam_kws in the :attr:`metadata`. This method is slightly</span>
+<span class="sd">        different than :meth:`resample_to_grid` since it uses :attr:`wl_dict` to ensure that the spectrum</span>
+<span class="sd">        remains log lambda spaced and ``N_points`` is a power of 2.</span>
+
+<span class="sd">        :param wl_dict: dictionary of log lam wavelength properties to resample to</span>
+<span class="sd">        :type wl_dict: dict</span>
+<span class="sd">        :param integrate: integrate flux to counts/pixel?</span>
+<span class="sd">        :type integrate: bool</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Assumes that new wl grid does not violate any sampling rules and updates header values.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">wl</span> <span class="o">=</span> <span class="n">wl_dict</span><span class="p">[</span><span class="s">&#39;wl&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">wl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">wl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="s">&quot;New wl grid is too large, out of bounds of the old spectrum.&quot;</span>
+
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="n">wl_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">log_lam_kws</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">hdr</span><span class="p">)</span>
+
+        <span class="c">#resamples the spectrum to these values and updates wl_grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resample_to_grid</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="LogLambdaSpectrum.instrument_convolve"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum.instrument_convolve">[docs]</a>    <span class="k">def</span> <span class="nf">instrument_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Convolve the spectrum with an instrumental profile.</span>
+
+<span class="sd">        :param instrument: the :obj:`grid_tools.Instrument` object containing the instrumental profile</span>
+<span class="sd">        :param integrate: integrate to counts/pixel? :attr:`downsample` must not be None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="s">&quot;instcon&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s">&quot;Spectrum has already been convolved&quot;</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="mf">2.35</span> <span class="c"># in km/s</span>
+
+        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+        <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+        <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+        <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+        <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+        <span class="n">fft_object</span><span class="p">()</span>
+
+        <span class="c">#The frequencies (cycles/km) corresponding to each point</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+
+        <span class="c">#Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space</span>
+        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">FF</span> <span class="o">*=</span> <span class="n">taper</span>
+
+        <span class="c">#Take the broadened spectrum back to wavelength space</span>
+        <span class="n">ifft_object</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;instcon&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">})</span>
+
+        <span class="c">#Update min_vc and oversampling, possibly downsample</span>
+        <span class="k">if</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">oversampling</span>
+
+            <span class="c">#Only allow downsampling if the instrument broadened the spectrum.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">downsample_to_grid</span><span class="p">(</span><span class="n">instrument</span><span class="o">.</span><span class="n">wl_dict</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="LogLambdaSpectrum.stellar_convolve"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum.stellar_convolve">[docs]</a>    <span class="k">def</span> <span class="nf">stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vsini</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Broaden spectrum due to stellar rotation.</span>
+
+<span class="sd">        :param vsini: projected rotational speed of star</span>
+<span class="sd">        :type vsini: float (km/s)</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="s">&quot;vsini&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s">&quot;Spectrum has already been rotationally convolved&quot;</span>
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c">#Take FFT of f_grid</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+            <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+            <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+            <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+            <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+            <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+            <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+            <span class="n">fft_object</span><span class="p">()</span>
+
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+            <span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
+            <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">vsini</span> <span class="o">*</span> <span class="n">ss</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
+            <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+            <span class="c">#institute velocity taper</span>
+            <span class="n">FF</span> <span class="o">*=</span> <span class="n">sb</span>
+
+            <span class="c">#do ifft</span>
+            <span class="n">ifft_object</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;vsini={}. No stellar convolution performed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vsini</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">vsini</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;vsini&quot;</span><span class="p">:</span> <span class="n">vsini</span><span class="p">})</span>
+
+</div>
+<div class="viewcode-block" id="LogLambdaSpectrum.instrument_and_stellar_convolve"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">[docs]</a>    <span class="k">def</span> <span class="nf">instrument_and_stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Perform both instrumental and stellar broadening on the spectrum.</span>
+
+<span class="sd">        :param instrument: the :obj:`grid_tools.Instrument` object containing the instrumental profile</span>
+<span class="sd">        :param vsini: projected rotational speed of star</span>
+<span class="sd">        :type vsini: float (km/s)</span>
+<span class="sd">        :param integrate: integrate to counts/pixel? :attr:`downsample` must not be None</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="s">&quot;instcon&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s">&quot;Spectrum has already been convolved&quot;</span>
+        <span class="k">assert</span> <span class="s">&quot;vsini&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s">&quot;Spectrum has already been rotationally convolved&quot;</span>
+
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="mf">2.35</span> <span class="c"># in km/s</span>
+        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
+            <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">vsini</span> <span class="o">*</span> <span class="n">ss</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
+            <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;vsini={}. No stellar convolution performed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vsini</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">vsini</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">sb</span> <span class="o">=</span> <span class="mf">1.</span>
+
+        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+        <span class="n">influx</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">FF</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;complex128&#39;</span><span class="p">)</span>
+        <span class="n">outflux</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">n_byte_align_empty</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s">&#39;float64&#39;</span><span class="p">)</span>
+        <span class="n">fft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">influx</span><span class="p">,</span> <span class="n">FF</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">))</span>
+        <span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">FF</span><span class="p">,</span> <span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
+
+        <span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+        <span class="n">fft_object</span><span class="p">()</span>
+
+        <span class="n">FF</span> <span class="o">*=</span> <span class="p">(</span><span class="n">taper</span> <span class="o">*</span> <span class="n">sb</span><span class="p">)</span>
+
+        <span class="c">#do ifft</span>
+        <span class="n">ifft_object</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">outflux</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;vsini&quot;</span><span class="p">:</span> <span class="n">vsini</span><span class="p">})</span>
+
+        <span class="c">#Update min_vc and oversampling, possibly downsample</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">vsini</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="k">if</span> <span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">&gt;</span> <span class="n">vsini</span> <span class="k">else</span> <span class="n">vsini</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">instrument</span><span class="o">.</span><span class="n">oversampling</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">downsample_to_grid</span><span class="p">(</span><span class="n">instrument</span><span class="o">.</span><span class="n">wl_dict</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="n">integrate</span><span class="p">)</span>
+
+</div></div>
+<span class="k">class</span> <span class="nc">DataSpectrum</span><span class="p">(</span><span class="n">BaseSpectrum</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_lam&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;bool&#39;</span><span class="p">)</span> <span class="c">#create mask of all True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;sigma array incompatible shape.&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;mask array incompatible shape.&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">VelocitySpectrum</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Preserves the cool velocity shifting of BaseSpectrum, but we don&#39;t really need it for the general spectra.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">fl</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">vel</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#TODO: convert unit to use astropy units for later conversions</span>
+        <span class="k">assert</span> <span class="n">wl</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">fl</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s">&quot;Spectrum wavelength and flux arrays must have the same shape.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">=</span> <span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">fl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air</span> <span class="o">=</span> <span class="n">air</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">vel</span> <span class="c">#creates self.wl_vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="c">#Set air as a property which will update self.c it uses to calculate velocities</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">air</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_air</span>
+
+    <span class="nd">@air.setter</span>
+    <span class="k">def</span> <span class="nf">air</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">air</span><span class="p">):</span>
+        <span class="c">#TODO: rewrite this to be more specific about which c</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">air</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_air</span> <span class="o">=</span> <span class="n">air</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">air</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_velocity</span>
+
+    <span class="nd">@velocity.setter</span>
+    <span class="k">def</span> <span class="nf">velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vz</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">vz</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="n">vz</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_velocity</span> <span class="o">=</span> <span class="n">vz</span>
+
+    <span class="k">def</span> <span class="nf">add_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyVal</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">keyVal</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">+=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_vel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;&#39;&#39;Spectrum object</span><span class="se">\n</span><span class="s">&#39;&#39;&#39;</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;{}:{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())])</span>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">StellarSpectra 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

@@ -179,6 +179,10 @@ convolve raw spectra by the instrumental profile.
    :members:
    :special-members: __str__
 
+   .. attribute:: self.wl_dict
+
+    A wl_dict that fits the instrumental properties with the correct oversampling.
+
 .. autoclass:: TRES
    :members:
    :show-inheritance:
