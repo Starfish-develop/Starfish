@@ -136,7 +136,9 @@ Put the decorator `@profile` over the function you want to profile
 * Update interpolator so that it can draw from HDF5 in parallel/mpi
 * Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
 
-* standardize naming of wldict vs wl_dict (i prefer 2nd)
+* sort out usage of C.kms_air and C.kms_vac
+
+* test grid resampling by giving a spectrum that is too long
 
 # Update FITS writer to choose the unit correctly
 
