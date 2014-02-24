@@ -70,7 +70,7 @@ that may be used in the <a class="reference internal" href="grid_tools.html#modu
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-98523e4a13a70b31df4e5e8e475c6262074bb4fb.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-84d4d85dd855866afefa5cafdf2a555a09427d56.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
 <area shape="rect" id="node3" href="#spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
@@ -275,28 +275,17 @@ in velocity, it is easier to perform convolution and downsampling operations.</p
 <a class="reference internal" href="#spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_and_stellar_convolve()</span></tt></a> once.</p>
 </div>
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.downsample_to_grid">
-<tt class="descname">downsample_to_grid</tt><big>(</big><em>wl_dict</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.downsample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.downsample_to_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resample/interate the spectrum to a new log lambda grid.
-Updates the <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>, and log_lam_kws in the <tt class="xref py py-attr docutils literal"><span class="pre">metadata</span></tt>. This method is slightly
-different than <tt class="xref py py-meth docutils literal"><span class="pre">resample_to_grid()</span></tt> since it uses <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt> to ensure that the spectrum
-remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_points</span></tt> is a power of 2.</p>
+<dt id="spectrum.LogLambdaSpectrum.convolve_with_gaussian">
+<tt class="descname">convolve_with_gaussian</tt><big>(</big><em>FWHM</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.convolve_with_gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.convolve_with_gaussian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convolve the spectrum with a Gaussian of FWHM</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>wl_dict</strong> (<em>dict</em>) &#8211; dictionary of log lam wavelength properties to resample to</li>
-<li><strong>integrate</strong> (<em>bool</em>) &#8211; integrate flux to counts/pixel?</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>FWHM</strong> (<em>float (km/s)</em>) &#8211; the FWHM of the Gaussian kernel</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Assumes that new wl grid does not violate any sampling rules and updates header values.</p>
-</div>
 </dd></dl>
 
 <dl class="method">
@@ -334,6 +323,31 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.LogLambdaSpectrum.resample_to_grid">
+<tt class="descname">resample_to_grid</tt><big>(</big><em>wl_dict</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample/interate the spectrum to a new log lambda grid.
+Updates the <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>, and log_lam_kws in the <tt class="xref py py-attr docutils literal"><span class="pre">metadata</span></tt>. This method is slightly
+different than <a class="reference internal" href="#spectrum.Base1DSpectrum.resample_to_grid" title="spectrum.Base1DSpectrum.resample_to_grid"><tt class="xref py py-meth docutils literal"><span class="pre">Base1DSpectrum.resample_to_grid()</span></tt></a> since it uses <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt> to ensure that the spectrum
+remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_points</span></tt> is a power of 2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wl_dict</strong> (<em>dict</em>) &#8211; dictionary of log lam wavelength properties to resample to</li>
+<li><strong>integrate</strong> (<em>bool</em>) &#8211; integrate flux to counts/pixel?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Assumes that new wl grid does not violate any sampling rules and updates header values.</p>
+</div>
 </dd></dl>
 
 <dl class="method">

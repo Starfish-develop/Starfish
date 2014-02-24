@@ -137,10 +137,7 @@ Put the decorator `@profile` over the function you want to profile
 * Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
 
 * sort out usage of C.kms_air and C.kms_vac
-
-* test grid resampling by giving a spectrum that is too long
-
-# Update FITS writer to choose the unit correctly
+* Update FITS writer to choose the unit correctly
 
 # Object oriented rewrite
 
@@ -148,44 +145,19 @@ Put the decorator `@profile` over the function you want to profile
 
 * script to use grid processor to generate just one FITS spectrum
 
-# Test battery
+Test resample techniques with real spectra.
 
-Is the Master grid correct? Test resample techniques.
-
-HDF5Interface
-def test_load_bad_file(self):
-Need to come up with a test case where the master grid is irregular, and the interpolation will fail with a KeyError.
-
-Test that 0 stellar convolution works OK, for both stellar_convolve and instrument_convolve
 pyFFTW wisdom and planning flags (might not be necessary for grid creation, but for actual model, perhaps)
-
-Round out Interpolator tests
 
 Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
 We will have to simply fix the interpolation to three parameters in this case, if we think Z will be positive.
 Likewise, if we think the model will be alpha enhanced, then we need to limit Z to less than 0.
 
-Can add "skip methods" or robust=False to allow bypassing checks.
-
-For production runs, can pre-determine wisdom for FFTW for given array shapes, since they will be similar.
-
-* Learn how to setup sample test directories with test files, like HDF5 objects.
-
 # Model class
 
 * Need own LogLam spectrum object that is fast
 
-
-The Model and lnprob classes will require their own full suite that will be different than grid_tools
-
 If a function requires a parameter and it's not in the parameter list, it looks up the default value.
-
-#When will we use only three paramaters?
-
-#The master grid (whether created from PHOENIX, Kurucz, or BT-Settl) will always have an alpha label.
-
-#We may actually only want to interpolate in 3 values, if we are fixing alpha. This means the interpolator can be
-#queried with only temp, logg, and Z.
 
 
 ### How to implement

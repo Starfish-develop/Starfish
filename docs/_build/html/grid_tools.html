@@ -96,12 +96,6 @@ then resample it to wg_coarse. sigma in km/s.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="grid_tools.gauss_taper">
-<tt class="descclassname">grid_tools.</tt><tt class="descname">gauss_taper</tt><big>(</big><em>s</em>, <em>sigma=2.89</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#gauss_taper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.gauss_taper" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is the FT of a gaussian w/ this sigma. Sigma in km/s</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="grid_tools.idl_float">
 <tt class="descclassname">grid_tools.</tt><tt class="descname">idl_float</tt><big>(</big><em>idl_num</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#idl_float"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.idl_float" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert an idl <em>string</em> number in scientific notation it to a float.</p>
@@ -190,7 +184,7 @@ Currently there are extensions for three main grids:</p>
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-b5c8545c3d82a62e897eb9908ec59a7d2b16ae40.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-1ca6751f69917b4b7d6b2578089c762aef41b52b.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
@@ -295,7 +289,7 @@ are allowed in the grid.</p>
 
 <dl class="class">
 <dt id="grid_tools.PHOENIXGridInterface">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">PHOENIXGridInterface</tt><big>(</big><em>air=True</em>, <em>norm=True</em>, <em>base='raw_grids/PHOENIX/'</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#PHOENIXGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.PHOENIXGridInterface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">PHOENIXGridInterface</tt><big>(</big><em>air=True</em>, <em>norm=True</em>, <em>base='libraries/raw/PHOENIX/'</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#PHOENIXGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.PHOENIXGridInterface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#grid_tools.RawGridInterface" title="grid_tools.RawGridInterface"><tt class="xref py py-class docutils literal"><span class="pre">grid_tools.RawGridInterface</span></tt></a></p>
 <p>An Interface to the PHOENIX/Husser synthetic library.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -343,7 +337,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <p>The <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em>, <em>parallel=True</em>, <em>nprocesses=4</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -354,8 +348,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <li><strong>filename</strong> &#8211; where to create the HDF5 file. Suffix <cite>*</cite>.hdf5 recommended.</li>
 <li><strong>wl_dict</strong> (<em>dict</em>) &#8211; a dictionary containing the wavelength and metadata describing the common wavelength.</li>
 <li><strong>ranges</strong> (<em>dict of keywords mapped to 2-tuples</em>) &#8211; lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.</li>
-<li><strong>parallel</strong> (<em>bool</em>) &#8211; run the grid creation in parallel?</li>
-<li><strong>nprocesses</strong> (<em>int</em>) &#8211; if parallel=True, run with how many processes?</li>
+<li><strong>nprocesses</strong> (<em>int</em>) &#8211; if &gt; 1, run in parallel using nprocesses</li>
 <li><strong>chunksize</strong> (<em>int</em>) &#8211; chunksize to use for lazy mp.imap</li>
 </ul>
 </td>
@@ -410,7 +403,7 @@ the <tt class="xref py py-attr docutils literal"><span class="pre">GridInterface
 <tt class="descname">process_grid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator.process_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator.process_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run <a class="reference internal" href="#grid_tools.HDF5GridCreator.process_flux" title="grid_tools.HDF5GridCreator.process_flux"><tt class="xref py py-meth docutils literal"><span class="pre">process_flux()</span></tt></a> for all of the spectra within the <cite>ranges</cite> and store the processed spectra in the
 HDF5 file.</p>
-<p>Executed in parallel if <tt class="xref py py-attr docutils literal"><span class="pre">parallel</span></tt> is <tt class="docutils literal"><span class="pre">True</span></tt>.</p>
+<p>Executed in parallel if <tt class="xref py py-attr docutils literal"><span class="pre">nprocess</span></tt> &gt; 1.</p>
 </dd></dl>
 
 </dd></dl>
@@ -431,7 +424,7 @@ HDF5 file.</p>
 <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> instance.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5Interface">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>mode=None</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect to an HDF5 file that stores spectra.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -542,23 +535,6 @@ It is able to cache spectra for easier memory load.</p>
 <p>Automatically pops <tt class="xref py py-attr docutils literal"><span class="pre">cache_dump</span></tt> items from cache if full.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="grid_tools.Interpolator.interpolate">
-<tt class="descname">interpolate</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Interpolator.interpolate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Interpolator.interpolate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interpolate a spectrum without clearing cache. Recommended to use <a class="reference internal" href="#grid_tools.Interpolator.__call__" title="grid_tools.Interpolator.__call__"><tt class="xref py py-meth docutils literal"><span class="pre">__call__()</span></tt></a> instead.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises InterpolationError:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if parameters are out of bounds.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </dd></dl>
 
 <p>For example, if we would like to generate a spectrum with the aforementioned parameters, we would do</p>
@@ -574,7 +550,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-fc3464111abb775b0c3802eeec0320afa250c7f2.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-c8b4301d718f87b47cf59ddc5f2c4e8cc7a1dc80.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>

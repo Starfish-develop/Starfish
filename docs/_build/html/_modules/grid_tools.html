@@ -51,13 +51,10 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="kn">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">fftfreq</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span><span class="p">,</span><span class="n">fits</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-
-<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
-
-<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">,</span> <span class="n">interp1d</span><span class="p">,</span> <span class="n">UnivariateSpline</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">,</span> <span class="n">interp1d</span>
 <span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">trapz</span>
 <span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">j1</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
 
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">gc</span>
@@ -67,10 +64,6 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-
-<span class="c">#from mpi4py import MPI</span>
-<span class="c">#rank = MPI.COMM_WORLD.rank  # The process ID</span>
-<span class="c">#nprocesses = MPI.COMM_WORLD.size #The number of processes running</span>
 
 <span class="kn">from</span> <span class="nn">StellarSpectra.spectrum</span> <span class="kn">import</span> <span class="n">Base1DSpectrum</span><span class="p">,</span> <span class="n">LogLambdaSpectrum</span><span class="p">,</span> <span class="n">create_log_lam_grid</span>
 <span class="kn">import</span> <span class="nn">StellarSpectra.constants</span> <span class="kn">as</span> <span class="nn">C</span>
@@ -134,25 +127,6 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
 </div>
-<span class="k">class</span> <span class="nc">Base</span><span class="p">:</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Parameters are given as a dictionary, which is cycled through and instantiates self.parameters.</span>
-<span class="sd">         If the parameter is not found allowed parameters, raise a warning and do not instantiate it. Further down the</span>
-<span class="sd">         line, if a method needs a value for a parameter, it can query the default value, otherwise it can act as</span>
-<span class="sd">         a short circuit if this parameter is not in the dictionary.&#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
-        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">,</span> <span class="s">&quot;Parameters must be a dictionary&quot;</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">var_default</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;{0} is not an allowed parameter, skipping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">prtstr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;{0} : {1:.2f} </span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
-        <span class="k">return</span> <span class="n">prtstr</span>
-
-
 <div class="viewcode-block" id="RawGridInterface"><a class="viewcode-back" href="../grid_tools.html#grid_tools.RawGridInterface">[docs]</a><span class="k">class</span> <span class="nc">RawGridInterface</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    A base class to handle interfacing with synthetic spectral grids.</span>
@@ -175,7 +149,7 @@
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">grid_parameters</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;{0} is not an allowed parameter, skipping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="ne">UserWarning</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;{0} is not an allowed parameter, skipping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">air</span> <span class="o">=</span> <span class="n">air</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wl_range</span> <span class="o">=</span> <span class="n">wl_range</span>
@@ -220,7 +194,7 @@
 <span class="sd">    :type norm: bool</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="s">&quot;raw_grids/PHOENIX/&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="s">&quot;libraries/raw/PHOENIX/&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;PHOENIX&quot;</span><span class="p">,</span>
         <span class="n">points</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span>
       <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2300</span><span class="p">,</span> <span class="mi">2400</span><span class="p">,</span> <span class="mi">2500</span><span class="p">,</span> <span class="mi">2600</span><span class="p">,</span> <span class="mi">2700</span><span class="p">,</span> <span class="mi">2800</span><span class="p">,</span> <span class="mi">2900</span><span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="mi">3100</span><span class="p">,</span> <span class="mi">3200</span><span class="p">,</span> <span class="mi">3300</span><span class="p">,</span> <span class="mi">3400</span><span class="p">,</span> <span class="mi">3500</span><span class="p">,</span> <span class="mi">3600</span><span class="p">,</span> <span class="mi">3700</span><span class="p">,</span> <span class="mi">3800</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="mi">4100</span><span class="p">,</span> <span class="mi">4200</span><span class="p">,</span>
@@ -273,7 +247,7 @@
         <span class="n">Z</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span>
         <span class="n">str_parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Z_dict</span><span class="p">[</span><span class="n">Z</span><span class="p">]</span>
 
-        <span class="c">#Rewrite alpha, allow alpha to be missing from parameters</span>
+        <span class="c">#Rewrite alpha, allow alpha to be missing from parameters and set to 0</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">alpha</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -339,9 +313,7 @@
 <span class="sd">    :type wl_dict: dict</span>
 <span class="sd">    :param ranges: lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.</span>
 <span class="sd">    :type ranges: dict of keywords mapped to 2-tuples</span>
-<span class="sd">    :param parallel: run the grid creation in parallel?</span>
-<span class="sd">    :type parallel: bool</span>
-<span class="sd">    :param nprocesses: if parallel=True, run with how many processes?</span>
+<span class="sd">    :param nprocesses: if &gt; 1, run in parallel using nprocesses</span>
 <span class="sd">    :type nprocesses: int</span>
 <span class="sd">    :param chunksize: chunksize to use for lazy mp.imap</span>
 <span class="sd">    :type chunksize: int</span>
@@ -351,15 +323,14 @@
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">GridInterface</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">wl_dict</span><span class="p">,</span> <span class="n">ranges</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
                  <span class="s">&quot;logg&quot;</span><span class="p">:(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span> <span class="s">&quot;Z&quot;</span><span class="p">:(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span> <span class="s">&quot;alpha&quot;</span><span class="p">:(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)},</span>
-                 <span class="n">parallel</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">nprocesses</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                 <span class="n">nprocesses</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">GridInterface</span> <span class="o">=</span> <span class="n">GridInterface</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span> <span class="c">#only store the name to the HDF5 file, because the object cannot be parallelized</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flux_name</span> <span class="o">=</span> <span class="s">&quot;t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parallel</span> <span class="o">=</span> <span class="n">parallel</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nprocesses</span> <span class="o">=</span> <span class="n">nprocesses</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span> <span class="o">=</span> <span class="n">chunksize</span>
 
-        <span class="c">#Discern between HDF5GridCreator points and GridInterface points using ranges</span>
+        <span class="c">#Take only those points of the GridInterface that fall within the ranges specified</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ranges</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">valid_points</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GridInterface</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -388,6 +359,7 @@
 <span class="sd">        :type hdf5: an h5py HDF5 file object</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#f8 is necessary since we will want to be converting to velocity space later, requiring great precision.</span>
         <span class="n">wl_dset</span> <span class="o">=</span> <span class="n">hdf5</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s">&quot;wl&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&quot;f8&quot;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s">&#39;gzip&#39;</span><span class="p">,</span> <span class="n">compression_opts</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
         <span class="n">wl_dset</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -426,7 +398,7 @@
 <span class="sd">        Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the</span>
 <span class="sd">        HDF5 file.</span>
 
-<span class="sd">        Executed in parallel if :attr:`parallel` is ``True``.</span>
+<span class="sd">        Executed in parallel if :attr:`nprocess` &gt; 1.</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#Take all parameter permutations in self.points and create a list</span>
@@ -437,7 +409,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">values</span><span class="p">):</span>
             <span class="n">param_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">i</span><span class="p">)))</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nprocesses</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">pool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nprocesses</span><span class="p">)</span>
             <span class="n">M</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="p">:</span> <span class="n">pool</span><span class="o">.</span><span class="n">imap_unordered</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -463,7 +435,7 @@
 <span class="sd">    :type param: string</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flux_name</span> <span class="o">=</span> <span class="s">&quot;t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}&quot;</span>
 
@@ -604,7 +576,7 @@
         <span class="n">lenF</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">2</span><span class="o">**</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">),</span> <span class="n">lenF</span><span class="p">))</span>
 
-<div class="viewcode-block" id="Interpolator.interpolate"><a class="viewcode-back" href="../grid_tools.html#grid_tools.Interpolator.interpolate">[docs]</a>    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Interpolate a spectrum without clearing cache. Recommended to use :meth:`__call__` instead.</span>
 
@@ -669,7 +641,7 @@
             <span class="n">comb_metadata</span><span class="p">[</span><span class="n">hdr_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
         <span class="k">return</span> <span class="n">LogLambdaSpectrum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fluxes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">metadata</span><span class="o">=</span><span class="n">comb_metadata</span><span class="p">)</span>
-</div></div>
+</div>
 <span class="n">Kurucz_points</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3500</span><span class="p">,</span> <span class="mi">9751</span><span class="p">,</span> <span class="mi">250</span><span class="p">),</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)}</span>
 
 <div class="viewcode-block" id="MasterToFITSProcessor"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor">[docs]</a><span class="k">class</span> <span class="nc">MasterToFITSProcessor</span><span class="p">:</span>
@@ -1084,14 +1056,6 @@
     <span class="n">flux_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="c">#print(&quot;Loaded &quot; + rname)</span>
     <span class="k">return</span> <span class="n">f</span>
-
-</div>
-<span class="nd">@np.vectorize</span>
-<div class="viewcode-block" id="gauss_taper"><a class="viewcode-back" href="../grid_tools.html#grid_tools.gauss_taper">[docs]</a><span class="k">def</span> <span class="nf">gauss_taper</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">2.89</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    gauss_taper(s, sigma=2.89)</span>
-<span class="sd">    This is the FT of a gaussian w/ this sigma. Sigma in km/s&#39;&#39;&#39;</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">s</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
 </div>
 <div class="viewcode-block" id="resample_and_convolve"><a class="viewcode-back" href="../grid_tools.html#grid_tools.resample_and_convolve">[docs]</a><span class="k">def</span> <span class="nf">resample_and_convolve</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">wg_raw</span><span class="p">,</span> <span class="n">wg_fine</span><span class="p">,</span> <span class="n">wg_coarse</span><span class="p">,</span> <span class="n">wg_fine_d</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">2.89</span><span class="p">):</span>
