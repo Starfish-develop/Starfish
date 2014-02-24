@@ -1,10 +1,7 @@
 import numpy as np
-from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
-import yaml
 import gc
-import sys
-from numpy.fft import fft, ifft, fftfreq# rfftfreq
 import pyfftw
 import warnings
 import StellarSpectra.constants as C
@@ -13,38 +10,6 @@ import copy
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 flux_units = frozenset(("f_lam", "f_nu"))
 
-
-def rfftfreq(n, d=1.0):
-    """
-    Return the Discrete Fourier Transform sample frequencies
-    (for usage with rfft, irfft).
-
-    The returned float array `f` contains the frequency bin centers in cycles
-    per unit of the sample spacing (with zero at the start). For instance, if
-    the sample spacing is in seconds, then the frequency unit is cycles/second.
-
-    Given a window length `n` and a sample spacing `d`::
-
-    f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even
-    f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd
-
-    Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)
-    the Nyquist frequency component is considered to be positive.
-
-    :param n : Window length
-    :type n: int
-    :param d: Sample spacing (inverse of the sampling rate). Defaults to 1.
-    ;type d: scalar, optional
-    :returns: f, Array of length ``n//2 + 1`` containing the sample frequencies.
-    :rtype: ndarray
-
-    """
-    if not isinstance(n,np.int):
-        raise ValueError("n should be an integer")
-    val = 1.0/(n*d)
-    N = n//2 + 1
-    results = np.arange(0, N, dtype=np.int)
-    return results * val
 
 class BaseSpectrum:
     '''
@@ -69,7 +34,7 @@ class BaseSpectrum:
         self.unit = unit
         self.air = air
         self.metadata = {} if metadata is None else metadata
-        self.metadata.update({"air":self.air, "unit":self.unit})
+        self.metadata.update({"air": self.air, "unit": self.unit})
 
     def convert_units(self, unit="f_nu"):
         '''
@@ -86,18 +51,18 @@ class BaseSpectrum:
             return
         elif unit == "f_lam" and self.unit == "f_nu":
             #Convert from f_nu to f_lam
-            self.fl = self.fl * C.c_ang/ self.wl**2
+            self.fl = self.fl * C.c_ang / self.wl ** 2
             self.unit = unit
-            self.metadata.update({"unit":self.unit})
+            self.metadata.update({"unit": self.unit})
 
         elif unit == "f_nu" and self.unit == "f_lam":
             #Convert from f_lam to f_nu
-            self.fl = self.fl * self.wl**2/C.c_ang
+            self.fl = self.fl * self.wl ** 2 / C.c_ang
             self.unit = unit
-            self.metadata.update({"unit":self.unit})
+            self.metadata.update({"unit": self.unit})
 
 
-    def save(self,name):
+    def save(self, name):
         '''
         Save the spectrum as a 2D numpy array. wl = arr[0,:], fl = arr[1,:]
 
@@ -110,13 +75,14 @@ class BaseSpectrum:
         '''
         Print metadata of spectrum
         '''
-        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
+        return '''Spectrum object\n''' + "\n".join(
+            ["{}:{}".format(key, self.metadata[key]) for key in sorted(self.metadata.keys())])
 
     def copy(self):
         '''
         return a copy of the spectrum
         '''
-        return copy.copy(self)
+        return copy.deepcopy(self)
 
 
 class Base1DSpectrum(BaseSpectrum):
@@ -176,7 +142,7 @@ class Base1DSpectrum(BaseSpectrum):
             assert "rebin" not in self.metadata.keys(), "Spectrum has already been rebinned"
             assert self.unit == "f_lam", "Current Integration routine assumes f_lam"
             #Convert from f_lam to counts/ang via Bessel and Murphy 2012
-            f = self.fl * self.wl/(C.h * C.c_ang)
+            f = self.fl * self.wl / (C.h * C.c_ang)
             interp = InterpolatedUnivariateSpline(self.wl, f)
 
             #Assume that grid specifies the pixel centers. Now, need to calculate the edges.
@@ -194,15 +160,15 @@ class Base1DSpectrum(BaseSpectrum):
 
             #Normalize the average counts/pixel to 100
             avgcounts = np.average(pix)
-            pix = pix/avgcounts * 100
+            pix = pix / avgcounts * 100
             self.fl = pix
             self.unit = 'counts'
-            self.metadata.update({"rebin":True})
+            self.metadata.update({"rebin": True})
 
         else:
             interp = InterpolatedUnivariateSpline(self.wl, self.fl)
             self.fl = interp(grid)
-            self.metadata.update({"resamp":True})
+            self.metadata.update({"resamp": True})
 
         del interp
         gc.collect()
@@ -232,24 +198,24 @@ def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None)
         raise ValueError("You need to specify either min_wl or min_vc")
     if min_wl is not None:
         delta_wl, wl = min_wl #unpack
-        Vwl = delta_wl/wl
+        Vwl = delta_wl / wl
         min_vc = Vwl
     if (min_wl is not None) and (min_vc is not None):
         min_vc = Vwl if Vwl < min_vc else min_vc
 
-    CDELT_temp = np.log10(min_vc +1)
+    CDELT_temp = np.log10(min_vc + 1)
     CRVAL1 = np.log10(wl_start)
     CRVALN = np.log10(wl_end)
-    N = (CRVALN - CRVAL1)/CDELT_temp
+    N = (CRVALN - CRVAL1) / CDELT_temp
     NAXIS1 = 2
     while NAXIS1 < N: #Make NAXIS1 an integer power of 2 for FFT purposes
         NAXIS1 *= 2
 
-    CDELT1 = (CRVALN - CRVAL1)/(NAXIS1 - 1)
+    CDELT1 = (CRVALN - CRVAL1) / (NAXIS1 - 1)
 
     p = np.arange(NAXIS1)
     wl = 10 ** (CRVAL1 + CDELT1 * p)
-    return {"wl":wl, "CRVAL1":CRVAL1, "CDELT1":CDELT1, "NAXIS1":NAXIS1}
+    return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
 
 
 class LogLambdaSpectrum(Base1DSpectrum):
@@ -276,11 +242,12 @@ class LogLambdaSpectrum(Base1DSpectrum):
         {:meth:`instrument_convolve`, :meth:`stellar_convolve`} or
         :meth:`instrument_and_stellar_convolve` once.
     '''
+
     def __init__(self, wl, fl, unit="f_lam", air=True, metadata=None, oversampling=3.5):
         super().__init__(wl, fl, unit, air=air, metadata=metadata)
         #Super class already checks that the wavelengths are np.unique
         #check that the vc spacing of each pixel is the same.
-        vcs = np.diff(self.wl)/self.wl[:-1]
+        vcs = np.diff(self.wl) / self.wl[:-1]
         self.min_vc = np.min(vcs)
         assert np.allclose(vcs, self.min_vc), "Array must be log-lambda spaced."
 
@@ -288,12 +255,13 @@ class LogLambdaSpectrum(Base1DSpectrum):
         CDELT1 = np.log10(self.min_vc + 1)
         CRVAL1 = np.log10(self.wl[0])
         CRVALN = np.log10(self.wl[-1])
-        NAXIS1 = int(np.ceil((CRVALN - CRVAL1)/CDELT1))
+        NAXIS1 = int(np.ceil((CRVALN - CRVAL1) / CDELT1))
 
-        wl_dict = {"CDELT1": CDELT1, "CRVAL1": CRVAL1, "NAXIS1":NAXIS1}
+        wl_dict = {"CDELT1": CDELT1, "CRVAL1": CRVAL1, "NAXIS1": NAXIS1}
 
-        if np.log(NAXIS1)/np.log(2) % 1 != 0:
-            warnings.warn("Calculated NAXIS1={}, which is not a power of 2. FFT will be slow.".format(NAXIS1), UserWarning)
+        if np.log(NAXIS1) / np.log(2) % 1 != 0:
+            warnings.warn("Calculated NAXIS1={}, which is not a power of 2. FFT will be slow.".format(NAXIS1),
+                          UserWarning)
 
         #If wl_dict keys are in the metadata, check to make sure that they are the same ones just calculated.
         if log_lam_kws <= set(self.metadata.keys()):
@@ -323,7 +291,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
         wl = wl_dict['wl']
 
-        hdr = {key:wl_dict[key] for key in log_lam_kws}
+        hdr = {key: wl_dict[key] for key in log_lam_kws}
         self.metadata.update(hdr)
 
         #resamples the spectrum to these values and updates wl_grid using Base1DSpectrum's resample method.
@@ -336,11 +304,11 @@ class LogLambdaSpectrum(Base1DSpectrum):
         :param FWHM: the FWHM of the Gaussian kernel
         :type FWHM: float (km/s)
         '''
-        sigma = FWHM/2.35 # in km/s
+        sigma = FWHM / 2.35 # in km/s
 
         chunk = len(self.fl)
         influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+        FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
         outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
         fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
         ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
@@ -371,12 +339,12 @@ class LogLambdaSpectrum(Base1DSpectrum):
         assert "instcon" not in self.metadata.keys(), "Spectrum has already been instrument convolved"
         self.convolve_with_gaussian(instrument.FWHM)
 
-        self.metadata.update({"instcon":True})
+        self.metadata.update({"instcon": True})
 
         #Update min_vc and oversampling, resample to grid
         assert instrument.FWHM >= self.min_vc, "Instrument spacing does not sufficiently oversample the spectrum."
 
-        self.min_vc = instrument.FWHM/C.c_kms
+        self.min_vc = instrument.FWHM / C.c_kms
         self.oversampling = instrument.oversampling
         self.resample_to_grid(instrument.wl_dict, integrate=integrate)
 
@@ -394,10 +362,11 @@ class LogLambdaSpectrum(Base1DSpectrum):
             #Take FFT of f_grid
             chunk = len(self.fl)
             influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-            FF = pyfftw.n_byte_align_empty(chunk//2 + 1, 16, 'complex128')
+            FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
             outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
             fft_object = pyfftw.FFTW(influx, FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-            ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'), direction='FFTW_BACKWARD')
+            ifft_object = pyfftw.FFTW(FF, outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+                                      direction='FFTW_BACKWARD')
 
             influx[:] = self.fl
             fft_object()
@@ -439,6 +408,56 @@ class LogLambdaSpectrum(Base1DSpectrum):
         self.instrument_convolve(instrument, integrate)
 
 
+def rfftfreq(n, d=1.0):
+    """
+    Return the Discrete Fourier Transform sample frequencies
+    (for usage with rfft, irfft).
+
+    The returned float array `f` contains the frequency bin centers in cycles
+    per unit of the sample spacing (with zero at the start). For instance, if
+    the sample spacing is in seconds, then the frequency unit is cycles/second.
+
+    Given a window length `n` and a sample spacing `d`::
+
+    f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even
+    f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd
+
+    Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)
+    the Nyquist frequency component is considered to be positive.
+
+    :param n : Window length
+    :type n: int
+    :param d: Sample spacing (inverse of the sampling rate). Defaults to 1.
+    ;type d: scalar, optional
+    :returns: f, Array of length ``n//2 + 1`` containing the sample frequencies.
+    :rtype: ndarray
+
+    """
+    if not isinstance(n, np.int):
+        raise ValueError("n should be an integer")
+    val = 1.0 / (n * d)
+    N = n // 2 + 1
+    results = np.arange(0, N, dtype=np.int)
+    return results * val
+
+def plot_spectrum(spec, filename):
+    '''
+    Plot a spectrum with `matplotlib` and save to a file.
+
+    :param spec: spectrum to plot
+    :type spec: LogLambdaSpectrum or Base1DSpectrum
+    :param filename: path to save plot
+    :type filename: string
+    '''
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(spec.wl, spec.fl)
+    fig.savefig(filename)
+    plt.close('all')
+
+
+
 class DataSpectrum(BaseSpectrum):
     def __init__(self, wl, fl, sigma, mask=None, unit="f_lam"):
         super().__init__(wl, fl, unit)
@@ -452,63 +471,63 @@ class DataSpectrum(BaseSpectrum):
         assert self.sigma.shape == self.shape, "sigma array incompatible shape."
         assert self.mask.shape == self.shape, "mask array incompatible shape."
 
-#
-#class VelocitySpectrum:
-#    '''
-#    Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
-#    '''
-#    def __init__(self, wl, fl, unit="f_lam", air=True, vel=0.0, metadata=None):
-#        #TODO: convert unit to use astropy units for later conversions
-#        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
-#        self.wl_raw = wl
-#        self.fl = fl
-#        self.unit = unit
-#        self.air = air
-#        self.velocity = vel #creates self.wl_vel
-#        self.metadata = {} if metadata is None else metadata
-#
-#    def convert_units(self):
-#        raise NotImplementedError
-#
-#    #Set air as a property which will update self.c it uses to calculate velocities
-#    @property
-#    def air(self):
-#        return self._air
-#
-#    @air.setter
-#    def air(self, air):
-#        #TODO: rewrite this to be more specific about which c
-#        assert type(air) == type(True)
-#        self._air = air
-#        if self.air:
-#            self.c = C.c_kms_air
-#        else:
-#            self.c = C.c_kms
-#
-#    @property
-#    def velocity(self):
-#        return self._velocity
-#
-#    @velocity.setter
-#    def velocity(self, vz):
-#        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
-#        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
-#        self._velocity = vz
-#
-#    def add_metadata(self, keyVal):
-#        key, val = keyVal
-#        if key in self.metadata.keys():
-#            self.metadata[key]+= val
-#        else:
-#            self.metadata[key] = val
-#
-#    def save(self,name):
-#        obj = np.array((self.wl_vel, self.fl))
-#        np.save(name, obj)
-#
-#
-#    def __str__(self):
-#        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
-#
-#    def copy(self):
-#        return copy.copy(self)
+        #
+        #class VelocitySpectrum:
+        #    '''
+        #    Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
+        #    '''
+        #    def __init__(self, wl, fl, unit="f_lam", air=True, vel=0.0, metadata=None):
+        #        #TODO: convert unit to use astropy units for later conversions
+        #        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
+        #        self.wl_raw = wl
+        #        self.fl = fl
+        #        self.unit = unit
+        #        self.air = air
+        #        self.velocity = vel #creates self.wl_vel
+        #        self.metadata = {} if metadata is None else metadata
+        #
+        #    def convert_units(self):
+        #        raise NotImplementedError
+        #
+        #    #Set air as a property which will update self.c it uses to calculate velocities
+        #    @property
+        #    def air(self):
+        #        return self._air
+        #
+        #    @air.setter
+        #    def air(self, air):
+        #        #TODO: rewrite this to be more specific about which c
+        #        assert type(air) == type(True)
+        #        self._air = air
+        #        if self.air:
+        #            self.c = C.c_kms_air
+        #        else:
+        #            self.c = C.c_kms
+        #
+        #    @property
+        #    def velocity(self):
+        #        return self._velocity
+        #
+        #    @velocity.setter
+        #    def velocity(self, vz):
+        #        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
+        #        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
+        #        self._velocity = vz
+        #
+        #    def add_metadata(self, keyVal):
+        #        key, val = keyVal
+        #        if key in self.metadata.keys():
+        #            self.metadata[key]+= val
+        #        else:
+        #            self.metadata[key] = val
+        #
+        #    def save(self,name):
+        #        obj = np.array((self.wl_vel, self.fl))
+        #        np.save(name, obj)
+        #
+        #
+        #    def __str__(self):
+        #        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
+        #
+        #    def copy(self):
+        #        return copy.copy(self)

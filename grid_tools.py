@@ -1,13 +1,10 @@
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq
 from astropy.io import ascii,fits
-import warnings
-
-import multiprocessing as mp
-
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d, UnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.integrate import trapz
 from scipy.special import j1
+import multiprocessing as mp
 
 import sys
 import gc
@@ -17,10 +14,6 @@ import h5py
 from functools import partial
 import itertools
 from collections import OrderedDict
-
-#from mpi4py import MPI
-#rank = MPI.COMM_WORLD.rank  # The process ID
-#nprocesses = MPI.COMM_WORLD.size #The number of processes running
 
 from StellarSpectra.spectrum import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid
 import StellarSpectra.constants as C
@@ -84,25 +77,6 @@ class InterpolationError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
-class Base:
-    def __init__(self, parameters):
-        '''Parameters are given as a dictionary, which is cycled through and instantiates self.parameters.
-         If the parameter is not found allowed parameters, raise a warning and do not instantiate it. Further down the
-         line, if a method needs a value for a parameter, it can query the default value, otherwise it can act as
-         a short circuit if this parameter is not in the dictionary.'''
-        self.parameters = set([])
-        assert type(parameters) is dict, "Parameters must be a dictionary"
-        for key, value in parameters.items():
-            if key in var_default.keys():
-                self.parameters[key] = value
-            else:
-                warnings.warn("{0} is not an allowed parameter, skipping".format(key), UserWarning)
-
-    def __str__(self):
-        prtstr = "".join(["{0} : {1:.2f} \n".format(key, value) for key,value in self.parameters.items()])
-        return prtstr
-
-
 class RawGridInterface:
     '''
     A base class to handle interfacing with synthetic spectral grids.
@@ -125,7 +99,7 @@ class RawGridInterface:
             if key in grid_parameters:
                 self.points[key] = value
             else:
-                warnings.warn("{0} is not an allowed parameter, skipping".format(key), UserWarning)
+                raise KeyError("{0} is not an allowed parameter, skipping".format(key))
 
         self.air = air
         self.wl_range = wl_range
@@ -170,7 +144,7 @@ class PHOENIXGridInterface(RawGridInterface):
     :type norm: bool
 
     '''
-    def __init__(self, air=True, norm=True, base="raw_grids/PHOENIX/"):
+    def __init__(self, air=True, norm=True, base="libraries/raw/PHOENIX/"):
         super().__init__(name="PHOENIX",
         points={"temp":
       np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
@@ -223,7 +197,7 @@ class PHOENIXGridInterface(RawGridInterface):
         Z = parameters["Z"]
         str_parameters["Z"] = self.Z_dict[Z]
 
-        #Rewrite alpha, allow alpha to be missing from parameters
+        #Rewrite alpha, allow alpha to be missing from parameters and set to 0
         try:
             alpha = parameters["alpha"]
         except KeyError:
@@ -289,9 +263,7 @@ class HDF5GridCreator:
     :type wl_dict: dict
     :param ranges: lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.
     :type ranges: dict of keywords mapped to 2-tuples
-    :param parallel: run the grid creation in parallel?
-    :type parallel: bool
-    :param nprocesses: if parallel=True, run with how many processes?
+    :param nprocesses: if > 1, run in parallel using nprocesses
     :type nprocesses: int
     :param chunksize: chunksize to use for lazy mp.imap
     :type chunksize: int
@@ -301,15 +273,14 @@ class HDF5GridCreator:
     '''
     def __init__(self, GridInterface, filename, wl_dict, ranges={"temp":(0,np.inf),
                  "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)},
-                 parallel=True, nprocesses = 4, chunksize=1):
+                 nprocesses = 1, chunksize=1):
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.parallel = parallel
         self.nprocesses = nprocesses
         self.chunksize = chunksize
 
-        #Discern between HDF5GridCreator points and GridInterface points using ranges
+        #Take only those points of the GridInterface that fall within the ranges specified
         self.points = {}
         for key, value in ranges.items():
             valid_points  = self.GridInterface.points[key]
@@ -338,6 +309,7 @@ class HDF5GridCreator:
         :type hdf5: an h5py HDF5 file object
 
         '''
+        #f8 is necessary since we will want to be converting to velocity space later, requiring great precision.
         wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
         wl_dset[:] = self.wl
         for key, value in self.wl_params.items():
@@ -376,8 +348,7 @@ class HDF5GridCreator:
         Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the
         HDF5 file.
 
-        Executed in parallel if :attr:`parallel` is ``True``.
-
+        Executed in parallel if :attr:`nprocess` > 1.
         '''
         #Take all parameter permutations in self.points and create a list
         param_list = [] #list of parameter dictionaries
@@ -387,7 +358,7 @@ class HDF5GridCreator:
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
 
-        if self.parallel:
+        if self.nprocesses > 1:
             pool = mp.Pool(self.nprocesses)
             M = lambda x,y : pool.imap_unordered(x, y, chunksize=self.chunksize)
         else:
@@ -413,7 +384,7 @@ class HDF5Interface:
     :type param: string
 
     '''
-    def __init__(self, filename, mode=None):
+    def __init__(self, filename):
         self.filename = filename
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
@@ -636,12 +607,13 @@ class MasterToFITSProcessor:
     :param processes: how many processors to use in parallel
 
     '''
-    def __init__(self, interpolator, instrument, points, flux_unit, outdir, processes=mp.cpu_count()):
+    def __init__(self, interpolator, instrument, points, flux_unit, outdir, integrate=False, processes=mp.cpu_count()):
         self.interpolator = interpolator
         self.instrument = instrument
         self.points = points #points is a dictionary with which values to spit out
         self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.flux_unit = flux_unit
+        self.integrate = integrate
         self.outdir = outdir
         self.processes = processes
         self.pids = []
@@ -663,34 +635,10 @@ class MasterToFITSProcessor:
             assert np.min(self.points[key]) >= min_val,"Points below interpolator bound {}={}".format(key, min_val)
             assert np.max(self.points[key]) <= max_val,"Points above interpolator bound {}={}".format(key, max_val)
 
-    def process_all(self):
-        '''
-        Process all parameters in :attr:`points` to FITS by chopping them into chunks.
-        '''
-        chunks = chunk_list(self.param_list, n=self.processes)
-        for chunk in chunks:
-            p = mp.Process(target=self.process_chunk, args=(chunk,))
-            p.start()
-            self.pids.append(p)
-
-        for p in self.pids:
-            #Make sure all threads have finished
-            p.join()
-
-    def process_chunk(self, chunk):
-        '''
-        Process a chunk of parameters to FITS
-
-        :param chunk: stellar parameter dicts
-        :type chunk: 1-D list
-        '''
-        print("Process {} processing chunk {}".format(os.getpid(), chunk))
-        for param in chunk:
-            self.process_spectrum(param)
 
     def process_spectrum(self, parameters):
         '''
-        Creates a FITS file with given parameters
+        Creates a FITS file with given parameters (not including *vsini*).
 
         :param parameters: stellar parameters
         :type parameters: dict
@@ -705,7 +653,7 @@ class MasterToFITSProcessor:
             for vsini in self.vsini_points:
                 spec = master_spec.copy()
                 #Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
-                spec.instrument_and_stellar_convolve(self.instrument, vsini, downsample=self.wl_dict, integrate=True)
+                spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate=self.integrate)
                 self.write_to_FITS(spec)
         except InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
@@ -726,7 +674,6 @@ class MasterToFITSProcessor:
 
         head["DISPTYPE"] = 'log lambda'
         head["DISPUNIT"] = 'log angstroms'
-        head["BUNIT"] = ('erg/s/cm^2/A', 'Unit of flux')
         head["CRPIX1"] = 1.
         head["DC-FLAG"] = 1
         for key in ['CRVAL1', 'CDELT1','temp','logg','Z','vsini']:
@@ -766,6 +713,31 @@ class MasterToFITSProcessor:
         filename = self.filename.format(temp=head["temp"], logg=10*head["logg"], Z=np.abs(10*head["Z"]), Z_flag=zflag, vsini=head["vsini"])
         hdu.writeto(self.outdir + filename, clobber=True)
         print("Wrote {} to FITS".format(filename))
+
+    def process_chunk(self, chunk):
+        '''
+        Process a chunk of parameters to FITS
+
+        :param chunk: stellar parameter dicts
+        :type chunk: 1-D list
+        '''
+        print("Process {} processing chunk {}".format(os.getpid(), chunk))
+        for param in chunk:
+            self.process_spectrum(param)
+
+    def process_all(self):
+        '''
+        Process all parameters in :attr:`points` to FITS by chopping them into chunks.
+        '''
+        chunks = chunk_list(self.param_list, n=self.processes)
+        for chunk in chunks:
+            p = mp.Process(target=self.process_chunk, args=(chunk,))
+            p.start()
+            self.pids.append(p)
+
+        for p in self.pids:
+            #Make sure all threads have finished
+            p.join()
 
 
 class Instrument:
@@ -1036,176 +1008,6 @@ def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX
     return f
 
 
-@np.vectorize
-def gauss_taper(s, sigma=2.89):
-    '''
-    gauss_taper(s, sigma=2.89)
-    This is the FT of a gaussian w/ this sigma. Sigma in km/s'''
-    return np.exp(-2 * np.pi ** 2 * sigma ** 2 * s ** 2)
-
-
-def resample_and_convolve(f, wg_raw, wg_fine, wg_coarse, wg_fine_d=0.35, sigma=2.89):
-    '''Take a full-resolution PHOENIX model spectrum `f`, with raw spacing wg_raw, resample it to wg_fine
-    (done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
-    then resample it to wg_coarse. sigma in km/s.'''
-
-    #resample PHOENIX to 0.35km/s spaced grid using InterpolatedUnivariateSpline. First check to make sure there
-    #are no duplicates and the wavelength is increasing, otherwise the spline will fail and return NaN.
-    wl_sorted, ind = np.unique(wg_raw, return_index=True)
-    fl_sorted = f[ind]
-    interp_fine = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
-    f_grid = interp_fine(wg_fine)
-
-    #Fourier Transform
-    out = fft(f_grid)
-    #The frequencies (cycles/km) corresponding to each point
-    freqs = fftfreq(len(f_grid), d=wg_fine_d)
-
-    #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space (corresponding to FWHM 6.8km/s)
-    taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (freqs ** 2))
-    tout = out * taper
-
-    #Take the broadened spectrum back to wavelength space
-    f_grid6 = ifft(tout)
-    #print("Total of imaginary components", np.sum(np.abs(np.imag(f_grid6))))
-
-    #Resample the broadened spectrum to a uniform coarse grid
-    interp_coarse = InterpolatedUnivariateSpline(wg_fine, np.abs(f_grid6))
-    f_coarse = interp_coarse(wg_coarse)
-
-    del interp_fine
-    del interp_coarse
-    gc.collect() #necessary to prevent memory leak!
-
-    return f_coarse
-
-
-def resample(f, wg_input, wg_output):
-    '''Take a TRES spectrum and resample it to 2km/s binning. For the kurucz grid.'''
-
-    # check to make sure there are no duplicates and the wavelength is increasing,
-    # otherwise the spline will fail and return NaN.
-    wl_sorted, ind = np.unique(wg_input, return_index=True)
-    fl_sorted = f[ind]
-
-    interp = InterpolatedUnivariateSpline(wl_sorted, fl_sorted)
-    f_output = interp(wg_output)
-    del interp
-    gc.collect()
-    return f_output
-
-
-def process_spectrum_PHOENIX(pars, convolve=True):
-    temp, logg, Z, alpha = pars
-    try:
-        f = load_flux_full(temp, logg, Z, alpha, norm=True, grid="PHOENIX")[ind]
-        if convolve:
-            flux = resample_and_convolve(f, wave_grid_raw_PHOENIX, wave_grid_fine, wave_grid_coarse)
-        else:
-            flux = resample(f, wave_grid_raw_PHOENIX, wave_grid_fine)
-        print("PROCESSED: %s, %s, %s %s" % (temp, logg, Z, alpha))
-    except OSError:
-        print("FAILED: %s, %s, %s, %s" % (temp, logg, Z, alpha))
-        flux = np.nan
-    return flux
-
-
-def process_spectrum_kurucz(pars):
-    temp, logg, Z = pars
-    try:
-        f = load_flux_full(temp, logg, Z, norm=False, grid="kurucz")
-        flux = resample(f, wave_grid_kurucz_raw, wave_grid_2kms_kurucz)
-    except OSError:
-        print("%s, %s, %s does not exist!" % (temp, logg, Z))
-        flux = np.nan
-    return flux
-
-
-def process_spectrum_BTSettl(pars, convolve=True):
-    temp, logg, Z = pars
-    try:
-        wl, f = load_BTSettl(temp, logg, Z, norm=True, trunc=True, air=True)
-        if convolve:
-            flux = resample_and_convolve(f, wl, wave_grid_fine, wave_grid_coarse)
-        else:
-            flux = resample(f, wl, wave_grid_fine)
-        print("PROCESSED: %s, %s, %s" % (temp, logg, Z))
-    except FileNotFoundError: #on Python2 gives IOError, Python3 use FileNotFoundError
-        print("FAILED: %s, %s, %s" % (temp, logg, Z))
-        flux = np.nan
-    return flux
-
-
-process_routines = {"PHOENIX": process_spectrum_PHOENIX, "kurucz": process_spectrum_kurucz,
-                    "BTSettl": process_spectrum_BTSettl}
-
-
-def create_grid_parallel(ncores, hdf5_filename, grid_name, convolve=True):
-    '''create an hdf5 file of the stellar grid. Go through each T point, if the corresponding logg exists,
-    write it. If not, write nan. Each spectrum is normalized to the bolometric flux at the surface of the Sun.'''
-    f = h5py.File(hdf5_filename, "w")
-
-    #Grid parameters
-    grid = grids[grid_name]
-    T_points = grid['T_points']
-    logg_points = grid['logg_points']
-    Z_points = grid['Z_points']
-    alpha_points = grid['alpha_points']
-
-    if grid_name == 'kurucz':
-        process_spectrum = process_spectrum_kurucz
-        wave_grid_out = wave_grid_2kms_kurucz
-    elif (grid_name == 'PHOENIX') or (grid_name == "BTSettl"):
-        process_spectrum = {"PHOENIX": partial(process_spectrum_PHOENIX, convolve=convolve),
-                            "BTSettl": partial(process_spectrum_BTSettl, convolve=convolve)}[grid_name]
-        if convolve:
-            wave_grid_out = np.load("wave_grids/PHOENIX_2kms_air.npy")
-        else:
-            wave_grid_out = np.load("wave_grids/PHOENIX_0.35kms_air.npy")
-    else:
-        print("No grid %s" % grid_name)
-        return 1
-
-    shape = (len(T_points), len(logg_points), len(Z_points), len(alpha_points), len(wave_grid_out))
-    dset = f.create_dataset("LIB", shape, dtype="f", compression='gzip', compression_opts=9)
-
-    # A thread pool of P processes
-    pool = mp.Pool(ncores)
-
-    index_combos = []
-    var_combos = []
-    for t, temp in enumerate(T_points):
-        for l, logg in enumerate(logg_points):
-            for z, Z in enumerate(Z_points):
-                for a, A in enumerate(alpha_points):
-                    index_combos.append([t, l, z, a])
-                    var_combos.append([temp, logg, Z, A])
-
-    spec_gen = pool.imap(process_spectrum, var_combos, chunksize=20)
-
-    for i, spec in enumerate(spec_gen):
-        t, l, z, a = index_combos[i]
-        dset[t, l, z, a, :] = spec
-        print("Writing ", var_combos[i], "to HDF5")
-
-    f.close()
-
-
-@np.vectorize
-def v(ls, lo):
-    return C.c_kms * (lo ** 2 - ls ** 2) / (ls ** 2 + lo ** 2)
-
-def create_FITS_wavegrid(wl_start, wl_end, vel_spacing):
-    '''Taking the desired wavelengths, output CRVAL1, CDELT1, NAXIS1 and the actual wavelength array.
-    vel_spacing in km/s, wavelengths in angstroms.'''
-    CRVAL1 = np.log10(wl_start)
-    CDELT1 = np.log10(vel_spacing/C.c_kms + 1)
-    NAXIS1 = int(np.ceil((np.log10(wl_end) - CRVAL1)/CDELT1)) + 1
-    p = np.arange(NAXIS1)
-    wl = 10 ** (CRVAL1 + CDELT1 * p)
-    return [wl, CRVAL1, CDELT1, NAXIS1]
-
-
 def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
     '''Assumes that wl is already log lambda spaced'''
 
@@ -1225,50 +1027,8 @@ def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
 
     hdu.writeto(filename)
 
-def process_PHOENIX_to_grid(temp, logg, Z, alpha, vsini, instFWHM, air=True):
-    #Create the wave_grid
-    out_grid, CRVAL1, CDELT1, NAXIS = create_FITS_wavegrid(6200, 6700, 2.)
-
-    #Load the raw file
-    flux = load_flux_full(temp, logg, Z, alpha, norm=True, grid="PHOENIX")[ind]
-
-    global w
-    if air:
-        w_new = vacuum_to_air(w)
-
-    #resample to equally spaced v grid, convolve w/ instrumental profile,
-    f_coarse = resample_and_convolve(flux, w_new, wave_grid_fine, out_grid, wg_fine_d=0.35, sigma=instFWHM/2.35)
-
-    ss = np.fft.fftfreq(len(out_grid), d=2.) #2km/s spacing for wave_grid
-    ss[0] = 0.01 #junk so we don't get a divide by zero error
-    ub = 2. * np.pi * vsini * ss
-    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-    #set zeroth frequency to 1 separately (DC term)
-    sb[0] = 1.
-    FF = fft(f_coarse)
-    FF *= sb
-
-    #do ifft
-    f_lam = np.abs(ifft(FF))
-
-    #convert to f_nu
-    f_nu = out_grid**2/C.c_ang * f_lam
-
-    filename = "t{temp:0>5.0f}g{logg:.0f}p00v{vsini:0>3.0f}.fits".format(temp=temp,
-    logg=10 * logg, vsini=vsini)
-
-    create_fits(filename, f_nu, CRVAL1, CDELT1, {"BUNIT": ('erg/s/cm^2/Hz', 'Unit of flux'),
-                                                                "AUTHOR": "Ian Czekala",
-                                                                "COMMENT" : "Adapted from PHOENIX"})
-
 def main():
-    test_points={"temp":np.arange(6000, 6251, 250), "logg":np.arange(4.0, 4.6, 0.5), "Z":np.arange(-0.5, 0.1, 0.5), "vsini":np.arange(4,9.,2)}
-    myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
-    myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
-                                                                 "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
-                                                                 "norm", "PHXVER", "PHXTEFF"])
-    creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points, outdir="willie/KPNO/", )
-    creator.process_all()
+    pass
 
 
 if __name__ == "__main__":

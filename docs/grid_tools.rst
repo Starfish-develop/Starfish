@@ -16,8 +16,6 @@ These methods are meant to be used for low-level access to spectral libraries. G
 .. automodule:: grid_tools
    :members: resample_and_convolve, load_BTSettl, load_flux_full, chunk_list
 
-.. autofunction:: gauss_taper
-
 .. autofunction:: idl_float
 
 Wavelength conversion methods
@@ -154,8 +152,7 @@ The interpolators are used to create spectra in between grid points, for example
    :special-members: __call__
 
 .. autoclass:: Interpolator
-   :members:
-   :special-members: __call__
+   :members: __call__
 
 For example, if we would like to generate a spectrum with the aforementioned parameters, we would do
 
