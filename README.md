@@ -145,8 +145,6 @@ Put the decorator `@profile` over the function you want to profile
 
 * script to use grid processor to generate just one FITS spectrum
 
-Test resample techniques with real spectra.
-
 pyFFTW wisdom and planning flags (might not be necessary for grid creation, but for actual model, perhaps)
 
 Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
@@ -157,40 +155,115 @@ Likewise, if we think the model will be alpha enhanced, then we need to limit Z 
 
 * Need own LogLam spectrum object that is fast
 
-If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+## Sampling order designed in the lnprob directories/script
+
+There is a Sampler object, which has an emcee object instantiated for a lnprob but with the other parameters described
+by the args. Is it possible to pause a sample run and update the args? Yes, with some hacking.
+
+1. Fix up ModelInterpolator behavior, write documentation and test suite (DONE)
+2. Fix up ModelSpectrum behavior, Load spectrum, do vsini and instrument convolve properly, write documentation and test suite.
+3. Figure out downsample behavior, maybe it's a component of ModelSpectrum
+4. Implement Chebyshev comparions, including set_cheb methods
+
+--- might have to break here to redo creation of master HDF5 grid, or at least start dealing with Odyssey problems ---
+
+# Merge OOP back into Master branch.
+
+5. Try running Sampler by alternating between stellar parameters and cheb parameters
+6. Start implementing Covariance matrices
 
 
-### How to implement
-* multiple inheritance
-* composite objects
-* decorator pattern is good over multiple inheritance when you want to choose between optional behaviours
+Sampler object contains
 
-# lnprob
-
-* MCMC object could use a lnprob method or class, which takes a Model object and a Data object and compares the two
-* this could also implement priors depending on the type of model and parameter lists
-* fix parameters using dictionary keywords
-* what about certain model specific parameters, like Chebyshev coefficients
-
-### Data object
-* contains spectrum object, which also has masks and an error spectrum
-* photometry object
-* also a link to the specific instrument which created it
-
-### Model object
-* contains spectrum object
-* photometry object
-* instrument object? do we want to fit for FWHM or kernel? What about Gauss-Hermite polynomials?
-* this might require a link to the data to know exactly what wl and how many orders to downsample to
-* if no data is linked to, it just outputs the raw wl
-* can set degree of polynomial fits based to call to instrument. Does this also need a link to the instrument object?
-Or can it use the link through the data object.
-
-## A major problem is how to elegantly handle multiple length parameter lists
-* arises for grid, lnprob, model, etc...
+How to handle parameter lists?
 * could use **kwargs and then have a parameters.update() dictionary, only the parameters that are in the dictionary are
 fit for, otherwise there are default values for each function?
 * this looks like it will work well
+
+* Model object contains:
+
+    Objects of the following
+
+    * Data Object
+        * contains spectrum object, which also has masks and an error spectrum
+        * photometry object
+        * also a link to the specific instrument which created it?
+
+    * Model spectrum
+
+        * contains spectrum object
+        * photometry object
+        * instrument object? do we want to fit for FWHM or kernel? What about Gauss-Hermite polynomials?
+        * downsample to Data spectrum wls (when passed Data spectrum as argument, could also be part of a evaluate method)
+
+        * Contains a ModelInterpolator object that determines how to chunk model spectrum, returns only flux. Has stored a "raw_wl" object.
+
+    * Chebyshev coefficients
+        * set cheb functions
+
+    * Covariance matrix
+        * overall poisson noise set using DataObject.sigma
+        * instantiate regions
+        * Keep track of regions: make sure they do not overlap
+        * set individual regions? Do we want to Gibbs sample in just the individual regions?
+
+    And has methods for manipulating the comparison of all of these based upon what is fastest.
+
+
+    * Has stored a global lnprob reference for each of these sub-components and an evaluate function.
+
+There are outside (module level) lnprob functions that reference a model object and make comparisons with individual
+instance objects of it (for example, set chebyshev coefficients, evaluate).
+
+``evaluate`` function can also be a global level function that is essentially the same for all +/-
+priors for each of the parameters.
+
+Sets of parameters describing each of these
+And sampler objects that will sample them
+    * (Each of these could be derived from a sampler class. They all need an "update args" method,
+    a "run" method, and a pause method. The grand sampler needs specifications that it burns in between the first two,
+    etc, rotates between all of the other two, etc. Some easy way to specify this behavior, whether it be lists of
+    sample steps that are consumed or something else.
+A general Gibbs sampler that will alternate between all of them
+
+
+Drastically speed up the burn in by first sampling in the cheb components and FF, then vz and Av,
+ then vsini, and then resorting to the heavier stellar parameters.
+
+For some period of burn in, alternate between sampling
+
+* stellar parameters, including Poisson noise factor sigma_P
+* Chebyshev parameters
+
+
+THEN
+
+* Identify the pixel with the largest residual
+* Instantiate a region with mu = pixel (+/- 2 or 3 pixels), a, sigma in some range
+* We can have some priors on this region, ie, must remain w/in 5 AA of originally declared bad point. These priors
+ are updated on the general model
+* These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
+of them
+
+Open questions:
+
+* How many times should we add lines? Do you ever delete lines?
+* How do you find the next-highest pixel not already covered by a region?
+
+Code structures:
+
+* Are parameters always referred to by their dictionary name? "temp", "logg", "Z", "vsini", etc? How is this passed
+ between emcee ``p`` and the dict value? What about dropping out a value, such as Av?
+* If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+* how are chebyshev coefficients parsed? Are these sampled in **each order** individually? Ie, their own sampler? I
+think it might be cleaner to just do them all together.
+
+
+
+
+
+
+
 
 
 

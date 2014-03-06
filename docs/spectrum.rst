@@ -85,3 +85,9 @@ Fast spectrum objects
 =====================
 These spectra assume many properties of the data and are built for speedy comparions via :mod:`model`
 
+.. autoclass:: DataSpectrum
+   :members:
+
+
+.. autoclass:: ModelSpectrum
+   :members:

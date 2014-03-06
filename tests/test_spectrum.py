@@ -261,3 +261,24 @@ class TestLogLambdaSpectrum(TestBase1DSpectrum):
         from StellarSpectra.grid_tools import Reticon
         instrument = Reticon()
         self.spec.instrument_and_stellar_convolve(instrument, 10.)
+
+
+class TestDataSpectrum:
+
+    def test_init(self):
+        base_file = "/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux"
+        wls = np.load(base_file + ".wls.npy")
+        fls = np.load(base_file + ".fls.npy")
+        sigmas = np.load(base_file + ".sigmas.npy")
+        masks = np.load(base_file + ".masks.npy")
+        spec = DataSpectrum(wls, fls, sigmas, masks)
+        print(spec)
+
+    def test_open(self):
+        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux")
+        print(spec)
+
+    def test_orders(self):
+        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        print(spec)
+        assert spec.shape[0] == 3, "Order truncation didn't work properly."

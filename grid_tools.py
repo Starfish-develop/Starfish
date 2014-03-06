@@ -411,6 +411,7 @@ class HDF5Interface:
         self.bounds = {"temp": (min(temp),max(temp)), "logg": (min(logg), max(logg)), "Z": (min(Z), max(Z)),
         "alpha":(min(alpha),max(alpha))}
         self.points = {"temp": np.unique(temp), "logg": np.unique(logg), "Z": np.unique(Z), "alpha": np.unique(alpha)}
+        self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
 
     def load_file(self, parameters):
         '''load a spectrum from the grid and return it as a :obj:`model.LogLambdaSpectrum`.
@@ -434,6 +435,28 @@ class HDF5Interface:
         hdr.update(self.wl_header) #add the flux metadata to the wl data
 
         return LogLambdaSpectrum(self.wl, fl, metadata=hdr)
+
+    def load_flux(self, parameters):
+        '''
+        Load *just the flux* from the grid, with possibly a index truncation. This is a speed method designed for MCMC.
+
+        :param parameters: the stellar parameters
+        :type parameters: dict
+        :param ind: slice to load
+        :type ind: (int low, int high) 2-tuple
+
+        :raises KeyError: if spectrum is not found in the HDF5 file.
+        '''
+        key = self.flux_name.format(**parameters)
+        with h5py.File(self.filename, "r") as hdf5:
+            if self.ind is not None:
+                fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
+            else:
+                fl = hdf5['flux'][key][:]
+
+        #Note: will raise a KeyError if the file is not found.
+
+        return fl
 
 
 class IndexInterpolator:
@@ -590,6 +613,163 @@ class Interpolator:
             comb_metadata[hdr_key] = value
 
         return LogLambdaSpectrum(self.wl, np.sum(self.fluxes, axis=0), metadata=comb_metadata)
+
+
+class ModelInterpolator:
+    '''
+    Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
+    easier memory load.
+
+    :param interface: :obj:`HDF5Interface` (recommended) or :obj:`RawGridInterface` to load spectra
+    :param DataSpectrum: data spectrum that you are trying to fit. Used for truncating the synthetic spectra to the relevant region for speed.
+    :type DataSpectrum: :obj:`spectrum.DataSpectrum`
+    :param cache_max: maximum number of spectra to hold in cache
+    :type cache_max: int
+    :param cache_dump: how many spectra to purge from the cache once :attr:`cache_max` is reached
+    :type cache_dump: int
+
+    '''
+
+    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64):
+        self.interface = interface
+        self.DataSpectrum = DataSpectrum
+
+        #If alpha only includes one value, then do trilinear interpolation
+        (alow, ahigh) = self.interface.bounds['alpha']
+        if alow == ahigh:
+            self.parameters = grid_parameters - set("alpha")
+        else:
+            self.parameters = grid_parameters
+
+        self.wl = self.interface.wl
+        self._determine_chunk()
+
+        self.setup_index_interpolators()
+        self.cache = OrderedDict([])
+        self.cache_max = cache_max
+        self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
+
+
+    def _determine_chunk(self):
+        '''
+        Using the DataSpectrum, determine the minimum chunksize that we can use and then truncate the synthetic
+        wavelength grid and the returned spectra.
+        '''
+
+        wave_grid = self.interface.wl
+        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
+        #Length of the raw synthetic spectrum
+        len_wg = len(wave_grid)
+        ind_wg = np.arange(len_wg) #Labels of pixels
+        #Length of the data
+        len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #How much of the synthetic spectrum do we need?
+
+        #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
+        chunk = len_wg
+        assert chunk % 2 == 0, "spectrum is not a power of 2 to start!"
+        while chunk > len_data:
+            if chunk/2 > len_data:
+                chunk = chunk//2
+            else:
+                break
+
+        assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
+
+        if chunk < len_wg:
+            # Now that we have determined the length of the synthetic spectrum to take, determine exactly which part
+            # of the synthetic spectrum to grab
+            #Determine if the data region is closer to the start or end of the wave_grid
+            if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
+                #the data region is closer to the start
+                #find starting index
+                #start at index corresponding to wl_min and go chunk forward
+                start_ind = np.argwhere(wave_grid > wl_min)[0][0]
+                end_ind = start_ind + chunk
+                ind = (start_ind, end_ind)
+                #self.ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
+
+            else:
+                #the data region is closer to the finish
+                #start at index corresponding to wl_max and go chunk backward
+                end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
+                start_ind = end_ind - chunk
+                ind = (start_ind, end_ind)
+                #self.ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
+
+            self.wl = self.wl[ind[0]:ind[1]]
+            self.interface.ind = ind
+        else:
+            self.interface.ind = None
+        print("Set interface.ind to ", self.interface.ind)
+
+
+    def __call__(self, parameters):
+        '''
+        Interpolate a spectrum
+
+        :param parameters: stellar parameters
+        :type parameters: dict
+
+        Automatically pops :attr:`cache_dump` items from cache if full.
+        '''
+        if len(self.cache) > self.cache_max:
+            [self.cache.popitem(False) for i in range(self.cache_dump)]
+            self.cache_counter = 0
+        return self.interpolate(parameters)
+
+    def setup_index_interpolators(self):
+        #create an interpolator between grid points indices. Given a temp, produce fractional index between two points
+        self.index_interpolators = {key:IndexInterpolator(self.interface.points[key]) for key in self.parameters}
+
+        lenF = self.interface.ind[1] - self.interface.ind[0]
+        self.fluxes = np.empty((2**len(self.parameters), lenF))
+
+    def interpolate(self, parameters):
+        '''
+        Interpolate a spectrum without clearing cache. Recommended to use :meth:`__call__` instead.
+
+        :param parameters: stellar parameters
+        :type parameters: dict
+        :raises InterpolationError: if parameters are out of bounds.
+        '''
+
+        try:
+            edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+        except InterpolationError as e:
+            raise InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
+
+        #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
+        names = [key for key in edges.keys()]
+        params = [edges[key][0] for key in names]
+        weights = [edges[key][1] for key in names]
+
+        param_combos = itertools.product(*params)
+        weight_combos = itertools.product(*weights)
+
+        parameter_list = [dict(zip(names, param)) for param in param_combos]
+        if "alpha" not in parameters.keys():
+            [param.update({"alpha":var_default["alpha"]}) for param in parameter_list]
+        key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
+        weight_list = np.array([np.prod(weight) for weight in weight_combos])
+        #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
+
+        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
+
+        #Assemble flux vector from cache
+        for i,param in enumerate(parameter_list):
+            key = key_list[i]
+            if key not in self.cache.keys():
+                try:
+                    fl = self.interface.load_flux(param) #This method allows loading only the relevant region from HDF5
+                except KeyError as e:
+                    raise InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
+                self.cache[key] = fl
+                #Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
+            self.fluxes[i,:] = self.cache[key]*weight_list[i]
+
+        return np.sum(self.fluxes, axis=0)
+
+
 
 Kurucz_points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5), "Z":np.arange(-0.5, 0.6, 0.5)}
 

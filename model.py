@@ -30,15 +30,7 @@ def load_config():
         import StellarSpectra #this triggers the __init__.py code
         config = StellarSpectra.default_config
 
-#class ModelSpectrum(LogLambdaSpectrum):
-#    '''Specifically designed to match the shape of the data.'''
-#
-#    wl = None #This wl is a "static" variable. Or, does it make sense because there will only be one model per
-#    #process, to just keep updating the flux and wl? Rather than forcing one.
-#
-#    def __init__(self, wl, fl, dataSpectrum, fl_type="flam"):
-#        super().__init__(wl, fl, fl_type)
-#        self.dataSpectrum = dataSpectrum
+
 
 #grids = {"PHOENIX": {'T_points': np.array(
 #    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,
