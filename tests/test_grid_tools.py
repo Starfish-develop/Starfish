@@ -141,6 +141,14 @@ class TestHDF5Interface:
             self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
         print(e.value)
 
+    def test_load_flux(self):
+        fl = self.interface.load_flux({"temp":5100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        #Try loading just a subset
+        self.interface.ind = (10, 20)
+        fl = self.interface.load_flux({"temp":5100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+        assert len(fl) == 10, "Flux truncation didn't work."
+
+
 
 class TestIndexInterpolator:
     def setup_class(self):
@@ -228,6 +236,80 @@ class TestInterpolator:
 
 #What about the weird case of interpolating in alpha, but when the grid is irregular? I think this situation
 #would have to be specified by fixing alpha in the lnprob and only using the alpha=0 grid.
+
+class TestModelInterpolator:
+    def setup_class(self):
+    #It is necessary to use a piece of data created on the super computer so we can test interpolation in 4D
+        self.hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+    #libraries/PHOENIX_submaster.hd5 should have the following bounds
+    #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(0.0,0.4)}
+        from StellarSpectra.spectrum import DataSpectrum
+        self.DataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21, 22, 23]))
+
+        #TODO: test DataSpectrum with different number of orders, and see how it is truncated.
+
+        self.interpolator = ModelInterpolator(self.hdf5interface, self.DataSpectrum, cache_max=20, cache_dump=10)
+
+    def test_quadlinear(self):
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1, "alpha":0.1}
+        self.interpolator(parameters)
+
+        #Use IPython and  %timeit -n1 -r1 mytest.interpolator({"temp":6010, "logg":5.1, "Z":-0.1, "alpha":-0.1})
+        #all uncached performance is 3.89 seconds
+        #1/2 uncached performance is 2.37 seconds
+        #Caching all of the values, preformance is 226 ms
+
+    def test_trilinear(self):
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        hdf5interface.bounds['alpha'] = (0.,0.) #manually set alpha range to 0
+        interpolator = Interpolator(hdf5interface)
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1}
+        interpolator(parameters)
+
+    def test_interpolate_bounds(self):
+        with pytest.raises(InterpolationError) as e:
+            parameters = {"temp":5010, "logg":4.6, "Z":-0.1, "alpha":0.1}
+            new_flux = self.interpolator(parameters)
+        print(e.value)
+
+    def test_cache_similar(self):
+        temp = np.random.uniform(6000, 6100, size=3)
+        logg = np.random.uniform(3.5, 4.0, size=3)
+        Z = np.random.uniform(-0.5, 0.0, size=2)
+        alpha = np.random.uniform(0.0, 0.2, size=2)
+        names = ["temp", "logg", "Z", "alpha"]
+        param_list = [dict(zip(names,param)) for param in itertools.product(temp, logg, Z, alpha)]
+        for param in param_list:
+            print("Cache length", len(self.interpolator.cache))
+            self.interpolator(param)
+
+    def test_cache_purge(self):
+        #create a random scattering of possible values, spread throughout a grid cell
+        temp = np.random.uniform(6000, 7000, size=3)
+        logg = np.random.uniform(3.5, 5.5, size=3)
+        Z = np.random.uniform(-1.0, 0.0, size=3)
+        alpha = np.random.uniform(0.0, 0.4, size=3)
+        names = ["temp", "logg", "Z", "alpha"]
+        param_list = [dict(zip(names,param)) for param in itertools.product(temp, logg, Z, alpha)]
+        #wait for the cache to purge
+        for param in param_list:
+            print("Cache length", len(self.interpolator.cache))
+            self.interpolator(param)
+
+    def test_interpolation_quality(self):
+        '''
+        Interpolate at the grid bounds and do a numpy.allclose() to see if the spectra match the grid edges
+        '''
+        #Compare to spectra loaded directly from self.hdf5interface
+        parameters = {"temp":6000, "logg":4.5, "Z":0.0, "alpha":0.0}
+        intp_flux = self.interpolator(parameters)
+        raw_flux = self.hdf5interface.load_flux(parameters)
+        assert np.allclose(intp_flux, raw_flux)
+
+    def test_index_truncate(self):
+        parameters = {"temp":6000, "logg":4.5, "Z":0.0, "alpha":0.0}
+        intp_flux = self.interpolator(parameters)
+        assert len(intp_flux) % 2 == 0, "flux is not power of 2 in length"
 
 
 class TestInstrument:

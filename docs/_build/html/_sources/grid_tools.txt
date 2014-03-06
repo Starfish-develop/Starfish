@@ -154,6 +154,10 @@ The interpolators are used to create spectra in between grid points, for example
 .. autoclass:: Interpolator
    :members: __call__
 
+.. autoclass:: ModelInterpolator
+   :members:
+   :special-members: __call__
+
 For example, if we would like to generate a spectrum with the aforementioned parameters, we would do
 
 .. code-block:: python

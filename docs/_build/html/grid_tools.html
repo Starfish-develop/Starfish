@@ -61,14 +61,6 @@ that may be used in the modeling package <a class="reference internal" href="mod
 <h2>Module level methods<a class="headerlink" href="#module-level-methods" title="Permalink to this headline">¶</a></h2>
 <p>These methods are meant to be used for low-level access to spectral libraries. Generally there is no error checking.</p>
 <span class="target" id="module-grid_tools"></span><dl class="function">
-<dt id="grid_tools.resample_and_convolve">
-<tt class="descclassname">grid_tools.</tt><tt class="descname">resample_and_convolve</tt><big>(</big><em>f</em>, <em>wg_raw</em>, <em>wg_fine</em>, <em>wg_coarse</em>, <em>wg_fine_d=0.35</em>, <em>sigma=2.89</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#resample_and_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.resample_and_convolve" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take a full-resolution PHOENIX model spectrum <cite>f</cite>, with raw spacing wg_raw, resample it to wg_fine
-(done because the original grid is not log-linear spaced), instrumentally broaden it in the Fourier domain,
-then resample it to wg_coarse. sigma in km/s.</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="grid_tools.load_flux_full">
 <tt class="descclassname">grid_tools.</tt><tt class="descname">load_flux_full</tt><big>(</big><em>temp</em>, <em>logg</em>, <em>Z</em>, <em>alpha=None</em>, <em>norm=False</em>, <em>vsini=0</em>, <em>grid='PHOENIX'</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#load_flux_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.load_flux_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to C.F_sun if desired.</p>
@@ -184,7 +176,7 @@ Currently there are extensions for three main grids:</p>
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-1ca6751f69917b4b7d6b2578089c762aef41b52b.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-169637c68413638052741b36e4cffdd516690297.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
@@ -337,7 +329,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <p>The <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -455,6 +447,28 @@ HDF5 file.</p>
 </div>
 </dd></dl>
 
+<dl class="method">
+<dt id="grid_tools.HDF5Interface.load_flux">
+<tt class="descname">load_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5Interface.load_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5Interface.load_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load <em>just the flux</em> from the grid, with possibly a index truncation. This is a speed method designed for MCMC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>parameters</strong> (<em>dict</em>) &#8211; the stellar parameters</li>
+<li><strong>ind</strong> (<em>(int low, int high) 2-tuple</em>) &#8211; slice to load</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises KeyError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">if spectrum is not found in the HDF5 file.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p>For example, to load a file from our HDF5 grid</p>
@@ -537,6 +551,59 @@ It is able to cache spectra for easier memory load.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="grid_tools.ModelInterpolator">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">ModelInterpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
+easier memory load.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>interface</strong> &#8211; <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> (recommended) or <a class="reference internal" href="#grid_tools.RawGridInterface" title="grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a> to load spectra</li>
+<li><strong>DataSpectrum</strong> (<a class="reference internal" href="spectrum.html#spectrum.DataSpectrum" title="spectrum.DataSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt></a>) &#8211; data spectrum that you are trying to fit. Used for truncating the synthetic spectra to the relevant region for speed.</li>
+<li><strong>cache_max</strong> (<em>int</em>) &#8211; maximum number of spectra to hold in cache</li>
+<li><strong>cache_dump</strong> (<em>int</em>) &#8211; how many spectra to purge from the cache once <tt class="xref py py-attr docutils literal"><span class="pre">cache_max</span></tt> is reached</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="grid_tools.ModelInterpolator.__call__">
+<tt class="descname">__call__</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate a spectrum</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
+</tr>
+</tbody>
+</table>
+<p>Automatically pops <tt class="xref py py-attr docutils literal"><span class="pre">cache_dump</span></tt> items from cache if full.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="grid_tools.ModelInterpolator.interpolate">
+<tt class="descname">interpolate</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator.interpolate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator.interpolate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate a spectrum without clearing cache. Recommended to use <a class="reference internal" href="#grid_tools.ModelInterpolator.__call__" title="grid_tools.ModelInterpolator.__call__"><tt class="xref py py-meth docutils literal"><span class="pre">__call__()</span></tt></a> instead.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises InterpolationError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if parameters are out of bounds.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <p>For example, if we would like to generate a spectrum with the aforementioned parameters, we would do</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">Interpolator</span><span class="p">(</span><span class="n">myHDF5</span><span class="p">)</span>
 <span class="n">spec</span> <span class="o">=</span> <span class="n">myInterpolator</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">6114</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">4.34</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span> <span class="mf">0.12</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.1</span><span class="p">})</span>
@@ -550,7 +617,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-c8b4301d718f87b47cf59ddc5f2c4e8cc7a1dc80.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-06ad7b4241d716267b4d481863c9141bf860912c.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
@@ -619,7 +686,7 @@ convolve raw spectra by the instrumental profile.</p>
 will create a FITS file storing a spectrum.</p>
 <dl class="class">
 <dt id="grid_tools.MasterToFITSProcessor">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSProcessor</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSProcessor</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>integrate=False</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create one or many FITS files from a master HDF5 grid.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -660,7 +727,7 @@ will create a FITS file storing a spectrum.</p>
 <dl class="method">
 <dt id="grid_tools.MasterToFITSProcessor.process_spectrum">
 <tt class="descname">process_spectrum</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor.process_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor.process_spectrum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a FITS file with given parameters</p>
+<dd><p>Creates a FITS file with given parameters (not including <em>vsini</em>).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

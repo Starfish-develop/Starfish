@@ -461,77 +461,264 @@ def plot_spectrum(spec, filename, wl_range=None):
     plt.close('all')
 
 
+class DataSpectrum:
+    '''
+    Object to manipulate the data spectrum.
 
-class DataSpectrum(BaseSpectrum):
-    def __init__(self, wl, fl, sigma, mask=None, unit="f_lam"):
-        super().__init__(wl, fl, unit)
-        self.sigma = sigma
+    :param wls: wavelength (in AA)
+    :type wls: 1D or 2D np.array
+    :param fls: flux (in f_lam)
+    :type fls: 1D or 2D np.array
+    :param sigmas: Poisson noise (in f_lam)
+    :type sigmas: 1D or 2D np.array
+    :param masks: Mask to blot out bad pixels or emission regions.
+    :type masks: 1D or 2D np.array of boolean values
 
-        if mask is None:
-            self.mask = np.ones_like(self.wl, dtype='bool') #create mask of all True
-        else:
-            self.mask = mask
+    If the wl, fl, are provided as 1D arrays (say for a single order), they will be converted to 2D arrays with length 1
+    in the 0-axis.
 
-        assert self.sigma.shape == self.shape, "sigma array incompatible shape."
-        assert self.mask.shape == self.shape, "mask array incompatible shape."
+    .. note::
 
-        #
-        #class VelocitySpectrum:
-        #    '''
-        #    Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
-        #    '''
-        #    def __init__(self, wl, fl, unit="f_lam", air=True, vel=0.0, metadata=None):
-        #        #TODO: convert unit to use astropy units for later conversions
-        #        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
-        #        self.wl_raw = wl
-        #        self.fl = fl
-        #        self.unit = unit
-        #        self.air = air
-        #        self.velocity = vel #creates self.wl_vel
-        #        self.metadata = {} if metadata is None else metadata
-        #
-        #    def convert_units(self):
-        #        raise NotImplementedError
-        #
-        #    #Set air as a property which will update self.c it uses to calculate velocities
-        #    @property
-        #    def air(self):
-        #        return self._air
-        #
-        #    @air.setter
-        #    def air(self, air):
-        #        #TODO: rewrite this to be more specific about which c
-        #        assert type(air) == type(True)
-        #        self._air = air
-        #        if self.air:
-        #            self.c = C.c_kms_air
-        #        else:
-        #            self.c = C.c_kms
-        #
-        #    @property
-        #    def velocity(self):
-        #        return self._velocity
-        #
-        #    @velocity.setter
-        #    def velocity(self, vz):
-        #        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
-        #        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
-        #        self._velocity = vz
-        #
-        #    def add_metadata(self, keyVal):
-        #        key, val = keyVal
-        #        if key in self.metadata.keys():
-        #            self.metadata[key]+= val
-        #        else:
-        #            self.metadata[key] = val
-        #
-        #    def save(self,name):
-        #        obj = np.array((self.wl_vel, self.fl))
-        #        np.save(name, obj)
-        #
-        #
-        #    def __str__(self):
-        #        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
-        #
-        #    def copy(self):
-        #        return copy.copy(self)
+       For now, the DataSpectrum wls, fls, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.
+
+    '''
+    def __init__(self, wls, fls, sigmas, masks=None, orders='all'):
+        self.wls = np.atleast_2d(wls)
+        self.fls = np.atleast_2d(fls)
+        self.sigmas = np.atleast_2d(sigmas)
+        self.masks = np.atleast_2d(masks) if masks is not None else np.ones_like(self.wls, dtype='b')
+
+        self.shape = self.wls.shape
+        assert self.fls.shape == self.shape, "flux array incompatible shape."
+        assert self.sigmas.shape == self.shape, "sigma array incompatible shape."
+        assert self.masks.shape == self.shape, "mask array incompatible shape."
+
+        if orders != 'all':
+            assert type(orders) == np.ndarray and len(orders.shape) == 1, "orders must be a 1D numpy array"
+            self.wls = self.wls[orders]
+            self.fls = self.fls[orders]
+            self.sigmas = self.sigmas[orders]
+            self.masks = self.masks[orders]
+            self.shape = self.wls.shape
+
+    @classmethod
+    def open(cls, base_file, orders='all'):
+        '''
+        Load a spectrum from a directory link pointing to output from EchelleTools processing.
+
+        :param base_file: base path name to be appended with ".wls.npy", ".fls.npy", ".sigmas.npy", and ".masks.npy" to load files from disk.
+        :type base_file: string
+        :returns: DataSpectrum
+        :param orders: Which orders should we be fitting?
+        :type orders: np.array of indexes
+
+        '''
+        wls = np.load(base_file + ".wls.npy")
+        fls = np.load(base_file + ".fls.npy")
+        sigmas = np.load(base_file + ".sigmas.npy")
+        masks = np.load(base_file + ".masks.npy")
+        return cls(wls, fls, sigmas, masks, orders)
+
+    def __str__(self):
+        return "DataSpectrum object with shape {}".format(self.shape)
+
+
+class ModelSpectrum:
+    '''
+    A 1D synthetic spectrum.
+
+    :param interpolator: object to query stellar parameters
+    :type interpolator: :obj:`grid_tools.ModelInterpolator`
+    :param instrument: Which instrument is this a model for?
+    :type instrument: :obj:`grid_tools.Instrument` object describing wavelength range and instrumental profile
+
+    We essentially want to preserve two capabilities.
+
+    1. Sample in all "stellar parameters" at once
+    2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
+
+    '''
+    def __init__(self, interpolator, instrument, DataSpectrum):
+        self.interpolator = interpolator
+        #Set raw_wl from wl stored with interpolator
+        self.wl_raw = self.interpolator.wl
+        self.instrument = instrument
+        self.DataSpectrum = DataSpectrum #so that we can downsample to the same wls
+
+        #grid_params, vsini=0, vz=0, Av=0, ff=1):
+        #self.grid_params = grid_params
+        #self.vsini = vsini
+        #self.vz = vz
+        #self.Av = Av
+        #self.ff = ff
+        #self.update_all(self.grid_params, self.vsini, self.vz, self.Av, self.ff)
+
+        #Grab chunk from the ModelInterpolator object
+        chunk = len(self.wl_raw)
+        assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
+
+        self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
+        self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+                                  direction='FFTW_BACKWARD')
+
+    def update_ff(self, ff):
+        '''
+        Update the 'flux factor' parameter, :math:`R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
+
+        :param ff: 'flux factor' parameter, :math:`R^2/d^2`
+        :type ff: float
+
+        '''
+        #factor by which to correct from old ff?
+        self.fl *= ff/self.ff
+        self.ff = ff
+
+    def update_vz(self, vz):
+        '''
+        Update the radial velocity parameter.
+
+        :param vz: The radial velocity parameter. Positive means redshift and negative means blueshift.
+        :type vz: float (km/s)
+
+        '''
+        #How far to shift based from old vz?
+        vz_shift = self.vz - vz
+        self.wl = self.wl_raw * np.sqrt((C.c_kms + vz_shift) / (self.c_kms - vz_shift))
+        self.vz = vz
+
+    def update_Av(self, Av):
+        #How far to multiply based from old Av?
+        Av_shift = self.Av - Av
+        raise NotImplementedError
+        self.fl /= deredden(self.wl, Av, mags=False)
+        self.Av = Av
+
+    def _update_grid_params(self, grid_params):
+        '''
+        Private method to update just those stellar parameters. Designed to be used as part of update_all.
+
+        :param grid_params: grid parameters
+        :type grid_params: dict
+
+        '''
+        self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
+        self.grid_params.update(grid_params)
+
+    def _update_vsini_and_instrument(self, vsini):
+        '''
+        Private method to update just the vsini and instrumental kernel. Designed to be used as part of update_all
+        *after* the grid_params have been updated.
+
+        :param vsini: projected stellar rotation velocity
+        :type vsini: float (km/s)
+
+        '''
+
+
+        self.influx[:] = self.fl
+        self.fft_object()
+
+        ss = rfftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
+        ss[0] = 0.01 #junk so we don't get a divide by zero error
+        ub = 2. * np.pi * vsini * ss
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+
+        raise NotImplementedError("fix ss[0] treatment for Instrument convolve.")
+
+        sigma = self.instrument.FWHM / 2.35 # in km/s
+
+        #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
+
+        #institute velocity and instrumental taper
+        self.FF *= sb * taper
+
+        #do ifft
+        self.ifft_object()
+        self.fl[:] = self.outflux
+
+
+
+    def update_all(self, stellar_params, vsini, vz, Av, ff):
+        #First set stellar parameters using _update_grid_params
+        #Then vsini and instrument using _update_vsini
+
+        #Then ff and Av using update_ff and update_Av
+
+        self.fl_raw = self.interpolator(self.stellar_params) #Query the interpolator with the new stellar combination
+        self.stellar_params.update(stellar_params)
+        #Now redo the ff, Av, vsini and instrumental effects
+
+        #Would we ever want a stellar parameter spectrum that hasn't been convolved/ff'ed like this?
+        raise NotImplementedError
+
+
+    def update_all(self, stellar_params, vsini, vz, Av, ff):
+        pass
+
+
+
+#class VelocitySpectrum:
+#    '''
+#    Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
+#    '''
+#    def __init__(self, wl, fl, unit="f_lam", air=True, vel=0.0, metadata=None):
+#        #TODO: convert unit to use astropy units for later conversions
+#        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
+#        self.wl_raw = wl
+#        self.fl = fl
+#        self.unit = unit
+#        self.air = air
+#        self.velocity = vel #creates self.wl_vel
+#        self.metadata = {} if metadata is None else metadata
+#
+#    def convert_units(self):
+#        raise NotImplementedError
+#
+#    #Set air as a property which will update self.c it uses to calculate velocities
+#    @property
+#    def air(self):
+#        return self._air
+#
+#    @air.setter
+#    def air(self, air):
+#        #TODO: rewrite this to be more specific about which c
+#        assert type(air) == type(True)
+#        self._air = air
+#        if self.air:
+#            self.c = C.c_kms_air
+#        else:
+#            self.c = C.c_kms
+#
+#    @property
+#    def velocity(self):
+#        return self._velocity
+#
+#    @velocity.setter
+#    def velocity(self, vz):
+#        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
+#        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
+#        self._velocity = vz
+#
+#    def add_metadata(self, keyVal):
+#        key, val = keyVal
+#        if key in self.metadata.keys():
+#            self.metadata[key]+= val
+#        else:
+#            self.metadata[key] = val
+#
+#    def save(self,name):
+#        obj = np.array((self.wl_vel, self.fl))
+#        np.save(name, obj)
+#
+#
+#    def __str__(self):
+#        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
+#
+#    def copy(self):
+#        return copy.copy(self)
