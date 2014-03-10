@@ -49,13 +49,17 @@
             
   <h1>Source code for spectrum</h1><div class="highlight"><pre>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.polynomial</span> <span class="kn">import</span> <span class="n">Chebyshev</span> <span class="k">as</span> <span class="n">Ch</span>
 <span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">InterpolatedUnivariateSpline</span>
 <span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">j1</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="kn">as</span> <span class="nn">sp</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">spsolve</span>
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">pyfftw</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">StellarSpectra.constants</span> <span class="kn">as</span> <span class="nn">C</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+
 
 <span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
 <span class="n">flux_units</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;f_nu&quot;</span><span class="p">))</span>
@@ -578,7 +582,7 @@
 <span class="sd">    A 1D synthetic spectrum.</span>
 
 <span class="sd">    :param interpolator: object to query stellar parameters</span>
-<span class="sd">    :type interpolator: :obj:`grid_tools.Model_Interpolator`</span>
+<span class="sd">    :type interpolator: :obj:`grid_tools.ModelInterpolator`</span>
 <span class="sd">    :param instrument: Which instrument is this a model for?</span>
 <span class="sd">    :type instrument: :obj:`grid_tools.Instrument` object describing wavelength range and instrumental profile</span>
 
@@ -588,21 +592,24 @@
 <span class="sd">    2. Sample in only the easy &quot;post-processing&quot; parameters, like ff and v_z to speed the burn-in process.</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolator</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolator</span><span class="p">,</span> <span class="n">instrument</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span> <span class="o">=</span> <span class="n">interpolator</span>
         <span class="c">#Set raw_wl from wl stored with interpolator</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">wl</span> <span class="c">#Has already been truncated thanks to initialization of ModelInterpolator</span>
+        <span class="n">CDELT1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">wl_dict</span><span class="p">[</span><span class="s">&quot;CDELT1&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_v</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">CDELT1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrument</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span> <span class="c">#so that we can downsample to the same wls</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="c">#so that we can downsample to the same wls</span>
 
-        <span class="c">#grid_params, vsini=0, vz=0, Av=0, ff=1):</span>
-        <span class="c">#self.grid_params = grid_params</span>
-        <span class="c">#self.vsini = vsini</span>
-        <span class="c">#self.vz = vz</span>
-        <span class="c">#self.Av = Av</span>
-        <span class="c">#self.ff = ff</span>
-        <span class="c">#self.update_all(self.grid_params, self.vsini, self.vz, self.Av, self.ff)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsampled_fls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Omega</span> <span class="o">=</span> <span class="mi">1</span>
 
+        <span class="c">#Grab chunk from the ModelInterpolator object</span>
         <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">chunk</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&quot;Chunk is not a power of 2. FFT will be too slow.&quot;</span>
 
@@ -613,17 +620,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ifft_object</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FF</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outflux</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;FFTW_ESTIMATE&#39;</span><span class="p">,</span> <span class="s">&#39;FFTW_DESTROY_INPUT&#39;</span><span class="p">),</span>
                                   <span class="n">direction</span><span class="o">=</span><span class="s">&#39;FFTW_BACKWARD&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ModelSpectrum.update_ff"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_ff">[docs]</a>    <span class="k">def</span> <span class="nf">update_ff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ff</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Update the &#39;flux factor&#39; parameter, :math:`R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.</span>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Model Spectrum for Instrument {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-<span class="sd">        :param ff: &#39;flux factor&#39; parameter, :math:`R^2/d^2`</span>
-<span class="sd">        :type ff: float</span>
+<div class="viewcode-block" id="ModelSpectrum.update_Omega"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_Omega">[docs]</a>    <span class="k">def</span> <span class="nf">update_Omega</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Omega</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Update the &#39;flux factor&#39; parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.</span>
+
+<span class="sd">        :param Omega: &#39;flux factor&#39; parameter, :math:`\Omega = R^2/d^2`</span>
+<span class="sd">        :type Omega: float</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="c">#factor by which to correct from old ff?</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*=</span> <span class="n">ff</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ff</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ff</span> <span class="o">=</span> <span class="n">ff</span>
+        <span class="c">#factor by which to correct from old Omega</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*=</span> <span class="n">Omega</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Omega</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Omega</span> <span class="o">=</span> <span class="n">Omega</span>
 </div>
 <div class="viewcode-block" id="ModelSpectrum.update_vz"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_vz">[docs]</a>    <span class="k">def</span> <span class="nf">update_vz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vz</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -635,16 +645,24 @@
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#How far to shift based from old vz?</span>
         <span class="n">vz_shift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">-</span> <span class="n">vz</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">+</span> <span class="n">vz_shift</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">-</span> <span class="n">vz_shift</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">+</span> <span class="n">vz_shift</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">-</span> <span class="n">vz_shift</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">=</span> <span class="n">vz</span>
 </div>
-    <span class="k">def</span> <span class="nf">update_Av</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Av</span><span class="p">):</span>
-        <span class="c">#How far to multiply based from old Av?</span>
-        <span class="n">Av_shift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">-</span> <span class="n">Av</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">/=</span> <span class="n">deredden</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="n">Av</span><span class="p">,</span> <span class="n">mags</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">=</span> <span class="n">Av</span>
+<div class="viewcode-block" id="ModelSpectrum.update_Av"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_Av">[docs]</a>    <span class="k">def</span> <span class="nf">update_Av</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Av</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Update the extinction parameter.</span>
 
+<span class="sd">        :param Av: The optical extinction parameter.</span>
+<span class="sd">        :type Av: float (magnitudes)</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+
+        <span class="c">#Av_shift = self.Av - Av</span>
+        <span class="c">#self.fl /= deredden(self.wl, Av, mags=False)</span>
+        <span class="c">#self.Av = Av</span>
+</div>
     <span class="k">def</span> <span class="nf">_update_grid_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid_params</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Private method to update just those stellar parameters. Designed to be used as part of update_all.</span>
@@ -665,24 +683,23 @@
 <span class="sd">        :type vsini: float (km/s)</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">vsini</span> <span class="o">=</span> <span class="n">vsini</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fft_object</span><span class="p">()</span>
 
-        <span class="n">ss</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_vc</span> <span class="o">*</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms_air</span><span class="p">)</span>
-        <span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c">#junk so we don&#39;t get a divide by zero error</span>
-        <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">vsini</span> <span class="o">*</span> <span class="n">ss</span>
-        <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
-        <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
-
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;fix ss[0] treatment for Instrument convolve.&quot;</span><span class="p">)</span>
-
         <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">FWHM</span> <span class="o">/</span> <span class="mf">2.35</span> <span class="c"># in km/s</span>
 
         <span class="c">#Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space</span>
-        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">taper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c">#Determine the stellar broadening kernel</span>
+        <span class="n">ub</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vsini</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span>
+        <span class="n">sb</span> <span class="o">=</span> <span class="n">j1</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="n">ub</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ub</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ub</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="c">#set zeroth frequency to 1 separately (DC term)</span>
+        <span class="n">sb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">taper</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
 
         <span class="c">#institute velocity and instrumental taper</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">FF</span> <span class="o">*=</span> <span class="n">sb</span> <span class="o">*</span> <span class="n">taper</span>
@@ -692,23 +709,167 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outflux</span>
 
 
+<div class="viewcode-block" id="ModelSpectrum.update_all"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_all">[docs]</a>    <span class="k">def</span> <span class="nf">update_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Update all of the stellar parameters</span>
 
-    <span class="k">def</span> <span class="nf">update_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stellar_params</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">vz</span><span class="p">,</span> <span class="n">Av</span><span class="p">,</span> <span class="n">ff</span><span class="p">):</span>
+<span class="sd">        Give parameters as a dict and choose the params to update.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#First set stellar parameters using _update_grid_params</span>
+        <span class="n">grid_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_grid_params</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span>
+
         <span class="c">#Then vsini and instrument using _update_vsini</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_vsini_and_instrument</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;vsini&#39;</span><span class="p">])</span>
 
-        <span class="c">#Then ff and Av using update_ff and update_Av</span>
+        <span class="c">#Then vz, ff, and Av using public methods</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_vz</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;vz&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_Omega</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;Omega&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_Av</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;Av&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="ModelSpectrum.downsample"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.downsample">[docs]</a>    <span class="k">def</span> <span class="nf">downsample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">fl_raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span><span class="p">)</span> <span class="c">#Query the interpolator with the new stellar combination</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stellar_params</span><span class="p">)</span>
-        <span class="c">#Now redo the ff, Av, vsini and instrumental effects</span>
+<span class="sd">        :returns fls: the downsampled fluxes that has the same shape as DataSpectrum.fls</span>
+<span class="sd">        &#39;&#39;&#39;</span>
 
-        <span class="c">#Would we ever want a stellar parameter spectrum that hasn&#39;t been convolved/ff&#39;ed like this?</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="c">#Check to make sure that the grid is within self.wl range, because a spline will not naturally raise an error!</span>
+        <span class="n">wls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">wls</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="n">wls</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;New grid ({:.2f},{:.2f}) must fit within the range of self.wl ({:.2f},&quot;</span>
+                             <span class="s">&quot;{:.2f})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">wls</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">wls</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)))</span>
+
+        <span class="n">interp</span> <span class="o">=</span> <span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsampled_fls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">interp</span><span class="p">(</span><span class="n">wls</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">del</span> <span class="n">interp</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</div></div>
+<span class="k">class</span> <span class="nc">ChebyshevSpectrum</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A DataSpectrum-like object which multiplies downsampled fls to account for imperfect flux calibration issues.</span>
+
+<span class="sd">    :param DataSpectrum: take shape from.</span>
+<span class="sd">    :type DataSpectrum: :obj:`DataSpectrum` object</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">npoly</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">len_wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">len_wl</span><span class="p">)</span>
+        <span class="n">T0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Ch1</span> <span class="o">=</span> <span class="n">Ch</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">len_wl</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">T1</span> <span class="o">=</span> <span class="n">Ch1</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Ch2</span> <span class="o">=</span> <span class="n">Ch</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">len_wl</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">T2</span> <span class="o">=</span> <span class="n">Ch2</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">Ch3</span> <span class="o">=</span> <span class="n">Ch</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">len_wl</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">T3</span> <span class="o">=</span> <span class="n">Ch3</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npoly</span> <span class="o">=</span> <span class="n">npoly</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">npoly</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s">&quot;Only handling order 4 Chebyshev for now.&quot;</span>
+
+        <span class="c">#Dummy holders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npoly</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c">#self.TT = np.einsum(&quot;in,jn-&gt;ijn&quot;, T, T)</span>
+
+        <span class="c">##Priors</span>
+        <span class="c">##    mu = np.array([0, 0, 0])</span>
+        <span class="c">##    D = sigmac ** (-2) * np.eye(3)</span>
+        <span class="c">##    Dmu = np.einsum(&quot;ij,j-&gt;j&quot;, D, mu)</span>
+        <span class="c">##    muDmu = np.einsum(&quot;j,j-&gt;&quot;, mu, Dmu)</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coefs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c"># reshape to (norders, self.npoly)</span>
+        <span class="n">coefs_arr</span> <span class="o">=</span> <span class="n">coefs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="c">#length norders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cns</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="c">#shape (norders, self.npoly - 1)</span>
+        <span class="c">#print(&quot;c0s.shape&quot;, c0s.shape)</span>
+        <span class="c">#print(&quot;cns.shape&quot;, cns.shape)</span>
+
+        <span class="c">#If any c0s are less than 0, return -np.inf</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="c">#now create polynomials for each order, and multiply through fls</span>
+        <span class="n">Tc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s">&quot;jk,ij-&gt;ik&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cns</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s">&quot;i,ij-&gt;ij&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">Tc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
 
 
-    <span class="k">def</span> <span class="nf">update_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stellar_params</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">vz</span><span class="p">,</span> <span class="n">Av</span><span class="p">,</span> <span class="n">ff</span><span class="p">):</span>
-        <span class="k">pass</span>
+<span class="k">class</span> <span class="nc">CovarianceMatrix</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Non-trivial covariance matrices (one for each order) for correlated noise.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c">#Because sparse matrices only come in 2D, we have a list of sparse matrices.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span> <span class="o">=</span> <span class="p">[</span><span class="n">sp</span><span class="o">.</span><span class="n">diags</span><span class="p">([</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;csc&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">sigma</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">sigmas</span><span class="p">]</span>
+
+
+    <span class="k">def</span> <span class="nf">gauss_func</span><span class="p">(</span><span class="n">x0i</span><span class="p">,</span> <span class="n">x1i</span><span class="p">,</span> <span class="n">x0v</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x1v</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">x0v</span><span class="p">[</span><span class="n">x0i</span><span class="p">]</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">x1v</span><span class="p">[</span><span class="n">x1i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">amp</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">x0</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">Cregion</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Create a sparse covariance matrix using identity and block_diagonal&#39;&#39;&#39;</span>
+        <span class="c">#In the region of the Gaussian, the matrix will be dense, so just create it as `fromfunction`</span>
+        <span class="c">#and then later turn it into a sparse matrix with size xs x xs</span>
+
+        <span class="c">#Given mu, and the extent of sigma, estimate the data points that are above, in Gaussian, and below</span>
+        <span class="n">n_above</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xs</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">mu</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span>
+        <span class="n">n_below</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xs</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span>
+
+        <span class="c">#Create dense matrix and indexes, then convert to lists so that you can pack things in as:</span>
+
+        <span class="c">#csc_matrix((data, ij), [shape=(M, N)])</span>
+        <span class="c">#where data and ij satisfy the relationship a[ij[0, k], ij[1, k]] = data[k]</span>
+
+        <span class="n">len_x</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">ind_in</span> <span class="o">=</span> <span class="p">(</span><span class="n">xs</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">xs</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span> <span class="c">#indices to grab the x values</span>
+        <span class="n">len_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ind_in</span><span class="p">)</span>
+        <span class="c">#print(n_above, n_below, len_in)</span>
+        <span class="c">#that will be needed to evaluate the Gaussian</span>
+
+
+        <span class="c">#Create Gaussian matrix fromfunction</span>
+        <span class="n">x_gauss</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="n">ind_in</span><span class="p">]</span>
+        <span class="n">gauss_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfunction</span><span class="p">(</span><span class="n">gauss_func</span><span class="p">,</span> <span class="p">(</span><span class="n">len_in</span><span class="p">,</span><span class="n">len_in</span><span class="p">),</span> <span class="n">x0v</span><span class="o">=</span><span class="n">x_gauss</span><span class="p">,</span> <span class="n">x1v</span><span class="o">=</span><span class="n">x_gauss</span><span class="p">,</span>
+                                    <span class="n">amp</span><span class="o">=</span><span class="n">amp</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="c">#Create an index array that matches the Gaussian</span>
+        <span class="n">ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">indices</span><span class="p">((</span><span class="n">len_in</span><span class="p">,</span> <span class="n">len_in</span><span class="p">))</span> <span class="o">+</span> <span class="n">n_above</span>
+        <span class="n">ij</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">((</span><span class="n">gauss_mat</span><span class="p">,</span> <span class="n">ij</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">len_x</span><span class="p">,</span><span class="n">len_x</span><span class="p">))</span>
+
+
+    <span class="k">def</span> <span class="nf">chi2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_fls</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Evaluate chi2 using the data flux, model flux and covariance matrix.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">fls</span> <span class="o">-</span> <span class="n">model_fls</span> <span class="c">#2D array</span>
+        <span class="n">chi2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">spsolve</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">chi2</span>
 
 
 
@@ -770,7 +931,7 @@
 <span class="c">#        return &#39;&#39;&#39;Spectrum object\n&#39;&#39;&#39; + &quot;\n&quot;.join([&quot;{}:{}&quot;.format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])</span>
 <span class="c">#</span>
 <span class="c">#    def copy(self):</span>
-<span class="c">#        return copy.copy(self)</span></div>
+<span class="c">#        return copy.copy(self)</span>
 </pre></div>
 
           </div>

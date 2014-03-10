@@ -1,11 +1,16 @@
 import numpy as np
+from numpy.polynomial import Chebyshev as Ch
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
+import scipy.sparse as sp
+from astropy.io import ascii,fits
+from scipy.sparse.linalg import spsolve
 import gc
 import pyfftw
 import warnings
 import StellarSpectra.constants as C
 import copy
+
 
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 flux_units = frozenset(("f_lam", "f_nu"))
@@ -407,6 +412,82 @@ class LogLambdaSpectrum(Base1DSpectrum):
         self.stellar_convolve(vsini)
         self.instrument_convolve(instrument, integrate)
 
+    def write_to_FITS(self, out_unit, filename):
+        '''
+        Write a LogLambdaSpectrum to a FITS file.
+
+        :param spectrum: the spectrum to write to FITS
+        :type spectrum: :obj:`model.LogLambdaSpectrum`
+        :param out_unit: `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`
+        :type out_unit: string
+
+        Depending on the `out_unit`, do different things when writing out, set different keywords.
+        '''
+
+        #For now, unless we have integrated, we need to start with `f_lam`.
+        if out_unit is not "counts/pix":
+            assert self.unit == "f_lam", "FITS writer assumes f_lam input."
+
+        if out_unit is "f_nu_log":
+            #Convert from f_lam to f_nu per log(AA)
+            wl = self.wl
+            fl = self.fl
+            new = wl/(np.log10(C.c_ang) - np.log10(wl)) * fl
+            self.fl = new
+            out_unit = "ergs/s/cm^2/log(Hz)"
+            self.metadata.update({"UNIT":"f_nu_log"})
+
+        if out_unit is "f_nu":
+            #Convert from f_lam to f_nu per log(AA)
+            wl = self.wl
+            fl = self.fl
+            new = wl**2/C.c_ang * fl
+            self.fl = new
+            out_unit = "ergs/s/cm^2/Hz"
+            self.metadata.update({"UNIT":"f_nu"})
+
+        hdu = fits.PrimaryHDU(self.fl)
+        head = hdu.header
+
+        metadata = self.metadata.copy()
+
+        head["DISPTYPE"] = 'log lambda'
+        head["DISPUNIT"] = 'log angstroms'
+        head["FLUXUNIT"] = out_unit
+        head["CRPIX1"] = 1.
+        head["DC-FLAG"] = 1
+        for key in ['CRVAL1', 'CDELT1','temp','logg','Z','vsini']:
+            head[key] = metadata.pop(key)
+
+        #Alphebatize all other keywords, and add some comments
+        comments = {"PHXTEFF": "[K] effective temperature",
+                    "PHXLOGG": "[cm/s^2] log (surface gravity)",
+                    "PHXM_H": "[M/H] metallicity (rel. sol. - Asplund &a 2009)",
+                    "PHXALPHA": "[a/M] alpha element enhancement",
+                    "PHXDUST": "Dust in atmosphere",
+                    "PHXVER": "Phoenix version",
+                    "PHXXI_L": "[km/s] microturbulence velocity for LTE lines",
+                    "PHXXI_M": "[km/s] microturbulence velocity for molec lines",
+                    "PHXXI_N": "[km/s] microturbulence velocity for NLTE lines",
+                    "PHXMASS": "[g] Stellar mass",
+                    "PHXREFF": "[cm] Effective stellar radius",
+                    "PHXLUM": "[ergs] Stellar luminosity",
+                    "PHXMXLEN": "Mixing length",
+                    "air": "air wavelengths?"}
+
+        for key in sorted(comments.keys()):
+            try:
+                head[key] = (metadata.pop(key), comments[key])
+            except KeyError:
+                continue
+
+        extra = {"AUTHOR": "Ian Czekala", "COMMENT" : "Adapted from PHOENIX"}
+        head.update(metadata)
+        head.update(extra)
+
+        hdu.writeto(filename, clobber=True)
+        print("Wrote {} to FITS".format(filename))
+
 
 def rfftfreq(n, d=1.0):
     """
@@ -538,20 +619,22 @@ class ModelSpectrum:
     2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
 
     '''
-    def __init__(self, interpolator, instrument, DataSpectrum):
+    def __init__(self, interpolator, instrument):
         self.interpolator = interpolator
         #Set raw_wl from wl stored with interpolator
-        self.wl_raw = self.interpolator.wl
+        self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of ModelInterpolator
+        CDELT1 = self.interpolator.wl_dict["CDELT1"]
+        self.min_v = C.c_kms * (10**CDELT1 - 1)
+        self.ss = rfftfreq(len(self.wl_raw), d=self.min_v)
+        self.ss[0] = 0.01 #junk so we don't get a divide by zero error
         self.instrument = instrument
-        self.DataSpectrum = DataSpectrum #so that we can downsample to the same wls
+        self.DataSpectrum = self.interpolator.DataSpectrum #so that we can downsample to the same wls
 
-        #grid_params, vsini=0, vz=0, Av=0, ff=1):
-        #self.grid_params = grid_params
-        #self.vsini = vsini
-        #self.vz = vz
-        #self.Av = Av
-        #self.ff = ff
-        #self.update_all(self.grid_params, self.vsini, self.vz, self.Av, self.ff)
+        self.downsampled_fls = np.empty(self.DataSpectrum.shape)
+        self.grid_params = {}
+        self.vz = 0
+        self.Av = 0
+        self.Omega = 1
 
         #Grab chunk from the ModelInterpolator object
         chunk = len(self.wl_raw)
@@ -564,17 +647,20 @@ class ModelSpectrum:
         self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
                                   direction='FFTW_BACKWARD')
 
-    def update_ff(self, ff):
-        '''
-        Update the 'flux factor' parameter, :math:`R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
+    def __str__(self):
+        return "Model Spectrum for Instrument {}".format(self.instrument.name)
 
-        :param ff: 'flux factor' parameter, :math:`R^2/d^2`
-        :type ff: float
+    def update_Omega(self, Omega):
+        '''
+        Update the 'flux factor' parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
+
+        :param Omega: 'flux factor' parameter, :math:`\Omega = R^2/d^2`
+        :type Omega: float
 
         '''
-        #factor by which to correct from old ff?
-        self.fl *= ff/self.ff
-        self.ff = ff
+        #factor by which to correct from old Omega
+        self.fl *= Omega/self.Omega
+        self.Omega = Omega
 
     def update_vz(self, vz):
         '''
@@ -586,15 +672,23 @@ class ModelSpectrum:
         '''
         #How far to shift based from old vz?
         vz_shift = self.vz - vz
-        self.wl = self.wl_raw * np.sqrt((C.c_kms + vz_shift) / (self.c_kms - vz_shift))
+        self.wl = self.wl_raw * np.sqrt((C.c_kms + vz_shift) / (C.c_kms - vz_shift))
         self.vz = vz
 
     def update_Av(self, Av):
-        #How far to multiply based from old Av?
-        Av_shift = self.Av - Av
-        raise NotImplementedError
-        self.fl /= deredden(self.wl, Av, mags=False)
-        self.Av = Av
+        '''
+        Update the extinction parameter.
+
+        :param Av: The optical extinction parameter.
+        :type Av: float (magnitudes)
+
+        '''
+        pass
+
+
+        #Av_shift = self.Av - Av
+        #self.fl /= deredden(self.wl, Av, mags=False)
+        #self.Av = Av
 
     def _update_grid_params(self, grid_params):
         '''
@@ -616,24 +710,23 @@ class ModelSpectrum:
         :type vsini: float (km/s)
 
         '''
-
+        self.vsini = vsini
 
         self.influx[:] = self.fl
         self.fft_object()
 
-        ss = rfftfreq(len(self.wl), d=self.min_vc * C.c_kms_air)
-        ss[0] = 0.01 #junk so we don't get a divide by zero error
-        ub = 2. * np.pi * vsini * ss
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-        #set zeroth frequency to 1 separately (DC term)
-        sb[0] = 1.
-
-        raise NotImplementedError("fix ss[0] treatment for Instrument convolve.")
-
         sigma = self.instrument.FWHM / 2.35 # in km/s
 
         #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
-        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (ss ** 2))
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
+
+        #Determine the stellar broadening kernel
+        ub = 2. * np.pi * self.vsini * self.ss
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+        taper[0] = 1.
 
         #institute velocity and instrumental taper
         self.FF *= sb * taper
@@ -643,23 +736,167 @@ class ModelSpectrum:
         self.fl[:] = self.outflux
 
 
+    def update_all(self, params):
+        '''
+        Update all of the stellar parameters
 
-    def update_all(self, stellar_params, vsini, vz, Av, ff):
+        Give parameters as a dict and choose the params to update.
+
+        '''
         #First set stellar parameters using _update_grid_params
+        grid_params = {key:params[key] for key in C.grid_parameters}
+
+        self._update_grid_params(grid_params)
+
         #Then vsini and instrument using _update_vsini
+        self._update_vsini_and_instrument(params['vsini'])
 
-        #Then ff and Av using update_ff and update_Av
+        #Then vz, ff, and Av using public methods
+        self.update_vz(params['vz'])
+        self.update_Omega(params['Omega'])
+        self.update_Av(params['Av'])
+        self.downsample()
 
-        self.fl_raw = self.interpolator(self.stellar_params) #Query the interpolator with the new stellar combination
-        self.stellar_params.update(stellar_params)
-        #Now redo the ff, Av, vsini and instrumental effects
+    def downsample(self):
+        '''
+        Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.
 
-        #Would we ever want a stellar parameter spectrum that hasn't been convolved/ff'ed like this?
-        raise NotImplementedError
+        :returns fls: the downsampled fluxes that has the same shape as DataSpectrum.fls
+        '''
+
+        #Check to make sure that the grid is within self.wl range, because a spline will not naturally raise an error!
+        wls = self.DataSpectrum.wls.flatten()
+        if min(wls) < min(self.wl) or max(wls) > max(self.wl):
+            raise ValueError("New grid ({:.2f},{:.2f}) must fit within the range of self.wl ({:.2f},"
+                             "{:.2f})".format(min(wls), max(wls), min(self.wl), max(self.wl)))
+
+        interp = InterpolatedUnivariateSpline(self.wl, self.fl)
+
+        self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
+
+        del interp
+        gc.collect()
+
+class ChebyshevSpectrum:
+    '''
+    A DataSpectrum-like object which multiplies downsampled fls to account for imperfect flux calibration issues.
+
+    :param DataSpectrum: take shape from.
+    :type DataSpectrum: :obj:`DataSpectrum` object
+    '''
+
+    def __init__(self, DataSpectrum, npoly=4):
+        self.DataSpectrum = DataSpectrum
+        self.shape = self.DataSpectrum.shape
+        self.norders = self.shape[0]
+        len_wl = self.shape[1]
+        xs = np.arange(len_wl)
+        T0 = np.ones_like(xs)
+        Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
+        T1 = Ch1(xs)
+        Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])
+        T2 = Ch2(xs)
+        Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])
+        T3 = Ch3(xs)
+
+        self.T = np.array([T1, T2, T3])
+        self.npoly = npoly
+        assert self.npoly == 4, "Only handling order 4 Chebyshev for now."
+
+        #Dummy holders
+        self.k = np.ones(self.shape)
+        self.c0s = np.ones(self.norders)
+        self.cns = np.zeros((self.norders, self.npoly - 1))
+        #self.TT = np.einsum("in,jn->ijn", T, T)
+
+        ##Priors
+        ##    mu = np.array([0, 0, 0])
+        ##    D = sigmac ** (-2) * np.eye(3)
+        ##    Dmu = np.einsum("ij,j->j", D, mu)
+        ##    muDmu = np.einsum("j,j->", mu, Dmu)
+
+    def update(self, coefs):
+        '''
+        Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls
+        '''
+        # reshape to (norders, self.npoly)
+        coefs_arr = coefs.reshape(self.norders, -1)
+        self.c0s = coefs_arr[:, 0] #length norders
+        self.cns = coefs_arr[:, 1:] #shape (norders, self.npoly - 1)
+        #print("c0s.shape", c0s.shape)
+        #print("cns.shape", cns.shape)
+
+        #If any c0s are less than 0, return -np.inf
+        if np.any((self.c0s < 0)):
+            return -np.inf
+
+        #now create polynomials for each order, and multiply through fls
+        Tc = np.einsum("jk,ij->ik", self.T, self.cns)
+        k = np.einsum("i,ij->ij", self.c0s, 1 + Tc)
+        self.k = k
 
 
-    def update_all(self, stellar_params, vsini, vz, Av, ff):
-        pass
+class CovarianceMatrix:
+    '''
+    Non-trivial covariance matrices (one for each order) for correlated noise.
+
+    '''
+
+    def __init__(self, DataSpectrum):
+        self.DataSpectrum = DataSpectrum
+        self.norders = self.DataSpectrum.shape[0]
+        self.npoints = self.DataSpectrum.shape[1]
+        #Because sparse matrices only come in 2D, we have a list of sparse matrices.
+        self.matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
+
+
+    def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
+        x0 = x0v[x0i]
+        x1 = x1v[x1i]
+        return amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
+
+    def Cregion(xs, amp, mu, sigma, var=1):
+        '''Create a sparse covariance matrix using identity and block_diagonal'''
+        #In the region of the Gaussian, the matrix will be dense, so just create it as `fromfunction`
+        #and then later turn it into a sparse matrix with size xs x xs
+
+        #Given mu, and the extent of sigma, estimate the data points that are above, in Gaussian, and below
+        n_above = np.sum(xs < (mu - 4 * sigma))
+        n_below = np.sum(xs > (mu + 4 * sigma))
+
+        #Create dense matrix and indexes, then convert to lists so that you can pack things in as:
+
+        #csc_matrix((data, ij), [shape=(M, N)])
+        #where data and ij satisfy the relationship a[ij[0, k], ij[1, k]] = data[k]
+
+        len_x = len(xs)
+        ind_in = (xs >= (mu - 4 * sigma)) & (xs <= (mu + 4 * sigma)) #indices to grab the x values
+        len_in = np.sum(ind_in)
+        #print(n_above, n_below, len_in)
+        #that will be needed to evaluate the Gaussian
+
+
+        #Create Gaussian matrix fromfunction
+        x_gauss = xs[ind_in]
+        gauss_mat = np.fromfunction(gauss_func, (len_in,len_in), x0v=x_gauss, x1v=x_gauss,
+                                    amp=amp, mu=mu, sigma=sigma, dtype=np.int).flatten()
+
+        #Create an index array that matches the Gaussian
+        ij = np.indices((len_in, len_in)) + n_above
+        ij.shape = (2, -1)
+
+        return sp.csc_matrix((gauss_mat, ij), shape=(len_x,len_x))
+
+
+    def chi2(self, model_fls):
+        '''
+        Evaluate chi2 using the data flux, model flux and covariance matrix.
+        '''
+
+
+        A = self.DataSpectrum.fls - model_fls #2D array
+        chi2 = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
+        return chi2
 
 
 

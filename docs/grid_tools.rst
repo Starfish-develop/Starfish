@@ -220,6 +220,17 @@ For example, to process all of the PHOENIX spectra into FITS files suitable for 
     mycreator.process_all()
 
 
+To process just an individual spectrum
+
+.. code-block::python
+
+    myInstrument = KPNO()
+
+    mycreator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=myInstrument,
+    outdir="outFITS/", points={"temp":np.arange(2500, 12000, 250), "logg":np.arange(0.0, 6.1, 0.5),
+    "Z":np.arange(-1., 1.1, 0.5), "vsini": np.arange(0.0, 16.1, 1.)}, processes=32)
+
+
 Exceptions
 ==========
 

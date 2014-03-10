@@ -151,27 +151,38 @@ Note: if we are dealing with a ragged grid, a GridError will be raised here beca
 We will have to simply fix the interpolation to three parameters in this case, if we think Z will be positive.
 Likewise, if we think the model will be alpha enhanced, then we need to limit Z to less than 0.
 
-# Model class
 
-* Need own LogLam spectrum object that is fast
-
-## Sampling order designed in the lnprob directories/script
+* Convert DataSpectrum orders into an np.array()
+# major development work needed on SamplerStellarCheb
 
 There is a Sampler object, which has an emcee object instantiated for a lnprob but with the other parameters described
 by the args. Is it possible to pause a sample run and update the args? Yes, with some hacking.
 
-1. Fix up ModelInterpolator behavior, write documentation and test suite (DONE)
-2. Fix up ModelSpectrum behavior, Load spectrum, do vsini and instrument convolve properly, write documentation and test suite.
-3. Figure out downsample behavior, maybe it's a component of ModelSpectrum
-4. Implement Chebyshev comparions, including set_cheb methods
+* How do I use the dict of parameters properly in update_all? A method to read from var_default if parameter is not specified? Update problems?
+* what about alpha vs. no alpha?
 
---- might have to break here to redo creation of master HDF5 grid, or at least start dealing with Odyssey problems ---
+* More tests for ModelSpectrum.downsample()
 
-# Merge OOP back into Master branch.
+* Why is vsini allowed negative?
+
+* cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed htings up.
+
+* Do we need a Sampler class?, which basically has an __init__ (to determine nwalkers, starting parameters, etc,) pause, burn_in, etc methods?
 
 5. Try running Sampler by alternating between stellar parameters and cheb parameters
-6. Start implementing Covariance matrices
 
+* Implement error bound checking (tied to Interpolator bounds or HDF5Interface bounds)
+* Disabling sampling in certain parameters? For example alpha and Av
+
+* Functions to plot output of sampling (triangle?)
+* What about parallel treatment? Does this work with MPI? What about two different pools? The same pool, different lnprobs?
+# The pool is only the size as mpiexec -np 64, etc... so it will always have this many workers available. Basically it makes sense to have twice as many. We can probabyl use the same pool.
+
+--- might have to break here to redo creation of master HDF5 grid, or at least start dealing with Odyssey problems ---
+# Merge OOP back into Master branch.
+6. Start implementing more non-trivial Covariance matrices
+    * How do we keep track of the parameter lists of different regions for different orders? Does flatten() and reshape() work?
+    * Maybe the way to do this is to instantiate a new sampler for EACH REGION, that way it only has 4 parameters and can Gibbs sample somewhat independently
 
 Sampler object contains
 

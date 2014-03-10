@@ -89,29 +89,13 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">leftover</span><span class="p">):</span> <span class="c">#backfill each with the last item</span>
         <span class="n">chunks</span><span class="p">[</span><span class="n">i</span><span class="o">%</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mylist</span><span class="p">[</span><span class="n">edge</span><span class="o">+</span><span class="n">i</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">chunks</span>
+
+
+
+
+
+
 </div>
-<span class="n">grid_parameters</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;temp&quot;</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">))</span> <span class="c">#Allowed grid parameters</span>
-<span class="n">pp_parameters</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;vsini&quot;</span><span class="p">,</span> <span class="s">&quot;FWHM&quot;</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">,</span> <span class="s">&quot;Av&quot;</span><span class="p">,</span> <span class="s">&quot;Omega&quot;</span><span class="p">))</span> <span class="c">#Allowed &quot;post processing parameters&quot;</span>
-<span class="n">all_parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span> <span class="o">|</span> <span class="n">pp_parameters</span> <span class="c">#the union of grid_parameters and pp_parameters</span>
-<span class="c">#Dictionary of allowed variables with default values</span>
-<span class="n">var_default</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">5800</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">4.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;vsini&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;FWHM&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;Av&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;Omega&quot;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">}</span>
-
-
-<span class="k">def</span> <span class="nf">dict_to_tuple</span><span class="p">(</span><span class="n">mydict</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Take a parameter dictionary and convert it to a tuple in the standard order.</span>
-
-<span class="sd">    :param mydict: input parameter dictionary</span>
-<span class="sd">    :type mydict: dict</span>
-<span class="sd">    :returns: sorted tuple which always includes *alpha*</span>
-<span class="sd">    :rtype: 4-tuple</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-    <span class="k">if</span> <span class="s">&quot;alpha&quot;</span> <span class="ow">in</span> <span class="n">mydict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;logg&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Z&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;logg&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Z&#39;</span><span class="p">],</span> <span class="n">var_default</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">])</span>
-
-
 <div class="viewcode-block" id="GridError"><a class="viewcode-back" href="../grid_tools.html#grid_tools.GridError">[docs]</a><span class="k">class</span> <span class="nc">GridError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Raised when a spectrum cannot be found in the grid.</span>
@@ -146,7 +130,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">,</span> <span class="s">&quot;points must be a dictionary.&quot;</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">points</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">grid_parameters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;{0} is not an allowed parameter, skipping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
@@ -163,12 +147,12 @@
 <span class="sd">        :param parameters: parameter set to check</span>
 <span class="sd">        :type parameters: dict</span>
 
-<span class="sd">        :raises GridError: if parameters.keys() is not a subset of :data:`grid_parameters`</span>
+<span class="sd">        :raises GridError: if parameters.keys() is not a subset of :data:`C.grid_parameters`</span>
 <span class="sd">        :raises GridError: if the parameter values are outside of the grid bounds</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="n">grid_parameters</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in allowable grid parameters {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">grid_parameters</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in allowable grid parameters {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
@@ -447,7 +431,7 @@
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">hdf5</span><span class="p">[</span><span class="s">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="c">#assemble all temp, logg, Z, alpha keywords into a giant list</span>
                 <span class="n">hdr</span> <span class="o">=</span> <span class="n">hdf5</span><span class="p">[</span><span class="s">&#39;flux&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
-                <span class="n">grid_points</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">hdr</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">grid_parameters</span><span class="p">})</span>
+                <span class="n">grid_points</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">hdr</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">})</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">list_grid_points</span> <span class="o">=</span> <span class="n">grid_points</span>
 
         <span class="c">#determine the bounding regions of the grid by sorting the grid_points</span>
@@ -562,9 +546,9 @@
         <span class="c">#If alpha only includes one value, then do trilinear interpolation</span>
         <span class="p">(</span><span class="n">alow</span><span class="p">,</span> <span class="n">ahigh</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">alow</span> <span class="o">==</span> <span class="n">ahigh</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">avg_hdr_keys</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">avg_hdr_keys</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">avg_hdr_keys</span> <span class="c">#These avg_hdr_keys specify the ones to average over</span>
 
@@ -622,7 +606,7 @@
 
         <span class="n">parameter_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">param</span><span class="p">))</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">param_combos</span><span class="p">]</span>
         <span class="k">if</span> <span class="s">&quot;alpha&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
+            <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">C</span><span class="o">.</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
         <span class="n">key_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">flux_name</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">param</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
         <span class="n">weight_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span> <span class="k">for</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">weight_combos</span><span class="p">])</span>
         <span class="c">#For each spectrum, want to extract a {&quot;temp&quot;:5000, &quot;logg&quot;:4.5, &quot;Z&quot;:0.0, &quot;alpha&quot;:0.0} and weight= 0.1 * 0.4 * .05 * 0.1</span>
@@ -644,7 +628,7 @@
 
         <span class="n">comb_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">if</span> <span class="s">&quot;alpha&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="n">parameters</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">C</span><span class="o">.</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span>
         <span class="n">comb_metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
 
 
@@ -687,11 +671,12 @@
         <span class="c">#If alpha only includes one value, then do trilinear interpolation</span>
         <span class="p">(</span><span class="n">alow</span><span class="p">,</span> <span class="n">ahigh</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">alow</span> <span class="o">==</span> <span class="n">ahigh</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">wl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">wl_header</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_determine_chunk</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">setup_index_interpolators</span><span class="p">()</span>
@@ -710,7 +695,7 @@
         <span class="n">wl_min</span><span class="p">,</span> <span class="n">wl_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="p">)</span>
         <span class="c">#Length of the raw synthetic spectrum</span>
         <span class="n">len_wg</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wave_grid</span><span class="p">)</span>
-        <span class="n">ind_wg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">len_wg</span><span class="p">)</span> <span class="c">#Labels of pixels</span>
+        <span class="c">#ind_wg = np.arange(len_wg) #Labels of pixels</span>
         <span class="c">#Length of the data</span>
         <span class="n">len_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">&gt;</span> <span class="n">wl_min</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">&lt;</span> <span class="n">wl_max</span><span class="p">))</span> <span class="c">#How much of the synthetic spectrum do we need?</span>
 
@@ -726,31 +711,25 @@
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span> <span class="s">&quot;Chunk is no longer integer!. Chunk is {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">chunk</span> <span class="o">&lt;</span> <span class="n">len_wg</span><span class="p">:</span>
-            <span class="c"># Now that we have determined the length of the synthetic spectrum to take, determine exactly which part</span>
-            <span class="c"># of the synthetic spectrum to grab</span>
-            <span class="c">#Determine if the data region is closer to the start or end of the wave_grid</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">wl_min</span> <span class="o">-</span> <span class="n">wave_grid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">wave_grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">wl_max</span><span class="p">):</span>
-                <span class="c">#the data region is closer to the start</span>
-                <span class="c">#find starting index</span>
-                <span class="c">#start at index corresponding to wl_min and go chunk forward</span>
-                <span class="n">start_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">wave_grid</span> <span class="o">&gt;</span> <span class="n">wl_min</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">end_ind</span> <span class="o">=</span> <span class="n">start_ind</span> <span class="o">+</span> <span class="n">chunk</span>
-                <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_ind</span><span class="p">,</span> <span class="n">end_ind</span><span class="p">)</span>
-                <span class="c">#self.ind = (ind_wg &gt;= start_ind) &amp; (ind_wg &lt; end_ind)</span>
+            <span class="c"># Now that we have determined the length of the chunk of the synthetic spectrum, determine indices</span>
+            <span class="c"># that straddle the data spectrum.</span>
 
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c">#the data region is closer to the finish</span>
-                <span class="c">#start at index corresponding to wl_max and go chunk backward</span>
-                <span class="n">end_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">wave_grid</span> <span class="o">&lt;</span> <span class="n">wl_max</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">start_ind</span> <span class="o">=</span> <span class="n">end_ind</span> <span class="o">-</span> <span class="n">chunk</span>
-                <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_ind</span><span class="p">,</span> <span class="n">end_ind</span><span class="p">)</span>
-                <span class="c">#self.ind = (ind_wg &gt; start_ind) &amp; (ind_wg &lt;= end_ind)</span>
+            <span class="c"># What index corresponds to the wl at the center of the data spectrum?</span>
+            <span class="n">median_wl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="p">)</span>
+            <span class="n">median_ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">wave_grid</span> <span class="o">-</span> <span class="n">median_wl</span><span class="p">))</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+
+            <span class="c">#Take the chunk that straddles either side.</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">median_ind</span> <span class="o">-</span> <span class="n">chunk</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="n">median_ind</span> <span class="o">+</span> <span class="n">chunk</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">ind</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">assert</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">wl_min</span> <span class="ow">and</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">wl_max</span><span class="p">,</span> <span class="s">&quot;ModelInterpolator chunking ({:.2f}, {:.2f}) &quot;</span> \
+                <span class="s">&quot;didn&#39;t encapsulate full DataSpectrum range ({:.2f}, {:.2f}).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span>
+                                                                                  <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">),</span> <span class="n">wl_min</span><span class="p">,</span> <span class="n">wl_max</span><span class="p">)</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">ind</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Set interface.ind to &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">ind</span><span class="p">)</span>
+
 
 
 <div class="viewcode-block" id="ModelInterpolator.__call__"><a class="viewcode-back" href="../grid_tools.html#grid_tools.ModelInterpolator.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
@@ -798,7 +777,7 @@
 
         <span class="n">parameter_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">param</span><span class="p">))</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">param_combos</span><span class="p">]</span>
         <span class="k">if</span> <span class="s">&quot;alpha&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
+            <span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="n">C</span><span class="o">.</span><span class="n">var_default</span><span class="p">[</span><span class="s">&quot;alpha&quot;</span><span class="p">]})</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
         <span class="n">key_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">flux_name</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">param</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_list</span><span class="p">]</span>
         <span class="n">weight_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span> <span class="k">for</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">weight_combos</span><span class="p">])</span>
         <span class="c">#For each spectrum, want to extract a {&quot;temp&quot;:5000, &quot;logg&quot;:4.5, &quot;Z&quot;:0.0, &quot;alpha&quot;:0.0} and weight= 0.1 * 0.4 * .05 * 0.1</span>
@@ -876,7 +855,7 @@
 <span class="sd">        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
-        <span class="c">#Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum</span>
+        <span class="c">#Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">master_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
             <span class="c">#Now process the spectrum for all values of vsini</span>

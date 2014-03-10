@@ -40,26 +40,10 @@ def chunk_list(mylist, n=mp.cpu_count()):
         chunks[i%n].append(mylist[edge+i])
     return chunks
 
-grid_parameters = frozenset(("temp", "logg", "Z", "alpha")) #Allowed grid parameters
-pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post processing parameters"
-all_parameters = grid_parameters | pp_parameters #the union of grid_parameters and pp_parameters
-#Dictionary of allowed variables with default values
-var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "Omega":1.0}
 
 
-def dict_to_tuple(mydict):
-    '''
-    Take a parameter dictionary and convert it to a tuple in the standard order.
 
-    :param mydict: input parameter dictionary
-    :type mydict: dict
-    :returns: sorted tuple which always includes *alpha*
-    :rtype: 4-tuple
-        '''
-    if "alpha" in mydict.keys():
-        return (mydict["temp"], mydict['logg'], mydict['Z'], mydict['alpha'])
-    else:
-        return (mydict["temp"], mydict['logg'], mydict['Z'], var_default['alpha'])
+
 
 
 class GridError(Exception):
@@ -96,7 +80,7 @@ class RawGridInterface:
         self.points = {}
         assert type(points) is dict, "points must be a dictionary."
         for key, value in points.items():
-            if key in grid_parameters:
+            if key in C.grid_parameters:
                 self.points[key] = value
             else:
                 raise KeyError("{0} is not an allowed parameter, skipping".format(key))
@@ -113,12 +97,12 @@ class RawGridInterface:
         :param parameters: parameter set to check
         :type parameters: dict
 
-        :raises GridError: if parameters.keys() is not a subset of :data:`grid_parameters`
+        :raises GridError: if parameters.keys() is not a subset of :data:`C.grid_parameters`
         :raises GridError: if the parameter values are outside of the grid bounds
 
         '''
-        if not set(parameters.keys()) <= grid_parameters:
-            raise GridError("{} not in allowable grid parameters {}".format(parameters.keys(), grid_parameters))
+        if not set(parameters.keys()) <= C.grid_parameters:
+            raise GridError("{} not in allowable grid parameters {}".format(parameters.keys(), C.grid_parameters))
 
         for key,value in parameters.items():
             if value not in self.points[key]:
@@ -397,7 +381,7 @@ class HDF5Interface:
             for key in hdf5["flux"].keys():
                 #assemble all temp, logg, Z, alpha keywords into a giant list
                 hdr = hdf5['flux'][key].attrs
-                grid_points.append({k: hdr[k] for k in grid_parameters})
+                grid_points.append({k: hdr[k] for k in C.grid_parameters})
             self.list_grid_points = grid_points
 
         #determine the bounding regions of the grid by sorting the grid_points
@@ -512,9 +496,9 @@ class Interpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.parameters = grid_parameters - set("alpha")
+            self.parameters = C.grid_parameters - set("alpha")
         else:
-            self.parameters = grid_parameters
+            self.parameters = C.grid_parameters
 
         self.avg_hdr_keys = {} if avg_hdr_keys is None else avg_hdr_keys #These avg_hdr_keys specify the ones to average over
 
@@ -572,7 +556,7 @@ class Interpolator:
 
         parameter_list = [dict(zip(names, param)) for param in param_combos]
         if "alpha" not in parameters.keys():
-            [param.update({"alpha":var_default["alpha"]}) for param in parameter_list]
+            [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
         #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
@@ -594,7 +578,7 @@ class Interpolator:
 
         comb_metadata = self.wl_dict.copy()
         if "alpha" not in parameters.keys():
-            parameters.update({"alpha":var_default["alpha"]})
+            parameters.update({"alpha":C.var_default["alpha"]})
         comb_metadata.update(parameters)
 
 
@@ -637,11 +621,12 @@ class ModelInterpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.parameters = grid_parameters - set("alpha")
+            self.parameters = C.grid_parameters - set("alpha")
         else:
-            self.parameters = grid_parameters
+            self.parameters = C.grid_parameters
 
         self.wl = self.interface.wl
+        self.wl_dict = self.interface.wl_header
         self._determine_chunk()
 
         self.setup_index_interpolators()
@@ -660,7 +645,7 @@ class ModelInterpolator:
         wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
         #Length of the raw synthetic spectrum
         len_wg = len(wave_grid)
-        ind_wg = np.arange(len_wg) #Labels of pixels
+        #ind_wg = np.arange(len_wg) #Labels of pixels
         #Length of the data
         len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #How much of the synthetic spectrum do we need?
 
@@ -676,31 +661,25 @@ class ModelInterpolator:
         assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
 
         if chunk < len_wg:
-            # Now that we have determined the length of the synthetic spectrum to take, determine exactly which part
-            # of the synthetic spectrum to grab
-            #Determine if the data region is closer to the start or end of the wave_grid
-            if (wl_min - wave_grid[0]) < (wave_grid[-1] - wl_max):
-                #the data region is closer to the start
-                #find starting index
-                #start at index corresponding to wl_min and go chunk forward
-                start_ind = np.argwhere(wave_grid > wl_min)[0][0]
-                end_ind = start_ind + chunk
-                ind = (start_ind, end_ind)
-                #self.ind = (ind_wg >= start_ind) & (ind_wg < end_ind)
+            # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
+            # that straddle the data spectrum.
 
-            else:
-                #the data region is closer to the finish
-                #start at index corresponding to wl_max and go chunk backward
-                end_ind = np.argwhere(wave_grid < wl_max)[-1][0]
-                start_ind = end_ind - chunk
-                ind = (start_ind, end_ind)
-                #self.ind = (ind_wg > start_ind) & (ind_wg <= end_ind)
+            # What index corresponds to the wl at the center of the data spectrum?
+            median_wl = np.median(self.DataSpectrum.wls)
+            median_ind = (np.abs(wave_grid - median_wl)).argmin()
+
+            #Take the chunk that straddles either side.
+            ind = (median_ind - chunk//2, median_ind + chunk//2)
 
             self.wl = self.wl[ind[0]:ind[1]]
+            assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
+                "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
+                                                                                  max(self.wl), wl_min, wl_max)
+
             self.interface.ind = ind
         else:
             self.interface.ind = None
-        print("Set interface.ind to ", self.interface.ind)
+
 
 
     def __call__(self, parameters):
@@ -748,7 +727,7 @@ class ModelInterpolator:
 
         parameter_list = [dict(zip(names, param)) for param in param_combos]
         if "alpha" not in parameters.keys():
-            [param.update({"alpha":var_default["alpha"]}) for param in parameter_list]
+            [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
         #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
@@ -771,9 +750,68 @@ class ModelInterpolator:
 
 
 
-Kurucz_points={"temp":np.arange(3500, 9751, 250), "logg":np.arange(1, 5.1, 0.5), "Z":np.arange(-0.5, 0.6, 0.5)}
+class MasterToFITSIndividual:
+    '''
+    Create one FITS file from a master HDF5 grid, individually.
 
-class MasterToFITSProcessor:
+    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
+    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
+    :param points: lists of output parameters (assumes regular grid)
+    :type points: dict of lists
+    :param flux_unit: format of output spectra {"f_lam", "f_nu", "ADU"}
+    :type flux_unit: string
+    :param outdir: output directory
+    :param processes: how many processors to use in parallel
+
+    '''
+
+    def __init__(self, interpolator, instrument):
+        self.interpolator = interpolator
+        self.instrument = instrument
+        self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
+
+        #Create a master wl_dict which correctly oversamples the instrumental kernel
+        self.wl_dict = self.instrument.wl_dict
+        self.wl = self.wl_dict["wl"]
+
+
+
+    def process_spectrum(self, parameters, out_unit, out_dir):
+        '''
+        Creates a FITS file with given parameters
+
+        :param parameters: stellar parameters
+        :type parameters: dict
+
+        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
+        '''
+
+        #Preserve the "popping of parameters"
+        parameters = parameters.copy()
+
+        #Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum
+        if parameters["Z"] < 0:
+            zflag = "m"
+        else:
+            zflag = "p"
+
+        filename = out_dir + self.filename.format(temp=parameters["temp"], logg=10*parameters["logg"],
+                                    Z=np.abs(10*parameters["Z"]), Z_flag=zflag, vsini=parameters["vsini"])
+        vsini = parameters.pop("vsini")
+        try:
+            spec = self.interpolator(parameters)
+            # Using the ``out_unit``, determine if we should also integrate while doing the downsampling
+            if out_unit=="counts/pix":
+                integrate=True
+            else:
+                integrate=False
+            # Downsample the spectrum to the instrumental resolution.
+            spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate)
+            spec.write_to_FITS(out_unit, filename)
+        except InterpolationError as e:
+            print("{} cannot be interpolated from the grid.".format(parameters))
+
+class MasterToFITSGridProcessor:
     '''
     Create one or many FITS files from a master HDF5 grid.
 
@@ -816,7 +854,7 @@ class MasterToFITSProcessor:
             assert np.max(self.points[key]) <= max_val,"Points above interpolator bound {}={}".format(key, max_val)
 
 
-    def process_spectrum(self, parameters):
+    def process_spectrum_vsini(self, parameters):
         '''
         Creates a FITS file with given parameters (not including *vsini*).
 
@@ -826,7 +864,7 @@ class MasterToFITSProcessor:
         Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
         '''
 
-        #Load the correct grid_parameters value from the interpolator into a LogLambdaSpectrum
+        #Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum
         try:
             master_spec = self.interpolator(parameters)
             #Now process the spectrum for all values of vsini
@@ -838,62 +876,6 @@ class MasterToFITSProcessor:
         except InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
 
-    def write_to_FITS(self, spectrum):
-        '''
-        Write a LogLambdaSpectrum to a FITS file.
-
-        :param spectrum: the spectrum to write to FITS
-        :type spectrum: :obj:`model.LogLambdaSpectrum`
-        '''
-
-        #Gather temp, logg, Z, alpha, and vsini from header, create filename.
-        hdu = fits.PrimaryHDU(spectrum.fl)
-        head = hdu.header
-
-        metadata = spectrum.metadata.copy()
-
-        head["DISPTYPE"] = 'log lambda'
-        head["DISPUNIT"] = 'log angstroms'
-        head["CRPIX1"] = 1.
-        head["DC-FLAG"] = 1
-        for key in ['CRVAL1', 'CDELT1','temp','logg','Z','vsini']:
-            head[key] = metadata.pop(key)
-
-        #Alphebatize all other keywords, and add some comments
-        comments = {"PHXTEFF": "[K] effective temperature",
-                    "PHXLOGG": "[cm/s^2] log (surface gravity)",
-                    "PHXM_H": "[M/H] metallicity (rel. sol. - Asplund &a 2009)",
-                    "PHXALPHA": "[a/M] alpha element enhancement",
-                    "PHXDUST": "Dust in atmosphere",
-                    "PHXVER": "Phoenix version",
-                    "PHXXI_L": "[km/s] microturbulence velocity for LTE lines",
-                    "PHXXI_M": "[km/s] microturbulence velocity for molec lines",
-                    "PHXXI_N": "[km/s] microturbulence velocity for NLTE lines",
-                    "PHXMASS": "[g] Stellar mass",
-                    "PHXREFF": "[cm] Effective stellar radius",
-                    "PHXLUM": "[ergs] Stellar luminosity",
-                    "PHXMXLEN": "Mixing length",
-                    "air": "air wavelengths?"}
-
-        for key in sorted(comments.keys()):
-            try:
-                head[key] = (metadata.pop(key), comments[key])
-            except KeyError:
-                continue
-
-        extra = {"AUTHOR": "Ian Czekala", "COMMENT" : "Adapted from PHOENIX"}
-        head.update(metadata)
-        head.update(extra)
-
-        if head["Z"] < 0:
-            zflag = "m"
-        else:
-            zflag = "p"
-
-        filename = self.filename.format(temp=head["temp"], logg=10*head["logg"], Z=np.abs(10*head["Z"]), Z_flag=zflag, vsini=head["vsini"])
-        hdu.writeto(self.outdir + filename, clobber=True)
-        print("Wrote {} to FITS".format(filename))
-
     def process_chunk(self, chunk):
         '''
         Process a chunk of parameters to FITS
@@ -903,7 +885,7 @@ class MasterToFITSProcessor:
         '''
         print("Process {} processing chunk {}".format(os.getpid(), chunk))
         for param in chunk:
-            self.process_spectrum(param)
+            self.process_spectrum_vsini(param)
 
     def process_all(self):
         '''

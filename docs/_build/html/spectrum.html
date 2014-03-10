@@ -70,7 +70,7 @@ that may be used in the <a class="reference internal" href="grid_tools.html#modu
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-30cf0770979e99246fb2aea2c59615724d83b2ec.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-ec93581863170bcf38014e25294f2f131b8f0194.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
 <area shape="rect" id="node3" href="#spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
@@ -420,14 +420,14 @@ in the 0-axis.</p>
 
 <dl class="class">
 <dt id="spectrum.ModelSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>DataSpectrum</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>interpolator</em>, <em>instrument</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>A 1D synthetic spectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>interpolator</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Model_Interpolator</span></tt>) &#8211; object to query stellar parameters</li>
+<li><strong>interpolator</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.ModelInterpolator" title="grid_tools.ModelInterpolator"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt></a>) &#8211; object to query stellar parameters</li>
 <li><strong>instrument</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object describing wavelength range and instrumental profile) &#8211; Which instrument is this a model for?</li>
 </ul>
 </td>
@@ -440,17 +440,52 @@ in the 0-axis.</p>
 <li>Sample in only the easy &#8220;post-processing&#8221; parameters, like ff and v_z to speed the burn-in process.</li>
 </ol>
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_ff">
-<tt class="descname">update_ff</tt><big>(</big><em>ff</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_ff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_ff" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the &#8216;flux factor&#8217; parameter, <span class="math">\(R^2/d^2\)</span>, which multiplies the model spectrum to be the same scale as the data.</p>
+<dt id="spectrum.ModelSpectrum.downsample">
+<tt class="descname">downsample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.downsample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.downsample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ff</strong> (<em>float</em>) &#8211; &#8216;flux factor&#8217; parameter, <span class="math">\(R^2/d^2\)</span></td>
+<tr class="field-odd field"><th class="field-name">Returns fls:</th><td class="field-body">the downsampled fluxes that has the same shape as DataSpectrum.fls</td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.ModelSpectrum.update_Av">
+<tt class="descname">update_Av</tt><big>(</big><em>Av</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_Av"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_Av" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the extinction parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Av</strong> (<em>float (magnitudes)</em>) &#8211; The optical extinction parameter.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.ModelSpectrum.update_Omega">
+<tt class="descname">update_Omega</tt><big>(</big><em>Omega</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_Omega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_Omega" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span>, which multiplies the model spectrum to be the same scale as the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Omega</strong> (<em>float</em>) &#8211; &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.ModelSpectrum.update_all">
+<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update all of the stellar parameters</p>
+<p>Give parameters as a dict and choose the params to update.</p>
 </dd></dl>
 
 <dl class="method">
