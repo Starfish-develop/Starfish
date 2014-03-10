@@ -811,6 +811,8 @@ class MasterToFITSIndividual:
         except InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
 
+        print("Processed spectrum {}".format(parameters))
+
 class MasterToFITSGridProcessor:
     '''
     Create one or many FITS files from a master HDF5 grid.
