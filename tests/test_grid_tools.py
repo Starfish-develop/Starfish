@@ -328,6 +328,18 @@ class TestInstrument:
         print(instrument)
         print(instrument.wl_dict)
 
+class TestMasterToFITSIndividual:
+    def setup_class(self):
+        myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
+                                                                     "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
+                                                                     "norm", "PHXVER", "PHXTEFF"])
+        self.creator = MasterToFITSIndividual(interpolator=myInterpolator, instrument=KPNO())
+
+    def test_write_to_FITS(self):
+        params = {"temp":6100, "logg":4.0, "Z":0.0, "vsini":2}
+        self.creator.process_spectrum(params, out_unit="f_nu_log", out_dir="")
+
 class TestMasterToFITSProcessor:
     def setup_class(self):
         test_points={"temp":np.arange(6000, 6251, 250), "logg":np.arange(4.0, 4.6, 0.5), "Z":np.arange(-0.5, 0.1, 0.5), "vsini":np.arange(4,9.,2)}
@@ -348,7 +360,8 @@ class TestMasterToFITSProcessor:
         pass
 
     def test_process_all(self):
-        self.creator.process_all()
+        pass
+        #self.creator.process_all()
 
     def test_out_of_interp_range(self):
         self.creator.process_spectrum({"temp":5000, "logg":4.5, "Z":-4.0})

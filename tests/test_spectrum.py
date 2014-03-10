@@ -188,6 +188,8 @@ class TestLogLambdaSpectrum(TestBase1DSpectrum):
             spec = LogLambdaSpectrum(wl, np.ones_like(wl), metadata=wl_dict)
         print(e.value)
 
+    def test_write_to_FITS(self):
+        pass
 
     def test_resample_to_grid(self):
         #Try giving it a range that is too big
@@ -282,3 +284,99 @@ class TestDataSpectrum:
         spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
         print(spec)
         assert spec.shape[0] == 3, "Order truncation didn't work properly."
+
+
+class TestModelSpectrum:
+    def setup_class(self):
+        from StellarSpectra.grid_tools import HDF5Interface, ModelInterpolator, TRES
+        #libraries/PHOENIX_submaster.hd5 should have the following bounds
+        #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(0.0,0.4)}
+        myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        self.DataSpectrum = myDataSpectrum
+        myInterpolator = ModelInterpolator(myHDF5Interface, myDataSpectrum)
+        myInstrument = TRES()
+        self.model = ModelSpectrum(myInterpolator, myInstrument)
+
+    def test_init(self):
+        print(self.model)
+
+    def test__update_grid_params(self):
+        #Does the spectrum interpolate from the grid properly?
+        self.model._update_grid_params({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02})
+        print(len(self.model.fl))
+
+    def test__update_vsini_and_inst(self):
+        #Does the spectrum convolve properly?
+        self.model._update_vsini_and_instrument(10.)
+
+    def test_update_Omega(self):
+        #update up, and then down, do we get back to the same spectrum?
+        orig_flux = self.model.fl.copy()
+        self.model.update_Omega(10.)
+        self.model.update_Omega(1.)
+        assert np.allclose(self.model.fl, orig_flux), "Omega does not return same flux"
+
+    def test_update_vz(self):
+        #update up, and then down, do we get back to the same spectrum?
+        orig_flux = self.model.fl.copy()
+        self.model.update_vz(10.)
+        self.model.update_vz(0.0)
+        assert np.allclose(self.model.fl, orig_flux), "vz does not return same flux"
+
+    def test_update_Av(self):
+        #update up, and then down, do we get back to the same spectrum?
+        return
+        orig_flux = self.model.fl.copy()
+        self.model.update_Av(2.)
+        self.model.update_Av(0.)
+        assert np.allclose(self.model.fl, orig_flux), "Av does not return same flux"
+
+    def test_update_all(self):
+        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "Omega":1.})
+        import matplotlib.pyplot as plt
+        plt.plot(self.model.wl, self.model.fl)
+        plt.xlim(5160,5180)
+        plt.savefig("tests/plots/model_spectrum.png")
+
+    def test_downsample(self):
+        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "Omega":1.})
+        fls = self.model.downsampled_fls
+        assert fls.shape == self.DataSpectrum.shape, "Downsample is not the same shape."
+
+
+class TestChebyshevSpectrum:
+    def setup_class(self):
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        self.DataSpectrum = myDataSpectrum
+        self.myCheb = ChebyshevSpectrum(myDataSpectrum, npoly=4)
+
+    def test_update(self):
+        k = self.myCheb.update(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
+        assert self.DataSpectrum.shape == k.shape, "DataSpectrum and k do not match shape."
+
+    def test_complicated_shape(self):
+        k = self.myCheb.update(np.array([1, 0.2, 0.2, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
+        import matplotlib.pyplot as plt
+        plt.plot(self.DataSpectrum.wls[0], k[0])
+        plt.savefig("tests/plots/Chebyshev_spectrum.png")
+
+
+class TestCovarianceMatrix:
+    def setup_class(self):
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        self.DataSpectrum = myDataSpectrum
+        self.cov = CovarianceMatrix(myDataSpectrum)
+
+    def test_chi2(self):
+        model_fls = self.DataSpectrum.fls.copy()
+        model_fls += np.random.normal(loc=0, scale=self.DataSpectrum.sigmas, size=self.DataSpectrum.shape)
+        covchi2 = self.cov.chi2(model_fls)
+        print("Covariance chi2 {}".format(covchi2))
+
+        #Normal chi2 calculation
+        chi2 = np.sum(((self.DataSpectrum.fls - model_fls)/self.DataSpectrum.sigmas)**2)
+        print("Traditional chi2 {}".format(chi2))
+
+        assert np.allclose(covchi2, chi2), "Sparse matrix and traditional method do not match for uncorrelated noise."
+

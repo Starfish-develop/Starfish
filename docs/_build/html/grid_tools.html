@@ -176,7 +176,7 @@ Currently there are extensions for three main grids:</p>
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-169637c68413638052741b36e4cffdd516690297.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-3c90fe830fdec03ae84bedc61b54bb53bdeaad20.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
@@ -254,7 +254,7 @@ are allowed in the grid.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><strong>GridError</strong> &#8211; if parameters.keys() is not a subset of <a class="reference internal" href="#grid_tools.grid_parameters" title="grid_tools.grid_parameters"><tt class="xref py py-data docutils literal"><span class="pre">grid_parameters</span></tt></a></li>
+<li><strong>GridError</strong> &#8211; if parameters.keys() is not a subset of <tt class="xref py py-data docutils literal"><span class="pre">C.grid_parameters</span></tt></li>
 <li><strong>GridError</strong> &#8211; if the parameter values are outside of the grid bounds</li>
 </ul>
 </td>
@@ -329,7 +329,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <p>The <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -617,7 +617,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-06ad7b4241d716267b4d481863c9141bf860912c.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-852b21e06a3be9dae9a89947775fabcdabbf46be.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>

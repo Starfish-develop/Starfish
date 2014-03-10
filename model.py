@@ -1,20 +1,13 @@
 import numpy as np
-from scipy.interpolate import interp1d, LinearNDInterpolator, InterpolatedUnivariateSpline
-from scipy.ndimage.filters import convolve
-from scipy.special import j1
-from numpy.polynomial import Chebyshev as Ch
-from functools import partial
-import h5py
 import yaml
-import gc
 import sys
-from numpy.fft import fft, ifft, fftfreq# rfftfreq
-import pyfftw
 import emcee
-import os
-import warnings
+from emcee.utils import MPIPool
+import sys
 import StellarSpectra.constants as C
-import copy
+from StellarSpectra.grid_tools import ModelInterpolator
+from StellarSpectra.spectrum import ModelSpectrum, ChebyshevSpectrum, CovarianceMatrix
+
 
 
 def load_config():
@@ -30,6 +23,145 @@ def load_config():
         import StellarSpectra #this triggers the __init__.py code
         config = StellarSpectra.default_config
 
+
+class Model:
+    '''
+    Container class to create and bring together all of the relevant data and models.
+    '''
+
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple):
+        self.DataSpectrum = DataSpectrum
+        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum)
+        self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
+        self.stellar_tuple = stellar_tuple
+        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum)
+        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum)
+
+
+    def zip_stellar_p(self, p):
+        return dict(zip(self.stellar_tuple, p))
+
+    def update_Model(self, params):
+        self.ModelSpectrum.update_all(params)
+
+    def update_Cheb(self, coefs):
+        self.ChebyshevSpectrum.update(coefs)
+
+    def update_Cov(self, params):
+        self.CovarianceMatrix.update(params)
+
+    def evaluate(self):
+        '''
+        Compare the different data and models.
+        '''
+
+        #Get chi^2 comparison
+
+        model_fls = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
+        chi2 = self.CovarianceMatrix.chi2(model_fls)
+        return chi2
+
+
+        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
+
+
+
+class Sampler:
+    '''
+    Helper class designed to contain StellarSampler, ChebSampler, CovSampler
+    '''
+    def __init__(self, lnprob, param_dict):
+        pass
+
+
+    def reset(self):
+        pass
+
+    def run(self):
+        pass
+
+    def plot(self):
+        '''
+        Generate the relevant plots once the sampling is done.
+        '''
+        pass
+
+
+class SamplerStellarCheb:
+    '''
+    Sampler object explores the model in two different ways using a Gibbs Sampler with `emcee` instances.
+
+    :param lnprob_stellar: globally defined lnprob function for stellar parameters
+    :param lnprob_Cheb: globally defined lnprob function for Chebyshev coefficients
+
+    This can have a baked-in number of walkers per dimension, and total iteration time.
+    '''
+    def __init__(self, lnprob_stellar, stellar_dict, stellar_iterations):
+        #Instantiate `emcee` samplers for lnprob_stellar and lnprob_Cheb
+
+        #Take the stellar_dict and parse the keys into a tuple
+        self.stellar_tuple = C.dictkeys_to_tuple(stellar_dict)
+        #Determine the dimensions and number of walkers
+        ndim_stellar = len(self.stellar_tuple)
+        nwalkers_stellar = ndim_stellar * 4
+
+        #Generate starting guesses using information passed in stellar_dict
+        p0_stellar = []
+        for stellar_param in self.stellar_tuple:
+            low, high = stellar_dict[stellar_param]
+            p0_stellar.append(np.random.uniform(low=low, high=high, size=(nwalkers_stellar,)))
+
+        self.p0_stellar = np.array(p0_stellar).T
+        self.stellar_iterations = stellar_iterations
+
+        self.pool = MPIPool()
+        if not self.pool.is_master():
+        #   Wait for instructions from the master process.
+            self.pool.wait()
+            sys.exit(0) #this is at the very end of the run.
+
+        self.stellar_sampler = emcee.EnsembleSampler(nwalkers_stellar, ndim_stellar, lnprob_stellar, pool=self.pool)
+
+        #self.Cheb_sampler = emcee.EnsembleSampler(nwalkers_Cheb, ndim_Cheb, lnprob_Cheb, pool=self.pool)
+
+
+    def burn_in(self):
+        self.stellar_trio = self.stellar_sampler.run_mcmc(self.p0_stellar, self.stellar_iterations)
+
+        self.stellar_sampler.reset()
+
+    def run(self, iterations):
+        pos, prob, state = self.stellar_trio
+        #Now run for 100 samples
+        self.stellar_sampler.run_mcmc(pos, iterations, rstate0=state)
+
+        #for i in iterations:
+
+
+            #Update lnprob args in Cheb_emcee
+            #for k in Cheb_iterations:
+            #    self.Cheb_emcee.sample()
+
+            #Update lnprob args in stellar_emcee
+
+        #When done, output the flatchains to a file.
+        self.pool.close()
+
+
+    def plot(self):
+        '''
+        Once the sampler is finished, generate all of the relevant plots for the run.
+        '''
+        import triangle
+
+        samples = self.stellar_sampler.flatchain
+        figure = triangle.corner(samples, labels=self.stellar_tuple, quantiles=[0.16, 0.5, 0.84],
+                                 show_titles=True, title_args={"fontsize": 12})
+        figure.savefig("plots/GW_Ori_triangle.png")
+        pass
+
+class SamplerModelChebCov:
+    pass
 
 
 #grids = {"PHOENIX": {'T_points': np.array(
@@ -474,7 +606,8 @@ def load_config():
 ##        ind = (w_full > (wlz[0] - 5.)) & (w_full < (wlz[-1] + 5.))
 ##        w = w_full[ind]
 ##        f = f_full[ind]
-##
+
+##        from scipy.ndimage.filters import convolve
 ##        #convolve with stellar broadening (sb)
 ##        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order
 ##        f_sb = convolve(f, k)

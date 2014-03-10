@@ -51,7 +51,56 @@
             
   <div class="section" id="module-model">
 <span id="model"></span><h1>Model<a class="headerlink" href="#module-model" title="Permalink to this headline">¶</a></h1>
-<span class="target" id="module-model"></span></div>
+<span class="target" id="module-model"></span><dl class="class">
+<dt id="model.Model">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em><big>)</big><a class="reference internal" href="_modules/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Container class to create and bring together all of the relevant data and models.</p>
+<dl class="method">
+<dt id="model.Model.evaluate">
+<tt class="descname">evaluate</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Model.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare the different data and models.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="model.Sampler">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Sampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em><big>)</big><a class="reference internal" href="_modules/model.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Sampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper class designed to contain StellarSampler, ChebSampler, CovSampler</p>
+<dl class="method">
+<dt id="model.Sampler.plot">
+<tt class="descname">plot</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Sampler.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Sampler.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the relevant plots once the sampling is done.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="model.SamplerStellarCheb">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">SamplerStellarCheb</tt><big>(</big><em>lnprob_stellar</em>, <em>stellar_dict</em>, <em>stellar_iterations</em><big>)</big><a class="reference internal" href="_modules/model.html#SamplerStellarCheb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.SamplerStellarCheb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sampler object explores the model in two different ways using a Gibbs Sampler with <cite>emcee</cite> instances.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>lnprob_stellar</strong> &#8211; globally defined lnprob function for stellar parameters</li>
+<li><strong>lnprob_Cheb</strong> &#8211; globally defined lnprob function for Chebyshev coefficients</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This can have a baked-in number of walkers per dimension, and total iteration time.</p>
+<dl class="method">
+<dt id="model.SamplerStellarCheb.plot">
+<tt class="descname">plot</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#SamplerStellarCheb.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.SamplerStellarCheb.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Once the sampler is finished, generate all of the relevant plots for the run.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 
 
           </div>
