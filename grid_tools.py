@@ -496,7 +496,7 @@ class Interpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.parameters = C.grid_parameters - set("alpha")
+            self.parameters = C.grid_parameters - set(("alpha",))
         else:
             self.parameters = C.grid_parameters
 
@@ -611,19 +611,24 @@ class ModelInterpolator:
     :type cache_max: int
     :param cache_dump: how many spectra to purge from the cache once :attr:`cache_max` is reached
     :type cache_dump: int
+    :param trilinear: Should this interpolate in temp, logg, and [Fe/H] AND [alpha/Fe], or just the first three parameters.
+    :type trilinear: bool
+
+    Setting :attr:`trilinear` to **True** is useful for when you want to do a run with [Fe/H] > 0.0
 
     '''
 
-    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64):
+    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64, trilinear=False):
         self.interface = interface
         self.DataSpectrum = DataSpectrum
 
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
-        if alow == ahigh:
-            self.parameters = C.grid_parameters - set("alpha")
+        if (alow == ahigh) or trilinear:
+            self.parameters = C.grid_parameters - set(("alpha",))
         else:
             self.parameters = C.grid_parameters
+
 
         self.wl = self.interface.wl
         self.wl_dict = self.interface.wl_header
@@ -752,16 +757,11 @@ class ModelInterpolator:
 
 class MasterToFITSIndividual:
     '''
-    Create one FITS file from a master HDF5 grid, individually.
+    Object used to create one FITS file at a time.
 
     :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
     :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
-    :param points: lists of output parameters (assumes regular grid)
-    :type points: dict of lists
-    :param flux_unit: format of output spectra {"f_lam", "f_nu", "ADU"}
-    :type flux_unit: string
-    :param outdir: output directory
-    :param processes: how many processors to use in parallel
+
 
     '''
 
@@ -776,12 +776,14 @@ class MasterToFITSIndividual:
 
 
 
-    def process_spectrum(self, parameters, out_unit, out_dir):
+    def process_spectrum(self, parameters, out_unit, out_dir=""):
         '''
         Creates a FITS file with given parameters
 
-        :param parameters: stellar parameters
+        :param parameters: stellar parameters :attr:`temp`, :attr:`logg`, :attr:`Z`, :attr:`vsini`
         :type parameters: dict
+        :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.
+        :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.
 
         Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
         '''

@@ -158,8 +158,17 @@ Likewise, if we think the model will be alpha enhanced, then we need to limit Z 
 There is a Sampler object, which has an emcee object instantiated for a lnprob but with the other parameters described
 by the args. Is it possible to pause a sample run and update the args? Yes, with some hacking.
 
-* How do I use the dict of parameters properly in update_all? A method to read from var_default if parameter is not specified? Update problems?
+
 * what about alpha vs. no alpha?
+ModelSpectrum should have a flag that says yes or no alpha, to choose on the `_update_grid_parameters` and when initializing the interpolator.
+For the PHOENIX spectra, this is something that should be chosen upon initialization. Either we ARE fitting with alpha, and metallicity is maxed out to be -3.0 <= [Fe/H] <= 0.0 (inclusive)
+OR we are not fitting alpha (it is defacto set to 0 and we use a trilinear interpolator) and then we have [Fe/H] be whatever it wants.
+
+
+#Option when fitting just one order to disable c0 fitting
+#Plotting cheb functions
+
+
 
 * More tests for ModelSpectrum.downsample()
 
