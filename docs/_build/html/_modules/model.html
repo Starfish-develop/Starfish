@@ -76,7 +76,17 @@
 
 <div class="viewcode-block" id="Model"><a class="viewcode-back" href="../model.html#model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Container class to create and bring together all of the relevant data and models.</span>
+<span class="sd">    Container class to create and bring together all of the relevant data and models to aid in evaulation.</span>
+
+<span class="sd">    :param DataSpectrum: the data to fit</span>
+<span class="sd">    :type DataSpectrum: :obj:`spectrum.DataSpectrum` object</span>
+<span class="sd">    :param Instrument: the instrument with which the data was acquired</span>
+<span class="sd">    :type Instrument: :obj:`grid_tools.Instrument` object</span>
+<span class="sd">    :param HDF5Interface: the interface to the synthetic stellar library</span>
+<span class="sd">    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object</span>
+<span class="sd">    :param stellar_tuple: describes the order of parameters </span>
+<span class="sd">    :type stellar_tuple: tuple</span>
+
 <span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="p">):</span>
@@ -99,6 +109,9 @@
 
     <span class="k">def</span> <span class="nf">update_Cov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span>
 
 <div class="viewcode-block" id="Model.evaluate"><a class="viewcode-back" href="../model.html#model.Model.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>

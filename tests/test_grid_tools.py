@@ -190,6 +190,7 @@ class TestInterpolator:
         hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         hdf5interface.bounds['alpha'] = (0.,0.) #manually set alpha range to 0
         interpolator = Interpolator(hdf5interface)
+        assert interpolator.parameters == {"temp", "logg", "Z"}, "Trilinear truncation didn't work."
         parameters = {"temp":6010, "logg":4.6, "Z":-0.1}
         interpolator(parameters)
 
@@ -262,9 +263,17 @@ class TestModelInterpolator:
     def test_trilinear(self):
         hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
         hdf5interface.bounds['alpha'] = (0.,0.) #manually set alpha range to 0
-        interpolator = Interpolator(hdf5interface)
+        interpolator = ModelInterpolator(hdf5interface, self.DataSpectrum)
+        assert interpolator.parameters == {"temp", "logg", "Z"}, "Trilinear truncation didn't work."
         parameters = {"temp":6010, "logg":4.6, "Z":-0.1}
         interpolator(parameters)
+
+    def test_trilinear_flag(self):
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        interpolator = ModelInterpolator(hdf5interface, self.DataSpectrum, trilinear=True)
+        parameters = {"temp":6010, "logg":4.6, "Z":-0.1}
+        interpolator(parameters)
+
 
     def test_interpolate_bounds(self):
         with pytest.raises(InterpolationError) as e:
@@ -347,7 +356,7 @@ class TestMasterToFITSProcessor:
         myInterpolator = Interpolator(myHDF5Interface, avg_hdr_keys=["air", "PHXLUM", "PHXMXLEN",
                      "PHXLOGG", "PHXDUST", "PHXM_H", "PHXREFF", "PHXXI_L", "PHXXI_M", "PHXXI_N", "PHXALPHA", "PHXMASS",
                      "norm", "PHXVER", "PHXTEFF"])
-        self.creator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points,
+        self.creator = MasterToFITSGridProcessor(interpolator=myInterpolator, instrument=KPNO(), points=test_points,
                                              flux_unit="f_lam", outdir="tests/KPNO/", processes=2)
 
     def test_param_list(self):

@@ -416,17 +416,24 @@ class LogLambdaSpectrum(Base1DSpectrum):
         '''
         Write a LogLambdaSpectrum to a FITS file.
 
-        :param spectrum: the spectrum to write to FITS
-        :type spectrum: :obj:`model.LogLambdaSpectrum`
         :param out_unit: `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`
         :type out_unit: string
+        :param filename: output filename
+        :type filename: string
 
-        Depending on the `out_unit`, do different things when writing out, set different keywords.
+        Depending on the `out_unit`, the spectrum may be converted.
+
+        * `f_lam`: keep flux units the same
+        * `f_nu`: convert flux to ergs/s/cm^2/Hz
+        * `f_nu_log`: convert flux to ergs/s/cm^2/log(Hz)
+        * `counts/pix`: integrate spectrum to counts/pixel
         '''
 
         #For now, unless we have integrated, we need to start with `f_lam`.
         if out_unit is not "counts/pix":
             assert self.unit == "f_lam", "FITS writer assumes f_lam input."
+        else:
+            raise NotImplementedError("counts/pix not yet implemented properly!")
 
         if out_unit is "f_nu_log":
             #Convert from f_lam to f_nu per log(AA)
@@ -634,7 +641,7 @@ class ModelSpectrum:
         self.grid_params = {}
         self.vz = 0
         self.Av = 0
-        self.Omega = 1
+        self.log_Omega = 0.
 
         #Grab chunk from the ModelInterpolator object
         chunk = len(self.wl_raw)
@@ -650,7 +657,7 @@ class ModelSpectrum:
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
 
-    def update_Omega(self, Omega):
+    def update_log_Omega(self, log_Omega):
         '''
         Update the 'flux factor' parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
 
@@ -659,8 +666,8 @@ class ModelSpectrum:
 
         '''
         #factor by which to correct from old Omega
-        self.fl *= Omega/self.Omega
-        self.Omega = Omega
+        self.fl *= 10**(log_Omega - self.log_Omega)
+        self.log_Omega = log_Omega
 
     def update_vz(self, vz):
         '''
@@ -671,7 +678,7 @@ class ModelSpectrum:
 
         '''
         #How far to shift based from old vz?
-        vz_shift = self.vz - vz
+        vz_shift = vz - self.vz
         self.wl = self.wl_raw * np.sqrt((C.c_kms + vz_shift) / (C.c_kms - vz_shift))
         self.vz = vz
 
@@ -694,7 +701,7 @@ class ModelSpectrum:
         '''
         Private method to update just those stellar parameters. Designed to be used as part of update_all.
 
-        :param grid_params: grid parameters
+        :param grid_params: grid parameters, including alpha or not.
         :type grid_params: dict
 
         '''
@@ -744,17 +751,25 @@ class ModelSpectrum:
 
         '''
         #First set stellar parameters using _update_grid_params
-        grid_params = {key:params[key] for key in C.grid_parameters}
+        grid_params = {key:params[key] for key in self.interpolator.parameters}
 
         self._update_grid_params(grid_params)
+
+        #Reset the relative variables
+        self.vz = 0
+        self.Av = 0
+        self.log_Omega = 0
 
         #Then vsini and instrument using _update_vsini
         self._update_vsini_and_instrument(params['vsini'])
 
         #Then vz, ff, and Av using public methods
         self.update_vz(params['vz'])
-        self.update_Omega(params['Omega'])
-        self.update_Av(params['Av'])
+        self.update_log_Omega(params['log_Omega'])
+
+        if 'Av' in params:
+            self.update_Av(params['Av'])
+
         self.downsample()
 
     def downsample(self):
@@ -847,7 +862,52 @@ class CovarianceMatrix:
         self.norders = self.DataSpectrum.shape[0]
         self.npoints = self.DataSpectrum.shape[1]
         #Because sparse matrices only come in 2D, we have a list of sparse matrices.
+        self.sigma_matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
         self.matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
+
+
+    def sparse_k_3_2(self, xs, amp, l):
+        N = len(xs)
+        offset = 0
+        r0 = 6 * l
+        diags = []
+        while offset < N:
+            #Pairwise calculate rs
+            if offset == 0:
+                rs = np.zeros_like(xs)
+            else:
+                rs = np.abs(xs[offset:] - xs[:-offset])
+                k = np.empty_like(rs)
+            if np.min(rs) >= r0:
+                break
+            k = (0.5 + 0.5 * np.cos(np.pi * rs/r0)) * amp**2 * (1 + np.sqrt(3) * rs/l) * np.exp(-np.sqrt(3) * rs/l)
+            k[rs >= r0] = 0
+            diags.append(k)
+            offset += 1
+
+        #Mirror the diagonals
+        front = diags[1:].copy()
+        front.reverse()
+        diags = front + diags
+        offsets = [i for i in range(-offset + 1, offset)]
+        return sp.diags(diags, offsets, format="csc")
+
+    def update(self, params):
+        '''
+        Update the covariance matrix using the parameters.
+
+        :param params: parameters to update the covariance matrix
+        :type params: dict
+        '''
+
+        #Currently expects {"sig_amp", "amp", "l"}
+        amp = params['amp']
+        l = params['l']
+        sig_amp = params['sig_amp']
+
+        for i in range(self.norders):
+            wl = self.DataSpectrum.wls[i]
+            self.matrices[i] = self.sparse_k_3_2(wl, amp, l) + sig_amp**2 * self.sigma_matrices[i]
 
 
     def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
@@ -888,15 +948,26 @@ class CovarianceMatrix:
         return sp.csc_matrix((gauss_mat, ij), shape=(len_x,len_x))
 
 
-    def chi2(self, model_fls):
+    def evaluate(self, model_fls):
         '''
-        Evaluate chi2 using the data flux, model flux and covariance matrix.
+        Evaluate lnprob using the data flux, model flux and covariance matrix.
         '''
-
 
         A = self.DataSpectrum.fls - model_fls #2D array
-        chi2 = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
-        return chi2
+
+        #Go through each order
+        lnp = np.empty((self.norders,))
+        for i in range(self.norders):
+            a = A[i]
+            s = self.matrices[i]
+            sign, logdet = np.linalg.slogdet(s.todense())
+            if sign <= 0:
+                return -np.inf
+            else:
+                lnp[i] = -0.5 * (a.T.dot(spsolve(s, a)) + logdet)
+
+        #lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
+        return np.sum(lnp)
 
 
 

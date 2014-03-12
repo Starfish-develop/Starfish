@@ -26,20 +26,40 @@ def load_config():
 
 class Model:
     '''
-    Container class to create and bring together all of the relevant data and models.
+    Container class to create and bring together all of the relevant data and models to aid in evaulation.
+
+    :param DataSpectrum: the data to fit
+    :type DataSpectrum: :obj:`spectrum.DataSpectrum` object
+    :param Instrument: the instrument with which the data was acquired
+    :type Instrument: :obj:`grid_tools.Instrument` object
+    :param HDF5Interface: the interface to the synthetic stellar library
+    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object
+    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.ModelInterpolator`` is trilinear.
+    :type stellar_tuple: tuple
+
     '''
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple):
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple):
         self.DataSpectrum = DataSpectrum
-        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum)
-        self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
         self.stellar_tuple = stellar_tuple
+        self.Cov_tuple = cov_tuple
+        #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
+        if 'alpha' not in self.stellar_tuple:
+            trilinear = True
+        else:
+            trilinear = False
+        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
+
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum)
 
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
+
+    def zip_Cov_p(self, p):
+        return dict(zip(self.Cov_tuple, p))
 
     def update_Model(self, params):
         self.ModelSpectrum.update_all(params)
@@ -50,19 +70,32 @@ class Model:
     def update_Cov(self, params):
         self.CovarianceMatrix.update(params)
 
+    def get_data(self):
+        '''
+        Returns a DataSpectrum object.
+        '''
+        return self.DataSpectrum
+
+    def get_spectrum(self):
+        return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
+
+    def get_Cov(self):
+        return self.CovarianceMatrix.matrices
+
     def evaluate(self):
         '''
         Compare the different data and models.
         '''
-
-        #Get chi^2 comparison
+        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
         model_fls = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
-        chi2 = self.CovarianceMatrix.chi2(model_fls)
-        return chi2
+
+        #CovarianceMatrix will do the math from DFM
+        lnp = self.CovarianceMatrix.evaluate(model_fls)
+        return lnp
 
 
-        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
+
 
 
 

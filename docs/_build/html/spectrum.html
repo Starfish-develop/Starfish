@@ -70,7 +70,7 @@ that may be used in the <a class="reference internal" href="grid_tools.html#modu
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-ec93581863170bcf38014e25294f2f131b8f0194.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-714f752e2df371f1659892dec8eeef9a17009a43.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
 <area shape="rect" id="node3" href="#spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
@@ -362,6 +362,31 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.LogLambdaSpectrum.write_to_FITS">
+<tt class="descname">write_to_FITS</tt><big>(</big><em>out_unit</em>, <em>filename</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.write_to_FITS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.write_to_FITS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a LogLambdaSpectrum to a FITS file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_unit</strong> (<em>string</em>) &#8211; <cite>f_lam</cite>, <cite>f_nu</cite>, <cite>f_nu_log</cite>, or <cite>counts/pix</cite></li>
+<li><strong>filename</strong> (<em>string</em>) &#8211; output filename</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Depending on the <cite>out_unit</cite>, the spectrum may be converted.</p>
+<ul class="simple">
+<li><cite>f_lam</cite>: keep flux units the same</li>
+<li><cite>f_nu</cite>: convert flux to ergs/s/cm^2/Hz</li>
+<li><cite>f_nu_log</cite>: convert flux to ergs/s/cm^2/log(Hz)</li>
+<li><cite>counts/pix</cite>: integrate spectrum to counts/pixel</li>
+</ul>
 </dd></dl>
 
 </dd></dl>

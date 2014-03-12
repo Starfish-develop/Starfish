@@ -198,14 +198,32 @@ convolve raw spectra by the instrumental profile.
 
 
 FITS creator
-------------
+============
 
 Some techniques using synthetic spectra require them as input in FITS files. The :obj:`MasterToFITSProcessor` uses a
 :obj:`HDF5Interface` in order interface to a master stellar grid stored in HDF5 format. Given a parameter set, the object
 will create a FITS file storing a spectrum.
 
-.. autoclass:: MasterToFITSProcessor
+.. autoclass:: MasterToFITSIndividual
    :members:
+
+
+To process an individual spectrum to a FITS file
+
+.. code-block:: python
+
+    myInstrument = KPNO()
+    myInterpolator = Interpolator(myHDF5Interface)
+    KPNOcreator = MasterToFITSIndividual(interpolator=myInterpolator, instrument=myInstrument)
+
+    params = {"temp":6000, "logg":4.5, "Z":0.0, "vsini":8}
+    KPNOcreator.process_spectrum(params, out_unit="f_nu_log")
+
+
+.. autoclass:: MasterToFITSGridProcessor
+   :members:
+
+
 
 For example, to process all of the PHOENIX spectra into FITS files suitable for the :obj:`KPNO` instrument, we would do
 
@@ -220,15 +238,6 @@ For example, to process all of the PHOENIX spectra into FITS files suitable for 
     mycreator.process_all()
 
 
-To process just an individual spectrum
-
-.. code-block::python
-
-    myInstrument = KPNO()
-
-    mycreator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=myInstrument,
-    outdir="outFITS/", points={"temp":np.arange(2500, 12000, 250), "logg":np.arange(0.0, 6.1, 0.5),
-    "Z":np.arange(-1., 1.1, 0.5), "vsini": np.arange(0.0, 16.1, 1.)}, processes=32)
 
 
 Exceptions

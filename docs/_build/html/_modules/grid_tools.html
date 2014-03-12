@@ -800,9 +800,67 @@
 
 
 </div></div>
-<span class="n">Kurucz_points</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3500</span><span class="p">,</span> <span class="mi">9751</span><span class="p">,</span> <span class="mi">250</span><span class="p">),</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)}</span>
+<div class="viewcode-block" id="MasterToFITSIndividual"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSIndividual">[docs]</a><span class="k">class</span> <span class="nc">MasterToFITSIndividual</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Object used to create one FITS file at a time.</span>
 
-<div class="viewcode-block" id="MasterToFITSProcessor"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor">[docs]</a><span class="k">class</span> <span class="nc">MasterToFITSProcessor</span><span class="p">:</span>
+<span class="sd">    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.</span>
+<span class="sd">    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolator</span><span class="p">,</span> <span class="n">instrument</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span> <span class="o">=</span> <span class="n">interpolator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrument</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;t{temp:0&gt;5.0f}g{logg:0&gt;2.0f}{Z_flag}{Z:0&gt;2.0f}v{vsini:0&gt;3.0f}.fits&quot;</span>
+
+        <span class="c">#Create a master wl_dict which correctly oversamples the instrumental kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">wl_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span><span class="p">[</span><span class="s">&quot;wl&quot;</span><span class="p">]</span>
+
+
+
+<div class="viewcode-block" id="MasterToFITSIndividual.process_spectrum"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSIndividual.process_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">process_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">out_unit</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a FITS file with given parameters</span>
+
+<span class="sd">        :param parameters: stellar parameters :attr:`temp`, :attr:`logg`, :attr:`Z`, :attr:`vsini`</span>
+<span class="sd">        :type parameters: dict</span>
+<span class="sd">        :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.</span>
+<span class="sd">        :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.</span>
+
+<span class="sd">        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c">#Preserve the &quot;popping of parameters&quot;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c">#Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum</span>
+        <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;m&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;p&quot;</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">temp</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">logg</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;logg&quot;</span><span class="p">],</span>
+                                    <span class="n">Z</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]),</span> <span class="n">Z_flag</span><span class="o">=</span><span class="n">zflag</span><span class="p">,</span> <span class="n">vsini</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;vsini&quot;</span><span class="p">])</span>
+        <span class="n">vsini</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&quot;vsini&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="c"># Using the ``out_unit``, determine if we should also integrate while doing the downsampling</span>
+            <span class="k">if</span> <span class="n">out_unit</span><span class="o">==</span><span class="s">&quot;counts/pix&quot;</span><span class="p">:</span>
+                <span class="n">integrate</span><span class="o">=</span><span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span>
+            <span class="c"># Downsample the spectrum to the instrumental resolution.</span>
+            <span class="n">spec</span><span class="o">.</span><span class="n">instrument_and_stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">integrate</span><span class="p">)</span>
+            <span class="n">spec</span><span class="o">.</span><span class="n">write_to_FITS</span><span class="p">(</span><span class="n">out_unit</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;{} cannot be interpolated from the grid.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Processed spectrum {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+</div></div>
+<div class="viewcode-block" id="MasterToFITSGridProcessor"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor">[docs]</a><span class="k">class</span> <span class="nc">MasterToFITSGridProcessor</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Create one or many FITS files from a master HDF5 grid.</span>
 
@@ -845,7 +903,7 @@
             <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">,</span><span class="s">&quot;Points above interpolator bound {}={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">max_val</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="MasterToFITSProcessor.process_spectrum"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor.process_spectrum">[docs]</a>    <span class="k">def</span> <span class="nf">process_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+<div class="viewcode-block" id="MasterToFITSGridProcessor.process_spectrum_vsini"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini">[docs]</a>    <span class="k">def</span> <span class="nf">process_spectrum_vsini</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Creates a FITS file with given parameters (not including *vsini*).</span>
 
@@ -867,63 +925,7 @@
         <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">print</span><span class="p">(</span><span class="s">&quot;{} cannot be interpolated from the grid.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="MasterToFITSProcessor.write_to_FITS"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor.write_to_FITS">[docs]</a>    <span class="k">def</span> <span class="nf">write_to_FITS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Write a LogLambdaSpectrum to a FITS file.</span>
-
-<span class="sd">        :param spectrum: the spectrum to write to FITS</span>
-<span class="sd">        :type spectrum: :obj:`model.LogLambdaSpectrum`</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-
-        <span class="c">#Gather temp, logg, Z, alpha, and vsini from header, create filename.</span>
-        <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">spectrum</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
-        <span class="n">head</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span>
-
-        <span class="n">metadata</span> <span class="o">=</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DISPTYPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;log lambda&#39;</span>
-        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DISPUNIT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;log angstroms&#39;</span>
-        <span class="n">head</span><span class="p">[</span><span class="s">&quot;CRPIX1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
-        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DC-FLAG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;CRVAL1&#39;</span><span class="p">,</span> <span class="s">&#39;CDELT1&#39;</span><span class="p">,</span><span class="s">&#39;temp&#39;</span><span class="p">,</span><span class="s">&#39;logg&#39;</span><span class="p">,</span><span class="s">&#39;Z&#39;</span><span class="p">,</span><span class="s">&#39;vsini&#39;</span><span class="p">]:</span>
-            <span class="n">head</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-
-        <span class="c">#Alphebatize all other keywords, and add some comments</span>
-        <span class="n">comments</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;PHXTEFF&quot;</span><span class="p">:</span> <span class="s">&quot;[K] effective temperature&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXLOGG&quot;</span><span class="p">:</span> <span class="s">&quot;[cm/s^2] log (surface gravity)&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXM_H&quot;</span><span class="p">:</span> <span class="s">&quot;[M/H] metallicity (rel. sol. - Asplund &amp;a 2009)&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXALPHA&quot;</span><span class="p">:</span> <span class="s">&quot;[a/M] alpha element enhancement&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXDUST&quot;</span><span class="p">:</span> <span class="s">&quot;Dust in atmosphere&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXVER&quot;</span><span class="p">:</span> <span class="s">&quot;Phoenix version&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXXI_L&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for LTE lines&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXXI_M&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for molec lines&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXXI_N&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for NLTE lines&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXMASS&quot;</span><span class="p">:</span> <span class="s">&quot;[g] Stellar mass&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXREFF&quot;</span><span class="p">:</span> <span class="s">&quot;[cm] Effective stellar radius&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXLUM&quot;</span><span class="p">:</span> <span class="s">&quot;[ergs] Stellar luminosity&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;PHXMXLEN&quot;</span><span class="p">:</span> <span class="s">&quot;Mixing length&quot;</span><span class="p">,</span>
-                    <span class="s">&quot;air&quot;</span><span class="p">:</span> <span class="s">&quot;air wavelengths?&quot;</span><span class="p">}</span>
-
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">comments</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">head</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">comments</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
-            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                <span class="k">continue</span>
-
-        <span class="n">extra</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;AUTHOR&quot;</span><span class="p">:</span> <span class="s">&quot;Ian Czekala&quot;</span><span class="p">,</span> <span class="s">&quot;COMMENT&quot;</span> <span class="p">:</span> <span class="s">&quot;Adapted from PHOENIX&quot;</span><span class="p">}</span>
-        <span class="n">head</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
-        <span class="n">head</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">head</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;m&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;p&quot;</span>
-
-        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">temp</span><span class="o">=</span><span class="n">head</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">logg</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="n">head</span><span class="p">[</span><span class="s">&quot;logg&quot;</span><span class="p">],</span> <span class="n">Z</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">head</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]),</span> <span class="n">Z_flag</span><span class="o">=</span><span class="n">zflag</span><span class="p">,</span> <span class="n">vsini</span><span class="o">=</span><span class="n">head</span><span class="p">[</span><span class="s">&quot;vsini&quot;</span><span class="p">])</span>
-        <span class="n">hdu</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Wrote {} to FITS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
-</div>
-<div class="viewcode-block" id="MasterToFITSProcessor.process_chunk"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor.process_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">process_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
+<div class="viewcode-block" id="MasterToFITSGridProcessor.process_chunk"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor.process_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">process_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Process a chunk of parameters to FITS</span>
 
@@ -932,9 +934,9 @@
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">print</span><span class="p">(</span><span class="s">&quot;Process {} processing chunk {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">(),</span> <span class="n">chunk</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">process_spectrum</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_spectrum_vsini</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="MasterToFITSProcessor.process_all"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSProcessor.process_all">[docs]</a>    <span class="k">def</span> <span class="nf">process_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MasterToFITSGridProcessor.process_all"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor.process_all">[docs]</a>    <span class="k">def</span> <span class="nf">process_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Process all parameters in :attr:`points` to FITS by chopping them into chunks.</span>
 <span class="sd">        &#39;&#39;&#39;</span>

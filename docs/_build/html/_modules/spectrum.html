@@ -53,6 +53,7 @@
 <span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">InterpolatedUnivariateSpline</span>
 <span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">j1</span>
 <span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="kn">as</span> <span class="nn">sp</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span><span class="p">,</span><span class="n">fits</span>
 <span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">spsolve</span>
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">pyfftw</span>
@@ -460,6 +461,89 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">stellar_convolve</span><span class="p">(</span><span class="n">vsini</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instrument_convolve</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">integrate</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="LogLambdaSpectrum.write_to_FITS"><a class="viewcode-back" href="../spectrum.html#spectrum.LogLambdaSpectrum.write_to_FITS">[docs]</a>    <span class="k">def</span> <span class="nf">write_to_FITS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_unit</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Write a LogLambdaSpectrum to a FITS file.</span>
+
+<span class="sd">        :param out_unit: `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`</span>
+<span class="sd">        :type out_unit: string</span>
+<span class="sd">        :param filename: output filename</span>
+<span class="sd">        :type filename: string</span>
+
+<span class="sd">        Depending on the `out_unit`, the spectrum may be converted.</span>
+
+<span class="sd">        * `f_lam`: keep flux units the same</span>
+<span class="sd">        * `f_nu`: convert flux to ergs/s/cm^2/Hz</span>
+<span class="sd">        * `f_nu_log`: convert flux to ergs/s/cm^2/log(Hz)</span>
+<span class="sd">        * `counts/pix`: integrate spectrum to counts/pixel</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c">#For now, unless we have integrated, we need to start with `f_lam`.</span>
+        <span class="k">if</span> <span class="n">out_unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s">&quot;counts/pix&quot;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;FITS writer assumes f_lam input.&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;counts/pix not yet implemented properly!&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out_unit</span> <span class="ow">is</span> <span class="s">&quot;f_nu_log&quot;</span><span class="p">:</span>
+            <span class="c">#Convert from f_lam to f_nu per log(AA)</span>
+            <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span>
+            <span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">wl</span><span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">c_ang</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl</span><span class="p">))</span> <span class="o">*</span> <span class="n">fl</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">new</span>
+            <span class="n">out_unit</span> <span class="o">=</span> <span class="s">&quot;ergs/s/cm^2/log(Hz)&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;UNIT&quot;</span><span class="p">:</span><span class="s">&quot;f_nu_log&quot;</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">out_unit</span> <span class="ow">is</span> <span class="s">&quot;f_nu&quot;</span><span class="p">:</span>
+            <span class="c">#Convert from f_lam to f_nu per log(AA)</span>
+            <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span>
+            <span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">wl</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_ang</span> <span class="o">*</span> <span class="n">fl</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">new</span>
+            <span class="n">out_unit</span> <span class="o">=</span> <span class="s">&quot;ergs/s/cm^2/Hz&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;UNIT&quot;</span><span class="p">:</span><span class="s">&quot;f_nu&quot;</span><span class="p">})</span>
+
+        <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+        <span class="n">head</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DISPTYPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;log lambda&#39;</span>
+        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DISPUNIT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;log angstroms&#39;</span>
+        <span class="n">head</span><span class="p">[</span><span class="s">&quot;FLUXUNIT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_unit</span>
+        <span class="n">head</span><span class="p">[</span><span class="s">&quot;CRPIX1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">head</span><span class="p">[</span><span class="s">&quot;DC-FLAG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;CRVAL1&#39;</span><span class="p">,</span> <span class="s">&#39;CDELT1&#39;</span><span class="p">,</span><span class="s">&#39;temp&#39;</span><span class="p">,</span><span class="s">&#39;logg&#39;</span><span class="p">,</span><span class="s">&#39;Z&#39;</span><span class="p">,</span><span class="s">&#39;vsini&#39;</span><span class="p">]:</span>
+            <span class="n">head</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="c">#Alphebatize all other keywords, and add some comments</span>
+        <span class="n">comments</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;PHXTEFF&quot;</span><span class="p">:</span> <span class="s">&quot;[K] effective temperature&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXLOGG&quot;</span><span class="p">:</span> <span class="s">&quot;[cm/s^2] log (surface gravity)&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXM_H&quot;</span><span class="p">:</span> <span class="s">&quot;[M/H] metallicity (rel. sol. - Asplund &amp;a 2009)&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXALPHA&quot;</span><span class="p">:</span> <span class="s">&quot;[a/M] alpha element enhancement&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXDUST&quot;</span><span class="p">:</span> <span class="s">&quot;Dust in atmosphere&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXVER&quot;</span><span class="p">:</span> <span class="s">&quot;Phoenix version&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXXI_L&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for LTE lines&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXXI_M&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for molec lines&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXXI_N&quot;</span><span class="p">:</span> <span class="s">&quot;[km/s] microturbulence velocity for NLTE lines&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXMASS&quot;</span><span class="p">:</span> <span class="s">&quot;[g] Stellar mass&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXREFF&quot;</span><span class="p">:</span> <span class="s">&quot;[cm] Effective stellar radius&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXLUM&quot;</span><span class="p">:</span> <span class="s">&quot;[ergs] Stellar luminosity&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;PHXMXLEN&quot;</span><span class="p">:</span> <span class="s">&quot;Mixing length&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;air&quot;</span><span class="p">:</span> <span class="s">&quot;air wavelengths?&quot;</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">comments</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">head</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">comments</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+        <span class="n">extra</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;AUTHOR&quot;</span><span class="p">:</span> <span class="s">&quot;Ian Czekala&quot;</span><span class="p">,</span> <span class="s">&quot;COMMENT&quot;</span> <span class="p">:</span> <span class="s">&quot;Adapted from PHOENIX&quot;</span><span class="p">}</span>
+        <span class="n">head</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="n">head</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span>
+
+        <span class="n">hdu</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">clobber</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Wrote {} to FITS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
 
 </div></div>
 <span class="k">def</span> <span class="nf">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>

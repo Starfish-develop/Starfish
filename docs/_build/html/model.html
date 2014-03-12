@@ -54,7 +54,21 @@
 <span class="target" id="module-model"></span><dl class="class">
 <dt id="model.Model">
 <em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em><big>)</big><a class="reference internal" href="_modules/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model" title="Permalink to this definition">¶</a></dt>
-<dd><p>Container class to create and bring together all of the relevant data and models.</p>
+<dd><p>Container class to create and bring together all of the relevant data and models to aid in evaulation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>DataSpectrum</strong> (<a class="reference internal" href="spectrum.html#spectrum.DataSpectrum" title="spectrum.DataSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt></a> object) &#8211; the data to fit</li>
+<li><strong>Instrument</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object) &#8211; the instrument with which the data was acquired</li>
+<li><strong>HDF5Interface</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.HDF5Interface</span></tt></a> object) &#8211; the interface to the synthetic stellar library</li>
+<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="model.Model.evaluate">
 <tt class="descname">evaluate</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Model.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model.evaluate" title="Permalink to this definition">¶</a></dt>

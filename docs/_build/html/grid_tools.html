@@ -176,7 +176,7 @@ Currently there are extensions for three main grids:</p>
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-3c90fe830fdec03ae84bedc61b54bb53bdeaad20.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-cb2d977f312f332568f9a0517a9ffd53c712ba23.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
@@ -329,7 +329,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <p>The <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'Z': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -617,7 +617,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-852b21e06a3be9dae9a89947775fabcdabbf46be.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-fc3dc50acc760ab9f6269b8ec88cab7402efdb32.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
@@ -679,14 +679,62 @@ convolve raw spectra by the instrumental profile.</p>
 <p>Reticon Instrument</p>
 </dd></dl>
 
+</div>
 <div class="section" id="fits-creator">
-<h3>FITS creator<a class="headerlink" href="#fits-creator" title="Permalink to this headline">¶</a></h3>
-<p>Some techniques using synthetic spectra require them as input in FITS files. The <a class="reference internal" href="#grid_tools.MasterToFITSProcessor" title="grid_tools.MasterToFITSProcessor"><tt class="xref py py-obj docutils literal"><span class="pre">MasterToFITSProcessor</span></tt></a> uses a
+<h2>FITS creator<a class="headerlink" href="#fits-creator" title="Permalink to this headline">¶</a></h2>
+<p>Some techniques using synthetic spectra require them as input in FITS files. The <tt class="xref py py-obj docutils literal"><span class="pre">MasterToFITSProcessor</span></tt> uses a
 <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> in order interface to a master stellar grid stored in HDF5 format. Given a parameter set, the object
 will create a FITS file storing a spectrum.</p>
 <dl class="class">
-<dt id="grid_tools.MasterToFITSProcessor">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSProcessor</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>integrate=False</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor" title="Permalink to this definition">¶</a></dt>
+<dt id="grid_tools.MasterToFITSIndividual">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSIndividual</tt><big>(</big><em>interpolator</em>, <em>instrument</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSIndividual"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSIndividual" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object used to create one FITS file at a time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>interpolator</strong> &#8211; an <a class="reference internal" href="#grid_tools.Interpolator" title="grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a> object referenced to the master grid.</li>
+<li><strong>instrument</strong> &#8211; an <a class="reference internal" href="#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">Instrument</span></tt></a> object containing the properties of the final spectra</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="grid_tools.MasterToFITSIndividual.process_spectrum">
+<tt class="descname">process_spectrum</tt><big>(</big><em>parameters</em>, <em>out_unit</em>, <em>out_dir=''</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSIndividual.process_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSIndividual.process_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a FITS file with given parameters</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters <tt class="xref py py-attr docutils literal"><span class="pre">temp</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">logg</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">Z</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">vsini</span></tt></li>
+<li><strong>out_unit</strong> &#8211; output flux unit? Choices between <cite>f_lam</cite>, <cite>f_nu</cite>, <cite>f_nu_log</cite>, or <cite>counts/pix</cite>. <cite>counts/pix</cite> will do spline integration.</li>
+<li><strong>out_dir</strong> &#8211; optional directory to prepend to output filename, which is chosen automatically for parameter values.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Smoothly handles the <em>InterpolationError</em> if parameters cannot be interpolated from the grid and prints a message.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>To process an individual spectrum to a FITS file</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">myInstrument</span> <span class="o">=</span> <span class="n">KPNO</span><span class="p">()</span>
+<span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">Interpolator</span><span class="p">(</span><span class="n">myHDF5Interface</span><span class="p">)</span>
+<span class="n">KPNOcreator</span> <span class="o">=</span> <span class="n">MasterToFITSIndividual</span><span class="p">(</span><span class="n">interpolator</span><span class="o">=</span><span class="n">myInterpolator</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="n">myInstrument</span><span class="p">)</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">6000</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">4.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;vsini&quot;</span><span class="p">:</span><span class="mi">8</span><span class="p">}</span>
+<span class="n">KPNOcreator</span><span class="o">.</span><span class="n">process_spectrum</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">out_unit</span><span class="o">=</span><span class="s">&quot;f_nu_log&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="grid_tools.MasterToFITSGridProcessor">
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSGridProcessor</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>integrate=False</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create one or many FITS files from a master HDF5 grid.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -705,14 +753,14 @@ will create a FITS file storing a spectrum.</p>
 </tbody>
 </table>
 <dl class="method">
-<dt id="grid_tools.MasterToFITSProcessor.process_all">
-<tt class="descname">process_all</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor.process_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor.process_all" title="Permalink to this definition">¶</a></dt>
+<dt id="grid_tools.MasterToFITSGridProcessor.process_all">
+<tt class="descname">process_all</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor.process_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor.process_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Process all parameters in <tt class="xref py py-attr docutils literal"><span class="pre">points</span></tt> to FITS by chopping them into chunks.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="grid_tools.MasterToFITSProcessor.process_chunk">
-<tt class="descname">process_chunk</tt><big>(</big><em>chunk</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor.process_chunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor.process_chunk" title="Permalink to this definition">¶</a></dt>
+<dt id="grid_tools.MasterToFITSGridProcessor.process_chunk">
+<tt class="descname">process_chunk</tt><big>(</big><em>chunk</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor.process_chunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor.process_chunk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Process a chunk of parameters to FITS</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -725,8 +773,8 @@ will create a FITS file storing a spectrum.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="grid_tools.MasterToFITSProcessor.process_spectrum">
-<tt class="descname">process_spectrum</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor.process_spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor.process_spectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini">
+<tt class="descname">process_spectrum_vsini</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor.process_spectrum_vsini"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a FITS file with given parameters (not including <em>vsini</em>).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -737,20 +785,6 @@ will create a FITS file storing a spectrum.</p>
 </tbody>
 </table>
 <p>Smoothly handles the <em>InterpolationError</em> if parameters cannot be interpolated from the grid and prints a message.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="grid_tools.MasterToFITSProcessor.write_to_FITS">
-<tt class="descname">write_to_FITS</tt><big>(</big><em>spectrum</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSProcessor.write_to_FITS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSProcessor.write_to_FITS" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write a LogLambdaSpectrum to a FITS file.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>spectrum</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">model.LogLambdaSpectrum</span></tt>) &#8211; the spectrum to write to FITS</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 </dd></dl>
@@ -764,7 +798,6 @@ will create a FITS file storing a spectrum.</p>
 
 <span class="n">mycreator</span><span class="o">.</span><span class="n">process_all</span><span class="p">()</span>
 </pre></div>
-</div>
 </div>
 </div>
 <div class="section" id="exceptions">
@@ -805,10 +838,8 @@ usually grid bounds.</p>
 </li>
 <li><a class="reference internal" href="#hdf5-creator-and-reader">HDF5 creator and reader</a></li>
 <li><a class="reference internal" href="#interpolators">Interpolators</a></li>
-<li><a class="reference internal" href="#instruments">Instruments</a><ul>
+<li><a class="reference internal" href="#instruments">Instruments</a></li>
 <li><a class="reference internal" href="#fits-creator">FITS creator</a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#exceptions">Exceptions</a></li>
 </ul>
 </li>
