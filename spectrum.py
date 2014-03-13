@@ -11,10 +11,8 @@ import warnings
 import StellarSpectra.constants as C
 import copy
 
-
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 flux_units = frozenset(("f_lam", "f_nu"))
-
 
 class BaseSpectrum:
     '''
@@ -610,7 +608,6 @@ class DataSpectrum:
     def __str__(self):
         return "DataSpectrum object with shape {}".format(self.shape)
 
-
 class ModelSpectrum:
     '''
     A 1D synthetic spectrum.
@@ -641,7 +638,7 @@ class ModelSpectrum:
         self.grid_params = {}
         self.vz = 0
         self.Av = 0
-        self.log_Omega = 0.
+        self.logOmega = 0.
 
         #Grab chunk from the ModelInterpolator object
         chunk = len(self.wl_raw)
@@ -657,7 +654,7 @@ class ModelSpectrum:
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
 
-    def update_log_Omega(self, log_Omega):
+    def update_logOmega(self, logOmega):
         '''
         Update the 'flux factor' parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
 
@@ -666,8 +663,8 @@ class ModelSpectrum:
 
         '''
         #factor by which to correct from old Omega
-        self.fl *= 10**(log_Omega - self.log_Omega)
-        self.log_Omega = log_Omega
+        self.fl *= 10**(logOmega - self.logOmega)
+        self.logOmega = logOmega
 
     def update_vz(self, vz):
         '''
@@ -705,8 +702,12 @@ class ModelSpectrum:
         :type grid_params: dict
 
         '''
-        self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
-        self.grid_params.update(grid_params)
+        try:
+            self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
+            self.grid_params.update(grid_params)
+
+        except C.InterpolationError as e:
+            raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
 
     def _update_vsini_and_instrument(self, vsini):
         '''
@@ -717,6 +718,9 @@ class ModelSpectrum:
         :type vsini: float (km/s)
 
         '''
+        if vsini < 0:
+            raise C.ModelError("vsini must be positive")
+
         self.vsini = vsini
 
         self.influx[:] = self.fl
@@ -758,14 +762,14 @@ class ModelSpectrum:
         #Reset the relative variables
         self.vz = 0
         self.Av = 0
-        self.log_Omega = 0
+        self.logOmega = 0
 
         #Then vsini and instrument using _update_vsini
         self._update_vsini_and_instrument(params['vsini'])
 
         #Then vz, ff, and Av using public methods
         self.update_vz(params['vz'])
-        self.update_log_Omega(params['log_Omega'])
+        self.update_logOmega(params['logOmega'])
 
         if 'Av' in params:
             self.update_Av(params['Av'])
@@ -798,6 +802,8 @@ class ChebyshevSpectrum:
 
     :param DataSpectrum: take shape from.
     :type DataSpectrum: :obj:`DataSpectrum` object
+
+    If DataSpectrum.norders == 1, then only c1, c2, and c3 are required. Otherwise c0 is also reqired for each order.
     '''
 
     def __init__(self, DataSpectrum, npoly=4):
@@ -834,10 +840,17 @@ class ChebyshevSpectrum:
         '''
         Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls
         '''
+
+
         # reshape to (norders, self.npoly)
         coefs_arr = coefs.reshape(self.norders, -1)
-        self.c0s = coefs_arr[:, 0] #length norders
-        self.cns = coefs_arr[:, 1:] #shape (norders, self.npoly - 1)
+        #If we are only fitting one order, fix c0 to 1.
+        if self.norders == 1:
+            self.c0s = np.array([1.0])
+            self.cns = coefs_arr #shape (1, self.npoly - 1)
+        else:
+            self.c0s = coefs_arr[:, 0] #length norders
+            self.cns = coefs_arr[:, 1:] #shape (norders, self.npoly - 1)
         #print("c0s.shape", c0s.shape)
         #print("cns.shape", cns.shape)
 
@@ -900,14 +913,14 @@ class CovarianceMatrix:
         :type params: dict
         '''
 
-        #Currently expects {"sig_amp", "amp", "l"}
-        amp = params['amp']
+        #Currently expects {"sigAmp", "logAmp", "l"}
+        amp = 10**params['logAmp']
         l = params['l']
-        sig_amp = params['sig_amp']
+        sigAmp = params['sigAmp']
 
         for i in range(self.norders):
             wl = self.DataSpectrum.wls[i]
-            self.matrices[i] = self.sparse_k_3_2(wl, amp, l) + sig_amp**2 * self.sigma_matrices[i]
+            self.matrices[i] = self.sparse_k_3_2(wl, amp, l) + sigAmp**2 * self.sigma_matrices[i]
 
 
     def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):

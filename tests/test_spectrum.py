@@ -3,6 +3,7 @@ from StellarSpectra.spectrum import *
 import numpy as np
 import tempfile
 import os
+import StellarSpectra.constants as C
 
 @pytest.fixture()
 def cleandir():
@@ -310,12 +311,12 @@ class TestModelSpectrum:
         #Does the spectrum convolve properly?
         self.model._update_vsini_and_instrument(10.)
 
-    def test_update_Omega(self):
+    def test_update_logOmega(self):
         #update up, and then down, do we get back to the same spectrum?
         orig_flux = self.model.fl.copy()
-        self.model.update_Omega(10.)
-        self.model.update_Omega(1.)
-        assert np.allclose(self.model.fl, orig_flux), "Omega does not return same flux"
+        self.model.update_logOmega(1.)
+        self.model.update_logOmega(0.)
+        assert np.allclose(self.model.fl, orig_flux), "logOmega does not return same flux"
 
     def test_update_vz(self):
         #update up, and then down, do we get back to the same spectrum?
@@ -333,17 +334,21 @@ class TestModelSpectrum:
         assert np.allclose(self.model.fl, orig_flux), "Av does not return same flux"
 
     def test_update_all(self):
-        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "Omega":1.})
+        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "logOmega":0.})
         import matplotlib.pyplot as plt
         plt.plot(self.model.wl, self.model.fl)
         plt.xlim(5160,5180)
         plt.savefig("tests/plots/model_spectrum.png")
 
     def test_downsample(self):
-        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "Omega":1.})
+        self.model.update_all({"temp":6105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "logOmega":0.})
         fls = self.model.downsampled_fls
         assert fls.shape == self.DataSpectrum.shape, "Downsample is not the same shape."
 
+    def test_ModelError(self):
+        with pytest.raises(C.ModelError) as e:
+            self.model.update_all({"temp":5105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "logOmega":0.})
+        print(e.value)
 
 class TestChebyshevSpectrum:
     def setup_class(self):
@@ -352,14 +357,20 @@ class TestChebyshevSpectrum:
         self.myCheb = ChebyshevSpectrum(myDataSpectrum, npoly=4)
 
     def test_update(self):
-        k = self.myCheb.update(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
-        assert self.DataSpectrum.shape == k.shape, "DataSpectrum and k do not match shape."
+        self.myCheb.update(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
+        assert self.DataSpectrum.shape == self.myCheb.k.shape, "DataSpectrum and k do not match shape."
 
     def test_complicated_shape(self):
         k = self.myCheb.update(np.array([1, 0.2, 0.2, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
         import matplotlib.pyplot as plt
-        plt.plot(self.DataSpectrum.wls[0], k[0])
+        plt.plot(self.DataSpectrum.wls[0], self.myCheb.k[0])
         plt.savefig("tests/plots/Chebyshev_spectrum.png")
+
+    def test_one_order(self):
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
+        myCheb = ChebyshevSpectrum(myDataSpectrum, npoly=4)
+        myCheb.update(np.array([0.01, 0.01, 0.01]))
+        print(myCheb.c0s, myCheb.cns)
 
 
 class TestCovarianceMatrix:

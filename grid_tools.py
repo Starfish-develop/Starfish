@@ -41,26 +41,6 @@ def chunk_list(mylist, n=mp.cpu_count()):
     return chunks
 
 
-
-
-
-
-
-class GridError(Exception):
-    '''
-    Raised when a spectrum cannot be found in the grid.
-    '''
-    def __init__(self, msg):
-        self.msg = msg
-
-class InterpolationError(Exception):
-    '''
-    Raised when the :obj:`Interpolator` or :obj:`IndexInterpolator` cannot properly interpolate a spectrum,
-    usually grid bounds.
-    '''
-    def __init__(self, msg):
-        self.msg = msg
-
 class RawGridInterface:
     '''
     A base class to handle interfacing with synthetic spectral grids.
@@ -80,7 +60,7 @@ class RawGridInterface:
         self.points = {}
         assert type(points) is dict, "points must be a dictionary."
         for key, value in points.items():
-            if key in C.grid_parameters:
+            if key in C.grid_set:
                 self.points[key] = value
             else:
                 raise KeyError("{0} is not an allowed parameter, skipping".format(key))
@@ -97,16 +77,16 @@ class RawGridInterface:
         :param parameters: parameter set to check
         :type parameters: dict
 
-        :raises GridError: if parameters.keys() is not a subset of :data:`C.grid_parameters`
-        :raises GridError: if the parameter values are outside of the grid bounds
+        :raises C.GridError: if parameters.keys() is not a subset of :data:`C.grid_set`
+        :raises C.GridError: if the parameter values are outside of the grid bounds
 
         '''
-        if not set(parameters.keys()) <= C.grid_parameters:
-            raise GridError("{} not in allowable grid parameters {}".format(parameters.keys(), C.grid_parameters))
+        if not set(parameters.keys()) <= C.grid_set:
+            raise C.GridError("{} not in allowable grid parameters {}".format(parameters.keys(), C.grid_set))
 
         for key,value in parameters.items():
             if value not in self.points[key]:
-                raise GridError("{} not in the grid points {}".format(value, sorted(self.points[key])))
+                raise C.GridError("{} not in the grid points {}".format(value, sorted(self.points[key])))
 
     def load_file(self, parameters, norm=True):
         '''
@@ -149,7 +129,7 @@ class PHOENIXGridInterface(RawGridInterface):
         try:
             wl_file = fits.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         except OSError:
-            raise GridError("Wavelength file improperly specified.")
+            raise C.GridError("Wavelength file improperly specified.")
 
         w_full = wl_file[0].data
         wl_file.close()
@@ -170,7 +150,7 @@ class PHOENIXGridInterface(RawGridInterface):
         :param parameters: stellar parameters
         :type parameters: dict
 
-        :raises GridError: if the file cannot be found on disk.
+        :raises C.GridError: if the file cannot be found on disk.
 
         :returns: :obj:`model.Base1DSpectrum`
         '''
@@ -191,7 +171,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
         fname = self.rname.format(**str_parameters)
 
-        #Still need to check that file is in the grid, otherwise raise a GridError
+        #Still need to check that file is in the grid, otherwise raise a C.GridError
         #Read all metadata in from the FITS header, and append to spectrum
         try:
             flux_file = fits.open(fname)
@@ -199,7 +179,7 @@ class PHOENIXGridInterface(RawGridInterface):
             hdr = flux_file[0].header
             flux_file.close()
         except OSError:
-            raise GridError("{} is not on disk.".format(fname))
+            raise C.GridError("{} is not on disk.".format(fname))
 
         #If we want to normalize the spectra, we must do it now since later we won't have the full EM range
         if self.norm:
@@ -322,8 +302,8 @@ class HDF5GridCreator:
             sys.stdout.flush()
             return (parameters,spec)
 
-        except GridError as e:
-            print("No file with parameters {}. GridError: {}".format(parameters, e))
+        except C.GridError as e:
+            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
             sys.stdout.flush()
             return (None,None)
 
@@ -381,7 +361,7 @@ class HDF5Interface:
             for key in hdf5["flux"].keys():
                 #assemble all temp, logg, Z, alpha keywords into a giant list
                 hdr = hdf5['flux'][key].attrs
-                grid_points.append({k: hdr[k] for k in C.grid_parameters})
+                grid_points.append({k: hdr[k] for k in C.grid_set})
             self.list_grid_points = grid_points
 
         #determine the bounding regions of the grid by sorting the grid_points
@@ -462,7 +442,7 @@ class IndexInterpolator:
 
         :param value:
         :type value: float
-        :raises InterpolationError: if *value* is out of bounds.
+        :raises C.InterpolationError: if *value* is out of bounds.
 
         :returns: ((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid
         and the fractional distance (0 - 1) between them and the value.
@@ -470,7 +450,7 @@ class IndexInterpolator:
         try:
             index = self.index_interpolator(value)
         except ValueError as e:
-            raise InterpolationError("Requested value {} is out of bounds. {}".format(value, e))
+            raise C.InterpolationError("Requested value {} is out of bounds. {}".format(value, e))
         high = np.ceil(index)
         low = np.floor(index)
         frac_index = index - low
@@ -496,9 +476,9 @@ class Interpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if alow == ahigh:
-            self.parameters = C.grid_parameters - set(("alpha",))
+            self.parameters = C.grid_set - set(("alpha",))
         else:
-            self.parameters = C.grid_parameters
+            self.parameters = C.grid_set
 
         self.avg_hdr_keys = {} if avg_hdr_keys is None else avg_hdr_keys #These avg_hdr_keys specify the ones to average over
 
@@ -538,13 +518,13 @@ class Interpolator:
 
         :param parameters: stellar parameters
         :type parameters: dict
-        :raises InterpolationError: if parameters are out of bounds.
+        :raises C.InterpolationError: if parameters are out of bounds.
         '''
 
         try:
             edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
-        except InterpolationError as e:
-            raise InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
+        except C.InterpolationError as e:
+            raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
         #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
         names = [key for key in edges.keys()]
@@ -570,10 +550,10 @@ class Interpolator:
                 try:
                     spec = self.interface.load_file(param)
                 except KeyError as e:
-                    raise InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
+                    raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
                 self.cache[key] = spec.fl
                 self.hdr_cache[key] = spec.metadata
-                #Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
+                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
         comb_metadata = self.wl_dict.copy()
@@ -625,9 +605,9 @@ class ModelInterpolator:
         #If alpha only includes one value, then do trilinear interpolation
         (alow, ahigh) = self.interface.bounds['alpha']
         if (alow == ahigh) or trilinear:
-            self.parameters = C.grid_parameters - set(("alpha",))
+            self.parameters = C.grid_set - set(("alpha",))
         else:
-            self.parameters = C.grid_parameters
+            self.parameters = C.grid_set
 
 
         self.wl = self.interface.wl
@@ -714,13 +694,13 @@ class ModelInterpolator:
 
         :param parameters: stellar parameters
         :type parameters: dict
-        :raises InterpolationError: if parameters are out of bounds.
+        :raises C.InterpolationError: if parameters are out of bounds.
         '''
 
         try:
             edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
-        except InterpolationError as e:
-            raise InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
+        except C.InterpolationError as e:
+            raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
         #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
         names = [key for key in edges.keys()]
@@ -746,9 +726,9 @@ class ModelInterpolator:
                 try:
                     fl = self.interface.load_flux(param) #This method allows loading only the relevant region from HDF5
                 except KeyError as e:
-                    raise InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
+                    raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
                 self.cache[key] = fl
-                #Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
+                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
         return np.sum(self.fluxes, axis=0)
@@ -785,13 +765,13 @@ class MasterToFITSIndividual:
         :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.
         :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.
 
-        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
+        Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
         '''
 
         #Preserve the "popping of parameters"
         parameters = parameters.copy()
 
-        #Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum
+        #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
         if parameters["Z"] < 0:
             zflag = "m"
         else:
@@ -810,7 +790,7 @@ class MasterToFITSIndividual:
             # Downsample the spectrum to the instrumental resolution.
             spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate)
             spec.write_to_FITS(out_unit, filename)
-        except InterpolationError as e:
+        except C.InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
 
         print("Processed spectrum {}".format(parameters))
@@ -865,10 +845,10 @@ class MasterToFITSGridProcessor:
         :param parameters: stellar parameters
         :type parameters: dict
 
-        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
+        Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
         '''
 
-        #Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum
+        #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
         try:
             master_spec = self.interpolator(parameters)
             #Now process the spectrum for all values of vsini
@@ -877,7 +857,7 @@ class MasterToFITSGridProcessor:
                 #Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
                 spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate=self.integrate)
                 self.write_to_FITS(spec)
-        except InterpolationError as e:
+        except C.InterpolationError as e:
             print("{} cannot be interpolated from the grid.".format(parameters))
 
     def process_chunk(self, chunk):
