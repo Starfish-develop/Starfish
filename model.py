@@ -42,7 +42,7 @@ class Model:
     def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
-        self.Cov_tuple = cov_tuple
+        self.cov_tuple = cov_tuple
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
         if 'alpha' not in self.stellar_tuple:
             trilinear = True
@@ -59,7 +59,7 @@ class Model:
         return dict(zip(self.stellar_tuple, p))
 
     def zip_Cov_p(self, p):
-        return dict(zip(self.Cov_tuple, p))
+        return dict(zip(self.cov_tuple, p))
 
     def update_Model(self, params):
         self.ModelSpectrum.update_all(params)
@@ -94,31 +94,157 @@ class Model:
         lnp = self.CovarianceMatrix.evaluate(model_fls)
         return lnp
 
-
-
-
-
+##How to use ProgressBar
+from progressbar import ProgressBar, Percentage, Bar, ETA
 
 class Sampler:
     '''
-    Helper class designed to contain StellarSampler, ChebSampler, CovSampler
-    '''
-    def __init__(self, lnprob, param_dict):
-        pass
+    Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
+    '''
+    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", pool=None):
+        #Each subclass will have to overwrite how it parses the param_dict into the correct order
+        #and sets the param_tuple
+
+        #SUBCLASS OVERWRITE HERE to create self.param_tuple
+
+        self.ndim = len(self.param_tuple)
+        self.nwalkers = self.ndim * 4
+
+        #Generate starting guesses using information passed in stellar_dict
+        p0 = []
+        for param in self.param_tuple:
+            low, high = param_dict[param]
+            p0.append(np.random.uniform(low=low, high=high, size=(self.nwalkers,)))
+
+        self.p0 = np.array(p0).T
+
+        if pool is not None:
+            self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, pool=pool)
+        else:
+            self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob)
+
+        self.pos_trio = None
+        self.plot_name = plot_name
 
     def reset(self):
-        pass
+        self.sampler.reset()
+        print("Reset {}".format(self.param_tuple))
 
-    def run(self):
-        pass
+    def run(self, iterations):
+        if iterations == 0:
+            return
+        print("Sampling {} for {} iterations".format(self.param_tuple, iterations))
+        pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=iterations).start()
+        index = 0
+
+        if self.pos_trio is None:
+            for result in self.sampler.sample(self.p0, iterations=iterations):
+                #print(index)
+                index += 1
+                pbar.update(index)
+            pbar.finish()
+            self.pos_trio = result
+
+
+            #self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
+        else:
+            pos, prob, state = self.pos_trio
+            for result in self.sampler.sample(pos, rstate0=state, iterations=iterations):
+                index += 1
+                pbar.update(index)
+            pbar.finish()
+            self.pos_trio = result
+            #self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
 
     def plot(self):
         '''
         Generate the relevant plots once the sampling is done.
         '''
-        pass
 
+        import triangle
+
+        samples = self.sampler.flatchain
+        figure = triangle.corner(samples, labels=self.param_tuple, quantiles=[0.16, 0.5, 0.84],
+                                 show_titles=True, title_args={"fontsize": 12})
+        figure.savefig(self.plot_name)
+
+
+class StellarSampler(Sampler):
+    '''
+    Subclass of Sampler for evaluating stellar parameters.
+    '''
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_star.png", pool=None):
+        #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
+        self.param_tuple = C.dictkeys_to_tuple(param_dict)
+
+        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+
+
+class ChebSampler(Sampler):
+    '''
+    Subclass of Sampler for evaluating Chebyshev parameters.
+    '''
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", pool=None):
+        #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
+        #From a simple param dict, create a more complex param_dict
+
+        #Then set param_tuple
+        #For now it is just set manually
+        self.param_tuple = ("c1", "c2", "c3")
+
+        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+
+class CovSampler(Sampler):
+    '''
+    Subclass of Sampler for evaluating CovarianceMatrix parameters.
+    '''
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", pool=None):
+        #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
+        self.param_tuple = C.dictkeys_to_covtuple(param_dict)
+
+        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+
+
+class MegaSampler:
+    '''
+    One Sampler to rule them all
+
+    :param samplers: the various Sampler objects to sample
+    :type samplers: list or tuple of :obj:`model.Sampler`s
+    :param cadence: of sub-iterations per iteration
+    :type cadence: list or tuple
+
+
+    '''
+    def __init__(self, samplers, burnInCadence, cadence):
+        self.samplers = samplers
+        self.nsamplers = len(self.samplers)
+        self.burnInCadence = burnInCadence
+        self.cadence = cadence
+
+    def burn_in(self, iterations):
+        for i in range(iterations):
+            for j in range(self.nsamplers):
+                self.samplers[j].run(self.burnInCadence[j])
+
+    def reset(self):
+        for j in range(self.nsamplers):
+            self.samplers[j].reset()
+
+    def run(self, iterations):
+        for i in range(iterations):
+            for j in range(self.nsamplers):
+                self.samplers[j].run(self.cadence[j])
+
+    def plot(self):
+        for j in range(self.nsamplers):
+            self.samplers[j].plot()
+
+
+    def plot_spectra(self):
+        #Call this only after all worker processes have exited.
+        pass
 
 class SamplerStellarCheb:
     '''

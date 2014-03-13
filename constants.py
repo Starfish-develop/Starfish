@@ -26,25 +26,53 @@ L_sun = 3.839e33 #erg/s
 R_sun = 6.955e10 #cm
 F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at the surface
 
-grid_parameters = frozenset(("temp", "logg", "Z", "alpha")) #Allowed grid parameters
-pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega")) #Allowed "post processing parameters"
-all_parameters = grid_parameters | pp_parameters #the union of grid_parameters and pp_parameters
+
+grid_parameters = ("temp", "logg", "Z", "alpha") #Allowed grid parameters
+grid_set = frozenset(grid_parameters)
+
+pp_parameters = ("vsini", "FWHM", "vz", "Av", "logOmega") #Allowed "post processing parameters"
+pp_set = frozenset(pp_parameters)
+
+stellar_parameters = grid_parameters + pp_parameters
+stellar_set = grid_set | pp_set #the union of grid_parameters and pp_parameters
+
+
 #Dictionary of allowed variables with default values
-var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "Omega":1.0}
+var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "logOmega":0.0}
 
-def dictkeys_to_tuple(mydict):
-    if "alpha" in mydict.keys():
-        tup = ("temp", 'logg', 'Z', 'alpha')
-    else:
-        tup = ("temp", 'logg', 'Z')
+cov_parameters = ("sigAmp", "logAmp", "l")
 
-    if "FWHM" in mydict.keys():
-        tup2 = ("vsini", 'FWHM', 'vz', 'Av', 'Omega')
-    else:
-        tup2 = ("vsini", 'vz', 'Av', 'Omega')
+def dictkeys_to_tuple(keys):
+    '''
+    Helper function to convert a dictionary of starting stellar parameters to a tuple list
 
-    return tup + tup2
+    :param keys: keys to sort into a tuple
+    :type keys: dict.keys() view
+    '''
 
+    tup = ()
+    for param in stellar_parameters:
+        #check if param is in keys, if so, add to the tuple
+        if param in keys:
+            tup += (param,)
+
+    return tup
+
+def dictkeys_to_covtuple(keys):
+    '''
+    Helper function to convert a dictionary of starting stellar parameters to a tuple list
+
+    :param keys: keys to sort into a tuple
+    :type keys: dict.keys() view
+    '''
+
+    tup = ()
+    for param in cov_parameters:
+        #check if param is in keys, if so, add to the tuple
+        if param in keys:
+            tup += (param,)
+
+    return tup
 
 def dict_to_tuple(mydict):
     '''
@@ -66,3 +94,26 @@ def dict_to_tuple(mydict):
         tup2 = (mydict["vsini"], mydict['vz'], mydict['Av'], mydict['Omega'])
 
     return tup + tup2
+
+
+class ModelError(Exception):
+    '''
+    Raised when Model parameters cannot be found in the grid.
+    '''
+    def __init__(self, msg):
+        self.msg = msg
+
+class GridError(Exception):
+    '''
+    Raised when a spectrum cannot be found in the grid.
+    '''
+    def __init__(self, msg):
+        self.msg = msg
+
+class InterpolationError(Exception):
+    '''
+    Raised when the :obj:`Interpolator` or :obj:`IndexInterpolator` cannot properly interpolate a spectrum,
+    usually grid bounds.
+    '''
+    def __init__(self, msg):
+        self.msg = msg

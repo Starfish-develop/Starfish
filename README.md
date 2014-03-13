@@ -164,9 +164,21 @@ ModelSpectrum should have a flag that says yes or no alpha, to choose on the `_u
 For the PHOENIX spectra, this is something that should be chosen upon initialization. Either we ARE fitting with alpha, and metallicity is maxed out to be -3.0 <= [Fe/H] <= 0.0 (inclusive)
 OR we are not fitting alpha (it is defacto set to 0 and we use a trilinear interpolator) and then we have [Fe/H] be whatever it wants.
 
+* update ModelSpectrum to draw defaults from C.var_defaults
 
-#Option when fitting just one order to disable c0 fitting
-#Plotting cheb functions
+# Visualize cheb functions
+# Visualize spectrum and residuals
+
+* What was going wrong with the Cheb functions?
+
+* make sure log det and other things are stored
+
+#How to organize the Sampler objects. These are basically meant to be helper objects that are useful to instantiate
+`emcee` samplers
+
+Each of these has the ability to be burned in, ran, paused, and then at the end, can easily generate a triangle plot
+of all the parameters
+
 
 
 
