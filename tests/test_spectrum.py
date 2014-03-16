@@ -190,7 +190,13 @@ class TestLogLambdaSpectrum(TestBase1DSpectrum):
         print(e.value)
 
     def test_write_to_FITS(self):
-        pass
+        #Test that it's OK to write to FITS.
+        raise NotImplementedError
+
+    def test_FITS_units(self):
+        #Test that conversion to different units works properly.
+        raise NotImplementedError
+
 
     def test_resample_to_grid(self):
         #Try giving it a range that is too big
