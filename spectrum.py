@@ -441,7 +441,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
             new = wl/(np.log10(C.c_ang) - np.log10(wl)) * fl
             self.fl = new
             out_unit = "ergs/s/cm^2/log(Hz)"
-            self.metadata.update({"UNIT":"f_nu_log"})
+            self.metadata.update({"unit":"f_nu_log"})
 
         if out_unit is "f_nu":
             #Convert from f_lam to f_nu per log(AA)
@@ -450,7 +450,7 @@ class LogLambdaSpectrum(Base1DSpectrum):
             new = wl**2/C.c_ang * fl
             self.fl = new
             out_unit = "ergs/s/cm^2/Hz"
-            self.metadata.update({"UNIT":"f_nu"})
+            self.metadata.update({"unit":"f_nu"})
 
         hdu = fits.PrimaryHDU(self.fl)
         head = hdu.header

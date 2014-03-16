@@ -760,6 +760,7 @@ class MasterToFITSIndividual:
         '''
         Creates a FITS file with given parameters
 
+
         :param parameters: stellar parameters :attr:`temp`, :attr:`logg`, :attr:`Z`, :attr:`vsini`
         :type parameters: dict
         :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.
@@ -797,10 +798,10 @@ class MasterToFITSIndividual:
 
 class MasterToFITSGridProcessor:
     '''
-    Create one or many FITS files from a master HDF5 grid.
+    Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate
+    any values.
 
-    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
-    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
+    :param interface: an :obj:`HDF5Interface` object referenced to the master grid.
     :param points: lists of output parameters (assumes regular grid)
     :type points: dict of lists
     :param flux_unit: format of output spectra {"f_lam", "f_nu", "ADU"}
@@ -808,57 +809,79 @@ class MasterToFITSGridProcessor:
     :param outdir: output directory
     :param processes: how many processors to use in parallel
 
+    Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,
+    preserving all of the header keywords.
+
     '''
-    def __init__(self, interpolator, instrument, points, flux_unit, outdir, integrate=False, processes=mp.cpu_count()):
-        self.interpolator = interpolator
+
+    def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False, processes=mp.cpu_count()):
+        self.interface = interface
         self.instrument = instrument
-        self.points = points #points is a dictionary with which values to spit out
+        self.points = points #points is a dictionary with which values to spit out for each parameter
         self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.flux_unit = flux_unit
         self.integrate = integrate
         self.outdir = outdir
         self.processes = processes
         self.pids = []
+        self.alpha = alpha
 
         self.vsini_points = self.points.pop("vsini")
         names = self.points.keys()
 
         #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
-        #Does not contain vsini
+        #which does not contain vsini
         self.param_list = [dict(zip(names,params)) for params in itertools.product(*self.points.values())]
 
         #Create a master wl_dict which correctly oversamples the instrumental kernel
         self.wl_dict = self.instrument.wl_dict
         self.wl = self.wl_dict["wl"]
 
-        #Check that temp, logg, Z are within bounds
+        #Check that temp, logg, Z are within the bounds of the interface
         for key,value in self.points.items():
-            min_val, max_val = self.interpolator.interface.bounds[key]
-            assert np.min(self.points[key]) >= min_val,"Points below interpolator bound {}={}".format(key, min_val)
-            assert np.max(self.points[key]) <= max_val,"Points above interpolator bound {}={}".format(key, max_val)
+            min_val, max_val = self.interface.bounds[key]
+            assert np.min(self.points[key]) >= min_val,"Points below interface bound {}={}".format(key, min_val)
+            assert np.max(self.points[key]) <= max_val,"Points above interface bound {}={}".format(key, max_val)
 
 
     def process_spectrum_vsini(self, parameters):
         '''
-        Creates a FITS file with given parameters (not including *vsini*).
+        Create a set of FITS files with given stellar parameters temp, logg, Z and all combinations of `vsini`.
 
         :param parameters: stellar parameters
         :type parameters: dict
 
-        Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
+        Smoothly handles the *KeyError* if parameters cannot be drawn from the interface and prints a message.
         '''
 
         #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
         try:
-            master_spec = self.interpolator(parameters)
+            #Check to see if alpha, otherwise append alpha=0 to the parameter list.
+            if not self.alpha:
+                parameters.update({"alpha": 0.0})
+            print(parameters)
+            master_spec = self.interface.load_file(parameters)
             #Now process the spectrum for all values of vsini
+            #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
+            if parameters["Z"] < 0:
+                zflag = "m"
+            else:
+                zflag = "p"
+
             for vsini in self.vsini_points:
                 spec = master_spec.copy()
                 #Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
                 spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate=self.integrate)
-                self.write_to_FITS(spec)
-        except C.InterpolationError as e:
-            print("{} cannot be interpolated from the grid.".format(parameters))
+
+                #Update spectrum with vsini
+                spec.metadata.update({"vsini":vsini})
+                filename = self.outdir + self.filename.format(temp=parameters["temp"], logg=10*parameters["logg"],
+                                          Z=np.abs(10*parameters["Z"]), Z_flag=zflag, vsini=vsini)
+
+                spec.write_to_FITS(self.flux_unit, filename)
+
+        except KeyError as e:
+            print("{} cannot be loaded from the interface.".format(parameters))
 
     def process_chunk(self, chunk):
         '''
@@ -932,12 +955,12 @@ class TRESPhotometry(Instrument):
 
 class Reticon(Instrument):
     '''Reticon Instrument'''
-    def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5150,5250)):
+    def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5145,5250)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 class KPNO(Instrument):
     '''KNPO Instrument'''
-    def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6200,6700)):
+    def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6250,6650)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 

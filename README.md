@@ -218,7 +218,6 @@ Julia code can be wrapped in C (documentation). What about wrapped in Python?
 
 * cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
 
-# Merge OOP back into Master branch.
 
 6. Start implementing more non-trivial Covariance matrices
     * How do we keep track of the parameter lists of different regions for different orders? Does flatten() and reshape() work?
@@ -287,6 +286,7 @@ For some period of burn in, alternate between sampling
 * Chebyshev parameters
 
 
+
 THEN
 
 * Identify the pixel with the largest residual
@@ -311,7 +311,9 @@ think it might be cleaner to just do them all together.
 
 
 
+#Grid Creator Code
 
+* do not interpolate
 
 
 
