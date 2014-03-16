@@ -5,6 +5,7 @@ from scipy.special import j1
 import scipy.sparse as sp
 from astropy.io import ascii,fits
 from scipy.sparse.linalg import spsolve
+from scipy.linalg import cho_factor, cho_solve
 import gc
 import pyfftw
 import warnings
@@ -877,6 +878,8 @@ class CovarianceMatrix:
         #Because sparse matrices only come in 2D, we have a list of sparse matrices.
         self.sigma_matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
         self.matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
+        self.logdets = np.empty((self.norders,))
+        self.calculate_logdets()
 
 
     def sparse_k_3_2(self, xs, amp, l):
@@ -905,6 +908,16 @@ class CovarianceMatrix:
         offsets = [i for i in range(-offset + 1, offset)]
         return sp.diags(diags, offsets, format="csc")
 
+    def calculate_logdets(self):
+        #Calculate logdet for each matrix
+        for i in range(self.norders):
+            s = self.matrices[i]
+            sign, logdet = np.linalg.slogdet(s.todense())
+            if sign <= 0:
+                raise C.ModelError("The determinant is negative.")
+            self.logdets[i] = logdet
+
+
     def update(self, params):
         '''
         Update the covariance matrix using the parameters.
@@ -918,9 +931,16 @@ class CovarianceMatrix:
         l = params['l']
         sigAmp = params['sigAmp']
 
+        if (l <= 0) or (sigAmp < 0):
+            raise C.ModelError("l {} and sigAmp {} must be positive.".format(l, sigAmp))
+
+
         for i in range(self.norders):
             wl = self.DataSpectrum.wls[i]
             self.matrices[i] = self.sparse_k_3_2(wl, amp, l) + sigAmp**2 * self.sigma_matrices[i]
+
+        self.calculate_logdets()
+
 
 
     def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
@@ -973,15 +993,29 @@ class CovarianceMatrix:
         for i in range(self.norders):
             a = A[i]
             s = self.matrices[i]
-            sign, logdet = np.linalg.slogdet(s.todense())
-            if sign <= 0:
-                return -np.inf
-            else:
-                lnp[i] = -0.5 * (a.T.dot(spsolve(s, a)) + logdet)
+            logdet = self.logdets[i]
+            lnp[i] = -0.5 * (a.T.dot(spsolve(s, a)) + logdet)
 
         #lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
         return np.sum(lnp)
 
+    def evaluate_cho(self, model_fls):
+        '''
+        Evaluate lnprob but using the cho_factor for speedup
+        '''
+        A = self.DataSpectrum.fls - model_fls #2D array
+
+        #Go through each order
+        lnp = np.empty((self.norders,))
+        for i in range(self.norders):
+            a = A[i]
+            s = self.matrices[i].todense()
+            factor, flag = cho_factor(s)
+            logdet = np.sum(2 * np.log(np.diag(factor)))
+            lnp[i] = -0.5 * (a.T.dot(cho_solve((factor, flag), a)) + logdet)
+
+        #lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
+        return np.sum(lnp)
 
 
 #class VelocitySpectrum:

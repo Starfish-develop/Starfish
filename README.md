@@ -143,64 +143,83 @@ Put the decorator `@profile` over the function you want to profile
 
 ## grid_tools.py
 
-* script to use grid processor to generate just one FITS spectrum
+alpha yes/no needs to be determined upon initialization.
 
-pyFFTW wisdom and planning flags (might not be necessary for grid creation, but for actual model, perhaps)
+#Speed improvements
 
-Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
-We will have to simply fix the interpolation to three parameters in this case, if we think Z will be positive.
-Likewise, if we think the model will be alpha enhanced, then we need to limit Z to less than 0.
+If we were to implement SuiteSparse in C/Python for our purposes, what would we need?
+
+essentially, covariance would need to take in parameters that would generate the matrix, and store it between iterations. And, would convert the flux residuals (numpy arrays) into C arrays. This part is not hard. Basically, we would only need to figure out how to 
+
+0.1 set up a test directory and get ``make`` and everything to work properly for SuiteSparse
+0.2 create a sample C function for the covariance function
+1. create a sparse matrix in C from a covariance function
+2. use SuiteSparse to determine the Cholesky factorization and store it (as what kind of object?)
+3. calculate the logdet and rCr using SuiteSparse
+4. return these two values
+
+So, there are a couple of functions that wouldn't always need to be run from the same command.
+
+We may be able to update/downdate the Cholesky factorization to save time, especially if we know
+how the parameters of the covariance function changed. 2nd-order optimization.
+
+What is a shame is that the Julia code so nicely wraps SuiteSparse already, and would be easy to extend. I just don't see the functionality yet. Plus, since we are trying to use SuiteSparse anyway,
+maybe it makes more sense to access it directly?
+
+I also think it makes the most sense to try to do this with the Python-C API first. There really aren't many functions that need to be wrapped.
+
+It looks like numpy support with C-Api can be a bitch, although this is probably fairly well documented. It may also be smart to try this with Cython, since it seems like a smart thing to use, and has good support for transferring numpy arrays.
+
+
+
+The problem is that the evaluate() call is now becoming expensive.
+In particular, it's probably the spsolve call that's slow.
+
+* "linearize" the covariance matrix by essentially forcing the off-diagonal terms to be Toeplitz
+  This might have problems when we eventually want to mask out bad regions, like H alpha
+
+
+* Julia implementation of Cholfact, np.diags(), etc... might be significantly faster than Python.
+* To test this, I would need a method to implement the k_3_2/hanning kernel
+* IJulia notebooks seem to be giving me a problem. Also, there isn't really a satisfying way to wrap Julia code in python yet, unless I wrapped it in C, then wrapped that in Python.
+
+The Julia solution, using Cholesky decomposition, is actually rather satisfying. For l=5, something that would take python about 5
+seconds to compute, this only takes 0.8. This also means that we would be able to store the facorized object, and then compute terms later.
+Once the matrix has been factorized, the exectuino takes 0.01 seconds. This means that it would be great for stellar and cheb samples.
+
+Calling Julia from Python seems to work fine using python2.
+
+* Try installing CHOLMOD using python2, test some code to see how fast it really is. Answer: Does not work with python2, either.
+Then, think about porting the fellow's code to python3.
+Alternatively, we could create a wrapper for Cholmod too.
+Try writing some C code that tests a sparse factorization.
+
+The problem here is that I would need to construct the sparse array IN C, don't pass the sparse Python array. The only thing that I would be able to pass is the parameters for
+creating the C array and the residual vector.
+
+It might be a good idea to try doing this in Julia first, since the speedup is likely to be about the same, since they are both going to be using SuiteSparse under the hood and it might not be worth it to
+reimplement some C wrapping code.
+
+* Alternatively, we can try using dfm/George which implement the same things. The downside is that this does not use sparse matrices. Eventually we might want to?
+
+In theory it should be possible to wrap Julia code?
+Julia code can be wrapped in C (documentation). What about wrapped in Python?
 
 
 * Convert DataSpectrum orders into an np.array()
-# major development work needed on SamplerStellarCheb
 
-There is a Sampler object, which has an emcee object instantiated for a lnprob but with the other parameters described
-by the args. Is it possible to pause a sample run and update the args? Yes, with some hacking.
-
-
-* what about alpha vs. no alpha?
-ModelSpectrum should have a flag that says yes or no alpha, to choose on the `_update_grid_parameters` and when initializing the interpolator.
-For the PHOENIX spectra, this is something that should be chosen upon initialization. Either we ARE fitting with alpha, and metallicity is maxed out to be -3.0 <= [Fe/H] <= 0.0 (inclusive)
-OR we are not fitting alpha (it is defacto set to 0 and we use a trilinear interpolator) and then we have [Fe/H] be whatever it wants.
 
 * update ModelSpectrum to draw defaults from C.var_defaults
 
-# Visualize cheb functions
-# Visualize spectrum and residuals
-
-* What was going wrong with the Cheb functions?
-
-* make sure log det and other things are stored
-
-#How to organize the Sampler objects. These are basically meant to be helper objects that are useful to instantiate
-`emcee` samplers
-
-Each of these has the ability to be burned in, ran, paused, and then at the end, can easily generate a triangle plot
-of all the parameters
-
-
-
+* Visualize cheb functions
+* Visualize spectrum and residuals
 
 * More tests for ModelSpectrum.downsample()
 
-* Why is vsini allowed negative?
+* cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
 
-* cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed htings up.
-
-* Do we need a Sampler class?, which basically has an __init__ (to determine nwalkers, starting parameters, etc,) pause, burn_in, etc methods?
-
-5. Try running Sampler by alternating between stellar parameters and cheb parameters
-
-* Implement error bound checking (tied to Interpolator bounds or HDF5Interface bounds)
-* Disabling sampling in certain parameters? For example alpha and Av
-
-* Functions to plot output of sampling (triangle?)
-* What about parallel treatment? Does this work with MPI? What about two different pools? The same pool, different lnprobs?
-# The pool is only the size as mpiexec -np 64, etc... so it will always have this many workers available. Basically it makes sense to have twice as many. We can probabyl use the same pool.
-
---- might have to break here to redo creation of master HDF5 grid, or at least start dealing with Odyssey problems ---
 # Merge OOP back into Master branch.
+
 6. Start implementing more non-trivial Covariance matrices
     * How do we keep track of the parameter lists of different regions for different orders? Does flatten() and reshape() work?
     * Maybe the way to do this is to instantiate a new sampler for EACH REGION, that way it only has 4 parameters and can Gibbs sample somewhat independently

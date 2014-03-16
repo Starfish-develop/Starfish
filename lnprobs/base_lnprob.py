@@ -10,11 +10,11 @@ myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface("/home/ian/Grad/Research/Disks/StellarSpectra/libraries/PHOENIX_submaster.hdf5")
 
-stellar_Starting = {"temp":(6000, 6100), "logg":(3.9, 4.2), "Z":(-0.6, -0.3), "vsini":(4, 6), "vz":(12.8, 14), "logOmega":(-19.68, -19.65)}
+stellar_Starting = {"temp":(6000, 6100), "logg":(3.9, 4.2), "Z":(-0.6, -0.3), "vsini":(4, 6), "vz":(15.0, 16.0), "logOmega":(-19.665, -19.664)}
 
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
-cheb_Starting = {"c1": (-.1, 0), "c2": (-.1, .0), "c3": (-.05, .0)}
+cheb_Starting = {"c1": (-.02, -0.015), "c2": (-.0195, -0.0165), "c3": (-.005, .0)}
 cov_Starting = {"sigAmp":(0.8, 1.2), "logAmp":(-15, -13), "l":(0.1, 2.0)}
 cov_tuple = C.dictkeys_to_covtuple(cov_Starting)
 
@@ -34,8 +34,11 @@ def lnprob_Cheb(p):
 
 def lnprob_Cov(p):
     params = myModel.zip_Cov_p(p)
-    myModel.update_Cov(params)
-    return myModel.evaluate()
+    try:
+        myModel.update_Cov(params)
+        return myModel.evaluate()
+    except C.ModelError:
+        return -np.inf
 
 pool = MPIPool()
 if not pool.is_master():
@@ -46,10 +49,10 @@ myStellarSampler = StellarSampler(lnprob_Model, stellar_Starting, pool=pool)
 myChebSampler = ChebSampler(lnprob_Cheb, cheb_Starting, pool=pool)
 myCovSampler = CovSampler(lnprob_Cov, cov_Starting, pool=pool)
 
-myMegaSampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler), burnInCadence=(1, 1, 2), cadence=(10, 10, 10))
+myMegaSampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler), burnInCadence=(15, 15, 0), cadence=(10, 10, 10))
 
-myMegaSampler.burn_in(5)
-#myMegaSampler.reset()
-#myMegaSampler.run(10)
+myMegaSampler.burn_in(3)
+myMegaSampler.reset()
+myMegaSampler.run(10)
 pool.close()
 myMegaSampler.plot()

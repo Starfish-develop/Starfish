@@ -94,6 +94,18 @@ class Model:
         lnp = self.CovarianceMatrix.evaluate(model_fls)
         return lnp
 
+    def evaluate_cho(self):
+        '''
+        Compare the different data and models.
+        '''
+        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
+
+        model_fls = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
+
+        #CovarianceMatrix will do the math from DFM
+        lnp = self.CovarianceMatrix.evaluate_cho(model_fls)
+        return lnp
+
 ##How to use ProgressBar
 from progressbar import ProgressBar, Percentage, Bar, ETA
 

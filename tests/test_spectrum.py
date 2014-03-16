@@ -380,7 +380,8 @@ class TestCovarianceMatrix:
         self.cov = CovarianceMatrix(myDataSpectrum)
 
     def test_update(self):
-        self.cov.update({"sig_amp":1, "amp":1, "l":1})
+        self.cov.update({"sigAmp":1, "logAmp":1, "l":1})
+
 
 
     #def test_chi2(self):
