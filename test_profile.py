@@ -2,10 +2,10 @@ import cProfile
 import pstats
 
 #Your module here
-import correlated
+from StellarSpectra.tests import profile_evaluate
 
 
-cProfile.run("correlated.main()", "prof")
+cProfile.run("profile_evaluate.main()", "prof")
 #cProfile.run("plot_MCMC.main()", "prof")
 
 

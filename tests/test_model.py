@@ -18,18 +18,18 @@ class TestModel:
         self.DataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
         self.Instrument = TRES()
         self.HDF5Interface = HDF5Interface("/home/ian/Grad/Research/Disks/StellarSpectra/libraries/PHOENIX_submaster.hdf5")
-        self.model = Model(self.DataSpectrum, self.Instrument, self.HDF5Interface, ("temp", "logg", "Z", "alpha", "vsini", "vz", "Av", "log_Omega"))
+        self.model = Model(self.DataSpectrum, self.Instrument, self.HDF5Interface, ("temp", "logg", "Z", "alpha", "vsini", "vz", "Av", "logOmega"), cov_tuple=("sigAmp", "logAmp", "l"))
 
     def test_evaluate(self):
         print(self.model.evaluate())
 
     def test_update_model(self):
-        self.model.update_Model({"temp":6102, "logg":3.9, "Z":-0.5, "alpha":0.2, "vsini":6, "vz":13.7, "Av":0.0, "log_Omega":-19.7})
+        self.model.update_Model({"temp":6102, "logg":3.9, "Z":-0.5, "alpha":0.2, "vsini":6, "vz":13.7, "Av":0.0, "logOmega":-19.7})
         print(self.model.evaluate())
 
     def test_no_alpha(self):
-        model = Model(self.DataSpectrum, self.Instrument, self.HDF5Interface, ("temp", "logg", "Z", "vsini", "vz", "Av", "log_Omega"))
-        model.update_Model({"temp":6102, "logg":3.9, "Z":-0.5, "alpha":0.2, "vsini":6, "vz":13.7, "Av":0.0, "log_Omega":-19.7})
+        model = Model(self.DataSpectrum, self.Instrument, self.HDF5Interface, ("temp", "logg", "Z", "vsini", "vz", "Av", "logOmega"), cov_tuple=("sigAmp", "logAmp", "l"))
+        model.update_Model({"temp":6102, "logg":3.9, "Z":-0.5, "alpha":0.2, "vsini":6, "vz":13.7, "Av":0.0, "logOmega":-19.7})
         print(model.evaluate())
 
 
@@ -38,8 +38,8 @@ class TestModel:
         print(self.model.evaluate())
 
     def test_update_Cov(self):
-        self.model.update_Cov({"sig_amp":1, "amp":1, "l":1})
+        self.model.update_Cov({"sigAmp":1, "logAmp":1, "l":1})
         print(self.model.evaluate())
 
-        self.model.update_Cov({"sig_amp":1, "amp":1e-10, "l":1})
+        self.model.update_Cov({"sigAmp":1, "logAmp":1e-10, "l":1})
         print(self.model.evaluate())
