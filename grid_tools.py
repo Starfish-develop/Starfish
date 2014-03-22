@@ -118,7 +118,7 @@ class PHOENIXGridInterface(RawGridInterface):
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-2., 1.1, 0.5),
         "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=[3000, 13000], base=base)
+        air=air, wl_range=[2999, 13001], base=base)
 
         self.norm = norm #Normalize to 1 solar luminosity?
         self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
