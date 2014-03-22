@@ -55,16 +55,15 @@
 <span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="kn">as</span> <span class="nn">sp</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span><span class="p">,</span><span class="n">fits</span>
 <span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">spsolve</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">pyfftw</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">StellarSpectra.constants</span> <span class="kn">as</span> <span class="nn">C</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 
-
 <span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
 <span class="n">flux_units</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;f_nu&quot;</span><span class="p">))</span>
-
 
 <div class="viewcode-block" id="BaseSpectrum"><a class="viewcode-back" href="../spectrum.html#spectrum.BaseSpectrum">[docs]</a><span class="k">class</span> <span class="nc">BaseSpectrum</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -492,7 +491,7 @@
             <span class="n">new</span> <span class="o">=</span> <span class="n">wl</span><span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">c_ang</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl</span><span class="p">))</span> <span class="o">*</span> <span class="n">fl</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">new</span>
             <span class="n">out_unit</span> <span class="o">=</span> <span class="s">&quot;ergs/s/cm^2/log(Hz)&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;UNIT&quot;</span><span class="p">:</span><span class="s">&quot;f_nu_log&quot;</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;unit&quot;</span><span class="p">:</span><span class="s">&quot;f_nu_log&quot;</span><span class="p">})</span>
 
         <span class="k">if</span> <span class="n">out_unit</span> <span class="ow">is</span> <span class="s">&quot;f_nu&quot;</span><span class="p">:</span>
             <span class="c">#Convert from f_lam to f_nu per log(AA)</span>
@@ -501,7 +500,7 @@
             <span class="n">new</span> <span class="o">=</span> <span class="n">wl</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_ang</span> <span class="o">*</span> <span class="n">fl</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="n">new</span>
             <span class="n">out_unit</span> <span class="o">=</span> <span class="s">&quot;ergs/s/cm^2/Hz&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;UNIT&quot;</span><span class="p">:</span><span class="s">&quot;f_nu&quot;</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;unit&quot;</span><span class="p">:</span><span class="s">&quot;f_nu&quot;</span><span class="p">})</span>
 
         <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
         <span class="n">head</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span>
@@ -659,7 +658,6 @@
 </div>
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&quot;DataSpectrum object with shape {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-
 </div>
 <div class="viewcode-block" id="ModelSpectrum"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum">[docs]</a><span class="k">class</span> <span class="nc">ModelSpectrum</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -691,7 +689,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">grid_params</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Omega</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logOmega</span> <span class="o">=</span> <span class="mf">0.</span>
 
         <span class="c">#Grab chunk from the ModelInterpolator object</span>
         <span class="n">chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span><span class="p">)</span>
@@ -707,7 +705,7 @@
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&quot;Model Spectrum for Instrument {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ModelSpectrum.update_Omega"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_Omega">[docs]</a>    <span class="k">def</span> <span class="nf">update_Omega</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Omega</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelSpectrum.update_logOmega"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_logOmega">[docs]</a>    <span class="k">def</span> <span class="nf">update_logOmega</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logOmega</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Update the &#39;flux factor&#39; parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.</span>
 
@@ -716,8 +714,8 @@
 
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#factor by which to correct from old Omega</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*=</span> <span class="n">Omega</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Omega</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Omega</span> <span class="o">=</span> <span class="n">Omega</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">*=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="n">logOmega</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">logOmega</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logOmega</span> <span class="o">=</span> <span class="n">logOmega</span>
 </div>
 <div class="viewcode-block" id="ModelSpectrum.update_vz"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.update_vz">[docs]</a>    <span class="k">def</span> <span class="nf">update_vz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vz</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -728,7 +726,7 @@
 
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#How far to shift based from old vz?</span>
-        <span class="n">vz_shift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">-</span> <span class="n">vz</span>
+        <span class="n">vz_shift</span> <span class="o">=</span> <span class="n">vz</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">vz</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_raw</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">+</span> <span class="n">vz_shift</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">-</span> <span class="n">vz_shift</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">=</span> <span class="n">vz</span>
 </div>
@@ -751,12 +749,16 @@
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Private method to update just those stellar parameters. Designed to be used as part of update_all.</span>
 
-<span class="sd">        :param grid_params: grid parameters</span>
+<span class="sd">        :param grid_params: grid parameters, including alpha or not.</span>
 <span class="sd">        :type grid_params: dict</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span> <span class="c">#Query the interpolator with the new stellar combination</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">grid_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span> <span class="c">#Query the interpolator with the new stellar combination</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">(</span><span class="s">&quot;{} cannot be interpolated from the grid. C.InterpolationError: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">grid_params</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">_update_vsini_and_instrument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vsini</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -767,6 +769,9 @@
 <span class="sd">        :type vsini: float (km/s)</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">vsini</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">(</span><span class="s">&quot;vsini must be positive&quot;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">vsini</span> <span class="o">=</span> <span class="n">vsini</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">influx</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span>
@@ -801,17 +806,25 @@
 
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c">#First set stellar parameters using _update_grid_params</span>
-        <span class="n">grid_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">}</span>
+        <span class="n">grid_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="n">params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">parameters</span><span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_grid_params</span><span class="p">(</span><span class="n">grid_params</span><span class="p">)</span>
+
+        <span class="c">#Reset the relative variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vz</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logOmega</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="c">#Then vsini and instrument using _update_vsini</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_vsini_and_instrument</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;vsini&#39;</span><span class="p">])</span>
 
         <span class="c">#Then vz, ff, and Av using public methods</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_vz</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;vz&#39;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_Omega</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;Omega&#39;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_Av</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;Av&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_logOmega</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;logOmega&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s">&#39;Av&#39;</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_Av</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;Av&#39;</span><span class="p">])</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">()</span>
 </div>
 <div class="viewcode-block" id="ModelSpectrum.downsample"><a class="viewcode-back" href="../spectrum.html#spectrum.ModelSpectrum.downsample">[docs]</a>    <span class="k">def</span> <span class="nf">downsample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -840,6 +853,8 @@
 
 <span class="sd">    :param DataSpectrum: take shape from.</span>
 <span class="sd">    :type DataSpectrum: :obj:`DataSpectrum` object</span>
+
+<span class="sd">    If DataSpectrum.norders == 1, then only c1, c2, and c3 are required. Otherwise c0 is also reqired for each order.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">npoly</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
@@ -876,10 +891,17 @@
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls</span>
 <span class="sd">        &#39;&#39;&#39;</span>
+
+
         <span class="c"># reshape to (norders, self.npoly)</span>
         <span class="n">coefs_arr</span> <span class="o">=</span> <span class="n">coefs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="c">#length norders</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cns</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="c">#shape (norders, self.npoly - 1)</span>
+        <span class="c">#If we are only fitting one order, fix c0 to 1.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cns</span> <span class="o">=</span> <span class="n">coefs_arr</span> <span class="c">#shape (1, self.npoly - 1)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c0s</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="c">#length norders</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cns</span> <span class="o">=</span> <span class="n">coefs_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="c">#shape (norders, self.npoly - 1)</span>
         <span class="c">#print(&quot;c0s.shape&quot;, c0s.shape)</span>
         <span class="c">#print(&quot;cns.shape&quot;, cns.shape)</span>
 
@@ -904,7 +926,71 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="c">#Because sparse matrices only come in 2D, we have a list of sparse matrices.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_matrices</span> <span class="o">=</span> <span class="p">[</span><span class="n">sp</span><span class="o">.</span><span class="n">diags</span><span class="p">([</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;csc&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">sigma</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">sigmas</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span> <span class="o">=</span> <span class="p">[</span><span class="n">sp</span><span class="o">.</span><span class="n">diags</span><span class="p">([</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;csc&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">sigma</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">sigmas</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logdets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_logdets</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">sparse_k_3_2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">r0</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">l</span>
+        <span class="n">diags</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="n">offset</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>
+            <span class="c">#Pairwise calculate rs</span>
+            <span class="k">if</span> <span class="n">offset</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">rs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">offset</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="n">offset</span><span class="p">])</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">r0</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">rs</span><span class="o">/</span><span class="n">r0</span><span class="p">))</span> <span class="o">*</span> <span class="n">amp</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">rs</span><span class="o">/</span><span class="n">l</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">rs</span><span class="o">/</span><span class="n">l</span><span class="p">)</span>
+            <span class="n">k</span><span class="p">[</span><span class="n">rs</span> <span class="o">&gt;=</span> <span class="n">r0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">diags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="n">offset</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c">#Mirror the diagonals</span>
+        <span class="n">front</span> <span class="o">=</span> <span class="n">diags</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">front</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="n">diags</span> <span class="o">=</span> <span class="n">front</span> <span class="o">+</span> <span class="n">diags</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">diags</span><span class="p">,</span> <span class="n">offsets</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;csc&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">calculate_logdets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c">#Calculate logdet for each matrix</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">sign</span><span class="p">,</span> <span class="n">logdet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">slogdet</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">todense</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">sign</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">(</span><span class="s">&quot;The determinant is negative.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logdets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">logdet</span>
+
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Update the covariance matrix using the parameters.</span>
+
+<span class="sd">        :param params: parameters to update the covariance matrix</span>
+<span class="sd">        :type params: dict</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c">#Currently expects {&quot;sigAmp&quot;, &quot;logAmp&quot;, &quot;l&quot;}</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;logAmp&#39;</span><span class="p">]</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;l&#39;</span><span class="p">]</span>
+        <span class="n">sigAmp</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;sigAmp&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">l</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">sigAmp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">(</span><span class="s">&quot;l {} and sigAmp {} must be positive.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">sigAmp</span><span class="p">))</span>
+
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparse_k_3_2</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="n">sigAmp</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_logdets</span><span class="p">()</span>
+
 
 
     <span class="k">def</span> <span class="nf">gauss_func</span><span class="p">(</span><span class="n">x0i</span><span class="p">,</span> <span class="n">x1i</span><span class="p">,</span> <span class="n">x0v</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x1v</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -945,16 +1031,41 @@
         <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">((</span><span class="n">gauss_mat</span><span class="p">,</span> <span class="n">ij</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">len_x</span><span class="p">,</span><span class="n">len_x</span><span class="p">))</span>
 
 
-    <span class="k">def</span> <span class="nf">chi2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_fls</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_fls</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Evaluate chi2 using the data flux, model flux and covariance matrix.</span>
+<span class="sd">        Evaluate lnprob using the data flux, model flux and covariance matrix.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
-
         <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">fls</span> <span class="o">-</span> <span class="n">model_fls</span> <span class="c">#2D array</span>
-        <span class="n">chi2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">spsolve</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">)])</span>
-        <span class="k">return</span> <span class="n">chi2</span>
 
+        <span class="c">#Go through each order</span>
+        <span class="n">lnp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">logdet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logdets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">lnp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">spsolve</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="n">logdet</span><span class="p">)</span>
+
+        <span class="c">#lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lnp</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">evaluate_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_fls</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Evaluate lnprob but using the cho_factor for speedup</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">fls</span> <span class="o">-</span> <span class="n">model_fls</span> <span class="c">#2D array</span>
+
+        <span class="c">#Go through each order</span>
+        <span class="n">lnp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+            <span class="n">factor</span><span class="p">,</span> <span class="n">flag</span> <span class="o">=</span> <span class="n">cho_factor</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">logdet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">factor</span><span class="p">)))</span>
+            <span class="n">lnp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">cho_solve</span><span class="p">((</span><span class="n">factor</span><span class="p">,</span> <span class="n">flag</span><span class="p">),</span> <span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="n">logdet</span><span class="p">)</span>
+
+        <span class="c">#lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lnp</span><span class="p">)</span>
 
 
 <span class="c">#class VelocitySpectrum:</span>

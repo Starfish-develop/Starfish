@@ -282,7 +282,7 @@ Drastically speed up the burn in by first sampling in the cheb components and FF
 
 For some period of burn in, alternate between sampling
 
-* stellar parameters, including Poisson noise factor sigma_P
+* stellar parameters, including Poisson noise factor ``sigma_P``
 * Chebyshev parameters
 
 
@@ -313,7 +313,13 @@ think it might be cleaner to just do them all together.
 
 #Grid Creator Code
 
-* do not interpolate
+* first re-create the master HDF5 grid to include all metallicity ranges.
+
+	1. Check which raw FITS files are available on Odyssey
+	2. Download any new grids to scout, and then to 
+	3. Check the size of the current masterHDF5, and estimate what size a new grid incorporating all of the PHOENIX files would be 
+
+* it turns out that the grid sampling actually needed to be *increased* to about 0.05 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
 
 
 

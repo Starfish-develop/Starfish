@@ -176,7 +176,7 @@ Currently there are extensions for three main grids:</p>
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-cb2d977f312f332568f9a0517a9ffd53c712ba23.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-2a1172e3490906376bacbcc17c8a70f38e053369.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
@@ -254,8 +254,8 @@ are allowed in the grid.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><strong>GridError</strong> &#8211; if parameters.keys() is not a subset of <tt class="xref py py-data docutils literal"><span class="pre">C.grid_parameters</span></tt></li>
-<li><strong>GridError</strong> &#8211; if the parameter values are outside of the grid bounds</li>
+<li><strong>C.GridError</strong> &#8211; if parameters.keys() is not a subset of <tt class="xref py py-data docutils literal"><span class="pre">C.grid_set</span></tt></li>
+<li><strong>C.GridError</strong> &#8211; if the parameter values are outside of the grid bounds</li>
 </ul>
 </td>
 </tr>
@@ -302,7 +302,7 @@ are allowed in the grid.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises GridError:</th></tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.GridError:</th></tr>
 <tr class="field-even field"><td>&nbsp;</td><td class="field-body">if the file cannot be found on disk.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="xref py py-obj docutils literal"><span class="pre">model.Base1DSpectrum</span></tt></td>
@@ -329,7 +329,7 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <p>The <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
 <dl class="class">
 <dt id="grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'Z': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -503,7 +503,7 @@ HDF5 file.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<em>float</em>) &#8211; </td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises InterpolationError:</th></tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.InterpolationError:</th></tr>
 <tr class="field-even field"><td>&nbsp;</td><td class="field-body">if <em>value</em> is out of bounds.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid</td>
@@ -553,7 +553,7 @@ It is able to cache spectra for easier memory load.</p>
 
 <dl class="class">
 <dt id="grid_tools.ModelInterpolator">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">ModelInterpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">ModelInterpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>trilinear=False</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
 easier memory load.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -565,11 +565,13 @@ easier memory load.</p>
 <li><strong>DataSpectrum</strong> (<a class="reference internal" href="spectrum.html#spectrum.DataSpectrum" title="spectrum.DataSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt></a>) &#8211; data spectrum that you are trying to fit. Used for truncating the synthetic spectra to the relevant region for speed.</li>
 <li><strong>cache_max</strong> (<em>int</em>) &#8211; maximum number of spectra to hold in cache</li>
 <li><strong>cache_dump</strong> (<em>int</em>) &#8211; how many spectra to purge from the cache once <tt class="xref py py-attr docutils literal"><span class="pre">cache_max</span></tt> is reached</li>
+<li><strong>trilinear</strong> (<em>bool</em>) &#8211; Should this interpolate in temp, logg, and [Fe/H] AND [alpha/Fe], or just the first three parameters.</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<p>Setting <tt class="xref py py-attr docutils literal"><span class="pre">trilinear</span></tt> to <strong>True</strong> is useful for when you want to do a run with [Fe/H] &gt; 0.0</p>
 <dl class="method">
 <dt id="grid_tools.ModelInterpolator.__call__">
 <tt class="descname">__call__</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#ModelInterpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.ModelInterpolator.__call__" title="Permalink to this definition">¶</a></dt>
@@ -595,7 +597,7 @@ easier memory load.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises InterpolationError:</th></tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.InterpolationError:</th></tr>
 <tr class="field-even field"><td>&nbsp;</td><td class="field-body">if parameters are out of bounds.</td>
 </tr>
 </tbody>
@@ -617,7 +619,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-fc3dc50acc760ab9f6269b8ec88cab7402efdb32.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-a3c8985b6e55daa4461c7303562fc2e9b3f33cf1.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
@@ -667,14 +669,14 @@ convolve raw spectra by the instrumental profile.</p>
 
 <dl class="class">
 <dt id="grid_tools.KPNO">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">KPNO</tt><big>(</big><em>name='KPNO'</em>, <em>FWHM=14.4</em>, <em>wl_range=(6200</em>, <em>6700)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#KPNO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.KPNO" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">KPNO</tt><big>(</big><em>name='KPNO'</em>, <em>FWHM=14.4</em>, <em>wl_range=(6250</em>, <em>6650)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#KPNO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.KPNO" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-class docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a></p>
 <p>KNPO Instrument</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="grid_tools.Reticon">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">Reticon</tt><big>(</big><em>name='Reticon'</em>, <em>FWHM=8.5</em>, <em>wl_range=(5150</em>, <em>5250)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Reticon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Reticon" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">Reticon</tt><big>(</big><em>name='Reticon'</em>, <em>FWHM=8.5</em>, <em>wl_range=(5145</em>, <em>5250)</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#Reticon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.Reticon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-class docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a></p>
 <p>Reticon Instrument</p>
 </dd></dl>
@@ -718,7 +720,7 @@ will create a FITS file storing a spectrum.</p>
 </tr>
 </tbody>
 </table>
-<p>Smoothly handles the <em>InterpolationError</em> if parameters cannot be interpolated from the grid and prints a message.</p>
+<p>Smoothly handles the <em>C.InterpolationError</em> if parameters cannot be interpolated from the grid and prints a message.</p>
 </dd></dl>
 
 </dd></dl>
@@ -734,15 +736,15 @@ will create a FITS file storing a spectrum.</p>
 </div>
 <dl class="class">
 <dt id="grid_tools.MasterToFITSGridProcessor">
-<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSGridProcessor</tt><big>(</big><em>interpolator</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>integrate=False</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create one or many FITS files from a master HDF5 grid.</p>
+<em class="property">class </em><tt class="descclassname">grid_tools.</tt><tt class="descname">MasterToFITSGridProcessor</tt><big>(</big><em>interface</em>, <em>instrument</em>, <em>points</em>, <em>flux_unit</em>, <em>outdir</em>, <em>alpha=False</em>, <em>integrate=False</em>, <em>processes=4</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate
+any values.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>interpolator</strong> &#8211; an <a class="reference internal" href="#grid_tools.Interpolator" title="grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a> object referenced to the master grid.</li>
-<li><strong>instrument</strong> &#8211; an <a class="reference internal" href="#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">Instrument</span></tt></a> object containing the properties of the final spectra</li>
+<li><strong>interface</strong> &#8211; an <a class="reference internal" href="#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> object referenced to the master grid.</li>
 <li><strong>points</strong> (<em>dict of lists</em>) &#8211; lists of output parameters (assumes regular grid)</li>
 <li><strong>flux_unit</strong> (<em>string</em>) &#8211; format of output spectra {&#8220;f_lam&#8221;, &#8220;f_nu&#8221;, &#8220;ADU&#8221;}</li>
 <li><strong>outdir</strong> &#8211; output directory</li>
@@ -752,6 +754,8 @@ will create a FITS file storing a spectrum.</p>
 </tr>
 </tbody>
 </table>
+<p>Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,
+preserving all of the header keywords.</p>
 <dl class="method">
 <dt id="grid_tools.MasterToFITSGridProcessor.process_all">
 <tt class="descname">process_all</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor.process_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor.process_all" title="Permalink to this definition">¶</a></dt>
@@ -775,7 +779,7 @@ will create a FITS file storing a spectrum.</p>
 <dl class="method">
 <dt id="grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini">
 <tt class="descname">process_spectrum_vsini</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#MasterToFITSGridProcessor.process_spectrum_vsini"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a FITS file with given parameters (not including <em>vsini</em>).</p>
+<dd><p>Create a set of FITS files with given stellar parameters temp, logg, Z and all combinations of <cite>vsini</cite>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -784,7 +788,7 @@ will create a FITS file storing a spectrum.</p>
 </tr>
 </tbody>
 </table>
-<p>Smoothly handles the <em>InterpolationError</em> if parameters cannot be interpolated from the grid and prints a message.</p>
+<p>Smoothly handles the <em>KeyError</em> if parameters cannot be drawn from the interface and prints a message.</p>
 </dd></dl>
 
 </dd></dl>
@@ -802,19 +806,6 @@ will create a FITS file storing a spectrum.</p>
 </div>
 <div class="section" id="exceptions">
 <h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
-<dl class="exception">
-<dt id="grid_tools.GridError">
-<em class="property">exception </em><tt class="descclassname">grid_tools.</tt><tt class="descname">GridError</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#GridError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.GridError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Raised when a spectrum cannot be found in the grid.</p>
-</dd></dl>
-
-<dl class="exception">
-<dt id="grid_tools.InterpolationError">
-<em class="property">exception </em><tt class="descclassname">grid_tools.</tt><tt class="descname">InterpolationError</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/grid_tools.html#InterpolationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#grid_tools.InterpolationError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Raised when the <a class="reference internal" href="#grid_tools.Interpolator" title="grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a> or <a class="reference internal" href="#grid_tools.IndexInterpolator" title="grid_tools.IndexInterpolator"><tt class="xref py py-obj docutils literal"><span class="pre">IndexInterpolator</span></tt></a> cannot properly interpolate a spectrum,
-usually grid bounds.</p>
-</dd></dl>
-
 </div>
 </div>
 

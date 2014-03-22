@@ -52,8 +52,38 @@
   <div class="section" id="module-model">
 <span id="model"></span><h1>Model<a class="headerlink" href="#module-model" title="Permalink to this headline">¶</a></h1>
 <span class="target" id="module-model"></span><dl class="class">
+<dt id="model.ChebSampler">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">ChebSampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em>, <em>plot_name='plots/out_cheb.png'</em>, <em>pool=None</em><big>)</big><a class="reference internal" href="_modules/model.html#ChebSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.ChebSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass of Sampler for evaluating Chebyshev parameters.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="model.CovSampler">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">CovSampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em>, <em>plot_name='plots/out_cov.png'</em>, <em>pool=None</em><big>)</big><a class="reference internal" href="_modules/model.html#CovSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.CovSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass of Sampler for evaluating CovarianceMatrix parameters.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="model.MegaSampler">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">MegaSampler</tt><big>(</big><em>samplers</em>, <em>burnInCadence</em>, <em>cadence</em><big>)</big><a class="reference internal" href="_modules/model.html#MegaSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.MegaSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>One Sampler to rule them all</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>samplers</strong> (list or tuple of :obj:<a href="#id1"><span class="problematic" id="id2">`</span></a>model.Sampler`s) &#8211; the various Sampler objects to sample</li>
+<li><strong>cadence</strong> (<em>list or tuple</em>) &#8211; of sub-iterations per iteration</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
 <dt id="model.Model">
-<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em><big>)</big><a class="reference internal" href="_modules/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em>, <em>cov_tuple</em><big>)</big><a class="reference internal" href="_modules/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Container class to create and bring together all of the relevant data and models to aid in evaulation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -63,7 +93,7 @@
 <li><strong>DataSpectrum</strong> (<a class="reference internal" href="spectrum.html#spectrum.DataSpectrum" title="spectrum.DataSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt></a> object) &#8211; the data to fit</li>
 <li><strong>Instrument</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object) &#8211; the instrument with which the data was acquired</li>
 <li><strong>HDF5Interface</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.HDF5Interface" title="grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.HDF5Interface</span></tt></a> object) &#8211; the interface to the synthetic stellar library</li>
-<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters</li>
+<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters. If <tt class="docutils literal"><span class="pre">alpha</span></tt> is missing, :obj:<tt class="docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt> is trilinear.</li>
 </ul>
 </td>
 </tr>
@@ -75,12 +105,24 @@
 <dd><p>Compare the different data and models.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="model.Model.evaluate_cho">
+<tt class="descname">evaluate_cho</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Model.evaluate_cho"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model.evaluate_cho" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare the different data and models.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.Model.get_data">
+<tt class="descname">get_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Model.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Model.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a DataSpectrum object.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="model.Sampler">
-<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Sampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em><big>)</big><a class="reference internal" href="_modules/model.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Sampler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper class designed to contain StellarSampler, ChebSampler, CovSampler</p>
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">Sampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em>, <em>plot_name='plots/out.png'</em>, <em>pool=None</em><big>)</big><a class="reference internal" href="_modules/model.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Sampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C</p>
 <dl class="method">
 <dt id="model.Sampler.plot">
 <tt class="descname">plot</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/model.html#Sampler.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.Sampler.plot" title="Permalink to this definition">¶</a></dt>
@@ -112,6 +154,12 @@
 <dd><p>Once the sampler is finished, generate all of the relevant plots for the run.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="model.StellarSampler">
+<em class="property">class </em><tt class="descclassname">model.</tt><tt class="descname">StellarSampler</tt><big>(</big><em>lnprob</em>, <em>param_dict</em>, <em>plot_name='plots/out_star.png'</em>, <em>pool=None</em><big>)</big><a class="reference internal" href="_modules/model.html#StellarSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.StellarSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass of Sampler for evaluating stellar parameters.</p>
 </dd></dl>
 
 </div>

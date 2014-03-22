@@ -90,26 +90,6 @@
         <span class="n">chunks</span><span class="p">[</span><span class="n">i</span><span class="o">%</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mylist</span><span class="p">[</span><span class="n">edge</span><span class="o">+</span><span class="n">i</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">chunks</span>
 
-
-
-
-
-
-</div>
-<div class="viewcode-block" id="GridError"><a class="viewcode-back" href="../grid_tools.html#grid_tools.GridError">[docs]</a><span class="k">class</span> <span class="nc">GridError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Raised when a spectrum cannot be found in the grid.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
-</div>
-<div class="viewcode-block" id="InterpolationError"><a class="viewcode-back" href="../grid_tools.html#grid_tools.InterpolationError">[docs]</a><span class="k">class</span> <span class="nc">InterpolationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Raised when the :obj:`Interpolator` or :obj:`IndexInterpolator` cannot properly interpolate a spectrum,</span>
-<span class="sd">    usually grid bounds.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
 </div>
 <div class="viewcode-block" id="RawGridInterface"><a class="viewcode-back" href="../grid_tools.html#grid_tools.RawGridInterface">[docs]</a><span class="k">class</span> <span class="nc">RawGridInterface</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -130,7 +110,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">,</span> <span class="s">&quot;points must be a dictionary.&quot;</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">points</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;{0} is not an allowed parameter, skipping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
@@ -147,16 +127,16 @@
 <span class="sd">        :param parameters: parameter set to check</span>
 <span class="sd">        :type parameters: dict</span>
 
-<span class="sd">        :raises GridError: if parameters.keys() is not a subset of :data:`C.grid_parameters`</span>
-<span class="sd">        :raises GridError: if the parameter values are outside of the grid bounds</span>
+<span class="sd">        :raises C.GridError: if parameters.keys() is not a subset of :data:`C.grid_set`</span>
+<span class="sd">        :raises C.GridError: if the parameter values are outside of the grid bounds</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in allowable grid parameters {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in allowable grid parameters {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in the grid points {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])))</span>
+                <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} not in the grid points {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])))</span>
 </div>
 <div class="viewcode-block" id="RawGridInterface.load_file"><a class="viewcode-back" href="../grid_tools.html#grid_tools.RawGridInterface.load_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -199,7 +179,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">wl_file</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">+</span> <span class="s">&quot;WAVE_PHOENIX-ACES-AGSS-COND-2011.fits&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;Wavelength file improperly specified.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">GridError</span><span class="p">(</span><span class="s">&quot;Wavelength file improperly specified.&quot;</span><span class="p">)</span>
 
         <span class="n">w_full</span> <span class="o">=</span> <span class="n">wl_file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
         <span class="n">wl_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -220,7 +200,7 @@
 <span class="sd">        :param parameters: stellar parameters</span>
 <span class="sd">        :type parameters: dict</span>
 
-<span class="sd">        :raises GridError: if the file cannot be found on disk.</span>
+<span class="sd">        :raises C.GridError: if the file cannot be found on disk.</span>
 
 <span class="sd">        :returns: :obj:`model.Base1DSpectrum`</span>
 <span class="sd">        &#39;&#39;&#39;</span>
@@ -241,7 +221,7 @@
 
         <span class="n">fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rname</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">str_parameters</span><span class="p">)</span>
 
-        <span class="c">#Still need to check that file is in the grid, otherwise raise a GridError</span>
+        <span class="c">#Still need to check that file is in the grid, otherwise raise a C.GridError</span>
         <span class="c">#Read all metadata in from the FITS header, and append to spectrum</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">flux_file</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
@@ -249,7 +229,7 @@
             <span class="n">hdr</span> <span class="o">=</span> <span class="n">flux_file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
             <span class="n">flux_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} is not on disk.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fname</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">GridError</span><span class="p">(</span><span class="s">&quot;{} is not on disk.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fname</span><span class="p">))</span>
 
         <span class="c">#If we want to normalize the spectra, we must do it now since later we won&#39;t have the full EM range</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">:</span>
@@ -372,8 +352,8 @@
             <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="n">spec</span><span class="p">)</span>
 
-        <span class="k">except</span> <span class="n">GridError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">print</span><span class="p">(</span><span class="s">&quot;No file with parameters {}. GridError: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">GridError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;No file with parameters {}. C.GridError: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span><span class="bp">None</span><span class="p">)</span>
 </div>
@@ -431,7 +411,7 @@
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">hdf5</span><span class="p">[</span><span class="s">&quot;flux&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="c">#assemble all temp, logg, Z, alpha keywords into a giant list</span>
                 <span class="n">hdr</span> <span class="o">=</span> <span class="n">hdf5</span><span class="p">[</span><span class="s">&#39;flux&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
-                <span class="n">grid_points</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">hdr</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span><span class="p">})</span>
+                <span class="n">grid_points</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">hdr</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span><span class="p">})</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">list_grid_points</span> <span class="o">=</span> <span class="n">grid_points</span>
 
         <span class="c">#determine the bounding regions of the grid by sorting the grid_points</span>
@@ -512,7 +492,7 @@
 
 <span class="sd">        :param value:</span>
 <span class="sd">        :type value: float</span>
-<span class="sd">        :raises InterpolationError: if *value* is out of bounds.</span>
+<span class="sd">        :raises C.InterpolationError: if *value* is out of bounds.</span>
 
 <span class="sd">        :returns: ((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid</span>
 <span class="sd">        and the fractional distance (0 - 1) between them and the value.</span>
@@ -520,7 +500,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_interpolator</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Requested value {} is out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Requested value {} is out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
         <span class="n">high</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="n">low</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="n">frac_index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">-</span> <span class="n">low</span>
@@ -546,9 +526,9 @@
         <span class="c">#If alpha only includes one value, then do trilinear interpolation</span>
         <span class="p">(</span><span class="n">alow</span><span class="p">,</span> <span class="n">ahigh</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">alow</span> <span class="o">==</span> <span class="n">ahigh</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span> <span class="o">-</span> <span class="nb">set</span><span class="p">((</span><span class="s">&quot;alpha&quot;</span><span class="p">,))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">avg_hdr_keys</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">avg_hdr_keys</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">avg_hdr_keys</span> <span class="c">#These avg_hdr_keys specify the ones to average over</span>
 
@@ -588,13 +568,13 @@
 
 <span class="sd">        :param parameters: stellar parameters</span>
 <span class="sd">        :type parameters: dict</span>
-<span class="sd">        :raises InterpolationError: if parameters are out of bounds.</span>
+<span class="sd">        :raises C.InterpolationError: if parameters are out of bounds.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">edges</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">index_interpolators</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-        <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} are out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} are out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
 
         <span class="c">#Edges is a dictionary of {&quot;temp&quot;: ((6000, 6100), (0.2, 0.8)), &quot;logg&quot;: (())..}</span>
         <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">edges</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
@@ -620,10 +600,10 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} not in master HDF5 grid. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} not in master HDF5 grid. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">fl</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">hdr_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">metadata</span>
-                <span class="c">#Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can&#39;t be found.</span>
+                <span class="c">#Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can&#39;t be found.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fluxes</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">*</span><span class="n">weight_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
         <span class="n">comb_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -661,19 +641,24 @@
 <span class="sd">    :type cache_max: int</span>
 <span class="sd">    :param cache_dump: how many spectra to purge from the cache once :attr:`cache_max` is reached</span>
 <span class="sd">    :type cache_dump: int</span>
+<span class="sd">    :param trilinear: Should this interpolate in temp, logg, and [Fe/H] AND [alpha/Fe], or just the first three parameters.</span>
+<span class="sd">    :type trilinear: bool</span>
+
+<span class="sd">    Setting :attr:`trilinear` to **True** is useful for when you want to do a run with [Fe/H] &gt; 0.0</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">cache_max</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">cache_dump</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">cache_max</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">cache_dump</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">trilinear</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">interface</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
 
         <span class="c">#If alpha only includes one value, then do trilinear interpolation</span>
         <span class="p">(</span><span class="n">alow</span><span class="p">,</span> <span class="n">ahigh</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">alow</span> <span class="o">==</span> <span class="n">ahigh</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s">&quot;alpha&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">alow</span> <span class="o">==</span> <span class="n">ahigh</span><span class="p">)</span> <span class="ow">or</span> <span class="n">trilinear</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span> <span class="o">-</span> <span class="nb">set</span><span class="p">((</span><span class="s">&quot;alpha&quot;</span><span class="p">,))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_parameters</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">grid_set</span>
+
 
         <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">wl</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">wl_header</span>
@@ -759,13 +744,13 @@
 
 <span class="sd">        :param parameters: stellar parameters</span>
 <span class="sd">        :type parameters: dict</span>
-<span class="sd">        :raises InterpolationError: if parameters are out of bounds.</span>
+<span class="sd">        :raises C.InterpolationError: if parameters are out of bounds.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">edges</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">index_interpolators</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-        <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} are out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} are out of bounds. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
 
         <span class="c">#Edges is a dictionary of {&quot;temp&quot;: ((6000, 6100), (0.2, 0.8)), &quot;logg&quot;: (())..}</span>
         <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">edges</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
@@ -791,9 +776,9 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">load_flux</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="c">#This method allows loading only the relevant region from HDF5</span>
                 <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} not in master HDF5 grid. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span><span class="p">(</span><span class="s">&quot;Parameters {} not in master HDF5 grid. {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fl</span>
-                <span class="c">#Note: if we are dealing with a ragged grid, a GridError will be raised here because a Z=+1, alpha!=0 spectrum can&#39;t be found.</span>
+                <span class="c">#Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can&#39;t be found.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fluxes</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">*</span><span class="n">weight_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fluxes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -825,18 +810,19 @@
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Creates a FITS file with given parameters</span>
 
+
 <span class="sd">        :param parameters: stellar parameters :attr:`temp`, :attr:`logg`, :attr:`Z`, :attr:`vsini`</span>
 <span class="sd">        :type parameters: dict</span>
 <span class="sd">        :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.</span>
 <span class="sd">        :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.</span>
 
-<span class="sd">        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.</span>
+<span class="sd">        Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
         <span class="c">#Preserve the &quot;popping of parameters&quot;</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-        <span class="c">#Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum</span>
+        <span class="c">#Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum</span>
         <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;m&quot;</span>
         <span class="k">else</span><span class="p">:</span>
@@ -855,17 +841,17 @@
             <span class="c"># Downsample the spectrum to the instrumental resolution.</span>
             <span class="n">spec</span><span class="o">.</span><span class="n">instrument_and_stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">integrate</span><span class="p">)</span>
             <span class="n">spec</span><span class="o">.</span><span class="n">write_to_FITS</span><span class="p">(</span><span class="n">out_unit</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">print</span><span class="p">(</span><span class="s">&quot;{} cannot be interpolated from the grid.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
 
         <span class="k">print</span><span class="p">(</span><span class="s">&quot;Processed spectrum {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
 </div></div>
 <div class="viewcode-block" id="MasterToFITSGridProcessor"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor">[docs]</a><span class="k">class</span> <span class="nc">MasterToFITSGridProcessor</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Create one or many FITS files from a master HDF5 grid.</span>
+<span class="sd">    Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate</span>
+<span class="sd">    any values.</span>
 
-<span class="sd">    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.</span>
-<span class="sd">    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra</span>
+<span class="sd">    :param interface: an :obj:`HDF5Interface` object referenced to the master grid.</span>
 <span class="sd">    :param points: lists of output parameters (assumes regular grid)</span>
 <span class="sd">    :type points: dict of lists</span>
 <span class="sd">    :param flux_unit: format of output spectra {&quot;f_lam&quot;, &quot;f_nu&quot;, &quot;ADU&quot;}</span>
@@ -873,57 +859,79 @@
 <span class="sd">    :param outdir: output directory</span>
 <span class="sd">    :param processes: how many processors to use in parallel</span>
 
+<span class="sd">    Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,</span>
+<span class="sd">    preserving all of the header keywords.</span>
+
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interpolator</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">flux_unit</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span> <span class="o">=</span> <span class="n">interpolator</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">flux_unit</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">interface</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrument</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span> <span class="c">#points is a dictionary with which values to spit out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span> <span class="c">#points is a dictionary with which values to spit out for each parameter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;t{temp:0&gt;5.0f}g{logg:0&gt;2.0f}{Z_flag}{Z:0&gt;2.0f}v{vsini:0&gt;3.0f}.fits&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flux_unit</span> <span class="o">=</span> <span class="n">flux_unit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">integrate</span> <span class="o">=</span> <span class="n">integrate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">processes</span> <span class="o">=</span> <span class="n">processes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vsini_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&quot;vsini&quot;</span><span class="p">)</span>
         <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
         <span class="c">#Creates a list of parameter dictionaries [{&quot;temp&quot;:8500, &quot;logg&quot;:3.5, &quot;Z&quot;:0.0}, {&quot;temp&quot;:8250, etc...}, etc...]</span>
-        <span class="c">#Does not contain vsini</span>
+        <span class="c">#which does not contain vsini</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">param_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span><span class="n">params</span><span class="p">))</span> <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
 
         <span class="c">#Create a master wl_dict which correctly oversamples the instrumental kernel</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">wl_dict</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl_dict</span><span class="p">[</span><span class="s">&quot;wl&quot;</span><span class="p">]</span>
 
-        <span class="c">#Check that temp, logg, Z are within bounds</span>
+        <span class="c">#Check that temp, logg, Z are within the bounds of the interface</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span><span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">min_val</span><span class="p">,</span><span class="s">&quot;Points below interpolator bound {}={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">min_val</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">,</span><span class="s">&quot;Points above interpolator bound {}={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">max_val</span><span class="p">)</span>
+            <span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">min_val</span><span class="p">,</span><span class="s">&quot;Points below interface bound {}={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">min_val</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">,</span><span class="s">&quot;Points above interface bound {}={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">max_val</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="MasterToFITSGridProcessor.process_spectrum_vsini"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini">[docs]</a>    <span class="k">def</span> <span class="nf">process_spectrum_vsini</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Creates a FITS file with given parameters (not including *vsini*).</span>
+<span class="sd">        Create a set of FITS files with given stellar parameters temp, logg, Z and all combinations of `vsini`.</span>
 
 <span class="sd">        :param parameters: stellar parameters</span>
 <span class="sd">        :type parameters: dict</span>
 
-<span class="sd">        Smoothly handles the *InterpolationError* if parameters cannot be interpolated from the grid and prints a message.</span>
+<span class="sd">        Smoothly handles the *KeyError* if parameters cannot be drawn from the interface and prints a message.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
-        <span class="c">#Load the correct C.grid_parameters value from the interpolator into a LogLambdaSpectrum</span>
+        <span class="c">#Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">master_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="c">#Check to see if alpha, otherwise append alpha=0 to the parameter list.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+            <span class="k">print</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="n">master_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
             <span class="c">#Now process the spectrum for all values of vsini</span>
+            <span class="c">#Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum</span>
+            <span class="k">if</span> <span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;m&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">zflag</span> <span class="o">=</span> <span class="s">&quot;p&quot;</span>
+
             <span class="k">for</span> <span class="n">vsini</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vsini_points</span><span class="p">:</span>
                 <span class="n">spec</span> <span class="o">=</span> <span class="n">master_spec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="c">#Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel</span>
                 <span class="n">spec</span><span class="o">.</span><span class="n">instrument_and_stellar_convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span> <span class="n">vsini</span><span class="p">,</span> <span class="n">integrate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">integrate</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">write_to_FITS</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InterpolationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">print</span><span class="p">(</span><span class="s">&quot;{} cannot be interpolated from the grid.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+
+                <span class="c">#Update spectrum with vsini</span>
+                <span class="n">spec</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;vsini&quot;</span><span class="p">:</span><span class="n">vsini</span><span class="p">})</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">temp</span><span class="o">=</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">logg</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;logg&quot;</span><span class="p">],</span>
+                                          <span class="n">Z</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">parameters</span><span class="p">[</span><span class="s">&quot;Z&quot;</span><span class="p">]),</span> <span class="n">Z_flag</span><span class="o">=</span><span class="n">zflag</span><span class="p">,</span> <span class="n">vsini</span><span class="o">=</span><span class="n">vsini</span><span class="p">)</span>
+
+                <span class="n">spec</span><span class="o">.</span><span class="n">write_to_FITS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux_unit</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;{} cannot be loaded from the interface.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
 </div>
 <div class="viewcode-block" id="MasterToFITSGridProcessor.process_chunk"><a class="viewcode-back" href="../grid_tools.html#grid_tools.MasterToFITSGridProcessor.process_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">process_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -997,12 +1005,12 @@
 
 <div class="viewcode-block" id="Reticon"><a class="viewcode-back" href="../grid_tools.html#grid_tools.Reticon">[docs]</a><span class="k">class</span> <span class="nc">Reticon</span><span class="p">(</span><span class="n">Instrument</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Reticon Instrument&#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Reticon&quot;</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="p">(</span><span class="mi">5150</span><span class="p">,</span><span class="mi">5250</span><span class="p">)):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Reticon&quot;</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="p">(</span><span class="mi">5145</span><span class="p">,</span><span class="mi">5250</span><span class="p">)):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="n">FWHM</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="n">wl_range</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="KPNO"><a class="viewcode-back" href="../grid_tools.html#grid_tools.KPNO">[docs]</a><span class="k">class</span> <span class="nc">KPNO</span><span class="p">(</span><span class="n">Instrument</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;KNPO Instrument&#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;KPNO&quot;</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="mf">14.4</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="p">(</span><span class="mi">6200</span><span class="p">,</span><span class="mi">6700</span><span class="p">)):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;KPNO&quot;</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="mf">14.4</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="p">(</span><span class="mi">6250</span><span class="p">,</span><span class="mi">6650</span><span class="p">)):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">FWHM</span><span class="o">=</span><span class="n">FWHM</span><span class="p">,</span> <span class="n">wl_range</span><span class="o">=</span><span class="n">wl_range</span><span class="p">)</span>
 
 
