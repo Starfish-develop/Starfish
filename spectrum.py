@@ -115,16 +115,26 @@ class Base1DSpectrum(BaseSpectrum):
         fl_sorted = fl[ind]
         super().__init__(wl_sorted, fl_sorted, unit=unit, air=air, metadata=metadata)
 
-    def calculate_log_lam_grid(self):
+    def calculate_log_lam_grid(self, min=True):
         '''
-        Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements.
+        Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements. This assumes
+        that the input spectrum has already been properly oversampled.
 
         :returns: wl_dict containing a log lam wl and header keywords.
         '''
         dif = np.diff(self.wl)
-        min_wl = np.min(dif)
-        wl_at_min = self.wl[np.argmin(dif)]
-        wl_dict = create_log_lam_grid(wl_start=self.wl[0], wl_end=self.wl[-1], min_wl=(min_wl, wl_at_min))
+
+        if min:
+            #take the minimum wl spacing as the Nyquist sampling rate
+            dif_wl = np.min(dif)
+            wl = self.wl[np.argmin(dif)]
+        else:
+            #take the maximum wl spacing as the Nyquist sampling rate
+            dif_wl = np.max(dif)
+            wl = self.wl[np.argmax(dif)]
+
+        print(dif_wl, wl)
+        wl_dict = create_log_lam_grid(wl_start=self.wl[0], wl_end=self.wl[-1], min_wl=(dif_wl, wl))
         return wl_dict
 
     def resample_to_grid(self, grid, integrate=False):
@@ -147,7 +157,7 @@ class Base1DSpectrum(BaseSpectrum):
             assert self.unit == "f_lam", "Current Integration routine assumes f_lam"
             #Convert from f_lam to counts/ang via Bessel and Murphy 2012
             f = self.fl * self.wl / (C.h * C.c_ang)
-            interp = InterpolatedUnivariateSpline(self.wl, f)
+            interp = InterpolatedUnivariateSpline(self.wl, f, k=5)
 
             #Assume that grid specifies the pixel centers. Now, need to calculate the edges.
             edges = np.empty((len(grid) + 1,))
@@ -170,7 +180,7 @@ class Base1DSpectrum(BaseSpectrum):
             self.metadata.update({"rebin": True})
 
         else:
-            interp = InterpolatedUnivariateSpline(self.wl, self.fl)
+            interp = InterpolatedUnivariateSpline(self.wl, self.fl, k=5)
             self.fl = interp(grid)
             self.metadata.update({"resamp": True})
 
@@ -790,7 +800,7 @@ class ModelSpectrum:
             raise ValueError("New grid ({:.2f},{:.2f}) must fit within the range of self.wl ({:.2f},"
                              "{:.2f})".format(min(wls), max(wls), min(self.wl), max(self.wl)))
 
-        interp = InterpolatedUnivariateSpline(self.wl, self.fl)
+        interp = InterpolatedUnivariateSpline(self.wl, self.fl, k=5)
 
         self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
 

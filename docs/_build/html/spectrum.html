@@ -70,7 +70,7 @@ that may be used in the <a class="reference internal" href="grid_tools.html#modu
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-714f752e2df371f1659892dec8eeef9a17009a43.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-2f296229daa4833ec6bff98965f85f19ae3e6876.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
 <area shape="rect" id="node3" href="#spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
@@ -493,8 +493,15 @@ in the 0-axis.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_Omega">
-<tt class="descname">update_Omega</tt><big>(</big><em>Omega</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_Omega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_Omega" title="Permalink to this definition">¶</a></dt>
+<dt id="spectrum.ModelSpectrum.update_all">
+<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update all of the stellar parameters</p>
+<p>Give parameters as a dict and choose the params to update.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectrum.ModelSpectrum.update_logOmega">
+<tt class="descname">update_logOmega</tt><big>(</big><em>logOmega</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_logOmega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_logOmega" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span>, which multiplies the model spectrum to be the same scale as the data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -504,13 +511,6 @@ in the 0-axis.</p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="method">
-<dt id="spectrum.ModelSpectrum.update_all">
-<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update all of the stellar parameters</p>
-<p>Give parameters as a dict and choose the params to update.</p>
 </dd></dl>
 
 <dl class="method">

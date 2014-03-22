@@ -84,22 +84,32 @@
 <span class="sd">    :type Instrument: :obj:`grid_tools.Instrument` object</span>
 <span class="sd">    :param HDF5Interface: the interface to the synthetic stellar library</span>
 <span class="sd">    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object</span>
-<span class="sd">    :param stellar_tuple: describes the order of parameters </span>
+<span class="sd">    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.ModelInterpolator`` is trilinear.</span>
 <span class="sd">    :type stellar_tuple: tuple</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">cov_tuple</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
-        <span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">ModelInterpolator</span><span class="p">(</span><span class="n">HDF5Interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span> <span class="o">=</span> <span class="n">ModelSpectrum</span><span class="p">(</span><span class="n">myInterpolator</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span> <span class="o">=</span> <span class="n">stellar_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span> <span class="o">=</span> <span class="n">cov_tuple</span>
+        <span class="c">#Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.</span>
+        <span class="k">if</span> <span class="s">&#39;alpha&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">ModelInterpolator</span><span class="p">(</span><span class="n">HDF5Interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">trilinear</span><span class="o">=</span><span class="n">trilinear</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span> <span class="o">=</span> <span class="n">ModelSpectrum</span><span class="p">(</span><span class="n">myInterpolator</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span> <span class="o">=</span> <span class="n">ChebyshevSpectrum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span> <span class="o">=</span> <span class="n">CovarianceMatrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">)</span>
 
 
     <span class="k">def</span> <span class="nf">zip_stellar_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Cov_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">update_Model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -110,46 +120,194 @@
     <span class="k">def</span> <span class="nf">update_Cov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Model.get_data"><a class="viewcode-back" href="../model.html#model.Model.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a DataSpectrum object.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span>
+</div>
     <span class="k">def</span> <span class="nf">get_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span>
+
+    <span class="k">def</span> <span class="nf">get_Cov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">matrices</span>
 
 <div class="viewcode-block" id="Model.evaluate"><a class="viewcode-back" href="../model.html#model.Model.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Compare the different data and models.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-
-        <span class="c">#Get chi^2 comparison</span>
-
-        <span class="n">model_fls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span>
-        <span class="n">chi2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">chi2</span><span class="p">(</span><span class="n">model_fls</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">chi2</span>
-
-
         <span class="c">#Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...</span>
 
+        <span class="n">model_fls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span>
 
-</div></div>
+        <span class="c">#CovarianceMatrix will do the math from DFM</span>
+        <span class="n">lnp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model_fls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lnp</span>
+</div>
+<div class="viewcode-block" id="Model.evaluate_cho"><a class="viewcode-back" href="../model.html#model.Model.evaluate_cho">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Compare the different data and models.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...</span>
+
+        <span class="n">model_fls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span>
+
+        <span class="c">#CovarianceMatrix will do the math from DFM</span>
+        <span class="n">lnp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">evaluate_cho</span><span class="p">(</span><span class="n">model_fls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lnp</span>
+
+<span class="c">##How to use ProgressBar</span></div></div>
+<span class="kn">from</span> <span class="nn">progressbar</span> <span class="kn">import</span> <span class="n">ProgressBar</span><span class="p">,</span> <span class="n">Percentage</span><span class="p">,</span> <span class="n">Bar</span><span class="p">,</span> <span class="n">ETA</span>
+
 <div class="viewcode-block" id="Sampler"><a class="viewcode-back" href="../model.html#model.Sampler">[docs]</a><span class="k">class</span> <span class="nc">Sampler</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Helper class designed to contain StellarSampler, ChebSampler, CovSampler</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">):</span>
-        <span class="k">pass</span>
+<span class="sd">    Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C</span>
 
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="s">&quot;plots/out.png&quot;</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#Each subclass will have to overwrite how it parses the param_dict into the correct order</span>
+        <span class="c">#and sets the param_tuple</span>
+
+        <span class="c">#SUBCLASS OVERWRITE HERE to create self.param_tuple</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nwalkers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">*</span> <span class="mi">4</span>
+
+        <span class="c">#Generate starting guesses using information passed in stellar_dict</span>
+        <span class="n">p0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">:</span>
+            <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">param_dict</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+            <span class="n">p0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">high</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nwalkers</span><span class="p">,)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">if</span> <span class="n">pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nwalkers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nwalkers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_name</span> <span class="o">=</span> <span class="n">plot_name</span>
 
     <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Reset {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Sampling {} for {} iterations&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
+        <span class="n">pbar</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="n">widgets</span><span class="o">=</span><span class="p">[</span><span class="n">Percentage</span><span class="p">(),</span> <span class="n">Bar</span><span class="p">(),</span> <span class="n">ETA</span><span class="p">()],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">):</span>
+                <span class="c">#print(index)</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">pbar</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="n">result</span>
+
+
+            <span class="c">#self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">rstate0</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">):</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">pbar</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="c">#self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)</span>
 
 <div class="viewcode-block" id="Sampler.plot"><a class="viewcode-back" href="../model.html#model.Sampler.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Generate the relevant plots once the sampling is done.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">pass</span>
+
+        <span class="kn">import</span> <span class="nn">triangle</span>
+
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">flatchain</span>
+        <span class="n">figure</span> <span class="o">=</span> <span class="n">triangle</span><span class="o">.</span><span class="n">corner</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">],</span>
+                                 <span class="n">show_titles</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">title_args</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;fontsize&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">})</span>
+        <span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plot_name</span><span class="p">)</span>
 
 </div></div>
+<div class="viewcode-block" id="StellarSampler"><a class="viewcode-back" href="../model.html#model.StellarSampler">[docs]</a><span class="k">class</span> <span class="nc">StellarSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating stellar parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="s">&quot;plots/out_star.png&quot;</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">dictkeys_to_tuple</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="n">plot_name</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="ChebSampler"><a class="viewcode-back" href="../model.html#model.ChebSampler">[docs]</a><span class="k">class</span> <span class="nc">ChebSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating Chebyshev parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="s">&quot;plots/out_cheb.png&quot;</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.</span>
+        <span class="c">#From a simple param dict, create a more complex param_dict</span>
+
+        <span class="c">#Then set param_tuple</span>
+        <span class="c">#For now it is just set manually</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;c1&quot;</span><span class="p">,</span> <span class="s">&quot;c2&quot;</span><span class="p">,</span> <span class="s">&quot;c3&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="n">plot_name</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CovSampler"><a class="viewcode-back" href="../model.html#model.CovSampler">[docs]</a><span class="k">class</span> <span class="nc">CovSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating CovarianceMatrix parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="s">&quot;plots/out_cov.png&quot;</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">dictkeys_to_covtuple</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">lnprob</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">,</span> <span class="n">plot_name</span><span class="o">=</span><span class="n">plot_name</span><span class="p">,</span> <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="MegaSampler"><a class="viewcode-back" href="../model.html#model.MegaSampler">[docs]</a><span class="k">class</span> <span class="nc">MegaSampler</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    One Sampler to rule them all</span>
+
+<span class="sd">    :param samplers: the various Sampler objects to sample</span>
+<span class="sd">    :type samplers: list or tuple of :obj:`model.Sampler`s</span>
+<span class="sd">    :param cadence: of sub-iterations per iteration</span>
+<span class="sd">    :type cadence: list or tuple</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">burnInCadence</span><span class="p">,</span> <span class="n">cadence</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="o">=</span> <span class="n">samplers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burnInCadence</span> <span class="o">=</span> <span class="n">burnInCadence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cadence</span> <span class="o">=</span> <span class="n">cadence</span>
+
+    <span class="k">def</span> <span class="nf">burn_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">burnInCadence</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cadence</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">plot_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c">#Call this only after all worker processes have exited.</span>
+        <span class="k">pass</span>
+</div>
 <div class="viewcode-block" id="SamplerStellarCheb"><a class="viewcode-back" href="../model.html#model.SamplerStellarCheb">[docs]</a><span class="k">class</span> <span class="nc">SamplerStellarCheb</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Sampler object explores the model in two different ways using a Gibbs Sampler with `emcee` instances.</span>
