@@ -32,7 +32,6 @@ class TestModel:
         model.update_Model({"temp":6102, "logg":3.9, "Z":-0.5, "alpha":0.2, "vsini":6, "vz":13.7, "Av":0.0, "logOmega":-19.7})
         print(model.evaluate())
 
-
     def test_update_Cheb(self):
         self.model.update_Cheb(np.array([1, -0.015, -0.015, -0.006, 1, 0, 0, 0, 1, 0, 0, 0]))
         print(self.model.evaluate())

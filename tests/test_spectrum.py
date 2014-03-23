@@ -360,7 +360,7 @@ class TestModelSpectrum:
 
     def test_ModelError(self):
         with pytest.raises(C.ModelError) as e:
-            self.model.update_all({"temp":5105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "logOmega":0.})
+            self.model.update_all({"temp":4105, "logg":3.7, "Z":-0.2, "alpha":0.02, "vsini":10, "vz":10, "Av":0, "logOmega":0.})
         print(e.value)
 
 class TestChebyshevSpectrum:

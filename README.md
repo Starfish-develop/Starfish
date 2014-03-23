@@ -309,34 +309,23 @@ Code structures:
 * how are chebyshev coefficients parsed? Are these sampled in **each order** individually? Ie, their own sampler? I
 think it might be cleaner to just do them all together.
 
-
-* why is storing the spectra in a log-lam spaced form so tricky? Should I instead just stuff the raw files in an hdf5 format,
-and do the high interpolation once before doing the FFT? The interpolation can be done in the raw file format.
-
-
 #Grid Creator Code
 
-* first re-create the master HDF5 grid to include all metallicity ranges.
-
-	1. Check which raw FITS files are available on Odyssey
-	2. Download any new grids to scout, and then to 
-	3. Check the size of the current masterHDF5, and estimate what size a new grid incorporating all of the PHOENIX files would be 
-
-* it turns out that the grid sampling actually needed to be *increased* to about 0.05 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
-
-
-Right now at the current pace, to do 1.0 to -2.0, all alpha, would take 2-3 days. We might want to investigate using parallel mpi/HDF5. In order to do this, we would need to make all of the changes
- to the file concurrently, meaning that we must create all of the dataset attributes (header info) in each process, but then afterwards the processing of data and saving to disk could be done
- independently.
+* it turns out that the grid sampling actually needed to be *increased* to about 0.08 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
 
 How to restructure the code so that the HDF5 file does not overfill everything.
 
 * from the finished product, chunking loading is used 400:500 instead of [False False True True ... False] ? needs testing/timing.
 * interpolator combines the averaged spectra
 * for instrument and stellar convolve, the spectra are first resampled to a finer grid, then FFT'ed, then downsampled.
-
-
 * chunking will be different. instead, it chunks #points over a set wl range
+
+* if things are really slow this way, we can go back to the old way. First, create a master grid that is log-lam spaced for
+just the wl ranges, then do the MCMC run on it.
+
+* specify min_vc for resampling from the HDF5 grid, as an attr for the wl file.
+
+* ModelInterpolater._determine_chunk() will need to be updated to use create_log_lam_grid()
 
 # Stellar parameter papers
 

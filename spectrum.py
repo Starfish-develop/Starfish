@@ -694,6 +694,204 @@ class ModelSpectrum:
         self.interpolator = interpolator
         #Set raw_wl from wl stored with interpolator
         self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of ModelInterpolator
+        self.instrument = instrument
+        self.DataSpectrum = self.interpolator.DataSpectrum #so that we can downsample to the same wls
+
+        #Calculate a log_lam grid based upon the length of the DataSpectrum
+        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
+        wl_dict = create_log_lam_grid(wl_min - 4., wl_max + 4., min_vc=0.08/C.c_kms)
+        self.wl_FFT = wl_dict["wl"]
+        print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
+        self.min_v = 0.08
+        self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
+        self.ss[0] = 0.01 #junk so we don't get a divide by zero error
+
+
+        self.downsampled_fls = np.empty(self.DataSpectrum.shape)
+        self.grid_params = {}
+        self.vz = 0
+        self.Av = 0
+        self.logOmega = 0.
+
+        #Grab chunk from wl_FFT
+        chunk = len(self.wl_FFT)
+        assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
+
+        self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
+        self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+                                  direction='FFTW_BACKWARD')
+
+    def __str__(self):
+        return "Model Spectrum for Instrument {}".format(self.instrument.name)
+
+    def update_logOmega(self, logOmega):
+        '''
+        Update the 'flux factor' parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
+
+        :param Omega: 'flux factor' parameter, :math:`\Omega = R^2/d^2`
+        :type Omega: float
+
+        '''
+        #factor by which to correct from old Omega
+        self.fl *= 10**(logOmega - self.logOmega)
+        self.logOmega = logOmega
+
+    def update_vz(self, vz):
+        '''
+        Update the radial velocity parameter.
+
+        :param vz: The radial velocity parameter. Positive means redshift and negative means blueshift.
+        :type vz: float (km/s)
+
+        '''
+        #How far to shift based from old vz?
+        vz_shift = vz - self.vz
+        self.wl = self.wl_FFT * np.sqrt((C.c_kms + vz_shift) / (C.c_kms - vz_shift))
+        self.vz = vz
+
+    def update_Av(self, Av):
+        '''
+        Update the extinction parameter.
+
+        :param Av: The optical extinction parameter.
+        :type Av: float (magnitudes)
+
+        '''
+        pass
+
+
+        #Av_shift = self.Av - Av
+        #self.fl /= deredden(self.wl, Av, mags=False)
+        #self.Av = Av
+
+    def _update_grid_params(self, grid_params):
+        '''
+        Private method to update just those stellar parameters. Designed to be used as part of update_all.
+
+        :param grid_params: grid parameters, including alpha or not.
+        :type grid_params: dict
+
+        '''
+        try:
+            fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
+            interp = InterpolatedUnivariateSpline(self.wl_raw, fl, k=5)
+            self.fl = interp(self.wl_FFT)
+            del interp
+            gc.collect()
+            self.grid_params.update(grid_params)
+
+        except C.InterpolationError as e:
+            raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
+
+    def _update_vsini_and_instrument(self, vsini):
+        '''
+        Private method to update just the vsini and instrumental kernel. Designed to be used as part of update_all
+        *after* the grid_params have been updated.
+
+        :param vsini: projected stellar rotation velocity
+        :type vsini: float (km/s)
+
+        '''
+        if vsini < 0:
+            raise C.ModelError("vsini must be positive")
+
+        self.vsini = vsini
+
+        self.influx[:] = self.fl
+        self.fft_object()
+
+        sigma = self.instrument.FWHM / 2.35 # in km/s
+
+        #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
+        taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
+
+        #Determine the stellar broadening kernel
+        ub = 2. * np.pi * self.vsini * self.ss
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+        taper[0] = 1.
+
+        #institute velocity and instrumental taper
+        self.FF *= sb * taper
+
+        #do ifft
+        self.ifft_object()
+        self.fl[:] = self.outflux
+
+
+    def update_all(self, params):
+        '''
+        Update all of the stellar parameters
+
+        Give parameters as a dict and choose the params to update.
+
+        '''
+        #First set stellar parameters using _update_grid_params
+        grid_params = {key:params[key] for key in self.interpolator.parameters}
+
+        self._update_grid_params(grid_params)
+
+        #Reset the relative variables
+        self.vz = 0
+        self.Av = 0
+        self.logOmega = 0
+
+        #Then vsini and instrument using _update_vsini
+        self._update_vsini_and_instrument(params['vsini'])
+
+        #Then vz, logOmega, and Av using public methods
+        self.update_vz(params['vz'])
+        self.update_logOmega(params['logOmega'])
+
+        if 'Av' in params:
+            self.update_Av(params['Av'])
+
+        self.downsample()
+
+    def downsample(self):
+        '''
+        Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.
+
+        :returns fls: the downsampled fluxes that has the same shape as DataSpectrum.fls
+        '''
+
+        #Check to make sure that the grid is within self.wl range, because a spline will not naturally raise an error!
+        wls = self.DataSpectrum.wls.flatten()
+        if min(wls) < min(self.wl) or max(wls) > max(self.wl):
+            raise ValueError("Downsampled grid ({:.2f},{:.2f}) must fit within the range of self.wl ({:.2f},"
+                             "{:.2f})".format(min(wls), max(wls), min(self.wl), max(self.wl)))
+
+        interp = InterpolatedUnivariateSpline(self.wl, self.fl, k=5)
+
+        self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
+
+        del interp
+        gc.collect()
+
+class ModelSpectrumLog:
+    '''
+    A 1D synthetic spectrum drawing from the LogInterpolator
+
+    :param interpolator: object to query stellar parameters
+    :type interpolator: :obj:`grid_tools.ModelInterpolator`
+    :param instrument: Which instrument is this a model for?
+    :type instrument: :obj:`grid_tools.Instrument` object describing wavelength range and instrumental profile
+
+    We essentially want to preserve two capabilities.
+
+    1. Sample in all "stellar parameters" at once
+    2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
+
+    '''
+    def __init__(self, interpolator, instrument):
+        self.interpolator = interpolator
+        #Set raw_wl from wl stored with interpolator
+        self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of ModelInterpolator
         CDELT1 = self.interpolator.wl_dict["CDELT1"]
         self.min_v = C.c_kms * (10**CDELT1 - 1)
         self.ss = rfftfreq(len(self.wl_raw), d=self.min_v)
@@ -716,7 +914,7 @@ class ModelSpectrum:
         self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
         self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
         self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
-                                  direction='FFTW_BACKWARD')
+                                       direction='FFTW_BACKWARD')
 
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
@@ -862,6 +1060,7 @@ class ModelSpectrum:
 
         del interp
         gc.collect()
+
 
 class ChebyshevSpectrum:
     '''
