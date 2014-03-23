@@ -511,7 +511,7 @@ class HDF5GridStuffer:
                 flux.attrs[key] = value
 
 
-class HDF5Interface:
+class HDF5LogInterface:
     '''
     Connect to an HDF5 file that stores spectra.
 
@@ -593,6 +593,85 @@ class HDF5Interface:
 
         return fl
 
+class HDF5Interface:
+    '''
+    Connect to an HDF5 file that stores spectra.
+
+    :param filename: the name of the HDF5 file
+    :type param: string
+
+    '''
+    def __init__(self, filename):
+        self.filename = filename
+        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+
+        with h5py.File(self.filename, "r") as hdf5:
+            self.name = hdf5.attrs["grid_name"]
+            self.wl = hdf5["wl"][:]
+            self.wl_header = dict(hdf5["wl"].attrs.items())
+
+            grid_points = []
+            for key in hdf5["flux"].keys():
+                #assemble all temp, logg, Z, alpha keywords into a giant list
+                hdr = hdf5['flux'][key].attrs
+                grid_points.append({k: hdr[k] for k in C.grid_set})
+            self.list_grid_points = grid_points
+
+        #determine the bounding regions of the grid by sorting the grid_points
+        temp, logg, Z, alpha = [],[],[],[]
+        for param in self.list_grid_points:
+            temp.append(param['temp'])
+            logg.append(param['logg'])
+            Z.append(param['Z'])
+            alpha.append(param['alpha'])
+
+        self.bounds = {"temp": (min(temp),max(temp)), "logg": (min(logg), max(logg)), "Z": (min(Z), max(Z)),
+                       "alpha":(min(alpha),max(alpha))}
+        self.points = {"temp": np.unique(temp), "logg": np.unique(logg), "Z": np.unique(Z), "alpha": np.unique(alpha)}
+        self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
+
+    def load_file(self, parameters):
+        '''load a spectrum from the grid and return it as a :obj:`model.Base1DSpectrum`.
+
+        :param parameters: the stellar parameters
+        :type parameters: dict
+
+        :raises KeyError: if spectrum is not found in the HDF5 file.
+
+        '''
+
+        key = self.flux_name.format(**parameters)
+        with h5py.File(self.filename, "r") as hdf5:
+            fl = hdf5['flux'][key][:]
+            hdr = dict(hdf5['flux'][key].attrs)
+
+        #Note: will raise a KeyError if the file is not found.
+
+        hdr.update(self.wl_header) #add the flux metadata to the wl data
+
+        return Base1DSpectrum(self.wl, fl, metadata=hdr)
+
+    def load_flux(self, parameters):
+        '''
+        Load *just the flux* from the grid, with possibly an index truncation. This is a speed method designed for MCMC.
+
+        :param parameters: the stellar parameters
+        :type parameters: dict
+        :param ind: slice to load
+        :type ind: (int low, int high) 2-tuple
+
+        :raises KeyError: if spectrum is not found in the HDF5 file.
+        '''
+        key = self.flux_name.format(**parameters)
+        with h5py.File(self.filename, "r") as hdf5:
+            if self.ind is not None:
+                fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
+            else:
+                fl = hdf5['flux'][key][:]
+
+        #Note: will raise a KeyError if the file is not found.
+
+        return fl
 
 class IndexInterpolator:
     '''
@@ -1014,6 +1093,10 @@ class MasterToFITSGridProcessor:
             assert np.min(self.points[key]) >= min_val,"Points below interface bound {}={}".format(key, min_val)
             assert np.max(self.points[key]) <= max_val,"Points above interface bound {}={}".format(key, max_val)
 
+        #Create a temporary grid to resample to that matches the bounds of the instrument.
+        low, high = self.instrument.wl_range
+        self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, min_vc=0.1)['wl']
+
 
     def process_spectrum_vsini(self, parameters):
         '''
@@ -1025,19 +1108,23 @@ class MasterToFITSGridProcessor:
         Smoothly handles the *KeyError* if parameters cannot be drawn from the interface and prints a message.
         '''
 
-        #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
         try:
             #Check to see if alpha, otherwise append alpha=0 to the parameter list.
             if not self.alpha:
                 parameters.update({"alpha": 0.0})
             print(parameters)
-            master_spec = self.interface.load_file(parameters)
-            #Now process the spectrum for all values of vsini
-            #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
+
             if parameters["Z"] < 0:
                 zflag = "m"
             else:
                 zflag = "p"
+
+            #This is a Base1DSpectrum
+            base_spec = self.interface.load_file(parameters)
+
+            master_spec = base_spec.to_LogLambda(instrument=self.instrument, min_vc=0.1/C.c_kms) #convert the Base1DSpectrum to a LogLamSpectrum
+
+            #Now process the spectrum for all values of vsini
 
             for vsini in self.vsini_points:
                 spec = master_spec.copy()

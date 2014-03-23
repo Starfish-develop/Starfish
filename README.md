@@ -331,13 +331,12 @@ Right now at the current pace, to do 1.0 to -2.0, all alpha, would take 2-3 days
 
 How to restructure the code so that the HDF5 file does not overfill everything.
 
-* stuff the FITS files directly into an HDF5 file, truncated from 3000 to 13000 AA.
-* only load the flux and the header information from the raw grid
-
 * from the finished product, chunking loading is used 400:500 instead of [False False True True ... False] ? needs testing/timing.
 * interpolator combines the averaged spectra
 * for instrument and stellar convolve, the spectra are first resampled to a finer grid, then FFT'ed, then downsampled.
 
+
+* chunking will be different. instead, it chunks #points over a set wl range
 
 # Stellar parameter papers
 

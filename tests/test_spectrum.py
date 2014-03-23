@@ -1,6 +1,7 @@
 import pytest
 from StellarSpectra.spectrum import *
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
 import tempfile
 import os
 import StellarSpectra.constants as C
@@ -167,6 +168,12 @@ class TestBase1DSpectrum(TestBaseSpectrum):
         with pytest.raises(AssertionError) as e:
             spec.resample_to_grid(np.linspace(5010, 5020), integrate=True)
         print(e.value)
+
+    def test_to_LogLambda(self):
+        from StellarSpectra.grid_tools import TRES
+        spec= self.spec.to_LogLambda(instrument=TRES(), min_vc=0.06/C.c_kms)
+        print(spec.get_min_v(), "km/s")
+
 
 
 class TestLogLambdaSpectrum(TestBase1DSpectrum):
@@ -389,16 +396,128 @@ class TestCovarianceMatrix:
         self.cov.update({"sigAmp":1, "logAmp":1, "l":1})
 
 
+class TestResampling:
+    def setup_class(self):
+        from StellarSpectra.grid_tools import HDF5Interface
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        self.wl = hdf5interface.wl
+        self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
-    #def test_chi2(self):
-    #    model_fls = self.DataSpectrum.fls.copy()
-    #    model_fls += np.random.normal(loc=0, scale=self.DataSpectrum.sigmas, size=self.DataSpectrum.shape)
-    #    covchi2 = self.cov.evaluate(model_fls)
-    #    print("Covariance chi2 {}".format(covchi2))
-    #
-    #    #Normal chi2 calculation
-    #    chi2 = np.sum(((self.DataSpectrum.fls - model_fls)/self.DataSpectrum.sigmas)**2)
-    #    print("Traditional chi2 {}".format(chi2))
-    #
-    #    assert np.allclose(covchi2, chi2), "Sparse matrix and traditional method do not match for uncorrelated noise."
+    def test_closeness_TRES(self):
+        '''
+        First convert self.spec from a Base1DSpectrum to a LogLambdaSpectrum. Then, convert it back to the original
+        wl_grid and see if all of the information is preserved.
+        '''
+        from StellarSpectra.grid_tools import TRES
+        instrument = TRES()
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print(log_spec.get_min_v(), "km/s")
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
 
+        #truncate original wl and fl to instrument ranges
+        low, high = instrument.wl_range
+        ind = (self.wl >= low) & (self.wl <= high)
+        wl = self.spec.wl[ind]
+        fl = self.spec.fl[ind]
+
+        fl_back = interp(wl)
+
+        #import matplotlib.pyplot as plt
+        #fig, ax = plt.subplots(nrows=2, sharex=True)
+        #ax[0].plot(wl, fl)
+        #ax[0].plot(wl, fl_back)
+        #ax[1].plot(wl, fl - fl_back)
+        #plt.show()
+
+        assert np.allclose(fl, fl_back), "Spectral information lost"
+
+    def test_closeness_Reticon(self):
+        from StellarSpectra.grid_tools import Reticon
+        instrument = Reticon()
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print(log_spec.get_min_v(), "km/s")
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
+
+        #truncate original wl and fl to instrument ranges
+        low, high = instrument.wl_range
+        ind = (self.wl >= low) & (self.wl <= high)
+        wl = self.spec.wl[ind]
+        fl = self.spec.fl[ind]
+
+        fl_back = interp(wl)
+
+        #import matplotlib.pyplot as plt
+        #fig, ax = plt.subplots(nrows=2, sharex=True)
+        #ax[0].plot(wl, fl)
+        #ax[0].plot(wl, fl_back)
+        #ax[1].plot(wl, fl - fl_back)
+        #plt.show()
+
+        assert np.allclose(fl, fl_back), "Spectral information lost"
+
+    def test_closeness_KPNO(self):
+        from StellarSpectra.grid_tools import KPNO
+        instrument = KPNO()
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print(log_spec.get_min_v(), "km/s")
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
+
+        #truncate original wl and fl to instrument ranges
+        low, high = instrument.wl_range
+        ind = (self.wl >= low) & (self.wl <= high)
+        wl = self.spec.wl[ind]
+        fl = self.spec.fl[ind]
+
+        fl_back = interp(wl)
+
+        #import matplotlib.pyplot as plt
+        #fig, ax = plt.subplots(nrows=2, sharex=True)
+        #ax[0].plot(wl, fl)
+        #ax[0].plot(wl, fl_back)
+        #ax[1].plot(wl, fl - fl_back)
+        #plt.show()
+
+        assert np.allclose(fl, fl_back), "Spectral information lost"
+
+
+class TestClosenessStellarAndInstrument:
+    '''
+    Try resampling to different Instrument grids to ascertain the correct oversampling so that information is not lost.
+
+    1) Override instrument.wl_dict convolve to downsample to an insanely fine grid
+    2) Downsample to the original Instrument wl_dict
+    3) use the wl_dict and downsampled flux to interpolate onto the insanely fine grid
+    4) compare the two fluxes with np.allclose
+
+    '''
+
+    def setup_class(self):
+        from StellarSpectra.grid_tools import HDF5Interface
+        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        self.wl = hdf5interface.wl
+        self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+
+    def test_instrument_and_stellar_convolve_TRES(self):
+
+        from StellarSpectra.grid_tools import TRES
+        instrument = TRES()
+        low, high = instrument.wl_range
+
+        instrument_fine = TRES()
+        instrument_fine.wl_dict = create_log_lam_grid(low, high, min_vc=0.05/C.c_kms)
+
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print("Before convolve", log_spec.get_min_v(), "km/s")
+
+
+        log_spec2 = log_spec.copy()
+
+        log_spec.instrument_and_stellar_convolve(instrument, 20)
+        print("After convolve", log_spec.get_min_v(), "km/s")
+
+        log_spec2.instrument_and_stellar_convolve(instrument_fine, 20)
+
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
+        fl = interp(log_spec2.wl)
+
+        assert np.allclose(fl, log_spec2.fl), "Spectral information not preserved."
