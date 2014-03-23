@@ -189,6 +189,46 @@ class Base1DSpectrum(BaseSpectrum):
         self.wl = grid
 
 
+    def to_LogLambda(self, min_vc, instrument=None):
+        '''
+        Return a new spectrum that is :obj:`LogLambdaSpectrum`
+
+        :param min_vc: The maximum spacing allowed
+        :type min_vc: float
+        :param instrument: :obj:`Instrument` object to transfer wl_ranges for truncation.
+
+
+
+        '''
+        if instrument is not None:
+            low, high = instrument.wl_range
+            #1) Truncate the wl, fl to the range of the instrument
+            ind = (self.wl >= low) & (self.wl <= high)
+            wl = self.wl[ind]
+            fl = self.fl[ind]
+
+        else:
+            low, high = np.min(self.wl), np.max(self.wl)
+            wl = self.wl
+            fl = self.fl
+
+        #2) create_log_lam_grid() with the instrument ranges and min_vc
+        wl_dict = create_log_lam_grid(low, high, min_vc=min_vc)
+        wl_log = wl_dict.pop("wl")
+
+        #3) IUS the raw wl and fl
+        interp = InterpolatedUnivariateSpline(wl, fl, k=5)
+
+        #4) call IUS on log_lam_grid
+        fl_log = interp(wl_log)
+
+        #5) update metadata
+        self.metadata.update(wl_dict)
+
+        #6) create and return LogLambdaSpectrum object with wl_dict and header info
+        return LogLambdaSpectrum(wl_log, fl_log, air=self.air, metadata=self.metadata)
+
+
 def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
     '''
     Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for ease of FFT.
@@ -231,6 +271,16 @@ def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None)
     wl = 10 ** (CRVAL1 + CDELT1 * p)
     return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
 
+def calculate_min_v(wl_dict):
+    '''
+    Given a ``wl_dict``, calculate the velocity spacing.
+
+    :param wl_dict: wavelength dictionary
+    :type wl_dict: dict
+    '''
+    CDELT1 = wl_dict["CDELT1"]
+    min_v = C.c_kms * (10**CDELT1 - 1)
+    return min_v
 
 class LogLambdaSpectrum(Base1DSpectrum):
     '''
@@ -503,6 +553,12 @@ class LogLambdaSpectrum(Base1DSpectrum):
 
         hdu.writeto(filename, clobber=True)
         print("Wrote {} to FITS".format(filename))
+
+    def get_min_v(self):
+        CDELT1 = self.metadata["CDELT1"]
+        min_v = C.c_kms * (10**CDELT1 - 1)
+        return min_v
+
 
 
 def rfftfreq(n, d=1.0):

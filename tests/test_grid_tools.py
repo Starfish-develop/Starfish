@@ -2,6 +2,7 @@ import pytest
 from StellarSpectra.grid_tools import *
 import numpy as np
 from StellarSpectra.spectrum import create_log_lam_grid
+import StellarSpectra.constants as C
 
 
 class TestRawGridInterface:
@@ -164,19 +165,19 @@ class TestHDF5Stuffer:
 
 class TestHDF5Interface:
     def setup_class(self):
-        self.interface = HDF5Interface("tests/test.hdf5")
+        self.interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
 
-    def test_wl(self):
-        #check to see that wl is log-linear spaced
-        wl = self.interface.wl
-        vcs = np.diff(wl)/wl[:-1] * C.c_kms
-        print(vcs)
-        assert np.allclose(vcs, vcs[0]), "wavelength array is not log-lambda spaced."
+    #def test_wl(self):
+    #    check to see that wl is log-linear spaced
+        #wl = self.interface.wl
+        #vcs = np.diff(wl)/wl[:-1] * C.c_kms
+        #print(vcs)
+        #assert np.allclose(vcs, vcs[0]), "wavelength array is not log-lambda spaced."
 
     def test_bounds(self):
         bounds = self.interface.bounds
-        ranges={"temp":(5000, 5300), "logg":(3.5, 4.5), "Z":(0.0,0.0), "alpha":(0.0, 0.0)}
-        for key in grid_parameters:
+        ranges={"temp":(5000, 7000), "logg":(3.5, 5.5), "Z":(-1.0,0.0), "alpha":(0.0, 0.4)}
+        for key in C.grid_parameters:
             assert bounds[key] == ranges[key],"Bounds do not match {} != {}".format(bounds[key], ranges[key])
 
     def test_load_file(self):
@@ -185,7 +186,7 @@ class TestHDF5Interface:
 
     def test_load_bad_file(self):
         with pytest.raises(KeyError) as e:
-            self.interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+            self.interface.load_file({"temp":4000, "logg":4.5, "Z": 0.0, "alpha":0.0})
         print(e.value)
 
     def test_load_flux(self):
