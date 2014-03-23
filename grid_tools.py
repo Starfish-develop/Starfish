@@ -133,8 +133,8 @@ class PHOENIXGridInterface(RawGridInterface):
         air=air, wl_range=[2999, 13001], base=base)
 
         self.norm = norm #Normalize to 1 solar luminosity?
-        self.Z_dict = {-1: '-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.alpha_dict = {-0.2:".Alpha=-0.20", 0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40", 0.6:".Alpha=+0.60",
+        self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+        self.alpha_dict = {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20", 0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40", 0.6:".Alpha=+0.60",
                            0.8:".Alpha=+0.80"}
 
         #if air is true, convert the normally vacuum file to air wls.
@@ -493,6 +493,8 @@ class HDF5GridStuffer:
         #use itertools.product to create permutations of all possible values
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
+
+        print("Total of {} files to stuff.".format(len(param_list)))
 
         for param in param_list:
             parameters, fl, header = self.process_flux(param)

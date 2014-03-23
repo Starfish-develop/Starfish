@@ -333,6 +333,7 @@ How to restructure the code so that the HDF5 file does not overfill everything.
 
 * stuff the FITS files directly into an HDF5 file, truncated from 3000 to 13000 AA.
 * only load the flux and the header information from the raw grid
+
 * from the finished product, chunking loading is used 400:500 instead of [False False True True ... False] ? needs testing/timing.
 * interpolator combines the averaged spectra
 * for instrument and stellar convolve, the spectra are first resampled to a finer grid, then FFT'ed, then downsampled.
