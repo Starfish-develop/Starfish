@@ -869,11 +869,12 @@ class ModelInterpolator:
         self.cache_max = cache_max
         self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
 
-
-    def _determine_chunk(self):
+    def _determine_chunk_log(self):
         '''
         Using the DataSpectrum, determine the minimum chunksize that we can use and then truncate the synthetic
         wavelength grid and the returned spectra.
+
+        Assumes HDF5Interface is LogLambda spaced
         '''
 
         wave_grid = self.interface.wl
@@ -908,13 +909,32 @@ class ModelInterpolator:
 
             self.wl = self.wl[ind[0]:ind[1]]
             assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                  max(self.wl), wl_min, wl_max)
+                                                                    "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
+                                                                                                                                          max(self.wl), wl_min, wl_max)
 
             self.interface.ind = ind
         else:
             self.interface.ind = None
 
+    def _determine_chunk(self):
+        '''
+        Using the DataSpectrum, set the bounds of the interpolator to +/- 5 Ang
+        '''
+
+        wave_grid = self.interface.wl
+        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
+
+        ind_low = (np.abs(wave_grid - (wl_min - 5.))).argmin()
+        ind_high = (np.abs(wave_grid - (wl_max + 5.))).argmin()
+
+        self.wl = self.wl[ind_low:ind_high]
+
+        assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
+                            "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
+                                                                                  max(self.wl), wl_min, wl_max)
+
+
+        self.interface.ind = (ind_low, ind_high)
 
 
     def __call__(self, parameters):
@@ -1156,6 +1176,7 @@ class MasterToFITSGridProcessor:
         '''
         Process all parameters in :attr:`points` to FITS by chopping them into chunks.
         '''
+        print("Total of {} FITS files to create.".format(len(self.vsini_points) * len(self.param_list)))
         chunks = chunk_list(self.param_list, n=self.processes)
         for chunk in chunks:
             p = mp.Process(target=self.process_chunk, args=(chunk,))

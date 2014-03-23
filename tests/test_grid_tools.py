@@ -324,8 +324,8 @@ class TestModelInterpolator:
 
 
     def test_interpolate_bounds(self):
-        with pytest.raises(InterpolationError) as e:
-            parameters = {"temp":5010, "logg":4.6, "Z":-0.1, "alpha":0.1}
+        with pytest.raises(C.InterpolationError) as e:
+            parameters = {"temp":4010, "logg":4.6, "Z":-0.1, "alpha":0.1}
             new_flux = self.interpolator(parameters)
         print(e.value)
 
@@ -363,10 +363,10 @@ class TestModelInterpolator:
         raw_flux = self.hdf5interface.load_flux(parameters)
         assert np.allclose(intp_flux, raw_flux)
 
-    def test_index_truncate(self):
-        parameters = {"temp":6000, "logg":4.5, "Z":0.0, "alpha":0.0}
-        intp_flux = self.interpolator(parameters)
-        assert len(intp_flux) % 2 == 0, "flux is not power of 2 in length"
+    #def test_index_truncate(self):
+    #    parameters = {"temp":6000, "logg":4.5, "Z":0.0, "alpha":0.0}
+    #    intp_flux = self.interpolator(parameters)
+    #    assert len(intp_flux) % 2 == 0, "flux is not power of 2 in length"
 
 
 class TestInstrument:
