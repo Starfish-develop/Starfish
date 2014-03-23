@@ -310,6 +310,9 @@ Code structures:
 think it might be cleaner to just do them all together.
 
 
+* why is storing the spectra in a log-lam spaced form so tricky? Should I instead just stuff the raw files in an hdf5 format,
+and do the high interpolation once before doing the FFT? The interpolation can be done in the raw file format.
+
 
 #Grid Creator Code
 
@@ -322,9 +325,17 @@ think it might be cleaner to just do them all together.
 * it turns out that the grid sampling actually needed to be *increased* to about 0.05 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
 
 
+Right now at the current pace, to do 1.0 to -2.0, all alpha, would take 2-3 days. We might want to investigate using parallel mpi/HDF5. In order to do this, we would need to make all of the changes
+ to the file concurrently, meaning that we must create all of the dataset attributes (header info) in each process, but then afterwards the processing of data and saving to disk could be done
+ independently.
 
+How to restructure the code so that the HDF5 file does not overfill everything.
 
-
+* stuff the FITS files directly into an HDF5 file, truncated from 3000 to 13000 AA.
+* only load the flux and the header information from the raw grid
+* from the finished product, chunking loading is used 400:500 instead of [False False True True ... False] ? needs testing/timing.
+* interpolator combines the averaged spectra
+* for instrument and stellar convolve, the spectra are first resampled to a finer grid, then FFT'ed, then downsampled.
 
 
 # Stellar parameter papers

@@ -100,6 +100,18 @@ class RawGridInterface:
             This method is designed to be extended by the inheriting class'''
         self.check_params(parameters)
 
+    def load_flux(self, parameters, norm=True):
+        '''
+        Load just the synthetic flux from the disk and  :meth:`check_params`
+
+        :param parameters: stellar parameters describing a spectrum
+        :type parameters: dict
+
+         .. note::
+
+            This method is designed to be extended by the inheriting class
+        '''
+
 class PHOENIXGridInterface(RawGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library.
@@ -196,6 +208,64 @@ class PHOENIXGridInterface(RawGridInterface):
                 header[key] = value
 
         return Base1DSpectrum(self.wl, f[self.ind], metadata=header, air=self.air)
+
+
+    def load_flux(self, parameters, norm=True):
+        '''
+       Load a file from the disk.
+
+       :param parameters: stellar parameters
+       :type parameters: dict
+
+       :raises C.GridError: if the file cannot be found on disk.
+
+       :returns: tuple (flux_array, header_dict)
+
+       '''
+        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+
+        str_parameters = parameters.copy()
+        #Rewrite Z
+        Z = parameters["Z"]
+        str_parameters["Z"] = self.Z_dict[Z]
+
+        #Rewrite alpha, allow alpha to be missing from parameters and set to 0
+        try:
+            alpha = parameters["alpha"]
+        except KeyError:
+            alpha = 0.0
+            parameters["alpha"] = alpha
+        str_parameters["alpha"] = self.alpha_dict[alpha]
+
+        fname = self.rname.format(**str_parameters)
+
+        #Still need to check that file is in the grid, otherwise raise a C.GridError
+        #Read all metadata in from the FITS header, and append to spectrum
+        try:
+            flux_file = fits.open(fname)
+            f = flux_file[0].data
+            hdr = flux_file[0].header
+            flux_file.close()
+        except OSError:
+            raise C.GridError("{} is not on disk.".format(fname))
+
+        #If we want to normalize the spectra, we must do it now since later we won't have the full EM range
+        if self.norm:
+            f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
+            F_bol = trapz(f, self.wl_full)
+            f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
+
+        #Add temp, logg, Z, alpha, norm to the metadata
+        header = parameters
+        header["norm"] = self.norm
+        header["air"] = self.air
+        #Keep only the relevant PHOENIX keywords, which start with PHX
+        for key, value in hdr.items():
+            if key[:3] == "PHX":
+                header[key] = value
+
+        return (f[self.ind], header)
+
 
 class KuruczGridInterface(RawGridInterface):
     '''Kurucz grid interface.'''
@@ -339,6 +409,105 @@ class HDF5GridCreator:
                 #Store header keywords as attributes in HDF5 file
                 for key,value in spec.metadata.items():
                     flux.attrs[key] = value
+
+class HDF5GridStuffer:
+    '''Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.
+
+    :param GridInterface: :obj:`RawGridInterface` object or subclass thereof to access raw spectra on disk.
+    :param filename: where to create the HDF5 file. Suffix `*`.hdf5 recommended.
+    :param ranges: lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.
+    :type ranges: dict of keywords mapped to 2-tuples
+
+    This object is designed to be run in serial.
+
+    '''
+    def __init__(self, GridInterface, filename, ranges={"temp":(0,np.inf),
+                                            "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
+        self.GridInterface = GridInterface
+        self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
+        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+
+        #Take only those points of the GridInterface that fall within the ranges specified
+        self.points = {}
+        for key, value in ranges.items():
+            valid_points  = self.GridInterface.points[key]
+            low,high = value
+            ind = (valid_points >= low) & (valid_points <= high)
+            self.points[key] = valid_points[ind]
+
+        #wl is the wl from the interface
+
+        self.wl = self.GridInterface.wl
+
+        self.hdf5 = h5py.File(self.filename, "w")
+        self.hdf5.attrs["grid_name"] = GridInterface.name
+        self.hdf5.flux_group = self.hdf5.create_group("flux")
+        self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
+
+        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
+        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
+        wl_dset[:] = self.wl
+        wl_dset.attrs["air"] = self.GridInterface.air
+
+        #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
+
+
+    def process_flux(self, parameters):
+        '''
+        Take a flux file from the raw grid ande insert it into the HDF5 file.
+
+        :param parameters: the stellar parameters
+        :type parameters: dict
+
+        .. note::
+
+           This function assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
+           the :attr:`GridInterface` actually has alpha or not
+
+        :raises AssertionError: if the `param parameters` dictionary is not length 4.
+        '''
+        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
+        print("Processing", parameters)
+        try:
+            flux, header = self.GridInterface.load_flux(parameters)
+            sys.stdout.flush()
+            return (parameters, flux, header)
+
+        except C.GridError as e:
+            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
+            sys.stdout.flush()
+            return (None, None, None)
+
+    def process_grid(self):
+        '''
+        Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the
+        HDF5 file.
+
+        Only executed in serial.
+        '''
+
+        #Take all parameter permutations in self.points and create a list
+        param_list = [] #list of parameter dictionaries
+        keys,values = self.points.keys(),self.points.values()
+
+        #use itertools.product to create permutations of all possible values
+        for i in itertools.product(*values):
+            param_list.append(dict(zip(keys,i)))
+
+        for param in param_list:
+            parameters, fl, header = self.process_flux(param)
+            if parameters is None:
+                continue
+
+            #The PHOENIX spectra are stored as float32, and so we do the same here.
+            flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(fl),),
+                                               dtype="f", compression='gzip', compression_opts=9)
+            flux[:] = fl
+
+            #Store header keywords as attributes in HDF5 file
+            for key,value in header.items():
+                flux.attrs[key] = value
+
 
 class HDF5Interface:
     '''

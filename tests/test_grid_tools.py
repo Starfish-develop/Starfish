@@ -18,12 +18,12 @@ class TestRawGridInterface:
         self.rawgrid.check_params({"temp":5100, "logg":3.5, "Z":0.0})
 
     def test_check_params_extra(self):
-        with pytest.raises(GridError) as e:
+        with pytest.raises(C.GridError) as e:
             self.rawgrid.check_params({"temp":5100, "logg":3.5, "bunny":0.0})
         print(e.value)
 
     def test_check_params_outbouts(self):
-        with pytest.raises(GridError) as e:
+        with pytest.raises(C.GridError) as e:
             self.rawgrid.check_params({"temp":100, "logg":3.5, "Z":0.0})
         print(e.value)
 
@@ -38,9 +38,13 @@ class TestPHOENIXGridInterface:
         self.rawgrid.load_file({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
 
         #not expected to be on leo, yet within bounds
-        with pytest.raises(GridError) as e:
+        with pytest.raises(C.GridError) as e:
             self.rawgrid.load_file({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.2})
         print(e.value)
+
+    def test_load_flux(self):
+        fl, header = self.rawgrid.load_flux({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
+        #print(fl, header)
 
     def test_load_alpha(self):
         self.rawgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0})
@@ -53,7 +57,7 @@ class TestPHOENIXGridInterface:
 
     def test_bad_base(self):
         #Set a different base location, should raise an error because on this machine there is not file.
-        with pytest.raises(GridError) as e:
+        with pytest.raises(C.GridError) as e:
             PHOENIXGridInterface(air=True, norm=True, base="wrong_base/")
         print(e.value)
 
@@ -114,6 +118,49 @@ class TestHDF5Creator:
         HDF5Creator = HDF5GridCreator(self.rawgrid, ranges={"temp":(5000, 5300), "logg":(3.5, 4.5), "Z":(0.0,0.0),
                         "alpha":(0.0, 0.0)}, filename="tests/parallel_test.hdf5", wl_dict=self.wl_dict, nprocesses=2)
         HDF5Creator.process_grid()
+
+
+class TestHDF5Stuffer:
+    def setup_class(self):
+        import StellarSpectra
+        self.rawgrid = PHOENIXGridInterface()
+        self.stuffer = HDF5GridStuffer(self.rawgrid, ranges={"temp":(5000, 5300), "logg":(3.5, 4.5), "Z":(0.0,0.0),
+                                                                 "alpha":(0.0, 0.0)}, filename="tests/test.hdf5")
+
+    def test_point_limiter(self):
+        ranges = {"temp":(5000, 5300), "logg":(3.5, 4.5), "Z":(0.0,0.0),
+                  "alpha":(0.0, 0.0)}
+
+        points = self.stuffer.points
+        #Did the creator object appropriately truncate points out of bounds?
+        for key in ranges.keys():
+            low, high = ranges[key]
+            p = points[key]
+            assert np.all(p >= low) and np.all(p <= high), "Points not truncated properly."
+
+
+    def test_process_flux(self):
+        self.stuffer.process_flux({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
+
+        #requires four parameters
+        with pytest.raises(AssertionError) as e:
+            self.stuffer.process_flux({"temp":5100, "logg":3.5, "Z":0.0})
+        print(e.value)
+
+        #test outside the grid, should be handeled internally
+        self.stuffer.process_flux({"temp":5100, "logg":3.5, "Z":0.0, "alpha":10})
+
+
+    def test_alpha(self):
+        '''Test to make sure that alpha is handled properly, whether specified or not.'''
+        alphaHDF5Creator = HDF5GridStuffer(self.rawgrid, ranges={"temp":(5000, 5300), "logg":(3.5, 4.5), "Z":(0.0,0.0)},
+                                           filename="test.hdf5")
+        alphaHDF5Creator.process_flux({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
+
+
+    def test_process_grid(self):
+        self.stuffer.process_grid()
+
 
 class TestHDF5Interface:
     def setup_class(self):
