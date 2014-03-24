@@ -135,17 +135,18 @@ Put the decorator `@profile` over the function you want to profile
 * Finish necessary grid_tools fixes/tests in order to guarantee the Master grid is correct for the production run
 * Update interpolator so that it can draw from HDF5 in parallel/mpi
 * Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
-
 * sort out usage of C.kms_air and C.kms_vac
-* Update FITS writer to choose the unit correctly
 
-# Object oriented rewrite
+
 
 ## grid_tools.py
 
 alpha yes/no needs to be determined upon initialization.
 
-#Speed improvements
+# Covariance and SparseMatrices
+
+* Generate a sample noise spectrum from a covariance matrix, compare it to the residuals (could be done w/ Spectrum Explorer)
+* convert l from angstroms to km/s!
 
 If we were to implement SuiteSparse in C/Python for our purposes, what would we need?
 
@@ -163,25 +164,17 @@ So, there are a couple of functions that wouldn't always need to be run from the
 We may be able to update/downdate the Cholesky factorization to save time, especially if we know
 how the parameters of the covariance function changed. 2nd-order optimization.
 
-What is a shame is that the Julia code so nicely wraps SuiteSparse already, and would be easy to extend. I just don't see the functionality yet. Plus, since we are trying to use SuiteSparse anyway,
-maybe it makes more sense to access it directly?
-
 I also think it makes the most sense to try to do this with the Python-C API first. There really aren't many functions that need to be wrapped.
+It looks like numpy support with C-Api can be a bitch, although this is probably fairly well documented.
+It may also be smart to try this with Cython, since it seems like a smart thing to use, and has good support for
+transferring numpy arrays.
 
-It looks like numpy support with C-Api can be a bitch, although this is probably fairly well documented. It may also be smart to try this with Cython, since it seems like a smart thing to use, and has good support for transferring numpy arrays.
-
-
-
-The problem is that the evaluate() call is now becoming expensive.
-In particular, it's probably the spsolve call that's slow.
-
-* "linearize" the covariance matrix by essentially forcing the off-diagonal terms to be Toeplitz
+* option to "linearize" the covariance matrix by essentially forcing the off-diagonal terms to be Toeplitz
   This might have problems when we eventually want to mask out bad regions, like H alpha
 
 
-* Julia implementation of Cholfact, np.diags(), etc... might be significantly faster than Python.
-* To test this, I would need a method to implement the k_3_2/hanning kernel
-* IJulia notebooks seem to be giving me a problem. Also, there isn't really a satisfying way to wrap Julia code in python yet, unless I wrapped it in C, then wrapped that in Python.
+* Julia implementation of Cholfact, np.diags(), etc... is be significantly faster than Python.
+* there isn't really a satisfying way to wrap Julia code in python yet, unless I wrapped it in C, then wrapped that in Python.
 
 The Julia solution, using Cholesky decomposition, is actually rather satisfying. For l=5, something that would take python about 5
 seconds to compute, this only takes 0.8. This also means that we would be able to store the facorized object, and then compute terms later.
@@ -193,7 +186,6 @@ Calling Julia from Python seems to work fine using python2.
 Then, think about porting the fellow's code to python3.
 Alternatively, we could create a wrapper for Cholmod too.
 Try writing some C code that tests a sparse factorization.
-
 The problem here is that I would need to construct the sparse array IN C, don't pass the sparse Python array. The only thing that I would be able to pass is the parameters for
 creating the C array and the residual vector.
 
@@ -205,17 +197,18 @@ reimplement some C wrapping code.
 In theory it should be possible to wrap Julia code?
 Julia code can be wrapped in C (documentation). What about wrapped in Python?
 
+First, WRITE priors on l
+
+
+# Speedups
 
 * Convert DataSpectrum orders into an np.array()
-
-
 * update ModelSpectrum to draw defaults from C.var_defaults
 
 * Visualize cheb functions
 * Visualize spectrum and residuals
 
 * More tests for ModelSpectrum.downsample()
-
 * cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
 
 
@@ -324,6 +317,11 @@ How to restructure the code so that the HDF5 file does not overfill everything.
 just the wl ranges, then do the MCMC run on it.
 
 * specify min_vc for resampling from the HDF5 grid, as an attr for the wl file.
+
+* If ModelSpectrum.downsample() is too slow because of too many points, we can do the intermediate step of reducing the
+sampling after the FFT. Probably can speed up by 30% or so with this change. The first Interpolation to the FFT grid
+is not that slow, but it's the interpolation from the FFT grid to the Data grid that is slow. This is probably
+because a lot of evaluation at all the points is needed. So by reducing the number of points we'll be playing it safe.
 
 * ModelInterpolater._determine_chunk() will need to be updated to use create_log_lam_grid()
 
