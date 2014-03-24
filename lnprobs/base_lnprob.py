@@ -6,7 +6,7 @@ import numpy as np
 import sys
 from emcee.utils import MPIPool
 
-myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
+myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21]))
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface("/home/ian/Grad/Research/Disks/StellarSpectra/libraries/PHOENIX_submaster.hdf5")
 
@@ -15,7 +15,7 @@ stellar_Starting = {"temp":(6000, 6100), "logg":(3.9, 4.2), "Z":(-0.6, -0.3), "v
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 cheb_Starting = {"c1": (-.02, -0.015), "c2": (-.0195, -0.0165), "c3": (-.005, .0)}
-cov_Starting = {"sigAmp":(0.8, 1.2), "logAmp":(-15, -13), "l":(0.1, 2.0)}
+cov_Starting = {"sigAmp":(0.9, 1.1), "logAmp":(-14.4, -14), "l":(0.1, 0.25)}
 cov_tuple = C.dictkeys_to_covtuple(cov_Starting)
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cov_tuple=cov_tuple)
@@ -34,6 +34,8 @@ def lnprob_Cheb(p):
 
 def lnprob_Cov(p):
     params = myModel.zip_Cov_p(p)
+    if params["l"] > 0.4:
+        return -np.inf
     try:
         myModel.update_Cov(params)
         return myModel.evaluate()
@@ -49,10 +51,11 @@ myStellarSampler = StellarSampler(lnprob_Model, stellar_Starting, pool=pool)
 myChebSampler = ChebSampler(lnprob_Cheb, cheb_Starting, pool=pool)
 myCovSampler = CovSampler(lnprob_Cov, cov_Starting, pool=pool)
 
-myMegaSampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler), burnInCadence=(15, 15, 0), cadence=(10, 10, 10))
+myMegaSampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler),
+                            burnInCadence=(15, 15, 10), cadence=(10, 10, 10))
 
-myMegaSampler.burn_in(3)
+myMegaSampler.burn_in(10)
 myMegaSampler.reset()
-myMegaSampler.run(10)
+myMegaSampler.run(30)
 pool.close()
 myMegaSampler.plot()
