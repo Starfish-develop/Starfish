@@ -7,6 +7,7 @@ import sys
 import StellarSpectra.constants as C
 from StellarSpectra.grid_tools import ModelInterpolator
 from StellarSpectra.spectrum import ModelSpectrum, ChebyshevSpectrum, CovarianceMatrix
+import time
 
 
 
@@ -107,7 +108,7 @@ class Model:
         return lnp
 
 ##How to use ProgressBar
-from progressbar import ProgressBar, Percentage, Bar, ETA
+#from progressbar import ProgressBar, Percentage, Bar, ETA
 
 class Sampler:
     '''
@@ -146,28 +147,17 @@ class Sampler:
     def run(self, iterations):
         if iterations == 0:
             return
-        print("Sampling {} for {} iterations".format(self.param_tuple, iterations))
-        pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=iterations).start()
-        index = 0
+        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations), end="")
+        t = time.time()
 
         if self.pos_trio is None:
-            for result in self.sampler.sample(self.p0, iterations=iterations):
-                #print(index)
-                index += 1
-                pbar.update(index)
-            pbar.finish()
-            self.pos_trio = result
+            self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
 
-
-            #self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
         else:
             pos, prob, state = self.pos_trio
-            for result in self.sampler.sample(pos, rstate0=state, iterations=iterations):
-                index += 1
-                pbar.update(index)
-            pbar.finish()
-            self.pos_trio = result
-            #self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
+            self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
+
+        print("completed in {:.2f} seconds".format(time.time() - t))
 
     def plot(self):
         '''
