@@ -145,12 +145,41 @@ alpha yes/no needs to be determined upon initialization.
 
 # Covariance and SparseMatrices
 
+* combine sampler to work on multiple cheb orders
+
+This should be a dictionary of dictionaries
+
+{21:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}, 22:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}, 23:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}}
+
+The sampling itself is not the problem, rather it's the plotting. Can we override the plot routine?
+
+Also, once we expand to multiple orders, we want to keep the number of chebyshev values small, so as to not
+overwhelm the emcee sampler. Should we have an emcee sampler for each order, with a list of Chebyshev coefficients
+ and covariance matrix regions for bad lines? Should we have an emcee sampler for each bad region?
+
+ Maybe before trying to sort out the Chebyshev difficulties, try instantiating bad regions and sampling in them?
+
 * Generate a sample noise spectrum from a covariance matrix, compare it to the residuals (could be done w/ Spectrum Explorer)
 * convert l from angstroms to km/s!
+* better tracking of run parameters and output directories
+
+
+We could think of having hyperparameters that describe the trustworthyness of each order (which distribution
+were they drawn from to describe a certain temperature?). This likely devolves into fitting each line/molecular
+region based upon it's variance in the residuals. This might suggest that a combined approach between some
+correlated noise everywhere AND the hueristic of adding and tracking lines is what's needed.
+How does update/downdate work on a Cholfact matrix?
+
+For WASP14, order 24 still has the problem of giving substantially lower logg, bumping up against 3.5.
+This suggests that the individual line approach is probably needed.
+
+* See what the covariance matrix can currently generate, compare it to the residuals, and then see
+if we need to go ahead with individual bad regions.
 
 If we were to implement SuiteSparse in C/Python for our purposes, what would we need?
 
-essentially, covariance would need to take in parameters that would generate the matrix, and store it between iterations. And, would convert the flux residuals (numpy arrays) into C arrays. This part is not hard. Basically, we would only need to figure out how to 
+essentially, covariance would need to take in parameters that would generate the matrix, and store it between iterations.
+And, would convert the flux residuals (numpy arrays) into C arrays. This part is not hard. Basically, we would only need to figure out how to
 
 0.1 set up a test directory and get ``make`` and everything to work properly for SuiteSparse
 0.2 create a sample C function for the covariance function
@@ -197,10 +226,24 @@ reimplement some C wrapping code.
 In theory it should be possible to wrap Julia code?
 Julia code can be wrapped in C (documentation). What about wrapped in Python?
 
+we can (easily?) update and downdate the sparse Cholesky factorization using SuiteSparse (it seems).
+
+This might enable us to quickly make changes to any individual line properties.
+
+The tricky thing now is how to organize the sampling of this probability space, especially when we will have
+bad "regions" defined by a set of four parameters, h, amp, mu, sigma
+
+Does it make sense to use a separate emcee sampler for each echelle order (
+
+Postulated hierarchy of emcee samplers
+
+* sampler for stellar parameters
+  generates new stellar spectrum, draws a global lnprob
+
 First, WRITE priors on l
 
 
-# Speedups
+# Speedups and improvements
 
 * Convert DataSpectrum orders into an np.array()
 * update ModelSpectrum to draw defaults from C.var_defaults

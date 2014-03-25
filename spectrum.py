@@ -1122,7 +1122,7 @@ class ChebyshevSpectrum:
 
         #If any c0s are less than 0, return -np.inf
         if np.any((self.c0s < 0)):
-            return -np.inf
+            raise C.ModelError("Negative c0s are not allowed.")
 
         #now create polynomials for each order, and multiply through fls
         Tc = np.einsum("jk,ij->ik", self.T, self.cns)
