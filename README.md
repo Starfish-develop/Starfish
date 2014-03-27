@@ -233,14 +233,34 @@ This might enable us to quickly make changes to any individual line properties.
 The tricky thing now is how to organize the sampling of this probability space, especially when we will have
 bad "regions" defined by a set of four parameters, h, amp, mu, sigma
 
-Does it make sense to use a separate emcee sampler for each echelle order (
 
 Postulated hierarchy of emcee samplers
 
 * sampler for stellar parameters
-  generates new stellar spectrum, draws a global lnprob
+  generates new stellar spectrum, evaluates a global lnprob by summing together the lnprobs of each OrderModel
 
-First, WRITE priors on l
+    * then, using a list of OrderSamplers... order by order...
+
+        * sample the Chebyshev coefficients  ``lnprob`` parameterized by an OrderNum in the **args
+        * sample the global order covariance properties via the Matern kernel, using a ``lnprob`` parameterized by the **args
+
+        ## Region Sampling
+
+        there is a MegaRegion sampler that belongs to each OrderSampler
+
+        * go into the loop to examine the regions of the spectrum
+
+            * find the high points of the residuals
+            * assess whether they are already covered by a region
+            * assess whether there are any regions that do not cover a high point
+
+        then:
+
+        * for each region, instantiate/use an emcee sampler
+            * sample the parameters {h, a, mu, sigma} that define this bad region
+        * these all tap into lnprobs that access the CovarianceMatrix for the order.
+
+* keep bumping down the cutoff limit until we have reached 3 * sigma of the Matern kernel, or something.
 
 
 # Speedups and improvements
@@ -254,17 +274,30 @@ First, WRITE priors on l
 * More tests for ModelSpectrum.downsample()
 * cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
 
+* Fix the mean of c0's to 1?
+That way c0 is just a perturbation to the mean?
+Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
+How would this work in practice?
 
-6. Start implementing more non-trivial Covariance matrices
-    * How do we keep track of the parameter lists of different regions for different orders? Does flatten() and reshape() work?
-    * Maybe the way to do this is to instantiate a new sampler for EACH REGION, that way it only has 4 parameters and can Gibbs sample somewhat independently
+Should we just set one order to 1 at random?
 
-Sampler object contains
+Do some profiling. Why does stellar parameter evaluatino take so long?
 
-How to handle parameter lists?
-* could use **kwargs and then have a parameters.update() dictionary, only the parameters that are in the dictionary are
-fit for, otherwise there are default values for each function?
-* this looks like it will work well
+Arrange base_lnprob or model sampler so that ranges and connections can be set up easily.
+
+It seems like the multiple order sampling leaves a bi-modal distribution of parameter space, thanks to the strong
+iron lines in order 24 (that are somehow incorrect).
+
+How does the interplay between different emcee samplers work? Especially when there are a different number of walkers?
+For example, after each iteration whose stellar parameters does each cheb sampler start with? I would think
+that we would need to keep the total number of walkers constant, otherwise certain cheb and noise coefficients would never
+be properly updated?
+
+OR, is it just taking the last value of the model (whichever walker was evaluated last), assigning that to everyone, and going forward? This is probably
+what is happening. But for the actual iterations of the stellar parameters, it resumes with the previous pos_tuple () This causes some discontinuity,
+because the Gibbs sampler is not actually conditioning on the same parameters that the star will have when it resumes. I suppose we'll just
+have to assume that they are similar enough.
+If we really need to, we can always go back to Metropolis-Hastings Gibbs sampler.
 
 * Model object contains:
 
@@ -295,7 +328,6 @@ fit for, otherwise there are default values for each function?
 
     And has methods for manipulating the comparison of all of these based upon what is fastest.
 
-
     * Has stored a global lnprob reference for each of these sub-components and an evaluate function.
 
 There are outside (module level) lnprob functions that reference a model object and make comparisons with individual
@@ -313,16 +345,6 @@ And sampler objects that will sample them
 A general Gibbs sampler that will alternate between all of them
 
 
-Drastically speed up the burn in by first sampling in the cheb components and FF, then vz and Av,
- then vsini, and then resorting to the heavier stellar parameters.
-
-For some period of burn in, alternate between sampling
-
-* stellar parameters, including Poisson noise factor ``sigma_P``
-* Chebyshev parameters
-
-
-
 THEN
 
 * Identify the pixel with the largest residual
@@ -331,6 +353,8 @@ THEN
  are updated on the general model
 * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
 of them
+
+Updating a line can be as simple as adding a Cholesky factorization of the additional bad regions
 
 Open questions:
 

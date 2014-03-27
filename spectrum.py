@@ -653,6 +653,9 @@ class DataSpectrum:
             self.sigmas = self.sigmas[orders]
             self.masks = self.masks[orders]
             self.shape = self.wls.shape
+            self.orders = orders
+        else:
+            self.orders = np.arange(self.shape[0])
 
     @classmethod
     def open(cls, base_file, orders='all'):
@@ -701,6 +704,7 @@ class ModelSpectrum:
         wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
         wl_dict = create_log_lam_grid(wl_min - 4., wl_max + 4., min_vc=0.08/C.c_kms)
         self.wl_FFT = wl_dict["wl"]
+        print("Grid stretches from {} to {}".format(wl_min, wl_max))
         print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
         self.min_v = 0.08
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
@@ -1005,7 +1009,7 @@ class ModelSpectrumLog:
         taper[0] = 1.
 
         #institute velocity and instrumental taper
-        self.FF *= sb * taper
+        self.FF *= (sb * taper)
 
         #do ifft
         self.ifft_object()
@@ -1072,11 +1076,12 @@ class ChebyshevSpectrum:
     If DataSpectrum.norders == 1, then only c1, c2, and c3 are required. Otherwise c0 is also reqired for each order.
     '''
 
-    def __init__(self, DataSpectrum, npoly=4):
-        self.DataSpectrum = DataSpectrum
-        self.shape = self.DataSpectrum.shape
-        self.norders = self.shape[0]
-        len_wl = self.shape[1]
+    def __init__(self, DataSpectrum, index, npoly=4):
+        self.wl = DataSpectrum.wls[index]
+        len_wl = len(self.wl)
+
+        self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False
+
         xs = np.arange(len_wl)
         T0 = np.ones_like(xs)
         Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
@@ -1091,9 +1096,9 @@ class ChebyshevSpectrum:
         assert self.npoly == 4, "Only handling order 4 Chebyshev for now."
 
         #Dummy holders
-        self.k = np.ones(self.shape)
-        self.c0s = np.ones(self.norders)
-        self.cns = np.zeros((self.norders, self.npoly - 1))
+        self.k = np.ones(len_wl)
+        #self.c0s = np.ones(self.norders)
+        #self.cns = np.zeros((self.norders, self.npoly - 1))
         #self.TT = np.einsum("in,jn->ijn", T, T)
 
         ##Priors
@@ -1107,26 +1112,26 @@ class ChebyshevSpectrum:
         Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls
         '''
 
-
-        # reshape to (norders, self.npoly)
-        coefs_arr = coefs.reshape(self.norders, -1)
-        #If we are only fitting one order, fix c0 to 1.
-        if self.norders == 1:
-            self.c0s = np.array([1.0])
-            self.cns = coefs_arr #shape (1, self.npoly - 1)
+        #Fix the last order c0 to 1.
+        if self.fix_c0:
+            logc0 = 0.0
+            cns = coefs[1:]
+            #cns = coefs #this was previously true if we only gave 3 parameters.
         else:
-            self.c0s = coefs_arr[:, 0] #length norders
-            self.cns = coefs_arr[:, 1:] #shape (norders, self.npoly - 1)
-        #print("c0s.shape", c0s.shape)
-        #print("cns.shape", cns.shape)
+            logc0 = coefs[0]
+            cns = coefs[1:]
 
-        #If any c0s are less than 0, return -np.inf
-        if np.any((self.c0s < 0)):
-            raise C.ModelError("Negative c0s are not allowed.")
+        #if c0 < 0:
+        #    raise C.ModelError("Negative c0s are not allowed.")
 
         #now create polynomials for each order, and multiply through fls
-        Tc = np.einsum("jk,ij->ik", self.T, self.cns)
-        k = np.einsum("i,ij->ij", self.c0s, 1 + Tc)
+        #print("T shape", self.T.shape)
+        #print("cns shape", cns.shape)
+
+        c0 = 10**logc0
+        Tc = np.dot(self.T.T, cns) #self.T.T is the transpose of self.T
+        #print("Tc shape", Tc.shape)
+        k = c0 * (1 + Tc)
         self.k = k
 
 
@@ -1136,15 +1141,18 @@ class CovarianceMatrix:
 
     '''
 
-    def __init__(self, DataSpectrum):
-        self.DataSpectrum = DataSpectrum
-        self.norders = self.DataSpectrum.shape[0]
-        self.npoints = self.DataSpectrum.shape[1]
+    def __init__(self, DataSpectrum, index):
+        self.wl = DataSpectrum.wls[index]
+        self.fl = DataSpectrum.fls[index]
+        self.sigma = DataSpectrum.sigmas[index]
+
+        self.npoints = len(self.wl)
+
         #Because sparse matrices only come in 2D, we have a list of sparse matrices.
-        self.sigma_matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
-        self.matrices = [sp.diags([sigma**2], [0], dtype=np.float64, format="csc") for sigma in self.DataSpectrum.sigmas]
-        self.logdets = np.empty((self.norders,))
-        self.calculate_logdets()
+        self.sigma_matrix = sp.diags([self.sigma**2], [0], dtype=np.float64, format="csc")
+        self.matrix = sp.diags([self.sigma**2], [0], dtype=np.float64, format="csc")
+        self.logdet = 0.0
+        self.calculate_logdet()
 
 
     def sparse_k_3_2(self, xs, amp, l):
@@ -1173,14 +1181,13 @@ class CovarianceMatrix:
         offsets = [i for i in range(-offset + 1, offset)]
         return sp.diags(diags, offsets, format="csc")
 
-    def calculate_logdets(self):
-        #Calculate logdet for each matrix
-        for i in range(self.norders):
-            s = self.matrices[i]
-            sign, logdet = np.linalg.slogdet(s.todense())
-            if sign <= 0:
-                raise C.ModelError("The determinant is negative.")
-            self.logdets[i] = logdet
+    def calculate_logdet(self):
+        #Calculate logdet
+
+        sign, logdet = np.linalg.slogdet(self.matrix.todense())
+        if sign <= 0:
+            raise C.ModelError("The determinant is negative.")
+        self.logdet = logdet
 
 
     def update(self, params):
@@ -1199,12 +1206,8 @@ class CovarianceMatrix:
         if (l <= 0) or (sigAmp < 0):
             raise C.ModelError("l {} and sigAmp {} must be positive.".format(l, sigAmp))
 
-
-        for i in range(self.norders):
-            wl = self.DataSpectrum.wls[i]
-            self.matrices[i] = self.sparse_k_3_2(wl, amp, l) + sigAmp**2 * self.sigma_matrices[i]
-
-        self.calculate_logdets()
+        self.matrix = self.sparse_k_3_2(self.wl, amp, l) + sigAmp**2 * self.sigma_matrix
+        self.calculate_logdet()
 
 
 
@@ -1246,41 +1249,53 @@ class CovarianceMatrix:
         return sp.csc_matrix((gauss_mat, ij), shape=(len_x,len_x))
 
 
-    def evaluate(self, model_fls):
+    def evaluate(self, model_fl):
         '''
         Evaluate lnprob using the data flux, model flux and covariance matrix.
         '''
 
-        A = self.DataSpectrum.fls - model_fls #2D array
+        a = self.fl - model_fl
+        lnp = -0.5 * (a.T.dot(spsolve(self.matrix, a)) + self.logdet)
+        return lnp
 
-        #Go through each order
-        lnp = np.empty((self.norders,))
-        for i in range(self.norders):
-            a = A[i]
-            s = self.matrices[i]
-            logdet = self.logdets[i]
-            lnp[i] = -0.5 * (a.T.dot(spsolve(s, a)) + logdet)
+    #def evaluate_cho(self, model_fls):
+    #    '''
+    #    Evaluate lnprob but using the cho_factor for speedup
+    #    '''
+    #    A = self.DataSpectrum.fls - model_fls #2D array
+    #
+    #    #Go through each order
+    #    lnp = np.empty((self.norders,))
+    #    for i in range(self.norders):
+    #        a = A[i]
+    #        s = self.matrices[i].todense()
+    #        factor, flag = cho_factor(s)
+    #        logdet = np.sum(2 * np.log(np.diag(factor)))
+    #        lnp[i] = -0.5 * (a.T.dot(cho_solve((factor, flag), a)) + logdet)
+    #
+    #    return np.sum(lnp)
 
-        #lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
-        return np.sum(lnp)
 
-    def evaluate_cho(self, model_fls):
-        '''
-        Evaluate lnprob but using the cho_factor for speedup
-        '''
-        A = self.DataSpectrum.fls - model_fls #2D array
+class OrderSpectrum:
+    '''
+    Container class for ChebyshevSpectrum and CovarianceMatrix for each order.
+    '''
 
-        #Go through each order
-        lnp = np.empty((self.norders,))
-        for i in range(self.norders):
-            a = A[i]
-            s = self.matrices[i].todense()
-            factor, flag = cho_factor(s)
-            logdet = np.sum(2 * np.log(np.diag(factor)))
-            lnp[i] = -0.5 * (a.T.dot(cho_solve((factor, flag), a)) + logdet)
+    def __init__(self, DataSpectrum, index):
+        self.index = index
+        wl = DataSpectrum.wls[index]
+        self.ChebyshevSpectrum = ChebyshevSpectrum(wl)
+        self.CovarianceMatrix = CovarianceMatrix(DataSpectrum, index=index)
+        self.regions = []
 
-        #lnprob = np.sum([a.T.dot(spsolve(s,a)) for a,s in zip(A, self.matrices)])
-        return np.sum(lnp)
+    def update_Cheb(self, coefs):
+        self.ChebyshevSpectrum.update(coefs)
+
+    def update_Cov(self, params):
+        self.CovarianceMatrix.update(params)
+
+    def evaluate(self, model_fl):
+        return self.CovarianceMatrix.evaluate(model_fl)
 
 
 #class VelocitySpectrum:

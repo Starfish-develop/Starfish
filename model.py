@@ -44,6 +44,7 @@ class Model:
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
         self.cov_tuple = cov_tuple
+        self.norders = self.DataSpectrum.shape[0]
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
         if 'alpha' not in self.stellar_tuple:
             trilinear = True
@@ -52,9 +53,8 @@ class Model:
         myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
         self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
 
-        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum)
-        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum)
-
+        #Now create a a list which contains an OrderModel for each order
+        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index) for index in range(self.norders)]
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
@@ -65,23 +65,15 @@ class Model:
     def update_Model(self, params):
         self.ModelSpectrum.update_all(params)
 
-    def update_Cheb(self, coefs):
-        self.ChebyshevSpectrum.update(coefs)
-
-    def update_Cov(self, params):
-        self.CovarianceMatrix.update(params)
-
     def get_data(self):
         '''
         Returns a DataSpectrum object.
         '''
         return self.DataSpectrum
 
-    def get_spectrum(self):
-        return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
 
-    def get_Cov(self):
-        return self.CovarianceMatrix.matrices
+    #def get_Cov(self):
+    #    return self.CovarianceMatrix.matrices
 
     def evaluate(self):
         '''
@@ -89,33 +81,56 @@ class Model:
         '''
         #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
-        model_fls = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
+        lnps = np.empty((self.norders,))
 
-        #CovarianceMatrix will do the math from DFM
-        lnp = self.CovarianceMatrix.evaluate(model_fls)
-        return lnp
+        for i in range(self.norders):
 
-    def evaluate_cho(self):
+            #Correct the warp of the model using the ChebyshevSpectrum
+            model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
+
+            #Evaluate using the current CovarianceMatrix
+            lnps[i] = self.OrderModels[i].CovarianceMatrix.evaluate(model_fl)
+
+        return np.sum(lnps)
+
+
+class OrderModel:
+    def __init__(self, ModelSpectrum, DataSpectrum, index):
+        self.index = index
+        self.DataSpectrum = DataSpectrum
+        self.order = self.DataSpectrum.orders[self.index]
+        self.ModelSpectrum = ModelSpectrum
+        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
+        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
+
+
+    def update_Cheb(self, coefs):
+        self.ChebyshevSpectrum.update(coefs)
+
+    def update_Cov(self, params):
+        self.CovarianceMatrix.update(params)
+
+    def get_spectrum(self):
+        return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+
+    def evaluate(self):
         '''
         Compare the different data and models.
         '''
         #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
-        model_fls = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls
+        model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
 
         #CovarianceMatrix will do the math from DFM
-        lnp = self.CovarianceMatrix.evaluate_cho(model_fls)
+        lnp = self.CovarianceMatrix.evaluate(model_fl)
         return lnp
-
-##How to use ProgressBar
-#from progressbar import ProgressBar, Percentage, Bar, ETA
 
 class Sampler:
     '''
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", index=None, pool=None):
         #Each subclass will have to overwrite how it parses the param_dict into the correct order
         #and sets the param_tuple
 
@@ -133,9 +148,15 @@ class Sampler:
         self.p0 = np.array(p0).T
 
         if pool is not None:
-            self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, pool=pool)
+            if index is None:
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, pool=pool)
+            else:
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(index,), pool=pool)
         else:
-            self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob)
+            if index is None:
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob)
+            else:
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(index,))
 
         self.pos_trio = None
         self.plot_name = plot_name
@@ -158,6 +179,12 @@ class Sampler:
             self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
 
         print("completed in {:.2f} seconds".format(time.time() - t))
+
+    def burn_in(self, iterations):
+        '''
+        For consistencies's sake w/ MegaSampler
+        '''
+        self.run(iterations)
 
     def plot(self):
         '''
@@ -187,25 +214,25 @@ class ChebSampler(Sampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", index=None, pool=None):
         #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
         #From a simple param dict, create a more complex param_dict
 
         #Then set param_tuple
         #For now it is just set manually
-        self.param_tuple = ("c1", "c2", "c3")
+        self.param_tuple = ("logc0", "c1", "c2", "c3")
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
 
 class CovSampler(Sampler):
     '''
     Subclass of Sampler for evaluating CovarianceMatrix parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", index=None, pool=None):
         #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
         self.param_tuple = C.dictkeys_to_covtuple(param_dict)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
 
 
 class MegaSampler:
@@ -228,7 +255,8 @@ class MegaSampler:
     def burn_in(self, iterations):
         for i in range(iterations):
             for j in range(self.nsamplers):
-                self.samplers[j].run(self.burnInCadence[j])
+                #self.samplers[j].run(self.burnInCadence[j])
+                self.samplers[j].burn_in(self.burnInCadence[j])
 
     def reset(self):
         for j in range(self.nsamplers):
@@ -243,10 +271,6 @@ class MegaSampler:
         for j in range(self.nsamplers):
             self.samplers[j].plot()
 
-
-    def plot_spectra(self):
-        #Call this only after all worker processes have exited.
-        pass
 
 class SamplerStellarCheb:
     '''
