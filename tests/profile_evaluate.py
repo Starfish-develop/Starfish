@@ -24,7 +24,7 @@ def eval1():
 def main():
     print("updating model")
     myModel.update_Model(params)
-    myModel.update_Cheb(np.array([0, 0, 0]))
+    myModel.update_Cheb(np.array([0, 0, 0, 0]))
     print("evaluating 0")
     eval0()
     #print("evaluating 1")

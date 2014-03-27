@@ -365,25 +365,27 @@ class TestModelSpectrum:
 
 class TestChebyshevSpectrum:
     def setup_class(self):
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
         self.DataSpectrum = myDataSpectrum
-        self.myCheb = ChebyshevSpectrum(myDataSpectrum, npoly=4)
+        self.myCheb = ChebyshevSpectrum(myDataSpectrum, index=0, npoly=4)
+        assert self.myCheb.fix_c0 == True, "fix_c0 is wrong"
 
     def test_update(self):
-        self.myCheb.update(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
-        assert self.DataSpectrum.shape == self.myCheb.k.shape, "DataSpectrum and k do not match shape."
+        self.myCheb.update(np.array([0, 0, 0]))
+        assert self.DataSpectrum.wls[0].shape == self.myCheb.k.shape, "DataSpectrum and k do not match shape."
 
     def test_complicated_shape(self):
-        k = self.myCheb.update(np.array([1, 0.2, 0.2, 0, 1, 0, 0, 0, 1, 0, 0, 0]))
+        k = self.myCheb.update(np.array([0.2, 0.2, 0,]))
         import matplotlib.pyplot as plt
-        plt.plot(self.DataSpectrum.wls[0], self.myCheb.k[0])
+        plt.plot(self.DataSpectrum.wls[0], self.myCheb.k)
         plt.savefig("tests/plots/Chebyshev_spectrum.png")
 
-    def test_one_order(self):
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
-        myCheb = ChebyshevSpectrum(myDataSpectrum, npoly=4)
-        myCheb.update(np.array([0.01, 0.01, 0.01]))
-        print(myCheb.c0s, myCheb.cns)
+    def test_multiple_orders(self):
+        #Expect this to have fix_c0 = False
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22, 23]))
+        myCheb = ChebyshevSpectrum(myDataSpectrum, index=1, npoly=4)
+        myCheb.update(np.array([1.0, 0.01, 0.01, 0.01]))
+        assert myCheb.fix_c0 == False, "fix_c0 is wrong"
 
 
 class TestCovarianceMatrix:
