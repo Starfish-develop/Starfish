@@ -19,7 +19,7 @@ outdir = "/n/holyscratch/panstarrs/iczekala/willie/KPNO/"
 
 mycreator = MasterToFITSGridProcessor(interface=myHDF5Interface, instrument=myInstrument,
     points={"temp":np.array([3900, 12000]), "logg":np.arange(0.0, 5.6, 0.5), "Z":np.arange(-2., 1.1, 0.5),
-            "vsini":vsini}, flux_unit="f_nu", outdir=outdir, processes=32)
+            "vsini":vsini}, flux_unit="f_nu", outdir=outdir, processes=128)
 
 
 mycreator.process_all()
