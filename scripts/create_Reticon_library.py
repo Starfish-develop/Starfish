@@ -14,7 +14,10 @@ vsini = np.hstack((vsini1, vsini2, vsini3, vsini4))
 
 outdir = "/n/holyscratch/panstarrs/iczekala/willie/Reticon/"
 mycreator = MasterToFITSGridProcessor(interface=myHDF5Interface, instrument=myInstrument,
-                                      points={"temp":np.arange(2500, 12001, 100), "logg":np.arange(0.0, 5.6, 0.5), "Z":np.arange(-2., 1.1, 0.5),
+                                      points={"temp":np.array([3900, 12000]), "logg":np.arange(0.0, 5.6, 0.5), "Z":np.arange(-2., 1.1, 0.5),
                                               "vsini":vsini}, flux_unit="f_nu", outdir=outdir, processes=128)
 
+# mycreator = MasterToFITSGridProcessor(interface=myHDF5Interface, instrument=myInstrument,
+#                                       points={"temp":np.arange(2500, 12001, 100), "logg":np.arange(0.0, 5.6, 0.5), "Z":np.arange(-2., 1.1, 0.5),
+#                                               "vsini":vsini}, flux_unit="f_nu", outdir=outdir, processes=128)
 mycreator.process_all()
