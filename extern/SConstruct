@@ -1,0 +1,4 @@
+env = Environment()
+env.MergeFlags('-Wall -Wno-unused-result')
+
+env.Program('tests/test_cov.c', LIBS=['m', 'cholmod', 'amd', 'colamd', 'blas', 'lapack', 'suitesparseconfig'])
