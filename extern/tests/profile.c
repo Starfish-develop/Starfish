@@ -24,8 +24,10 @@ int main(void)
     c.print = 5;
 
     cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 2.0, &c); //often slow
-    cholmod_factor *L = cholmod_analyze (A, &c) ;		    
-    cholmod_factorize (A, L, &c) ;  //tends to be slow    
+    cholmod_sparse *B = create_sparse(wl, N, min_sep, 1.0, 1.0, &c); //often slow
+
+    //cholmod_factor *L = cholmod_analyze (A, &c) ;		    
+    //cholmod_factorize (A, L, &c) ;  //tends to be slow    
     //also it seems like the permutation is also slow
 
     //get_logdet(L); //very fast
@@ -36,10 +38,11 @@ int main(void)
 
     //cholmod_sparse *C = create_sparse_region(wl, N, 3, 1.0, 5150., 1., &c);
     //instead of doing a cholesky update, try adding and refactoring?
-    //double alpha [2] = {1,0}, beta [2] = {1,0} ;	    // basic scalars 
+    double alpha [2] = {1,0}, beta [2] = {1,0} ;	    // basic scalars 
     //cholmod_sparse *F = cholmod_add(A, C, alpha, beta, TRUE, TRUE, &c);
-    //cholmod_factor *L = cholmod_analyze (F, &c) ;		    
-    //cholmod_factorize (F, L, &c) ;  //tends to be slow    
+    cholmod_sparse *F = cholmod_add(A, B, alpha, beta, TRUE, TRUE, &c);
+    cholmod_factor *L = cholmod_analyze (F, &c) ;		    
+    cholmod_factorize (F, L, &c) ;  //tends to be slow    
 
     
     /*
@@ -50,8 +53,9 @@ int main(void)
 */
 
     cholmod_free_sparse(&A, &c); 
+    cholmod_free_sparse(&B, &c); 
     //cholmod_free_sparse(&C, &c); 
-    //cholmod_free_sparse(&F, &c); 
+    cholmod_free_sparse(&F, &c); 
     cholmod_free_factor(&L, &c);
     //cholmod_free_dense(&r, &c);
     cholmod_finish(&c);
