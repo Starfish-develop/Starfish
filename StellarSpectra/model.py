@@ -6,7 +6,9 @@ from emcee.utils import MPIPool
 import sys
 import StellarSpectra.constants as C
 from StellarSpectra.grid_tools import ModelInterpolator
-from StellarSpectra.spectrum import ModelSpectrum, ChebyshevSpectrum, CovarianceMatrix
+from StellarSpectra.spectrum import ModelSpectrum, ChebyshevSpectrum
+#from StellarSpectra.spectrum import CovarianceMatrix #pure Python covariance spectrum
+from StellarSpectra.covariance import CovarianceMatrix
 import time
 
 
@@ -84,9 +86,9 @@ class Model:
         lnps = np.empty((self.norders,))
 
         for i in range(self.norders):
-
             #Correct the warp of the model using the ChebyshevSpectrum
             model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
+
 
             #Evaluate using the current CovarianceMatrix
             lnps[i] = self.OrderModels[i].CovarianceMatrix.evaluate(model_fl)
@@ -102,7 +104,6 @@ class OrderModel:
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
-
 
     def update_Cheb(self, coefs):
         self.ChebyshevSpectrum.update(coefs)
@@ -121,7 +122,7 @@ class OrderModel:
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
 
-        #CovarianceMatrix will do the math from DFM
+        #CovarianceMatrix will do the lnprob math without priors
         lnp = self.CovarianceMatrix.evaluate(model_fl)
         return lnp
 
@@ -220,7 +221,8 @@ class ChebSampler(Sampler):
 
         #Then set param_tuple
         #For now it is just set manually
-        self.param_tuple = ("logc0", "c1", "c2", "c3")
+        #self.param_tuple = ("logc0", "c1", "c2", "c3")
+        self.param_tuple = ("c1", "c2", "c3")
 
         super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
 

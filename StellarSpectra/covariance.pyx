@@ -44,6 +44,7 @@ cdef extern from "cholmod.h":
     cholmod_sparse *cholmod_add(cholmod_sparse *A, cholmod_sparse *B,
             double alpha[2], double beta[2], int values, int sorted, 
             cholmod_common *c) except? NULL
+    cholmod_sparse *cholmod_copy_sparse(cholmod_sparse *A, cholmod_common *c) except? NULL
     int cholmod_print_sparse(cholmod_sparse *, const char *, cholmod_common *) except? 0
 
     ctypedef struct cholmod_dense:
@@ -88,31 +89,7 @@ cdef extern from "../extern/cov.h":
     double get_logdet(cholmod_factor *L)
     double chi2 (cholmod_dense *r, cholmod_factor *L, cholmod_common *c)
 
-def initialize_sigma(mysigma):
-    '''
-    Debugging routine.
-    '''
-
-    cdef np.ndarray[np.double_t, ndim=1] sigmanp = mysigma
-
-    npoints = 2298
-    cdef cholmod_common c
-    cholmod_start(&c)
-    cdef double *sigma_C = <double*> PyMem_Malloc(npoints * sizeof(double))
-    for i in range(npoints):
-        sigma_C[i] = sigmanp[i]
-        print(sigma_C[i])
-    #for i in range(npoints):
-    #    sigma_C[i] = 1.0
-
-    cdef cholmod_sparse *sigma = create_sigma(sigma_C, npoints, &c)
-
-    PyMem_Free(sigma_C)
-    cholmod_print_sparse(sigma, "sigma", &c)
-    cholmod_free_sparse(&sigma, &c)
-    cholmod_finish(&c)
-
-cdef class Cov:
+cdef class CovarianceMatrix:
 
     cdef cholmod_sparse *sigma
     cdef cholmod_sparse *A
@@ -136,7 +113,7 @@ cdef class Cov:
         for i in range(self.npoints):
             self.wl[i] = wl[i]
 
-        self.fl = DataSpectrum.wls[index]
+        self.fl = DataSpectrum.fls[index]
         self.min_sep = get_min_sep(self.wl, self.npoints)
         #wl, fl, sigma, and min_sep do not change with update, since the data is fixed
         self.logdet = 0.0
@@ -170,6 +147,13 @@ cdef class Cov:
         self.sigma = create_sigma(sigma_C, self.npoints, &self.c)
         PyMem_Free(sigma_C) #since we do not need sigma_C for anything else, free it now
 
+        #Now we must also initialize self.L, since we might want to call evaluate()
+        self.A = cholmod_copy_sparse(self.sigma, &self.c)
+        self.L = cholmod_analyze(self.A, &self.c) #do Cholesky factorization
+        cholmod_factorize(self.A, self.L, &self.c)
+
+        self.logdet = get_logdet(self.L)
+
     def update(self, params):
         '''
         On update, calculate the logdet and the new cholmod_factorization.
@@ -193,12 +177,14 @@ cdef class Cov:
 
         self.logdet = get_logdet(self.L)
 
+
     def evaluate(self, fl):
         '''
         Use the existing covariance matrix to evaluate the residuals.
 
         Input is model flux, calculate the residuals by subtracting from the dataflux, then convert to a dense_matrix.
         '''
+
         residuals = self.fl - fl
 
         #convert the residuals to a cholmod_dense matrix
@@ -208,6 +194,7 @@ cdef class Cov:
         for i in range(self.npoints):
             x[i] = rr[i]
 
+
         #logdet does not depend on the residuals, so it is pre-computed
         #evaluate lnprob with logdet and chi2
         cdef double lnprob = -0.5 * (chi2(r, self.L, &self.c) + self.logdet)
@@ -216,10 +203,6 @@ cdef class Cov:
 
         return lnprob
  
-#Output, plot the sigma_matrix as a 1D slice through row=constant
-
-#Run test suites using py.test
-
 #Run some profiling code to see what our bottlenecks might be.
 #Update takes 0.138 seconds, evaluate takes 0.001s
 
