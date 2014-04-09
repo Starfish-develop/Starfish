@@ -165,7 +165,7 @@ class TestHDF5Stuffer:
 
 class TestHDF5Interface:
     def setup_class(self):
-        self.interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        self.interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
 
     #def test_wl(self):
     #    check to see that wl is log-linear spaced
