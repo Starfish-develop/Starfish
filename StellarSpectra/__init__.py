@@ -1,1 +1,1 @@
-__all__ = ["spectrum", "model", "grid_tools", "constants"]
+__all__ = ["spectrum", "model", "grid_tools", "constants", "covariance"]

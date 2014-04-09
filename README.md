@@ -344,6 +344,12 @@ And sampler objects that will sample them
     sample steps that are consumed or something else.
 A general Gibbs sampler that will alternate between all of them
 
+Clear out cov.h definitions so that setup.py works with default build flags
+Revert sysconfig
+
+Testing:
+for some reason, running all of the tests in ``test_spectrum.py`` at once will fail for ModelSpectrum, but if I run
+just ModelSpectrum individually then everything is fine.
 
 THEN
 

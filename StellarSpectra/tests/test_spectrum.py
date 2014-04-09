@@ -196,13 +196,13 @@ class TestLogLambdaSpectrum(TestBase1DSpectrum):
             spec = LogLambdaSpectrum(wl, np.ones_like(wl), metadata=wl_dict)
         print(e.value)
 
-    def test_write_to_FITS(self):
+    #def test_write_to_FITS(self):I
         #Test that it's OK to write to FITS.
-        raise NotImplementedError
+    #    raise NotImplementedError
 
-    def test_FITS_units(self):
+    #def test_FITS_units(self):
         #Test that conversion to different units works properly.
-        raise NotImplementedError
+    #    raise NotImplementedError
 
 
     def test_resample_to_grid(self):
@@ -282,7 +282,7 @@ class TestLogLambdaSpectrum(TestBase1DSpectrum):
 class TestDataSpectrum:
 
     def test_init(self):
-        base_file = "/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux"
+        base_file = "/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux"
         wls = np.load(base_file + ".wls.npy")
         fls = np.load(base_file + ".fls.npy")
         sigmas = np.load(base_file + ".sigmas.npy")
@@ -291,11 +291,11 @@ class TestDataSpectrum:
         print(spec)
 
     def test_open(self):
-        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux")
+        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux")
         print(spec)
 
     def test_orders(self):
-        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        spec = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
         print(spec)
         assert spec.shape[0] == 3, "Order truncation didn't work properly."
 
@@ -305,8 +305,8 @@ class TestModelSpectrum:
         from StellarSpectra.grid_tools import HDF5Interface, ModelInterpolator, TRES
         #libraries/PHOENIX_submaster.hd5 should have the following bounds
         #{"temp":(6000, 7000), "logg":(3.5,5.5), "Z":(-1.0,0.0), "alpha":(0.0,0.4)}
-        myHDF5Interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        myHDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
         self.DataSpectrum = myDataSpectrum
         myInterpolator = ModelInterpolator(myHDF5Interface, myDataSpectrum)
         myInstrument = TRES()
@@ -365,43 +365,42 @@ class TestModelSpectrum:
 
 class TestChebyshevSpectrum:
     def setup_class(self):
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
         self.DataSpectrum = myDataSpectrum
         self.myCheb = ChebyshevSpectrum(myDataSpectrum, index=0, npoly=4)
         assert self.myCheb.fix_c0 == True, "fix_c0 is wrong"
 
     def test_update(self):
-        self.myCheb.update(np.array([0, 0, 0]))
+        self.myCheb.update(np.array([0, 0, 0, 0])) #even though we are fixing c0, we still need to pass in a dummy variable
         assert self.DataSpectrum.wls[0].shape == self.myCheb.k.shape, "DataSpectrum and k do not match shape."
 
     def test_complicated_shape(self):
-        k = self.myCheb.update(np.array([0.2, 0.2, 0,]))
+        k = self.myCheb.update(np.array([0.0, 0.2, 0.2, 0,]))
         import matplotlib.pyplot as plt
         plt.plot(self.DataSpectrum.wls[0], self.myCheb.k)
         plt.savefig("tests/plots/Chebyshev_spectrum.png")
 
     def test_multiple_orders(self):
         #Expect this to have fix_c0 = False
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22, 23]))
-        myCheb = ChebyshevSpectrum(myDataSpectrum, index=1, npoly=4)
-        myCheb.update(np.array([1.0, 0.01, 0.01, 0.01]))
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22, 23]))
+        myCheb = ChebyshevSpectrum(myDataSpectrum, index=0, npoly=4)
+        myCheb.update(np.array([0.0, 0.01, 0.01, 0.01]))
         assert myCheb.fix_c0 == False, "fix_c0 is wrong"
 
 
 class TestCovarianceMatrix:
     def setup_class(self):
-        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
         self.DataSpectrum = myDataSpectrum
-        self.cov = CovarianceMatrix(myDataSpectrum)
+        self.cov = CovarianceMatrix(myDataSpectrum, 1)
 
     def test_update(self):
         self.cov.update({"sigAmp":1, "logAmp":1, "l":1})
 
-
 class TestResampling:
     def setup_class(self):
         from StellarSpectra.grid_tools import HDF5Interface
-        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        hdf5interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
         self.wl = hdf5interface.wl
         self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
@@ -495,7 +494,7 @@ class TestClosenessStellarAndInstrument:
 
     def setup_class(self):
         from StellarSpectra.grid_tools import HDF5Interface
-        hdf5interface = HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+        hdf5interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
         self.wl = hdf5interface.wl
         self.spec = hdf5interface.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 

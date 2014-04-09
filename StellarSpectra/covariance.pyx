@@ -1,6 +1,6 @@
 # encoding: utf-8
 # cython: profile=True
-# filename: cov_wrap.pyx
+# filename: covariance.pyx
 
 #Most of this file is designed after scikits-sparse
 #https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
@@ -74,7 +74,7 @@ cdef extern from "cholmod.h":
     cholmod_sparse * cholmod_spsolve(int, cholmod_factor *, cholmod_sparse *, cholmod_common *) except? NULL
 
 #These are the functions that I have written myself
-cdef extern from "cov.h":
+cdef extern from "../extern/cov.h":
 
     void linspace(double *wl, int N, double start, double end)
     double get_min_sep (double *wl, int N)

@@ -5,7 +5,6 @@ from scipy.special import j1
 import scipy.sparse as sp
 from astropy.io import ascii,fits
 from scipy.sparse.linalg import spsolve
-from scipy.linalg import cho_factor, cho_solve
 import gc
 import pyfftw
 import warnings
@@ -1080,7 +1079,7 @@ class ChebyshevSpectrum:
         self.wl = DataSpectrum.wls[index]
         len_wl = len(self.wl)
 
-        self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False
+        self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False #Fix the last c0
 
         xs = np.arange(len_wl)
         T0 = np.ones_like(xs)
