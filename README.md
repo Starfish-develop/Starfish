@@ -133,11 +133,7 @@ Put the decorator `@profile` over the function you want to profile
 
 * use the full PHOENIX spectrum from the master grid (and interpolator), then downsample to the TRES instrument
 * Finish necessary grid_tools fixes/tests in order to guarantee the Master grid is correct for the production run
-* Update interpolator so that it can draw from HDF5 in parallel/mpi
-* Function to TRES-convolve spectrum from grid. Maybe this is part of Model?
 * sort out usage of C.kms_air and C.kms_vac
-
-
 
 ## grid_tools.py
 
@@ -146,93 +142,11 @@ alpha yes/no needs to be determined upon initialization.
 # Covariance and SparseMatrices
 
 * combine sampler to work on multiple cheb orders
+* convert covariance function to work on velocities instead of wavelengths
 
-This should be a dictionary of dictionaries
-
-{21:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}, 22:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}, 23:{0: 1.0, 1:0.2, 2:-0.2, 3:-0.01}}
-
-The sampling itself is not the problem, rather it's the plotting. Can we override the plot routine?
-
-Also, once we expand to multiple orders, we want to keep the number of chebyshev values small, so as to not
-overwhelm the emcee sampler. Should we have an emcee sampler for each order, with a list of Chebyshev coefficients
- and covariance matrix regions for bad lines? Should we have an emcee sampler for each bad region?
-
- Maybe before trying to sort out the Chebyshev difficulties, try instantiating bad regions and sampling in them?
-
-* Generate a sample noise spectrum from a covariance matrix, compare it to the residuals (could be done w/ Spectrum Explorer)
-* convert l from angstroms to km/s!
-* better tracking of run parameters and output directories
-
-
-We could think of having hyperparameters that describe the trustworthyness of each order (which distribution
-were they drawn from to describe a certain temperature?). This likely devolves into fitting each line/molecular
-region based upon it's variance in the residuals. This might suggest that a combined approach between some
-correlated noise everywhere AND the hueristic of adding and tracking lines is what's needed.
-How does update/downdate work on a Cholfact matrix?
-
-For WASP14, order 24 still has the problem of giving substantially lower logg, bumping up against 3.5.
-This suggests that the individual line approach is probably needed.
-
-* See what the covariance matrix can currently generate, compare it to the residuals, and then see
-if we need to go ahead with individual bad regions.
-
-If we were to implement SuiteSparse in C/Python for our purposes, what would we need?
-
-essentially, covariance would need to take in parameters that would generate the matrix, and store it between iterations.
-And, would convert the flux residuals (numpy arrays) into C arrays. This part is not hard. Basically, we would only need to figure out how to
-
-0.1 set up a test directory and get ``make`` and everything to work properly for SuiteSparse
-0.2 create a sample C function for the covariance function
-1. create a sparse matrix in C from a covariance function
-2. use SuiteSparse to determine the Cholesky factorization and store it (as what kind of object?)
-3. calculate the logdet and rCr using SuiteSparse
-4. return these two values
-
-So, there are a couple of functions that wouldn't always need to be run from the same command.
-
-We may be able to update/downdate the Cholesky factorization to save time, especially if we know
-how the parameters of the covariance function changed. 2nd-order optimization.
-
-I also think it makes the most sense to try to do this with the Python-C API first. There really aren't many functions that need to be wrapped.
-It looks like numpy support with C-Api can be a bitch, although this is probably fairly well documented.
-It may also be smart to try this with Cython, since it seems like a smart thing to use, and has good support for
-transferring numpy arrays.
-
-* option to "linearize" the covariance matrix by essentially forcing the off-diagonal terms to be Toeplitz
-  This might have problems when we eventually want to mask out bad regions, like H alpha
-
-
-* Julia implementation of Cholfact, np.diags(), etc... is be significantly faster than Python.
-* there isn't really a satisfying way to wrap Julia code in python yet, unless I wrapped it in C, then wrapped that in Python.
-
-The Julia solution, using Cholesky decomposition, is actually rather satisfying. For l=5, something that would take python about 5
-seconds to compute, this only takes 0.8. This also means that we would be able to store the facorized object, and then compute terms later.
-Once the matrix has been factorized, the exectuino takes 0.01 seconds. This means that it would be great for stellar and cheb samples.
-
-Calling Julia from Python seems to work fine using python2.
-
-* Try installing CHOLMOD using python2, test some code to see how fast it really is. Answer: Does not work with python2, either.
-Then, think about porting the fellow's code to python3.
-Alternatively, we could create a wrapper for Cholmod too.
-Try writing some C code that tests a sparse factorization.
-The problem here is that I would need to construct the sparse array IN C, don't pass the sparse Python array. The only thing that I would be able to pass is the parameters for
-creating the C array and the residual vector.
-
-It might be a good idea to try doing this in Julia first, since the speedup is likely to be about the same, since they are both going to be using SuiteSparse under the hood and it might not be worth it to
-reimplement some C wrapping code.
-
-* Alternatively, we can try using dfm/George which implement the same things. The downside is that this does not use sparse matrices. Eventually we might want to?
-
-In theory it should be possible to wrap Julia code?
-Julia code can be wrapped in C (documentation). What about wrapped in Python?
-
-we can (easily?) update and downdate the sparse Cholesky factorization using SuiteSparse (it seems).
-
-This might enable us to quickly make changes to any individual line properties.
-
-The tricky thing now is how to organize the sampling of this probability space, especially when we will have
-bad "regions" defined by a set of four parameters, h, amp, mu, sigma
-
+Order 24 has the problem of giving substantially lower logg, bumping up against 3.5. It seems like the
+multiple order sampling leaves a bi-modal distribution of parameter space, thanks to the strong
+iron lines in order 24 (that are somehow incorrect).
 
 Postulated hierarchy of emcee samplers
 
@@ -265,28 +179,22 @@ Postulated hierarchy of emcee samplers
 
 # Speedups and improvements
 
-* Convert DataSpectrum orders into an np.array()
-* update ModelSpectrum to draw defaults from C.var_defaults
+* Right now, we should focus only on order 23 and get the bad region sampler to work.
+
+* Output, plot the sigma_matrix as a 1D slice through row=constant
 
 * Visualize cheb functions
 * Visualize spectrum and residuals
 
-* More tests for ModelSpectrum.downsample()
-* cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
 
 * Fix the mean of c0's to 1?
 That way c0 is just a perturbation to the mean?
 Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
-How would this work in practice?
+Right now we are setting the last order to have logc0 = 0.0
 
-Should we just set one order to 1 at random?
-
-Do some profiling. Why does stellar parameter evaluatino take so long?
+Do some profiling. Why does stellar parameter evaluation take so long?
 
 Arrange base_lnprob or model sampler so that ranges and connections can be set up easily.
-
-It seems like the multiple order sampling leaves a bi-modal distribution of parameter space, thanks to the strong
-iron lines in order 24 (that are somehow incorrect).
 
 How does the interplay between different emcee samplers work? Especially when there are a different number of walkers?
 For example, after each iteration whose stellar parameters does each cheb sampler start with? I would think
@@ -296,8 +204,10 @@ be properly updated?
 OR, is it just taking the last value of the model (whichever walker was evaluated last), assigning that to everyone, and going forward? This is probably
 what is happening. But for the actual iterations of the stellar parameters, it resumes with the previous pos_tuple () This causes some discontinuity,
 because the Gibbs sampler is not actually conditioning on the same parameters that the star will have when it resumes. I suppose we'll just
-have to assume that they are similar enough.
-If we really need to, we can always go back to Metropolis-Hastings Gibbs sampler.
+have to assume that they are similar enough. If we really need to, we can always go back to Metropolis-Hastings Gibbs sampler. Or, perhaps keep the
+number of walkers constant throughout the entire run, but I don't think this is going to work because you can't put
+the positions of the variables that you aren't sampling. You probably have to look in detail what is going on in the guts of the algorithm,
+what values of the walkers are being stored.
 
 * Model object contains:
 
@@ -344,12 +254,10 @@ And sampler objects that will sample them
     sample steps that are consumed or something else.
 A general Gibbs sampler that will alternate between all of them
 
-Clear out cov.h definitions so that setup.py works with default build flags
-Revert sysconfig
 
-Testing:
-for some reason, running all of the tests in ``test_spectrum.py`` at once will fail for ModelSpectrum, but if I run
-just ModelSpectrum individually then everything is fine.
+* It looks like the problem here is that the Chebyshev coefficients are not being calculated correctly? Values of -100 and -50 are ridiculous
+
+* actually, it looks like past a certain point, myModel.evaluate() is using outdated parameters?
 
 THEN
 
@@ -360,7 +268,6 @@ THEN
 * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
 of them
 
-Updating a line can be as simple as adding a Cholesky factorization of the additional bad regions
 
 Open questions:
 
@@ -372,8 +279,7 @@ Code structures:
 * Are parameters always referred to by their dictionary name? "temp", "logg", "Z", "vsini", etc? How is this passed
  between emcee ``p`` and the dict value? What about dropping out a value, such as Av?
 * If a function requires a parameter and it's not in the parameter list, it looks up the default value.
-* how are chebyshev coefficients parsed? Are these sampled in **each order** individually? Ie, their own sampler? I
-think it might be cleaner to just do them all together.
+
 
 #Grid Creator Code
 
@@ -413,4 +319,16 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 * Hernandez 2004: using FAST spectra, identified spectral features sensitive to temperature
 
 
+# Before 1.0 release
 
+* Convert DataSpectrum orders into an np.array()
+* update ModelSpectrum to draw defaults from C.var_defaults
+
+* More tests for ModelSpectrum.downsample()
+* cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
+* Clear out cov.h definitions so that setup.py works with default build flags
+* Revert sysconfig
+
+* Testing:
+for some reason, running all of the tests in ``test_spectrum.py`` at once will fail for ModelSpectrum, but if I run
+just ModelSpectrum individually then everything is fine.

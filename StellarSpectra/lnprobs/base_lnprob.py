@@ -6,16 +6,16 @@ import numpy as np
 import sys
 from emcee.utils import MPIPool
 
-myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array(22]))
+myDataSpectrum = DataSpectrum.open("../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
 myInstrument = TRES()
-myHDF5Interface = HDF5Interface("/home/ian/Grad/Research/Disks/StellarSpectra/libraries/PHOENIX_submaster.hdf5")
+myHDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
 
 stellar_Starting = {"temp":(6000, 6100), "logg":(3.9, 4.2), "Z":(-0.6, -0.3), "vsini":(4, 6), "vz":(15.0, 16.0), "logOmega":(-19.665, -19.664)}
 
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 #cheb_Starting = {"c1": (-.02, -0.015), "c2": (-.0195, -0.0165), "c3": (-.005, .0)}
-cheb_Starting = {"logc0": (-0.02, 0.02), "c1": (-.02, 0.02), "c2": (-0.02, 0.02), "c3": (-.02, 0.02)}
+cheb_Starting = {"c1": (-.02, 0.02), "c2": (-0.02, 0.02), "c3": (-.02, 0.02)}
 cov_Starting = {"sigAmp":(0.9, 1.1), "logAmp":(-14.4, -14), "l":(0.1, 0.25)}
 cov_tuple = C.dictkeys_to_covtuple(cov_Starting)
 
@@ -69,25 +69,17 @@ def lnprob_Cov(p, index):
 myStellarSampler = StellarSampler(lnprob_Model, stellar_Starting)
 
 #MegaSampler is initialized with a list of OrderSamplers
-
 #Each OrderSampler is also a MegaSampler object
-# Cheb22 = ChebSampler(lnprob_Cheb, cheb_Starting, index=0, pool=pool, plot_name="plots/out_cheb22.png")
-# Cov22 = CovSampler(lnprob_Cov, cov_Starting, index=0, pool=pool, plot_name="plots/out_cov22.png")
-# Order22Sampler = MegaSampler(samplers=(Cheb22, Cov22), burnInCadence=(10, 0), cadence=(1, 1))
-
-Cheb23 = ChebSampler(lnprob_Cheb, cheb_Starting, index=0, pool=pool, plot_name="plots/out_cheb23.png")
-Cov23 = CovSampler(lnprob_Cov, cov_Starting, index=0, pool=pool, plot_name="plots/out_cov23.png")
-Order23Sampler = MegaSampler(samplers=(Cheb23, Cov23), burnInCadence=(10, 0), cadence=(1, 1))
-
-# Cheb24 = ChebSampler(lnprob_Cheb, cheb_Starting, index=2, pool=pool, plot_name="plots/out_cheb24.png")
-# Cov24 = CovSampler(lnprob_Cov, cov_Starting, index=2, pool=pool, plot_name="plots/out_cov24.png")
-# Order24Sampler = MegaSampler(samplers=(Cheb24, Cov24), burnInCadence=(10, 0), cadence=(1, 1))
-
-myMegaSampler = MegaSampler(samplers=(myStellarSampler, Order23Sampler), burnInCadence=(5, 2), cadence=(2, 1))
 
 
-myMegaSampler.burn_in(2)
+Cheb23 = ChebSampler(lnprob_Cheb, cheb_Starting, index=0, plot_name="plots/out_cheb23.png")
+Cov23 = CovSampler(lnprob_Cov, cov_Starting, index=0, plot_name="plots/out_cov23.png")
+Order23Sampler = MegaSampler(samplers=(Cheb23, Cov23), burnInCadence=(3, 3), cadence=(3, 3))
+
+myMegaSampler = MegaSampler(samplers=(myStellarSampler, Order23Sampler), burnInCadence=(5, 1), cadence=(5, 1))
+
+myMegaSampler.burn_in(30)
 myMegaSampler.reset()
-myMegaSampler.run(2)
-pool.close()
+myMegaSampler.run(40)
+# pool.close()
 myMegaSampler.plot()

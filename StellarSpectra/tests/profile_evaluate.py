@@ -1,17 +1,25 @@
-import numpy as np
-
-from StellarSpectra.model import Model
 from StellarSpectra.spectrum import DataSpectrum
 from StellarSpectra.grid_tools import TRES, HDF5Interface
+import StellarSpectra.constants as C
+import numpy as np
+import sys
+from emcee.utils import MPIPool
 
-myDataSpectrum = DataSpectrum.open("/home/ian/Grad/Research/Disks/StellarSpectra/tests/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
+myDataSpectrum = DataSpectrum.open("../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
 myInstrument = TRES()
-myHDF5Interface = HDF5Interface("/home/ian/Grad/Research/Disks/StellarSpectra/libraries/PHOENIX_submaster.hdf5")
+myHDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
 
-myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=("temp", "logg", "Z", "vsini", "vz", "logOmega"), 
-                cov_tuple=("sigAmp", "logAmp", "l"))
+stellar_Starting = {"temp":(6000, 6100), "logg":(3.9, 4.2), "Z":(-0.6, -0.3), "vsini":(4, 6), "vz":(15.0, 16.0), "logOmega":(-19.665, -19.664)}
 
-params = {"temp":6200, "logg":4.0, "Z":-0.2, "vsini":10, "vz":15, "logOmega":-22}
+stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
+
+#cheb_Starting = {"c1": (-.02, -0.015), "c2": (-.0195, -0.0165), "c3": (-.005, .0)}
+cheb_Starting = {"logc0": (-0.02, 0.02), "c1": (-.02, 0.02), "c2": (-0.02, 0.02), "c3": (-.02, 0.02)}
+cov_Starting = {"sigAmp":(0.9, 1.1), "logAmp":(-14.4, -14), "l":(0.1, 0.25)}
+cov_tuple = C.dictkeys_to_covtuple(cov_Starting)
+
+myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cov_tuple=cov_tuple)
+
 
 
 

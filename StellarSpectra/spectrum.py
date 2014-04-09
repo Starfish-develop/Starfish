@@ -1114,7 +1114,7 @@ class ChebyshevSpectrum:
         #Fix the last order c0 to 1.
         if self.fix_c0:
             logc0 = 0.0
-            cns = coefs[1:]
+            cns = coefs
             #cns = coefs #this was previously true if we only gave 3 parameters.
         else:
             logc0 = coefs[0]
