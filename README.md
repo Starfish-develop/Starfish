@@ -153,7 +153,7 @@ Postulated hierarchy of emcee samplers
 * sampler for stellar parameters
   generates new stellar spectrum, evaluates a global lnprob by summing together the lnprobs of each OrderModel
 
-    * then, using a list of OrderSamplers... order by order...
+    * then, using a list of OrderSamplers, order by order
 
         * sample the Chebyshev coefficients  ``lnprob`` parameterized by an OrderNum in the **args
         * sample the global order covariance properties via the Matern kernel, using a ``lnprob`` parameterized by the **args
@@ -162,6 +162,7 @@ Postulated hierarchy of emcee samplers
 
         there is a MegaRegion sampler that belongs to each OrderSampler
 
+        -- This is the responsibility of the OrderSampler
         * go into the loop to examine the regions of the spectrum
 
             * find the high points of the residuals
@@ -170,9 +171,25 @@ Postulated hierarchy of emcee samplers
 
         then:
 
-        * for each region, instantiate/use an emcee sampler
+        * for each region, instantiate a Region sampler
             * sample the parameters {h, a, mu, sigma} that define this bad region
         * these all tap into lnprobs that access the CovarianceMatrix for the order.
+
+        THEN
+
+        * Identify the pixel with the largest residual
+        * Instantiate a region with mu = pixel (+/- 2 or 3 pixels), a, sigma in some range
+        * We can have some priors on this region, ie, must remain w/in 5 AA of originally declared bad point. These priors
+         are updated on the general model
+        * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
+        of them
+
+Need to modify the covariance matrix to accept a region to be updated.
+
+Then decide on a sampler that will change just this region.
+
+
+
 
 * keep bumping down the cutoff limit until we have reached 3 * sigma of the Matern kernel, or something.
 
@@ -259,16 +276,6 @@ A general Gibbs sampler that will alternate between all of them
 
 * actually, it looks like past a certain point, myModel.evaluate() is using outdated parameters?
 
-THEN
-
-* Identify the pixel with the largest residual
-* Instantiate a region with mu = pixel (+/- 2 or 3 pixels), a, sigma in some range
-* We can have some priors on this region, ie, must remain w/in 5 AA of originally declared bad point. These priors
- are updated on the general model
-* These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
-of them
-
-
 Open questions:
 
 * How many times should we add lines? Do you ever delete lines?
@@ -318,6 +325,20 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 * Schornrich 2013: OSU paper for Bayseian method
 * Hernandez 2004: using FAST spectra, identified spectral features sensitive to temperature
 
+
+# Process Kurucz grid using grid creator code
+
+
+# Interesting Paper points
+
+    1. the covariance methodology applied to this case (and why);
+    2. the power of the technique in terms of modularity and a proper probabilistic treatment with great flexibility.
+    I think we want to demonstrate that it works in a few key examples, maybe:
+        a. some TRES/Kepler spectra to compare with previous results from SPC, SME, etc.;
+        b. some super-obvious or over-constrained case (e.g., Vega, or maybe some Kepler source with astroseismology); and
+        c. maybe some tricky case to demonstrate flexibility, e.g., a composite spectrum from a double-lined
+        spectroscopic binary?  We can worry about the examples later, since you have a lot of work to do in writing
+        the basic methodology parts.
 
 # Before 1.0 release
 

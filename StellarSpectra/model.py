@@ -231,10 +231,27 @@ class CovSampler(Sampler):
     Subclass of Sampler for evaluating CovarianceMatrix parameters.
     '''
     def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", index=None, pool=None):
-        #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
+        #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
         self.param_tuple = C.dictkeys_to_covtuple(param_dict)
 
         super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
+
+
+class RegionSampler(Sampler):
+    '''
+    Subclass of Sampler for evaluating Regional CovarianceMatrix parameters.
+    '''
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_region_cov.png", index=None, region_index=None, pool=None):
+        #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
+        self.param_tuple = C.dictkeys_to_covtuple(param_dict)
+
+        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
+
+        self.region_index = region_index
+
+    def initialize(self):
+        update_partial_sum_regions()
+        pass
 
 
 class MegaSampler:
@@ -347,8 +364,6 @@ class SamplerStellarCheb:
         figure.savefig("plots/GW_Ori_triangle.png")
         pass
 
-class SamplerModelChebCov:
-    pass
 
 
 #grids = {"PHOENIX": {'T_points': np.array(
