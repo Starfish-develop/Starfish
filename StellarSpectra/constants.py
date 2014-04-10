@@ -40,7 +40,8 @@ stellar_set = grid_set | pp_set #the union of grid_parameters and pp_parameters
 #Dictionary of allowed variables with default values
 var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "logOmega":0.0}
 
-cov_parameters = ("sigAmp", "logAmp", "l")
+cov_global_parameters = ("sigAmp", "logAmp", "l")
+cov_region_parameters = ("h", "a", "mu", "sigma")
 
 def dictkeys_to_tuple(keys):
     '''
@@ -58,7 +59,7 @@ def dictkeys_to_tuple(keys):
 
     return tup
 
-def dictkeys_to_covtuple(keys):
+def dictkeys_to_cov_global_tuple(keys):
     '''
     Helper function to convert a dictionary of starting stellar parameters to a tuple list
 
@@ -67,7 +68,23 @@ def dictkeys_to_covtuple(keys):
     '''
 
     tup = ()
-    for param in cov_parameters:
+    for param in cov_global_parameters:
+        #check if param is in keys, if so, add to the tuple
+        if param in keys:
+            tup += (param,)
+
+    return tup
+
+def dictkeys_to_cov_region_tuple(keys):
+    '''
+    Helper function to convert a dictionary of starting stellar parameters to a tuple list
+
+    :param keys: keys to sort into a tuple
+    :type keys: dict.keys() view
+    '''
+
+    tup = ()
+    for param in cov_region_parameters:
         #check if param is in keys, if so, add to the tuple
         if param in keys:
             tup += (param,)

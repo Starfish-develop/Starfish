@@ -30,6 +30,10 @@ double k_region (double x0, double x1, double h, double a, double mu, double sig
     //defined as linear distance between x0 and x1
     double r = fabs(x0 - x1);
 
+    //double value = taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
+    //    ((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu))/(sigma * sigma)) 
+    //    * exp(-0.5 * r*r/(h * h));
+    //printf("Initializing %.4f, %.4f with value %.4f\n", x0, x1, value);
     return  taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
         ((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu))/(sigma * sigma)) 
         * exp(-0.5 * r*r/(h * h));

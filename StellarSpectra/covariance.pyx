@@ -25,8 +25,8 @@ cdef extern from "cholmod.h":
         int supernodal
         int status
 
-    int cholmod_start(cholmod_common *) except? 0
-    int cholmod_finish(cholmod_common *) except? 0
+    int cholmod_start(cholmod_common *c) except? 0
+    int cholmod_finish(cholmod_common *c) except? 0
 
     ctypedef struct cholmod_sparse:
         size_t nrow, ncol, nzmax
@@ -40,7 +40,7 @@ cdef extern from "cholmod.h":
         int sorted
         int packed
 
-    int cholmod_free_sparse(cholmod_sparse **, cholmod_common *) except? 0
+    int cholmod_free_sparse(cholmod_sparse **, cholmod_common *c) except? 0
     cholmod_sparse *cholmod_add(cholmod_sparse *A, cholmod_sparse *B,
             double alpha[2], double beta[2], int values, int sorted, 
             cholmod_common *c) except? NULL
@@ -53,9 +53,9 @@ cdef extern from "cholmod.h":
         void * x
         int xtype, dtype
 
-    cholmod_dense *cholmod_allocate_dense(size_t nrow, size_t ncol, size_t d, int xtype, cholmod_common *) except? NULL
-    int cholmod_free_dense(cholmod_dense **, cholmod_common *) except? 0
-    int cholmod_print_dense(cholmod_dense *, const char *, cholmod_common *) except? 0
+    cholmod_dense *cholmod_allocate_dense(size_t nrow, size_t ncol, size_t d, int xtype, cholmod_common *c) except? NULL
+    int cholmod_free_dense(cholmod_dense **, cholmod_common *c) except? 0
+    int cholmod_print_dense(cholmod_dense *, const char *, cholmod_common *c) except? 0
 
     ctypedef struct cholmod_factor:
         size_t n
@@ -89,18 +89,33 @@ cdef extern from "../extern/cov.h":
     double get_logdet(cholmod_factor *L)
     double chi2 (cholmod_dense *r, cholmod_factor *L, cholmod_common *c)
 
+cdef class Common:
 
+    cdef cholmod_common c
+
+    def __init__(self):
+        cholmod_start(&self.c)
+
+    def __dealloc__(self):
+        print("Deallocating Common")
+        cholmod_finish(&self.c)
+
+cdef cholmod_sparse *get_A(RegionCovarianceMatrix region):
+    return region.A
 
 cdef class CovarianceMatrix:
 
     cdef cholmod_sparse *A
     cdef cholmod_factor *L
+    cdef Common common
     cdef cholmod_common c
+    cdef double *one 
     cdef double logdet
     cdef fl
     cdef npoints
     cdef order_index
-    cdef GlobalCovarianceMatrix
+    cdef DataSpectrum
+    cdef GlobalCovarianceMatrix GCM
     cdef RegionList
     cdef current_region
 
@@ -110,40 +125,51 @@ cdef class CovarianceMatrix:
     cdef cholmod_sparse *partial_sum_regions #Holds a sparse matrix that is the sum of all regions but the one currently sampling (N -1)
 
     def __init__(self, DataSpectrum, order_index):
-
+        self.common = Common()
+        self.c = <cholmod_common>self.common.c
+        self.one = [1, 0]
         #Pass the DataSpectrum to initialize the GlobalCovarianceMatrix
         self.DataSpectrum = DataSpectrum
         self.order_index = order_index
         self.fl = DataSpectrum.fls[self.order_index]
+        self.npoints = len(self.fl)
         self.logdet = 0.0
 
-        cholmod_start(&self.c)
-
-        self.GlobalCovarianceMatrix = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index, self.c)
+        self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index,self.common)
         self.RegionList = []
         self.current_region = -1 #non physical value to force initialization
 
     def __dealloc__(self):
         #The GlobalCovarianceMatrix and all matrices in the RegionList will be cleared automatically?
-        cholmod_free_sparse(&self.sum_regions, &self.c)
-        cholmod_free_sparse(&self.partial_sum_regions, &self.c)
-        cholmod_free_sparse(&self.A, &self.c)
-        cholmod_free_factor(&self.L, &self.c)
-        cholmod_finish(&self.c)
+        print("Deallocating Covariance Matrix")
+
+        #We need to check that all of these exist otherwise we'll get an error by 
+        #deleting empty regions.
+        if self.sum_regions != NULL:
+            cholmod_free_sparse(&self.sum_regions, &self.c)
+        if self.partial_sum_regions != NULL:
+            cholmod_free_sparse(&self.partial_sum_regions, &self.c)
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, &self.c)
+        if self.L != NULL:
+            cholmod_free_factor(&self.L, &self.c)
 
     def update_global(self, params):
         '''
         Update the global covariance matrix by passing the parameters to the 
         GlobalCovarianceMatrix. Then update the factorization.
         '''
-        self.GlobalCovarianceMatrix.update(params)
+        self.GCM.update(params)
         self.update_factorization()
 
     def create_region(self, params):
         '''
         Called to instantiate a new region and add it to self.RegionList
         '''
-        self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params))
+        self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common))
+        ##Do update on partial_sum_regions and sum_regions
+        self.update_region(region_index=(len(self.RegionList)-1), params=params)
+
 
     def delete_region(self, region_index):
         self.RegionList.pop(region_index)
@@ -157,6 +183,7 @@ cdef class CovarianceMatrix:
         if region_index != self.current_region:
             #We have switched sampling regions, time to update the partial sum
             if len(self.RegionList) > 1:
+                print("Switched sampling regions, updating partial sums")
                 self.update_partial_sum_regions()
                 #if len == 1, then we are the first region initialized and there is no partial sum.
             self.current_region = region_index
@@ -164,28 +191,32 @@ cdef class CovarianceMatrix:
         region = self.RegionList[region_index]
         region.update(params)
 
-        cdef double *alpha =  [1, 0]
-        cdef double *beta = [1, 0]
-
         if self.partial_sum_regions != NULL:
-            self.sum_regions = cholmod_add(region.A, self.partial_sum_regions, alpha, 
-                    beta, True, True, &self.c)
+            #Other regions exist, update the total sum using this region and the other partial
+            #regions
+            self.sum_regions = cholmod_add(get_A(region), self.partial_sum_regions, self.one, self.one, True, True, &self.c)
         else:
-            assert len(self.RegionList) == 1,"partial_sum_regions is NULL but RegionList contains more than one region."
-            self.sum_regions = region.A
+            #There is only one region, so set sum_regions equal to this region
+            assert len(self.RegionList) == 1,"ERROR: partial_sum_regions is NULL but RegionList contains more than one region."
+
+            #Because we are creating an extra, COPY the matrix
+            self.sum_regions = cholmod_copy_sparse(get_A(region), &self.c)
         self.update_factorization()
+
+    def print_all_regions(self):
+        return " ".join([region.__str__() for region in self.RegionList])
+
 
     def update_sum_regions(self):
         '''
         Update the sparse matrix that is the sum of all region matrices. Used before starting global
         covariance sampling.
         '''
-        cdef cholmod_sparse *R = self.RegionList[0].A
-        cdef double *alpha =  [1, 0]
-        cdef double *beta = [1, 0]
+        print("updating sum_regions")
+        cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), &self.c)
 
         for region in self.RegionList[1:]:
-            R = cholmod_add(R, region.A, alpha, beta, True, True, &self.c) 
+            R = cholmod_add(R, get_A(region), self.one, self.one, True, True, &self.c) 
 
         self.sum_regions = R 
 
@@ -195,12 +226,10 @@ cdef class CovarianceMatrix:
         specified by index. Used before starting the sampling for an individual region.
         '''
         partialRegionList = self.RegionList[:region_index] + self.RegionList[region_index + 1:]
-        cdef cholmod_sparse *R = partialRegionList[0]
-        cdef double *alpha =  [1, 0]
-        cdef double *beta = [1, 0]
+        cdef cholmod_sparse *R = get_A(partialRegionList[0])
 
         for region in partialRegionList[1:]:
-            R = cholmod_add(R, region, alpha, beta, True, True, &self.c) 
+            R = cholmod_add(R, get_A(region), self.one, self.one, True, True, &self.c) 
 
         self.partial_sum_regions = R 
 
@@ -210,18 +239,25 @@ cdef class CovarianceMatrix:
         the logdet and the new cholmod_factorization.
 
         '''
+        print("Updating factorization")
         if self.sum_regions != NULL:
-            self.A = cholmod_add(self.GlobalCovarianceMatrix.A, self.sum_regions, alpha, beta, True, True, &self.c)
+            print("adding GCM to sum_regions")
+            self.A = cholmod_add(<cholmod_sparse *>self.GCM.A, self.sum_regions, self.one, self.one, True, True, &self.c)
         else:
+            print("Null regions")
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
-            #there are no regions declared
-            self.A = self.GlobalCovarianceMatrix.A 
+            #there are no regions declared, and it should COPY A
+            self.A = cholmod_copy_sparse(self.GCM.A, &self.c)
 
+        print("Trying Cholesky factorization")
         self.L = cholmod_analyze(self.A, &self.c) #do Cholesky factorization 
         cholmod_factorize(self.A, self.L, &self.c)
 
         self.logdet = get_logdet(self.L)
 
+
+    def return_logdet(self):
+        return self.logdet
 
     def evaluate(self, fl):
         '''
@@ -239,7 +275,6 @@ cdef class CovarianceMatrix:
         for i in range(self.npoints):
             x[i] = rr[i]
 
-
         #logdet does not depend on the residuals, so it is pre-computed
         #evaluate lnprob with logdet and chi2
         cdef double lnprob = -0.5 * (chi2(r, self.L, &self.c) + self.logdet)
@@ -248,17 +283,21 @@ cdef class CovarianceMatrix:
 
         return lnprob
 
+
 cdef class GlobalCovarianceMatrix:
 
     cdef cholmod_sparse *sigma
     cdef cholmod_sparse *A
+    cdef Common common
     cdef cholmod_common c
     cdef double *wl
     cdef double min_sep
     cdef npoints
 
-    def __init__(self, DataSpectrum, order_index, c):
-        self.c = c #cholmod_start(&self.c) has already been run by CovarianceMatrix
+    def __init__(self, DataSpectrum, order_index, Common common):
+        self.common = common
+        self.c = <cholmod_common>self.common.c
+        self.A = NULL
 
         #convert wl into an array
         cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index]
@@ -272,16 +311,15 @@ cdef class GlobalCovarianceMatrix:
 
         self.min_sep = get_min_sep(self.wl, self.npoints)
         #wl, fl, sigma, and min_sep do not change with update, since the data is fixed
-        self.logdet = 0.0
-
-
         self._initialize_sigma(DataSpectrum.sigmas[order_index])
 
-
     def __dealloc__(self):
+        print("Deallocating GlobalCovarianceMatrix")
         PyMem_Free(self.wl)
-        cholmod_free_sparse(&self.sigma, &self.c)
-        cholmod_free_sparse(&self.A, &self.c)
+        if self.sigma != NULL:
+            cholmod_free_sparse(&self.sigma, &self.c)
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, &self.c)
 
     def _initialize_sigma(self, mysigma):
         '''
@@ -322,14 +360,16 @@ cdef class GlobalCovarianceMatrix:
 cdef class RegionCovarianceMatrix:
 
     cdef cholmod_sparse *A
+    cdef Common common
     cdef cholmod_common c
     cdef double *wl
     cdef npoints
     cdef mu
     cdef sigma0
 
-    def __init__(self, DataSpectrum, order_index, params, c):
-        self.c = c #cholmod_start(&self.c) has already been run by CovarianceMatrix
+    def __init__(self, DataSpectrum, order_index, params, Common common):
+        self.common = common 
+        self.c = self.common.c
 
         #convert wl into an array
         cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index]
@@ -347,14 +387,18 @@ cdef class RegionCovarianceMatrix:
 
 
     def __dealloc__(self):
+        print("Deallocating RegionCovarianceMatrix")
         PyMem_Free(self.wl)
-        cholmod_free_sparse(&self.A, &self.c)
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, &self.c)
+    
+    def __str__(self):
+        return "mu = {}, sigma0 = {}".format(self.mu, self.sigma0)
 
     def update(self, params):
         '''
-        On update, calculate the logdet and the new cholmod_factorization.
-
         Parameters is a dictionary of {h, a, mu, sigma}.
+        Back in CovarianceMatrix, calculate the logdet and the new cholmod_factorization.
         '''
         h = params['h']
         a = params['a']
@@ -371,6 +415,7 @@ cdef class RegionCovarianceMatrix:
         self.A = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, &self.c)
  
 #Run some profiling code to see what our bottlenecks might be.
+#With stock format
 #Update takes 0.138 seconds, evaluate takes 0.001s
 
 #When doing just the region sampling, the sampler keys into the update_region method attached to the CovarianceMatrix

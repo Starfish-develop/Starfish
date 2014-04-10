@@ -31,15 +31,15 @@ def lnprob_Model(p):
     except C.ModelError:
         return -np.inf
 
-def lnprob_Cheb(p, index):
+def lnprob_Cheb(p, order_index):
     #Select the correct order of myModel
-    model = myModel.OrderModels[index]
+    model = myModel.OrderModels[order_index]
     model.update_Cheb(p)
     return model.evaluate()
 
-def lnprob_Cov(p, index):
+def lnprob_Cov(p, order_index):
     params = myModel.zip_Cov_p(p)
-    model = myModel.OrderModels[index]
+    model = myModel.OrderModels[order_index]
     if params["l"] > 0.4:
         return -np.inf
     try:
@@ -48,18 +48,19 @@ def lnprob_Cov(p, index):
     except C.ModelError:
         return -np.inf
 
-#def lnprob_Cov_region(p, order, region_num):
-#    #Defining order and region_num at initialization time allows this to query into the covariance matrix at this region
-#
-#    #params look like {h, a, mu, sigma}
-#    params = myModel.zip_Cov_p(p)
-#    if params["l"] > 0.4:
-#        return -np.inf
-#    try:
-#        myModel[order].update_Cov(params)
-#        return myModel.evaluate()
-#    except C.ModelError:
-#        return -np.inf
+def lnprob_Cov_region(p, order_index, region_index):
+    '''defining order and region_num at initialization time allows this to query into the covariance matrix at
+    this region
+    p looks like {h, a, mu, sigma}
+    '''
+    params = myModel.zip_Cov_p(p)
+    if params["l"] > 0.4: #apply logic to make sure reasonable parameters
+        return -np.inf
+    try:
+        myModel[order].update_Cov(params)
+        return myModel.evaluate()
+    except C.ModelError:
+        return -np.inf
 
 # pool = MPIPool()
 # if not pool.is_master():
