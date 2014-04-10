@@ -141,7 +141,6 @@ alpha yes/no needs to be determined upon initialization.
 
 # Covariance and SparseMatrices
 
-* combine sampler to work on multiple cheb orders
 * convert covariance function to work on velocities instead of wavelengths
 
 Order 24 has the problem of giving substantially lower logg, bumping up against 3.5. It seems like the
@@ -188,8 +187,10 @@ Need to modify the covariance matrix to accept a region to be updated.
 
 Then decide on a sampler that will change just this region.
 
+Open questions:
 
-
+* How many times should we add lines? Do you ever delete lines?
+* How do you find the next-highest pixel not already covered by a region?
 
 * keep bumping down the cutoff limit until we have reached 3 * sigma of the Matern kernel, or something.
 
@@ -209,7 +210,7 @@ That way c0 is just a perturbation to the mean?
 Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
 Right now we are setting the last order to have logc0 = 0.0
 
-Do some profiling. Why does stellar parameter evaluation take so long?
+Do some profiling. Stellar parameter evaluation takes the longest, probably because of the FFT.
 
 Arrange base_lnprob or model sampler so that ranges and connections can be set up easily.
 
@@ -253,38 +254,7 @@ what values of the walkers are being stored.
         * Keep track of regions: make sure they do not overlap
         * set individual regions? Do we want to Gibbs sample in just the individual regions?
 
-    And has methods for manipulating the comparison of all of these based upon what is fastest.
 
-    * Has stored a global lnprob reference for each of these sub-components and an evaluate function.
-
-There are outside (module level) lnprob functions that reference a model object and make comparisons with individual
-instance objects of it (for example, set chebyshev coefficients, evaluate).
-
-``evaluate`` function can also be a global level function that is essentially the same for all +/-
-priors for each of the parameters.
-
-Sets of parameters describing each of these
-And sampler objects that will sample them
-    * (Each of these could be derived from a sampler class. They all need an "update args" method,
-    a "run" method, and a pause method. The grand sampler needs specifications that it burns in between the first two,
-    etc, rotates between all of the other two, etc. Some easy way to specify this behavior, whether it be lists of
-    sample steps that are consumed or something else.
-A general Gibbs sampler that will alternate between all of them
-
-
-* It looks like the problem here is that the Chebyshev coefficients are not being calculated correctly? Values of -100 and -50 are ridiculous
-
-* actually, it looks like past a certain point, myModel.evaluate() is using outdated parameters?
-
-Open questions:
-
-* How many times should we add lines? Do you ever delete lines?
-* How do you find the next-highest pixel not already covered by a region?
-
-Code structures:
-
-* Are parameters always referred to by their dictionary name? "temp", "logg", "Z", "vsini", etc? How is this passed
- between emcee ``p`` and the dict value? What about dropping out a value, such as Av?
 * If a function requires a parameter and it's not in the parameter list, it looks up the default value.
 
 

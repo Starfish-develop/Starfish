@@ -131,7 +131,7 @@ class Sampler:
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", index=None, pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", order_index=None, pool=None):
         #Each subclass will have to overwrite how it parses the param_dict into the correct order
         #and sets the param_tuple
 
@@ -149,15 +149,15 @@ class Sampler:
         self.p0 = np.array(p0).T
 
         if pool is not None:
-            if index is None:
+            if order_index is None:
                 self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, pool=pool)
             else:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(index,), pool=pool)
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(order_index,), pool=pool)
         else:
-            if index is None:
+            if order_index is None:
                 self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob)
             else:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(index,))
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(order_index,))
 
         self.pos_trio = None
         self.plot_name = plot_name
@@ -215,7 +215,7 @@ class ChebSampler(Sampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", index=None, pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", order_index=None, pool=None):
         #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
         #From a simple param dict, create a more complex param_dict
 
@@ -224,33 +224,53 @@ class ChebSampler(Sampler):
         #self.param_tuple = ("logc0", "c1", "c2", "c3")
         self.param_tuple = ("c1", "c2", "c3")
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
+        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index, pool=pool)
 
-class CovSampler(Sampler):
+class CovGlobalSampler(Sampler):
     '''
-    Subclass of Sampler for evaluating CovarianceMatrix parameters.
+    Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", index=None, pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", order_index=None, pool=None):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_covtuple(param_dict)
+        self.param_tuple = C.dictkeys_to_cov_global_tuple(param_dict)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
+        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index, pool=pool)
 
 
-class RegionSampler(Sampler):
+class CovRegionSampler(Sampler):
     '''
-    Subclass of Sampler for evaluating Regional CovarianceMatrix parameters.
+    Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_region_cov.png", index=None, region_index=None, pool=None):
+    def __init__(self, lnprob, param_dict, plot_name="plots/out_region_cov.png", order_index=None, region_index=None, pool=None):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_covtuple(param_dict)
+        self.param_tuple = C.dictkeys_to_cov_region_tuple(param_dict)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, index=index, pool=pool)
+        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index,
+                         region_index=region_index, pool=pool)
 
         self.region_index = region_index
 
     def initialize(self):
         update_partial_sum_regions()
+        pass
+
+#TODO: each of the above samplers has a plot_base string, which can be updated by a init_plot method.
+
+
+class OrderSampler:
+    '''
+    The point of this sampler is to do everything for a specific order. There is one OrderSampler per order.
+
+    There is also one GeneralCovariance Sampler, which can be the CovSampler.
+
+    There will be a list of RegionSamplers, one for each region. This somehow keys into the region properly.
+
+    There will also be some logic that at the beginning of each iteration of the OrderSampler decides
+    how to manage the RegionSamplerList.
+
+    '''
+    def __init__(self):
+
         pass
 
 
@@ -289,6 +309,8 @@ class MegaSampler:
     def plot(self):
         for j in range(self.nsamplers):
             self.samplers[j].plot()
+
+
 
 
 class SamplerStellarCheb:
