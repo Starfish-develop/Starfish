@@ -1,4 +1,4 @@
-from StellarSpectra.model import Model, StellarSampler, ChebSampler, CovSampler, MegaSampler
+from StellarSpectra.model import Model, StellarSampler, ChebSampler, CovSampler, RegionsSampler, MegaSampler
 from StellarSpectra.spectrum import DataSpectrum
 from StellarSpectra.grid_tools import TRES, HDF5Interface
 import StellarSpectra.constants as C
@@ -57,10 +57,25 @@ def lnprob_Cov_region(p, order_index, region_index):
     if params["l"] > 0.4: #apply logic to make sure reasonable parameters
         return -np.inf
     try:
-        myModel[order].update_Cov(params)
+        myModel[order_index].update_Cov(params)
         return myModel.evaluate()
     except C.ModelError:
         return -np.inf
+
+def evaluate_region_logic(order_index):
+    '''
+    This is a method that RegionsSampler will call once self.logic_counter has overflown. It will check if there
+    are any residuals that exist beyond a certain threshold (3 x general structure?) that are not already covered by some line.
+
+    If such a region does exist, it will return a mu to initialize that line.
+
+    If none exist, it will return None.
+
+    Eventually add support to remove regions.
+
+    '''
+    model = myModel.OrderModels[order_index]
+    return model.evaluate_region_logic()
 
 # pool = MPIPool()
 # if not pool.is_master():
@@ -75,6 +90,9 @@ myStellarSampler = StellarSampler(lnprob_Model, stellar_Starting)
 
 Cheb23 = ChebSampler(lnprob_Cheb, cheb_Starting, index=0, plot_name="plots/out_cheb23.png")
 Cov23 = CovSampler(lnprob_Cov, cov_Starting, index=0, plot_name="plots/out_cov23.png")
+
+Regions23 = RegionsSampler()
+
 Order23Sampler = MegaSampler(samplers=(Cheb23, Cov23), burnInCadence=(3, 3), cadence=(3, 3))
 
 myMegaSampler = MegaSampler(samplers=(myStellarSampler, Order23Sampler), burnInCadence=(5, 1), cadence=(5, 1))

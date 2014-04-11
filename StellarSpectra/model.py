@@ -100,6 +100,8 @@ class OrderModel:
     def __init__(self, ModelSpectrum, DataSpectrum, index):
         self.index = index
         self.DataSpectrum = DataSpectrum
+        self.wl = self.DataSpectrum.wls[self.index]
+        self.fl = self.DataSpectrum.fls[self.index]
         self.order = self.DataSpectrum.orders[self.index]
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
@@ -113,6 +115,40 @@ class OrderModel:
 
     def get_spectrum(self):
         return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+
+    def get_residuals(self):
+        model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+        return self.fl - model_fl
+
+    def evaluate_region_logic(self):
+        #calculate the current amplitude of the global_covariance noise
+        global_amp = self.CovarianceMatrix.get_amp()
+
+        #array that specifies whether any given pixel is covered by a region.
+        covered = self.CovarianceMatrix.get_region_coverage()
+
+        residuals = self.get_residuals()
+        median = np.median(residuals)
+        #For each residual, calculate the abs_distance from the median
+        abs_distances = np.abs(residuals - median)
+
+        #Sort the list in decreasing order of abs_dist
+        args = np.argsort(abs_distances)[::-1]
+
+        for index in args:
+            abs_dist = abs_distances[index]
+            if abs_dist < 3 * global_amp:
+            #we have reached below the 3 sigma limit, no new regions instantiated
+                return None
+
+            wl = self.wl[index]
+            print("At wl={:.3f}, residual={}".format(wl, abs_dist))
+            if covered[index]:
+                continue
+            else:
+                return wl
+
+        return None
 
     def evaluate(self):
         '''
@@ -250,28 +286,81 @@ class CovRegionSampler(Sampler):
 
         self.region_index = region_index
 
+        #self.logic_counter = overflow index, once it's past a certain value, then evaluate logic
+
     def initialize(self):
+        #TODO: each time it is time to run the Region sampler again (maybe there is a flag that gets set once the run is over or something)
+        #you need to go ahead and apply some logic.
         update_partial_sum_regions()
         pass
 
 #TODO: each of the above samplers has a plot_base string, which can be updated by a init_plot method.
 
 
-class OrderSampler:
+class RegionsSampler:
     '''
-    The point of this sampler is to do everything for a specific order. There is one OrderSampler per order.
+    The point of this sampler is to do all the region sampling for a specific order.
 
-    There is also one GeneralCovariance Sampler, which can be the CovSampler.
+    It must also be able to create new samplers.
 
-    There will be a list of RegionSamplers, one for each region. This somehow keys into the region properly.
+    There will be a list of RegionSamplers, one for each region. This keys into the specific region properly.
 
     There will also be some logic that at the beginning of each iteration of the OrderSampler decides
     how to manage the RegionSamplerList.
 
     '''
-    def __init__(self):
 
+    def __init__(self, order_index, lnprob, logic_function, pool=None):
+
+        self.order_index = order_index
+        self.lnprob #globally defined lnprob
+        self.logic_counter = 0
+        self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
+        #to decide if more or fewer RegionSampler's are needed?
+
+        self.samplers = None
+        self.cadence = 5 #samples to devote to each region before moving on to the next
+        #Need to change a to loga
+        self.default_param_dict = {"h":(0.1, 1), "loga":(-14.4, -14), "sigma":(0.1, 1)}
+
+
+    def evaluate_region_logic(self):
+        #Go through the Model and decide where we should initialize new regions
         pass
+
+    def create_region(self, mu):
+        #Create a new region in the model at this location, create a new sampler to sample it.
+        # Default values of h, mu, a, sigma are...
+        param_dict = self.default_param_dict.copy()
+        param_dict.update({"mu":(mu - 1, mu + 1)})
+
+        CovRegionSampler(self.lnprob, param_dict, order_index=self.order_index, region_index=len(self.samplers), pool=pool)
+        pass
+
+
+    def run(self, iterations):
+        if iterations == 0:
+            return
+
+        self.logic_counter += 1
+        if self.logic_counter >= self.logic_overflow:
+            mu = self.logic_function()
+            if mu is not None:
+                self.create_region(mu)
+
+
+        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations), end="")
+        t = time.time()
+
+        if self.pos_trio is None:
+            self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
+
+        else:
+            pos, prob, state = self.pos_trio
+            self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
+
+        print("completed in {:.2f} seconds".format(time.time() - t))
+    #can check for C.RegionError if the initialized region is bad, or mu drifts too much
 
 
 class MegaSampler:
