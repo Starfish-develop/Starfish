@@ -134,3 +134,10 @@ class InterpolationError(Exception):
     '''
     def __init__(self, msg):
         self.msg = msg
+
+class RegionError(Exception):
+    '''
+    Raised when a RegionCovarianceMatrix cannot be instantiated.
+    '''
+    def __init__(self, msg):
+        self.msg = msg
