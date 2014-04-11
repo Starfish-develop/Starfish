@@ -278,7 +278,6 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
     int first_ind, last_ind;
     double r;
 
-
     //this loop should exit with first_ind being equal to the first row,col occurence of the region
     do {
         r = fabs(wl[i] - mu); //how far away are we from mu?

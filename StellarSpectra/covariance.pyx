@@ -45,6 +45,7 @@ cdef extern from "cholmod.h":
             double alpha[2], double beta[2], int values, int sorted, 
             cholmod_common *c) except? NULL
     cholmod_sparse *cholmod_copy_sparse(cholmod_sparse *A, cholmod_common *c) except? NULL
+    double cholmod_norm_sparse(cholmod_sparse *A, int norm, cholmod_common *c) except? 0.0
     int cholmod_print_sparse(cholmod_sparse *, const char *, cholmod_common *c) except? 0
 
     ctypedef struct cholmod_dense:
@@ -109,8 +110,9 @@ cdef class CovarianceMatrix:
     cdef cholmod_factor *L
     cdef Common common
     cdef cholmod_common c
-    cdef double *one 
+    cdef double *one
     cdef double logdet
+    cdef wl
     cdef fl
     cdef npoints
     cdef order_index
@@ -127,10 +129,15 @@ cdef class CovarianceMatrix:
     def __init__(self, DataSpectrum, order_index):
         self.common = Common()
         self.c = <cholmod_common>self.common.c
-        self.one = [1, 0]
+
+        self.one = <double*> PyMem_Malloc(2 * sizeof(double))
+        self.one[0] = 1
+        self.one[1] = 0
+
         #Pass the DataSpectrum to initialize the GlobalCovarianceMatrix
         self.DataSpectrum = DataSpectrum
         self.order_index = order_index
+        self.wl = DataSpectrum.wls[self.order_index]
         self.fl = DataSpectrum.fls[self.order_index]
         self.npoints = len(self.fl)
         self.logdet = 0.0
@@ -166,9 +173,14 @@ cdef class CovarianceMatrix:
         '''
         Called to instantiate a new region and add it to self.RegionList
         '''
-        self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common))
-        ##Do update on partial_sum_regions and sum_regions
-        self.update_region(region_index=(len(self.RegionList)-1), params=params)
+        #Check to make sure that mu is within bounds, if not, raise a C.RegionError
+        mu = params["mu"]
+        if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
+            self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common))
+            ##Do update on partial_sum_regions and sum_regions
+            self.update_region(region_index=(len(self.RegionList)-1), params=params)
+        else:
+            raise C.RegionError("chosen mu {:.4f} for region is outside bounds ({:.4f}, {:.4f})".format(mu, np.min(self.wl), np.max(self.wl)))
 
 
     def delete_region(self, region_index):
@@ -184,7 +196,7 @@ cdef class CovarianceMatrix:
             #We have switched sampling regions, time to update the partial sum
             if len(self.RegionList) > 1:
                 print("Switched sampling regions, updating partial sums")
-                self.update_partial_sum_regions()
+                self.update_partial_sum_regions(region_index)
                 #if len == 1, then we are the first region initialized and there is no partial sum.
             self.current_region = region_index
 
@@ -204,7 +216,11 @@ cdef class CovarianceMatrix:
         self.update_factorization()
 
     def print_all_regions(self):
-        return " ".join([region.__str__() for region in self.RegionList])
+        string = ""
+        for i in range(len(self.RegionList)):
+            string += "Region {}, ".format(i) + self.RegionList[i].__str__() + "\n"
+
+        return string
 
 
     def update_sum_regions(self):
@@ -226,7 +242,7 @@ cdef class CovarianceMatrix:
         specified by index. Used before starting the sampling for an individual region.
         '''
         partialRegionList = self.RegionList[:region_index] + self.RegionList[region_index + 1:]
-        cdef cholmod_sparse *R = get_A(partialRegionList[0])
+        cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(partialRegionList[0]), &self.c)
 
         for region in partialRegionList[1:]:
             R = cholmod_add(R, get_A(region), self.one, self.one, True, True, &self.c) 
@@ -239,17 +255,15 @@ cdef class CovarianceMatrix:
         the logdet and the new cholmod_factorization.
 
         '''
+
         print("Updating factorization")
         if self.sum_regions != NULL:
-            print("adding GCM to sum_regions")
-            self.A = cholmod_add(<cholmod_sparse *>self.GCM.A, self.sum_regions, self.one, self.one, True, True, &self.c)
+            self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, &self.c)
         else:
-            print("Null regions")
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
             #there are no regions declared, and it should COPY A
             self.A = cholmod_copy_sparse(self.GCM.A, &self.c)
 
-        print("Trying Cholesky factorization")
         self.L = cholmod_analyze(self.A, &self.c) #do Cholesky factorization 
         cholmod_factorize(self.A, self.L, &self.c)
 
@@ -409,7 +423,7 @@ cdef class RegionCovarianceMatrix:
             raise C.ModelError("h {}, sigma {}, and a {} must be positive.".format(h, sigma, a))
 
         if np.abs((mu - self.mu)) > self.sigma0:
-            raise C.ModelError("mu {} has strayed too far from the \
+            raise C.RegionError("mu {} has strayed too far from the \
                     original specification {}".format(mu, self.mu))
         
         self.A = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, &self.c)
@@ -421,3 +435,4 @@ cdef class RegionCovarianceMatrix:
 #When doing just the region sampling, the sampler keys into the update_region method attached to the CovarianceMatrix
 
 #How long does the add operation actually take? About 0.02s to add together two large covariance regions. I think it might be OK to leave in the extra add operation at this point.
+
