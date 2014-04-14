@@ -310,10 +310,11 @@ class RegionsSampler:
 
     '''
 
-    def __init__(self, order_index, lnprob, logic_function, pool=None):
+    def __init__(self, order_index, lnprob, order_model=None, pool=None):
 
         self.order_index = order_index
-        self.lnprob #globally defined lnprob
+        self.order_model = order_model
+        self.lnprob = lnprob #globally defined lnprob, which can be passed to each sampler. Hope this is OK...
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
         #to decide if more or fewer RegionSampler's are needed?
@@ -323,18 +324,14 @@ class RegionsSampler:
         #Need to change a to loga
         self.default_param_dict = {"h":(0.1, 1), "loga":(-14.4, -14), "sigma":(0.1, 1)}
 
-
-    def evaluate_region_logic(self):
-        #Go through the Model and decide where we should initialize new regions
-        pass
-
     def create_region(self, mu):
+        #mu is the location just returned by evaluate_region_logic(). Therefore we wish to instantiate a new RegionSampler
         #Create a new region in the model at this location, create a new sampler to sample it.
-        # Default values of h, mu, a, sigma are...
+        # Default values of h, mu, a, sigma are the same as the global values?
         param_dict = self.default_param_dict.copy()
         param_dict.update({"mu":(mu - 1, mu + 1)})
 
-        CovRegionSampler(self.lnprob, param_dict, order_index=self.order_index, region_index=len(self.samplers), pool=pool)
+        CovRegionSampler(self.lnprob, param_dict, order_index=self.order_index, region_index=len(self.samplers))
         pass
 
 
@@ -344,7 +341,7 @@ class RegionsSampler:
 
         self.logic_counter += 1
         if self.logic_counter >= self.logic_overflow:
-            mu = self.logic_function()
+            mu = self.order_model.evaluate_region_logic()
             if mu is not None:
                 self.create_region(mu)
 
