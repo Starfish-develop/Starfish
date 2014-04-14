@@ -183,6 +183,9 @@ Postulated hierarchy of emcee samplers
         * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
         of them
 
+If we switch over to Gibbs/Metropolis-Hastings samplers, it should be easier to instantiate a chain with
+just the parameters we need. I think this also means we can avoid any later confusion using emcee as a Gibbs sampler.
+
 Need to modify the covariance matrix to accept a region to be updated.
 
 Then decide on a sampler that will change just this region.
