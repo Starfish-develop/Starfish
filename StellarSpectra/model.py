@@ -26,6 +26,16 @@ def load_config():
         import StellarSpectra #this triggers the __init__.py code
         config = StellarSpectra.default_config
 
+def plot_walkers(filename, samples, labels=None):
+    ndim = len(samples[0, :])
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(nrows=ndim, sharex=True)
+    for i in range(ndim):
+        ax[i].plot(samples[:,i])
+        if labels is not None:
+            ax[i].set_ylabel(labels[i])
+    ax[-1].set_xlabel("Sample number")
+    fig.savefig(filename)
 
 class Model:
     '''
@@ -42,10 +52,11 @@ class Model:
 
     '''
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple):
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, region_tuple):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
         self.cov_tuple = cov_tuple
+        self.region_tuple = region_tuple
         self.norders = self.DataSpectrum.shape[0]
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
         if 'alpha' not in self.stellar_tuple:
@@ -63,6 +74,9 @@ class Model:
 
     def zip_Cov_p(self, p):
         return dict(zip(self.cov_tuple, p))
+
+    def zip_Region_p(self, p):
+        return dict(zip(self.region_tuple, p))
 
     def update_Model(self, params):
         self.ModelSpectrum.update_all(params)
@@ -87,17 +101,18 @@ class Model:
 
         for i in range(self.norders):
             #Correct the warp of the model using the ChebyshevSpectrum
-            model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
-
+            # model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
 
             #Evaluate using the current CovarianceMatrix
-            lnps[i] = self.OrderModels[i].CovarianceMatrix.evaluate(model_fl)
+            # lnps[i] = self.OrderModels[i].evaluate(model_fl)
+            lnps[i] = self.OrderModels[i].evaluate()
 
         return np.sum(lnps)
 
 
 class OrderModel:
     def __init__(self, ModelSpectrum, DataSpectrum, index):
+        print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
         self.wl = self.DataSpectrum.wls[self.index]
@@ -111,7 +126,7 @@ class OrderModel:
         self.ChebyshevSpectrum.update(coefs)
 
     def update_Cov(self, params):
-        self.CovarianceMatrix.update(params)
+        self.CovarianceMatrix.update_global(params)
 
     def get_spectrum(self):
         return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
@@ -167,33 +182,25 @@ class Sampler:
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out.png", order_index=None, pool=None):
+    def __init__(self, model, MH_cov, starting_param_dict, plot_name="plots/out", order_index=None):
         #Each subclass will have to overwrite how it parses the param_dict into the correct order
         #and sets the param_tuple
 
         #SUBCLASS OVERWRITE HERE to create self.param_tuple
 
+        #SUBCLASS here to write self.lnprob
+
+        self.model = model
         self.ndim = len(self.param_tuple)
-        self.nwalkers = self.ndim * 4
 
-        #Generate starting guesses using information passed in stellar_dict
-        p0 = []
-        for param in self.param_tuple:
-            low, high = param_dict[param]
-            p0.append(np.random.uniform(low=low, high=high, size=(self.nwalkers,)))
+        self.p0 = np.empty((self.ndim))
+        for i,param in enumerate(self.param_tuple):
+            self.p0[i] = starting_param_dict[param]
 
-        self.p0 = np.array(p0).T
-
-        if pool is not None:
-            if order_index is None:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, pool=pool)
-            else:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(order_index,), pool=pool)
+        if order_index is None:
+            self.sampler = emcee.MHSampler(MH_cov, self.ndim, self.lnprob)
         else:
-            if order_index is None:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob)
-            else:
-                self.sampler = emcee.EnsembleSampler(self.nwalkers, self.ndim, lnprob, args=(order_index,))
+            self.sampler = emcee.MHSampler(MH_cov, self.ndim, self.lnprob, args=(order_index,))
 
         self.pos_trio = None
         self.plot_name = plot_name
@@ -205,13 +212,14 @@ class Sampler:
     def run(self, iterations):
         if iterations == 0:
             return
-        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations), end="")
+        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations))
         t = time.time()
 
         if self.pos_trio is None:
             self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
 
         else:
+            print("running for {} iterations".format(iterations))
             pos, prob, state = self.pos_trio
             self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
 
@@ -223,6 +231,7 @@ class Sampler:
         '''
         self.run(iterations)
 
+
     def plot(self):
         '''
         Generate the relevant plots once the sampling is done.
@@ -233,25 +242,44 @@ class Sampler:
         samples = self.sampler.flatchain
         figure = triangle.corner(samples, labels=self.param_tuple, quantiles=[0.16, 0.5, 0.84],
                                  show_titles=True, title_args={"fontsize": 12})
-        figure.savefig(self.plot_name)
+        figure.savefig(self.plot_name + "triangle.png")
 
+        plot_walkers(self.plot_name + "chain_pos.png", samples, labels=self.param_tuple)
+
+
+    def acceptance_fraction(self):
+        return self.sampler.acceptance_fraction
 
 class StellarSampler(Sampler):
     '''
     Subclass of Sampler for evaluating stellar parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_star.png", pool=None):
+    def __init__(self, model, MH_cov, starting_param_dict, plot_name="plots/out_stellar"):
         #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_tuple(param_dict)
+        self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, pool=pool)
+        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+
+
+    def lnprob(self, p):
+        params = self.model.zip_stellar_p(p)
+        # print("Temp=",params['temp']," logOmega=", params['logOmega'])
+        try:
+            self.model.update_Model(params) #This also updates downsampled_fls
+            #For order in myModel, do evaluate, and sum the results.
+            lnp = self.model.evaluate()
+            print("Stellar lnp={} {}".format(lnp, params))
+            return lnp #self.model.evaluate()
+        except C.ModelError:
+            print("Stellar returning -np.inf")
+            return -np.inf
 
 
 class ChebSampler(Sampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cheb.png", order_index=None, pool=None):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, plot_name="plots/out_cheb"):
         #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
         #From a simple param dict, create a more complex param_dict
 
@@ -259,43 +287,75 @@ class ChebSampler(Sampler):
         #For now it is just set manually
         #self.param_tuple = ("logc0", "c1", "c2", "c3")
         self.param_tuple = ("c1", "c2", "c3")
+        self.order_index = order_index
+        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index, pool=pool)
+        self.order_model = self.model.OrderModels[self.order_index]
+
+    def lnprob(self, p):
+        self.order_model.update_Cheb(p)
+        lnp = self.order_model.evaluate()
+        print("Cheb lnp={} {}".format(lnp, p))
+        return self.order_model.evaluate()
+
 
 class CovGlobalSampler(Sampler):
     '''
     Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_cov.png", order_index=None, pool=None):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, plot_name="plots/out_cov"):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_cov_global_tuple(param_dict)
+        self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index, pool=pool)
+        self.order_index = order_index
+        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+
+        self.order_model = self.model.OrderModels[self.order_index]
+
+    def lnprob(self, p):
+        params = self.model.zip_Cov_p(p)
+        if params["l"] > 1:
+            print("GlobalCov returning -np.inf")
+            return -np.inf
+        try:
+            self.order_model.update_Cov(params)
+            lnp =self.order_model.evaluate()
+            print("GlobalCov lnp={} {}".format(lnp, params))
+            return lnp
+        except C.ModelError:
+            print("GlobalCov returning -np.inf")
+            return -np.inf
 
 
 class CovRegionSampler(Sampler):
     '''
     Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.
     '''
-    def __init__(self, lnprob, param_dict, plot_name="plots/out_region_cov.png", order_index=None, region_index=None, pool=None):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, region_index=None, plot_name="plots/out_cov_region"):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_cov_region_tuple(param_dict)
+        self.param_tuple = ("h", "loga", "mu", "sigma")
 
-        super().__init__(lnprob, param_dict, plot_name=plot_name, order_index=order_index,
-                         region_index=region_index, pool=pool)
-
+        self.order_index = order_index
         self.region_index = region_index
+        plot_name += "{}".format(self.region_index)
+        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
 
-        #self.logic_counter = overflow index, once it's past a certain value, then evaluate logic
+        self.order_model = self.model.OrderModels[self.order_index]
+        self.CovMatrix = self.order_model.CovarianceMatrix
+        self.CovMatrix.create_region(starting_param_dict)
+        print("Created new Region sampler with region_index {}".format(self.region_index))
 
-    def initialize(self):
-        #TODO: each time it is time to run the Region sampler again (maybe there is a flag that gets set once the run is over or something)
-        #you need to go ahead and apply some logic.
-        update_partial_sum_regions()
-        pass
 
-#TODO: each of the above samplers has a plot_base string, which can be updated by a init_plot method.
-
+    def lnprob(self, p):
+        params = self.model.zip_Region_p(p)
+        try:
+             self.CovMatrix.update_region(self.region_index, params)
+             lnp =self.order_model.evaluate()
+             print("Region {} Cov lnp={} {}".format(self.region_index, lnp, params))
+             return lnp
+        except (C.ModelError, C.RegionError):
+             print("Region {} {} returning -np.inf".format(self.region_index, params))
+             return -np.inf
 
 class RegionsSampler:
     '''
@@ -308,31 +368,53 @@ class RegionsSampler:
     There will also be some logic that at the beginning of each iteration of the OrderSampler decides
     how to manage the RegionSamplerList.
 
+
     '''
+    #TODO: subclass RegionsSampler from MegaSampler
 
-    def __init__(self, order_index, lnprob, order_model=None, pool=None):
+    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, order_index=None, plot_name="plots/out_cov_region"):
 
+        self.model = model
+        self.MH_cov = MH_cov
+        self.default_param_dict = default_param_dict #this is everything but mu
         self.order_index = order_index
-        self.order_model = order_model
-        self.lnprob = lnprob #globally defined lnprob, which can be passed to each sampler. Hope this is OK...
+        self.order_model = self.model.OrderModels[self.order_index]
+
+        self.cadence = 5 #samples to devote to each region before moving on to the next
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
+        self.max_regions = 12
         #to decide if more or fewer RegionSampler's are needed?
 
-        self.samplers = None
-        self.cadence = 5 #samples to devote to each region before moving on to the next
-        #Need to change a to loga
-        self.default_param_dict = {"h":(0.1, 1), "loga":(-14.4, -14), "sigma":(0.1, 1)}
+        self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
 
-    def create_region(self, mu):
+    def evaluate_region_logic(self):
+        return self.order_model.evaluate_region_logic()
+
+    def create_region_sampler(self, mu):
         #mu is the location just returned by evaluate_region_logic(). Therefore we wish to instantiate a new RegionSampler
         #Create a new region in the model at this location, create a new sampler to sample it.
-        # Default values of h, mu, a, sigma are the same as the global values?
-        param_dict = self.default_param_dict.copy()
-        param_dict.update({"mu":(mu - 1, mu + 1)})
 
-        CovRegionSampler(self.lnprob, param_dict, order_index=self.order_index, region_index=len(self.samplers))
-        pass
+        #copy and update default_param_dict to include the new value of mu
+        starting_param_dict = self.default_param_dict.copy()
+        starting_param_dict.update({"mu":mu})
+        region_index = len(self.samplers) #region_index is one more than the current amount of regions
+
+        newSampler = CovRegionSampler(self.model, self.MH_cov, starting_param_dict, order_index=self.order_index,
+                                      region_index=region_index)
+        self.samplers.append(newSampler)
+
+    def reset(self):
+        for sampler in self.samplers:
+            sampler.reset()
+            print("Reset RegionsSampler for order {}".format(self.order_index))
+
+
+    def burn_in(self, iterations):
+        '''
+        For consistencies's sake w/ MegaSampler
+        '''
+        self.run(iterations)
 
 
     def run(self, iterations):
@@ -340,25 +422,25 @@ class RegionsSampler:
             return
 
         self.logic_counter += 1
-        if self.logic_counter >= self.logic_overflow:
-            mu = self.order_model.evaluate_region_logic()
+        if (self.logic_counter >= self.logic_overflow) and (len(self.samplers) < self.max_regions):
+            mu = self.evaluate_region_logic()
             if mu is not None:
-                self.create_region(mu)
+                self.create_region_sampler(mu)
 
+        for i in range(iterations):
+            for sampler in self.samplers:
+                print("Sampling region {} for {} iterations: ".format(sampler.region_index, iterations), end="")
+                t = time.time()
+                sampler.run(self.cadence)
+                print("completed in {:.2f} seconds".format(time.time() - t))
 
-        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations), end="")
-        t = time.time()
+    def plot(self):
+        for sampler in self.samplers:
+            sampler.plot()
 
-        if self.pos_trio is None:
-            self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
-
-        else:
-            pos, prob, state = self.pos_trio
-            self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
-
-        print("completed in {:.2f} seconds".format(time.time() - t))
-    #can check for C.RegionError if the initialized region is bad, or mu drifts too much
-
+    def acceptance_fraction(self):
+        for j in range(len(self.samplers)):
+            print(self.samplers[j].acceptance_fraction())
 
 class MegaSampler:
     '''
@@ -396,81 +478,9 @@ class MegaSampler:
         for j in range(self.nsamplers):
             self.samplers[j].plot()
 
-
-
-
-class SamplerStellarCheb:
-    '''
-    Sampler object explores the model in two different ways using a Gibbs Sampler with `emcee` instances.
-
-    :param lnprob_stellar: globally defined lnprob function for stellar parameters
-    :param lnprob_Cheb: globally defined lnprob function for Chebyshev coefficients
-
-    This can have a baked-in number of walkers per dimension, and total iteration time.
-    '''
-    def __init__(self, lnprob_stellar, stellar_dict, stellar_iterations):
-        #Instantiate `emcee` samplers for lnprob_stellar and lnprob_Cheb
-
-        #Take the stellar_dict and parse the keys into a tuple
-        self.stellar_tuple = C.dictkeys_to_tuple(stellar_dict)
-        #Determine the dimensions and number of walkers
-        ndim_stellar = len(self.stellar_tuple)
-        nwalkers_stellar = ndim_stellar * 4
-
-        #Generate starting guesses using information passed in stellar_dict
-        p0_stellar = []
-        for stellar_param in self.stellar_tuple:
-            low, high = stellar_dict[stellar_param]
-            p0_stellar.append(np.random.uniform(low=low, high=high, size=(nwalkers_stellar,)))
-
-        self.p0_stellar = np.array(p0_stellar).T
-        self.stellar_iterations = stellar_iterations
-
-        self.pool = MPIPool()
-        if not self.pool.is_master():
-        #   Wait for instructions from the master process.
-            self.pool.wait()
-            sys.exit(0) #this is at the very end of the run.
-
-        self.stellar_sampler = emcee.EnsembleSampler(nwalkers_stellar, ndim_stellar, lnprob_stellar, pool=self.pool)
-
-        #self.Cheb_sampler = emcee.EnsembleSampler(nwalkers_Cheb, ndim_Cheb, lnprob_Cheb, pool=self.pool)
-
-
-    def burn_in(self):
-        self.stellar_trio = self.stellar_sampler.run_mcmc(self.p0_stellar, self.stellar_iterations)
-
-        self.stellar_sampler.reset()
-
-    def run(self, iterations):
-        pos, prob, state = self.stellar_trio
-        #Now run for 100 samples
-        self.stellar_sampler.run_mcmc(pos, iterations, rstate0=state)
-
-        #for i in iterations:
-
-
-            #Update lnprob args in Cheb_emcee
-            #for k in Cheb_iterations:
-            #    self.Cheb_emcee.sample()
-
-            #Update lnprob args in stellar_emcee
-
-        #When done, output the flatchains to a file.
-        self.pool.close()
-
-
-    def plot(self):
-        '''
-        Once the sampler is finished, generate all of the relevant plots for the run.
-        '''
-        import triangle
-
-        samples = self.stellar_sampler.flatchain
-        figure = triangle.corner(samples, labels=self.stellar_tuple, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 12})
-        figure.savefig("plots/GW_Ori_triangle.png")
-        pass
+    def acceptance_fraction(self):
+        for j in range(self.nsamplers):
+            print(self.samplers[j].acceptance_fraction())
 
 
 

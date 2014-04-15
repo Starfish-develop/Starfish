@@ -16,6 +16,10 @@ class TestCCovarianceMatrix:
     def test_init(self):
         print("Initialized OK")
 
+    def test_evaluate_before_global(self):
+        print("\n NO GLOBAL lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
+
+
     def test_update_global(self):
         self.CovarianceMatrix.update_global({"sigAmp":1, "logAmp":0.0, "l":1})
         # S = self.CovarianceMatrix.cholmod_to_scipy_sparse()

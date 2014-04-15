@@ -7,7 +7,9 @@ import emcee
 #create our lnprob as a multidimensional Gaussian, where icov is C^{-1}
 def lnprob(x, mu, icov):
     diff = x-mu
-    return -np.dot(diff,np.dot(icov,diff))/2.0
+    lnp = -np.dot(diff,np.dot(icov,diff))/2.0
+    print("lnp = ", lnp)
+    return lnp
 
 ndim = 2
 
@@ -23,30 +25,30 @@ MH_cov = np.array([[1.5, 0],[0., 0.7]])
 
 sampler = emcee.MHSampler(MH_cov, ndim, lnprob, args=[means, icov])
 
-pos, prob, state = sampler.run_mcmc(np.array([0, 0]), 1000)
-sampler.reset()
+pos, prob, state = sampler.run_mcmc(np.array([0, 0]), 5)
+print("Samples", sampler.flatchain)
+# sampler.reset()
 
-sampler.run_mcmc(pos, 1000)
+# sampler.run_mcmc(pos, 5)
 
-print("Last 10 samples", sampler.flatchain[-10:,:])
 print("Acceptance fraction", sampler.acceptance_fraction)
-
-import triangle
-import matplotlib.pyplot as plt
-
-samples = sampler.flatchain
-figure = triangle.corner(samples, labels=(r"$\mu_1$", r"$\mu_2$"), quantiles=[0.16, 0.5, 0.84],
-                         show_titles=True, title_args={"fontsize": 12})
-figure.savefig("MH.png")
-
-def plot_walkers(filename, samples, labels=None):
-    ndim = len(samples[0, :])
-    fig, ax = plt.subplots(nrows=ndim, sharex=True)
-    for i in range(ndim):
-        ax[i].plot(samples[:,i])
-        if labels is not None:
-            ax[i].set_ylabel(labels[i])
-    ax[-1].set_xlabel("Sample number")
-    fig.savefig(filename)
-
-plot_walkers("walkers.png", samples, labels=(r"$\mu_1$", r"$\mu_2$"))
+#
+# import triangle
+# import matplotlib.pyplot as plt
+#
+# samples = sampler.flatchain
+# figure = triangle.corner(samples, labels=(r"$\mu_1$", r"$\mu_2$"), quantiles=[0.16, 0.5, 0.84],
+#                          show_titles=True, title_args={"fontsize": 12})
+# figure.savefig("MH.png")
+#
+# def plot_walkers(filename, samples, labels=None):
+#     ndim = len(samples[0, :])
+#     fig, ax = plt.subplots(nrows=ndim, sharex=True)
+#     for i in range(ndim):
+#         ax[i].plot(samples[:,i])
+#         if labels is not None:
+#             ax[i].set_ylabel(labels[i])
+#     ax[-1].set_xlabel("Sample number")
+#     fig.savefig(filename)
+#
+# plot_walkers("walkers.png", samples, labels=(r"$\mu_1$", r"$\mu_2$"))
