@@ -194,6 +194,7 @@ cdef class CovarianceMatrix:
         mu = params["mu"]
         if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
             self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common))
+            print("Added region to self.RegionList")
             ##Do update on partial_sum_regions and sum_regions
             self.update_region(region_index=(len(self.RegionList)-1), params=params)
         else:
@@ -219,6 +220,10 @@ cdef class CovarianceMatrix:
 
         region = self.RegionList[region_index]
         region.update(params)
+
+        if self.sum_regions != NULL:
+            #clear the previously allocated sum_regions, because we are about to make it point to a new sum
+            cholmod_free_sparse(&self.sum_regions, self.c)
 
         if self.partial_sum_regions != NULL:
             #Other regions exist, update the total sum using this region and the other partial
@@ -247,9 +252,15 @@ cdef class CovarianceMatrix:
         '''
         print("updating sum_regions")
         cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), self.c)
+        cdef cholmod_sparse *temp
 
         for region in self.RegionList[1:]:
-            R = cholmod_add(R, get_A(region), self.one, self.one, True, True, self.c) 
+            temp = R
+            R = cholmod_add(temp, get_A(region), self.one, self.one, True, True, self.c) 
+            cholmod_free_sparse(&temp, self.c)
+
+        if self.sum_regions != NULL:
+            cholmod_free_sparse(&self.sum_regions, self.c)
 
         self.sum_regions = R 
 
@@ -260,9 +271,15 @@ cdef class CovarianceMatrix:
         '''
         partialRegionList = self.RegionList[:region_index] + self.RegionList[region_index + 1:]
         cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(partialRegionList[0]), self.c)
+        cdef cholmod_sparse *temp
 
         for region in partialRegionList[1:]:
-            R = cholmod_add(R, get_A(region), self.one, self.one, True, True, self.c) 
+            temp = R
+            R = cholmod_add(temp, get_A(region), self.one, self.one, True, True, self.c) 
+            cholmod_free_sparse(&temp, self.c)
+
+        if self.partial_sum_regions != NULL:
+            cholmod_free_sparse(&self.partial_sum_regions, self.c)
 
         self.partial_sum_regions = R 
 
@@ -292,15 +309,23 @@ cdef class CovarianceMatrix:
         Sum together the global covariance matrix and the sum_regions, calculate 
         the logdet and the new cholmod_factorization.
 
+        I think here we must free the memory previously afforded to A.
+
         '''
 
-        print("Updating factorization")
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, self.c)
+
         if self.sum_regions != NULL:
             self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
         else:
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
             #there are no regions declared, and it should COPY A
             self.A = cholmod_copy_sparse(self.GCM.A, self.c)
+
+
+        if self.L != NULL:
+            cholmod_free_factor(&self.L, self.c)
 
         self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization 
         cholmod_factorize(self.A, self.L, self.c)
@@ -462,8 +487,14 @@ cdef class GlobalCovarianceMatrix:
 
         cdef double *alpha =  [1, 0]
         cdef double *beta = [sigAmp**2, 0]
+
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, self.c)
         
-        self.A = cholmod_add(create_sparse(self.wl, self.npoints, self.min_sep, amp, l, self.c), self.sigma, alpha, beta, True, True, self.c)
+        cdef cholmod_sparse *temp = create_sparse(self.wl, self.npoints, self.min_sep, amp, l, self.c)
+        
+        self.A = cholmod_add(temp, self.sigma, alpha, beta, True, True, self.c)
+        cholmod_free_sparse(&temp, self.c)
 
 
 cdef class RegionCovarianceMatrix:
@@ -513,7 +544,7 @@ cdef class RegionCovarianceMatrix:
         Back in CovarianceMatrix, calculate the logdet and the new cholmod_factorization.
         '''
         h = params['h']
-        a = params['a']
+        a = 10**params['loga']
         mu = params['mu']
         sigma = params['sigma']
 
@@ -524,6 +555,8 @@ cdef class RegionCovarianceMatrix:
             raise C.RegionError("mu {} has strayed too far from the \
                     original specification {}".format(mu, self.mu))
         
+        if self.A != NULL:
+            cholmod_free_sparse(&self.A, self.c)
         self.A = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, self.c)
  
 #Run some profiling code to see what our bottlenecks might be.

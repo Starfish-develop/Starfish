@@ -183,19 +183,21 @@ Postulated hierarchy of emcee samplers
         * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
         of them
 
-If we switch over to Gibbs/Metropolis-Hastings samplers, it should be easier to instantiate a chain with
-just the parameters we need. I think this also means we can avoid any later confusion using emcee as a Gibbs sampler.
 
-Need to modify the covariance matrix to accept a region to be updated.
 
-Then decide on a sampler that will change just this region.
+
 
 Open questions:
 
 * How many times should we add lines? Do you ever delete lines?
-* How do you find the next-highest pixel not already covered by a region?
 
-* keep bumping down the cutoff limit until we have reached 3 * sigma of the Matern kernel, or something.
+* What is happening when we have an error that the matrix is not positive semi-definite? How can we catch this error?
+It seems like it happens for perfectly normal parameter combinations.
+Although it might also be happening when h is very small, like 0.03 AA, which means it will actually be
+smaller than the separation of pixels. What should we do in this case? Is it zeroing out pixels somehow?
+It seems like it might be a problem with h and sigma somehow, but I'm not sure.
+
+Why does a system return nan as we instantiate more regions?
 
 
 # Speedups and improvements
