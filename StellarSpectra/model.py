@@ -52,6 +52,8 @@ class Model:
 
     '''
 
+    #TODO: static method to create and instantiate Model from JSON
+
     def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, region_tuple):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
@@ -108,6 +110,20 @@ class Model:
             lnps[i] = self.OrderModels[i].evaluate()
 
         return np.sum(lnps)
+
+
+    def to_JSON(self):
+        '''
+        Write all of the available parameters to a JSON file so that we may go back and re-create the model
+        '''
+        import json
+        parameters = {}
+        #get stellar parameters
+        #parameters["stellar"] = self.get_stellar_params()
+        #orders =
+        #for each order, get the cheb parameters, global covariance parameters
+        #for each region, get the region parameters
+        pass
 
 
 class OrderModel:
@@ -269,6 +285,8 @@ class StellarSampler(Sampler):
             #For order in myModel, do evaluate, and sum the results.
             lnp = self.model.evaluate()
             print("Stellar lnp={} {}".format(lnp, params))
+            if np.isnan(lnp):
+                sys.exit(0)
             return lnp #self.model.evaluate()
         except C.ModelError:
             print("Stellar returning -np.inf")
@@ -321,6 +339,8 @@ class CovGlobalSampler(Sampler):
             self.order_model.update_Cov(params)
             lnp =self.order_model.evaluate()
             print("GlobalCov lnp={} {}".format(lnp, params))
+            if np.isnan(lnp):
+                sys.exit(0)
             return lnp
         except C.ModelError:
             print("GlobalCov returning -np.inf")
@@ -352,6 +372,8 @@ class CovRegionSampler(Sampler):
              self.CovMatrix.update_region(self.region_index, params)
              lnp =self.order_model.evaluate()
              print("Region {} Cov lnp={} {}".format(self.region_index, lnp, params))
+             if np.isnan(lnp):
+                sys.exit(0)
              return lnp
         except (C.ModelError, C.RegionError):
              print("Region {} {} returning -np.inf".format(self.region_index, params))

@@ -329,6 +329,14 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
         }
     }
     T->nnz = k;
+
+    if (k == 0)
+    {
+        //the parameters for the region were too small, and no region was
+        //initialized, return null
+        cholmod_free_triplet(&T, c);
+        return NULL;
+    }
     
     //The conversion will transpose the entries and add to the upper half.
     cholmod_sparse *A = cholmod_triplet_to_sparse(T, k, c);

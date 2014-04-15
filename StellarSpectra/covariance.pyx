@@ -91,6 +91,7 @@ cdef extern from "cholmod.h":
     cholmod_factor * cholmod_analyze(cholmod_sparse *, cholmod_common *c) except? NULL
     int cholmod_factorize(cholmod_sparse *, cholmod_factor *, cholmod_common *c) except? 0
     cholmod_sparse * cholmod_spsolve(int, cholmod_factor *, cholmod_sparse *, cholmod_common *c) except? NULL
+    double cholmod_rcond(cholmod_factor *L, cholmod_common*c) except? 0.0
 
 #These are the functions that I have written myself
 cdef extern from "../extern/cov.h":
@@ -220,6 +221,7 @@ cdef class CovarianceMatrix:
 
         region = self.RegionList[region_index]
         region.update(params)
+        print("updating region {} with params {}".format(region_index, params))
 
         if self.sum_regions != NULL:
             #clear the previously allocated sum_regions, because we are about to make it point to a new sum
@@ -329,6 +331,7 @@ cdef class CovarianceMatrix:
 
         self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization 
         cholmod_factorize(self.A, self.L, self.c)
+        print("rcond is ", cholmod_rcond(self.L, self.c))
 
         self.logdet = get_logdet(self.L)
 
@@ -554,11 +557,17 @@ cdef class RegionCovarianceMatrix:
         if np.abs((mu - self.mu)) > self.sigma0:
             raise C.RegionError("mu {} has strayed too far from the \
                     original specification {}".format(mu, self.mu))
+
+        cdef cholmod_sparse *temp = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, self.c)
+
+        if temp == NULL:
+            raise C.RegionError("region is too small to contain any nonzero elements.")
+
         
         if self.A != NULL:
             cholmod_free_sparse(&self.A, self.c)
-        self.A = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, self.c)
- 
+
+        self.A = temp
 #Run some profiling code to see what our bottlenecks might be.
 #With stock format
 #Update takes 0.138 seconds, evaluate takes 0.001s
