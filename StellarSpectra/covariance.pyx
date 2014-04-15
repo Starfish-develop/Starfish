@@ -529,6 +529,7 @@ cdef class RegionCovarianceMatrix:
         self.update(params) #do the first initialization
 
 
+
     def __dealloc__(self):
         print("Deallocating RegionCovarianceMatrix")
         PyMem_Free(self.wl)
@@ -540,6 +541,7 @@ cdef class RegionCovarianceMatrix:
 
     def get_bounds(self):
         return (self.mu - self.sigma0, self.mu + self.sigma0)
+
 
     def update(self, params):
         '''

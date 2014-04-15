@@ -16,8 +16,8 @@ class TestCCovarianceMatrix:
     def test_init(self):
         print("Initialized OK")
 
-    def test_evaluate_before_global(self):
-        print("\n NO GLOBAL lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
+    # def test_evaluate_before_global(self):
+    #     print("\n NO GLOBAL lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
 
 
     def test_update_global(self):
@@ -67,13 +67,13 @@ class TestCCovarianceMatrix:
         cov = self.CovarianceMatrix.get_region_coverage()
         print(np.sum(cov))
 
-    # def test_cholmod_to_scipy_sparse(self):
-    #     S = self.CovarianceMatrix.cholmod_to_scipy_sparse()
+    def test_cholmod_to_scipy_sparse(self):
+        S = self.CovarianceMatrix.cholmod_to_scipy_sparse()
     #     print("Value of 100, 100 is ", S[100, 100])
-    #     import matplotlib.pyplot as plt
-    #     # plt.spy(S, markersize=0.001)
-    #     plt.imshow(S.todense(), origin='upper', interpolation='none')
-    #     plt.show()
+        import matplotlib.pyplot as plt
+        # plt.spy(S, markersize=0.001)
+        plt.imshow(np.log10(S.todense()), origin='upper', interpolation='none')
+        plt.show()
 
 
     def test_common_equal(self):

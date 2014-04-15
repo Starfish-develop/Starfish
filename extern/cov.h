@@ -23,9 +23,13 @@ double k_region (double x0, double x1, double h, double a, double mu, double sig
     //Hanning-tapered covariance kernel
 
     //Hanning taper is defined using radial distance from mu
-    double r_mu = sqrt((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu));
+    double rx0 = fabs(x0 - mu);
+    double rx1 = fabs(x1 - mu);
+    double r_tap = rx0 > rx1 ? rx0 : rx1; //choose the larger distance
+    //double r_mu = sqrt((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu));
     double r0 = 4.0 * sigma; //where the kernel goes to 0
-    double taper = (0.5 + 0.5 * cos(PI * r_mu/r0));
+    assert(r_tap <= r0);
+    double taper = (0.5 + 0.5 * cos(PI * r_tap/r0));
 
     //defined as linear distance between x0 and x1
     double r = fabs(x0 - x1);
@@ -316,16 +320,16 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
     {
         for (j = first_ind; j <= i; j++)
         {
-            double r_mu = sqrt((wl[i] - mu)*(wl[i] - mu) 
-                + (wl[j] - mu)*(wl[j] - mu));
+            //double r_mu = sqrt((wl[i] - mu)*(wl[i] - mu) 
+            //    + (wl[j] - mu)*(wl[j] - mu));
 
-            if (r_mu < r0) //If the distance is below our cutoff, initialize
-            {
-                Ti[k] = i;
-                Tj[k] = j;
-                Tx[k] = k_region(wl[i], wl[j], h, a, mu, sigma);
-                k++;
-            }
+            //if (r_mu < r0) //If the distance is below our cutoff, initialize
+            //{
+            Ti[k] = i;
+            Tj[k] = j;
+            Tx[k] = k_region(wl[i], wl[j], h, a, mu, sigma);
+            k++;
+            //}
         }
     }
     T->nnz = k;

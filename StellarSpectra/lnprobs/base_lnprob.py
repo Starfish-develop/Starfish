@@ -68,10 +68,10 @@ myCovSampler = CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=0
 myRegionsSampler = RegionsSampler(myModel, region_MH_cov, order_index=0)
 
 mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler), burnInCadence=(6, 6, 6, 2), cadence=(6, 6, 6, 2))
-mySampler.burn_in(1000)
+mySampler.burn_in(100)
 mySampler.reset()
 
-mySampler.run(1000)
+mySampler.run(100)
 mySampler.plot()
 mySampler.acceptance_fraction()
 
