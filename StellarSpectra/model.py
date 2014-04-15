@@ -67,6 +67,7 @@ class Model:
             trilinear = False
         myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
         self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
+        self.stellar_params = None
 
         #Now create a a list which contains an OrderModel for each order
         self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index) for index in range(self.norders)]
@@ -81,6 +82,7 @@ class Model:
         return dict(zip(self.region_tuple, p))
 
     def update_Model(self, params):
+        self.stellar_params = params
         self.ModelSpectrum.update_all(params)
 
     def get_data(self):
@@ -112,18 +114,34 @@ class Model:
         return np.sum(lnps)
 
 
-    def to_JSON(self):
+    def to_json(self, fname="model.json"):
         '''
         Write all of the available parameters to a JSON file so that we may go back and re-create the model
         '''
         import json
         parameters = {}
-        #get stellar parameters
-        #parameters["stellar"] = self.get_stellar_params()
+
+        parameters["stellar"] = self.stellar_params
+        orders = {}
+        for i in range(self.norders):
+            order_dict = {}
+            order_model = self.OrderModels[i]
+            order_dict["global cov"] = order_model.global_cov_params
+
+            #get Cheb params
+            #regions = {}
+            #go through each region in region list
+                #regions[0] = {h, a, m, sigma}
+            #order_dict["regions"] =
+            orders[str(order_model.order)] = order_dict
+        parameters["orders"] = orders
         #orders =
         #for each order, get the cheb parameters, global covariance parameters
         #for each region, get the region parameters
-        pass
+        f = open(fname, 'w')
+        json.dump(parameters, f, indent=2)
+        f.close()
+
 
 
 class OrderModel:
@@ -137,11 +155,13 @@ class OrderModel:
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
+        self.global_cov_params = None
 
     def update_Cheb(self, coefs):
         self.ChebyshevSpectrum.update(coefs)
 
     def update_Cov(self, params):
+        self.global_cov_params = params
         self.CovarianceMatrix.update_global(params)
 
     def get_spectrum(self):
@@ -373,7 +393,12 @@ class CovRegionSampler(Sampler):
              lnp =self.order_model.evaluate()
              print("Region {} Cov lnp={} {}".format(self.region_index, lnp, params))
              if np.isnan(lnp):
-                sys.exit(0)
+                 print(self.CovMatrix.print_all_regions())
+                 S = self.CovMatrix.cholmod_to_scipy_sparse()
+                 import matplotlib.pyplot as plt
+                 plt.imshow(np.log10(S.todense()), origin='upper', interpolation='none')
+                 plt.show()
+
              return lnp
         except (C.ModelError, C.RegionError):
              print("Region {} {} returning -np.inf".format(self.region_index, params))
@@ -483,6 +508,7 @@ class MegaSampler:
 
     def burn_in(self, iterations):
         for i in range(iterations):
+            print("\n\nMegasampler on burn in iteration {} of {}".format(i, iterations))
             for j in range(self.nsamplers):
                 #self.samplers[j].run(self.burnInCadence[j])
                 self.samplers[j].burn_in(self.burnInCadence[j])
@@ -493,6 +519,7 @@ class MegaSampler:
 
     def run(self, iterations):
         for i in range(iterations):
+            print("\n\nMegasampler on iteration {} of {}".format(i, iterations))
             for j in range(self.nsamplers):
                 self.samplers[j].run(self.cadence[j])
 

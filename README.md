@@ -210,6 +210,10 @@ First plan of action is to set up JSON serialization
 Second plan is to look at whether region taperings can overlap
 For example, does creating two overlapping regions result in a non-definite matrix?
 
+Should we make some assertion that the amplitude of the region can't be less than the global covariance height?
+
+It could also be that one region is just way too much higher than the rest and we are getting numerical problems
+
 # Speedups and improvements
 
 * Right now, we should focus only on order 23 and get the bad region sampler to work.
