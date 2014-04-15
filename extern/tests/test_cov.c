@@ -273,6 +273,22 @@ MU_TEST(test_create_sparse_region)
 
 }
 
+MU_TEST(test_create_sparse_region_nonsense)
+{
+    printf("\ntest_create_sparse_region_nonsense\n");
+    //cholmod_sparse *A = create_sparse_region(wl23, 2298, 0.1574385528127511, 6.59207e-15, 5218.0438918892651, 0.00025277079709683931, &c);
+    cholmod_sparse *A = create_sparse_region(wl23, 2298, 0.088189212937567069, 9.5203e-15, 5235.64617, 0.01594656772112427, &c); 
+
+    
+    //the problem is that this currently returns a completely null matrix
+    
+    cholmod_print_sparse(A, "A", &c);
+
+
+    cholmod_free_sparse(&A, &c); 
+
+}
+
 MU_TEST(test_logdet_region)
 {
     printf("\ntest_logdet_region\n");
@@ -391,6 +407,7 @@ MU_TEST_SUITE(test_suite)
     MU_RUN_TEST(test_factor_real_wl);
     MU_RUN_TEST(test_logdet);
     MU_RUN_TEST(test_create_sparse_region);
+    MU_RUN_TEST(test_create_sparse_region_nonsense);
     MU_RUN_TEST(test_logdet_region);
     MU_RUN_TEST(test_real_wl_evaluate);
     MU_RUN_TEST(test_updown);

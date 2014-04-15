@@ -185,6 +185,7 @@ Postulated hierarchy of emcee samplers
 
 
 
+#Useful link to Wikipedia on covariance matrices/positive-semi definite
 
 
 Open questions:
@@ -199,6 +200,15 @@ It seems like it might be a problem with h and sigma somehow, but I'm not sure.
 
 Why does a system return nan as we instantiate more regions?
 
+Would it be a hack to just test if the jump is nan, otherwise return -np.inf?
+What do the regions actually look like with these parameters? Maybe the taper is not working correctly.
+What makes a region positive semi definite?
+We could stop as soon as it goes negative
+
+Is it a problem when the sigma's overlap? Can we better insure the tapering?
+First plan of action is to set up JSON serialization
+Second plan is to look at whether region taperings can overlap
+For example, does creating two overlapping regions result in a non-definite matrix?
 
 # Speedups and improvements
 
