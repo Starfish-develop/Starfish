@@ -214,7 +214,7 @@ cdef class CovarianceMatrix:
         if region_index != self.current_region:
             #We have switched sampling regions, time to update the partial sum
             if len(self.RegionList) > 1:
-                print("Switched sampling regions, updating partial sums")
+                #print("Switched sampling regions, updating partial sums")
                 self.update_partial_sum_regions(region_index)
                 #if len == 1, then we are the first region initialized and there is no partial sum.
             self.current_region = region_index
@@ -252,7 +252,7 @@ cdef class CovarianceMatrix:
         Update the sparse matrix that is the sum of all region matrices. Used before starting global
         covariance sampling.
         '''
-        print("updating sum_regions")
+        #print("updating sum_regions")
         cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), self.c)
         cdef cholmod_sparse *temp
 
@@ -331,7 +331,7 @@ cdef class CovarianceMatrix:
 
         self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization 
         cholmod_factorize(self.A, self.L, self.c)
-        print("rcond is ", cholmod_rcond(self.L, self.c))
+        #print("rcond is ", cholmod_rcond(self.L, self.c))
 
         self.logdet = get_logdet(self.L)
 

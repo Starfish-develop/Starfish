@@ -29,8 +29,6 @@ stellar_MH_cov[5, 0] = temp_logOmega
 #We could test to see if these jumps are being executed in the right direction by checking to see what the 2D pairwise
 # chain positions look like
 
-
-
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 #
@@ -45,118 +43,25 @@ cov_MH_cov = np.array([0.02, 0.02, 0.005])**2 * np.identity(len(cheb_Starting))
 cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
 
 region_tuple = ("h", "loga", "mu", "sigma")
-region_MH_cov = np.array([0.01, 0.02, 0.01, 0.01])**2 * np.identity(len(region_tuple))
+region_MH_cov = np.array([0.05, 0.04, 0.02, 0.02])**2 * np.identity(len(region_tuple))
 
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple)
 myModel.OrderModels[0].update_Cheb(np.array([-0.017, -0.017, -0.003]))
 myModel.OrderModels[0].CovarianceMatrix.update_global(cov_Starting)
 
-# def lnprob_Model(p):
-#     params = myModel.zip_stellar_p(p)
-#     try:
-#         myModel.update_Model(params) #This also updates downsampled_fls
-#         #For order in myModel, do evaluate, and sum the results.
-#
-#         return myModel.evaluate()
-#     except C.ModelError:
-#         return -np.inf
 
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting)
 myChebSampler = ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=0)
 myCovSampler = CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=0)
 myRegionsSampler = RegionsSampler(myModel, region_MH_cov, order_index=0)
 
-mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler), burnInCadence=(6, 6, 6, 2), cadence=(6, 6, 6, 2))
-mySampler.burn_in(100)
+mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler), burnInCadence=(10, 6, 6, 2), cadence=(10, 6, 6, 2))
+mySampler.burn_in(300)
 mySampler.reset()
 
-mySampler.run(100)
+mySampler.run(1000)
 mySampler.plot()
 mySampler.acceptance_fraction()
 
 
-#my23RegionsSampler is initially empty of samplers, but has methods to create RegionSamplers as it goes
-
-
-#my23OrderSampler = MegaSampler(samplers=(my23ChebSampler, my23CovSampler, my23RegionsSampler), ...)
-#Final sampler will be
-#mySampler = MegaSampler(samplers=(myStellarSampler, my22OrderSampler, my23OrderSampler, ...))
-
-#
-
-
-# print(myStellarSampler.sampler.flatchain)
-# print(myStellarSampler.sampler.acceptance_fraction)
-#
-# def lnprob_Cheb(p, order_index):
-#     #Select the correct order of myModel
-#     model = myModel.OrderModels[order_index]
-#     model.update_Cheb(p)
-#     return model.evaluate()
-#
-# def lnprob_Cov(p, order_index):
-#     params = myModel.zip_Cov_p(p)
-#     model = myModel.OrderModels[order_index]
-#     if params["l"] > 0.4:
-#         return -np.inf
-#     try:
-#         model.update_Cov(params)
-#         return model.evaluate()
-#     except C.ModelError:
-#         return -np.inf
-#
-# def lnprob_Cov_region(p, order_index, region_index):
-#     '''defining order and region_num at initialization time allows this to query into the covariance matrix at
-#     this region
-#     p looks like {h, a, mu, sigma}
-#     '''
-#     params = myModel.zip_Cov_p(p)
-#     if params["l"] > 0.4: #apply logic to make sure reasonable parameters
-#         return -np.inf
-#     try:
-#         myModel[order_index].update_Cov(params)
-#         return myModel.evaluate()
-#     except C.ModelError:
-#         return -np.inf
-#
-# def evaluate_region_logic(order_index):
-#     '''
-#     This is a method that RegionsSampler will call once self.logic_counter has overflown. It will check if there
-#     are any residuals that exist beyond a certain threshold (3 x general structure?) that are not already covered by some line.
-#
-#     If such a region does exist, it will return a mu to initialize that line.
-#
-#     If none exist, it will return None.
-#
-#     Eventually add support to remove regions.
-#
-#     '''
-#     model = myModel.OrderModels[order_index]
-#     return model.evaluate_region_logic()
-#
-# # pool = MPIPool()
-# # if not pool.is_master():
-# #     pool.wait()
-# #     sys.exit(0)
-#
-# myStellarSampler = StellarSampler(lnprob_Model, stellar_Starting)
-#
-# #MegaSampler is initialized with a list of OrderSamplers
-# #Each OrderSampler is also a MegaSampler object
-#
-#
-# Cheb23 = ChebSampler(lnprob_Cheb, cheb_Starting, index=0, plot_name="plots/out_cheb23.png")
-# Cov23 = CovSampler(lnprob_Cov, cov_Starting, index=0, plot_name="plots/out_cov23.png")
-#
-# Regions23 = RegionsSampler()
-#
-# Order23Sampler = MegaSampler(samplers=(Cheb23, Cov23), burnInCadence=(3, 3), cadence=(3, 3))
-#
-# myMegaSampler = MegaSampler(samplers=(myStellarSampler, Order23Sampler), burnInCadence=(5, 1), cadence=(5, 1))
-#
-# myMegaSampler.burn_in(30)
-# myMegaSampler.reset()
-# myMegaSampler.run(40)
-# # pool.close()
-# myMegaSampler.plot()

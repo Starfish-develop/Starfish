@@ -304,12 +304,13 @@ class StellarSampler(Sampler):
             self.model.update_Model(params) #This also updates downsampled_fls
             #For order in myModel, do evaluate, and sum the results.
             lnp = self.model.evaluate()
-            print("Stellar lnp={} {}".format(lnp, params))
+
             if np.isnan(lnp):
+                print("exiting because NaN")
                 sys.exit(0)
             return lnp #self.model.evaluate()
         except C.ModelError:
-            print("Stellar returning -np.inf")
+            #print("Stellar returning -np.inf")
             return -np.inf
 
 
@@ -332,8 +333,6 @@ class ChebSampler(Sampler):
 
     def lnprob(self, p):
         self.order_model.update_Cheb(p)
-        lnp = self.order_model.evaluate()
-        print("Cheb lnp={} {}".format(lnp, p))
         return self.order_model.evaluate()
 
 
@@ -353,17 +352,11 @@ class CovGlobalSampler(Sampler):
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
         if params["l"] > 1:
-            print("GlobalCov returning -np.inf")
             return -np.inf
         try:
             self.order_model.update_Cov(params)
-            lnp =self.order_model.evaluate()
-            print("GlobalCov lnp={} {}".format(lnp, params))
-            if np.isnan(lnp):
-                sys.exit(0)
-            return lnp
+            return self.order_model.evaluate()
         except C.ModelError:
-            print("GlobalCov returning -np.inf")
             return -np.inf
 
 
@@ -390,18 +383,8 @@ class CovRegionSampler(Sampler):
         params = self.model.zip_Region_p(p)
         try:
              self.CovMatrix.update_region(self.region_index, params)
-             lnp =self.order_model.evaluate()
-             print("Region {} Cov lnp={} {}".format(self.region_index, lnp, params))
-             if np.isnan(lnp):
-                 print(self.CovMatrix.print_all_regions())
-                 S = self.CovMatrix.cholmod_to_scipy_sparse()
-                 import matplotlib.pyplot as plt
-                 plt.imshow(np.log10(S.todense()), origin='upper', interpolation='none')
-                 plt.show()
-
-             return lnp
+             return self.order_model.evaluate()
         except (C.ModelError, C.RegionError):
-             print("Region {} {} returning -np.inf".format(self.region_index, params))
              return -np.inf
 
 class RegionsSampler:
@@ -427,7 +410,7 @@ class RegionsSampler:
         self.order_index = order_index
         self.order_model = self.model.OrderModels[self.order_index]
 
-        self.cadence = 5 #samples to devote to each region before moving on to the next
+        self.cadence = 4 #samples to devote to each region before moving on to the next
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
         self.max_regions = 12
