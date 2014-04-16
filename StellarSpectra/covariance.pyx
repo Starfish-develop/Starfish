@@ -164,6 +164,8 @@ cdef class CovarianceMatrix:
         self.RegionList = []
         self.current_region = -1 #non physical value to force initialization
 
+        self.update_factorization()
+
     def __dealloc__(self):
         #The GlobalCovarianceMatrix and all matrices in the RegionList will be cleared automatically?
         print("Deallocating Covariance Matrix")
@@ -322,7 +324,7 @@ cdef class CovarianceMatrix:
             self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
         else:
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
-            #there are no regions declared, and it should COPY A
+            #there are no regions declared, so we should COPY self.GCM.A
             self.A = cholmod_copy_sparse(self.GCM.A, self.c)
 
 
@@ -471,6 +473,9 @@ cdef class GlobalCovarianceMatrix:
 
         self.sigma = create_sigma(sigma_C, self.npoints, self.c)
         PyMem_Free(sigma_C) #since we do not need sigma_C for anything else, free it now
+        #also, set self.A = self.sigma, because we haven't yet created any global
+        #covariance structure
+        self.A = cholmod_copy_sparse(self.sigma, self.c)
 
 
     def update(self, params):

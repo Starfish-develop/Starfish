@@ -299,16 +299,11 @@ class StellarSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_stellar_p(p)
-        # print("Temp=",params['temp']," logOmega=", params['logOmega'])
+        print("{}".format(params))
         try:
             self.model.update_Model(params) #This also updates downsampled_fls
             #For order in myModel, do evaluate, and sum the results.
-            lnp = self.model.evaluate()
-
-            if np.isnan(lnp):
-                print("exiting because NaN")
-                sys.exit(0)
-            return lnp #self.model.evaluate()
+            return self.model.evaluate()
         except C.ModelError:
             #print("Stellar returning -np.inf")
             return -np.inf
