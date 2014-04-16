@@ -705,7 +705,8 @@ class ModelSpectrum:
         self.wl_FFT = wl_dict["wl"]
         print("Grid stretches from {} to {}".format(wl_min, wl_max))
         print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
-        self.min_v = 0.08
+        # self.min_v = 0.08
+        self.min_v = calculate_min_v(wl_dict)
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
 
