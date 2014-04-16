@@ -8,7 +8,7 @@ myDataSpectrum = DataSpectrum.open("../data/WASP14/WASP-14_2009-06-15_04h13m57s_
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
 
-stellar_Starting = {"temp":6000, "logg":4.05, "Z":-0.4, "vsini":10.5, "vz":15.5, "logOmega":-19.665}
+stellar_Starting = {"temp":6000, "logg":4.05, "Z":-0.4, "vsini":5.5, "vz":15.5, "logOmega":-19.665}
 #Note that these values are sigma^2!!
 stellar_MH_cov = np.array([2, 0.02, 0.02, 0.02, 0.02, 5e-4])**2 * np.identity(len(stellar_Starting))
 

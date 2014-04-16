@@ -268,7 +268,13 @@ class PHOENIXGridInterface(RawGridInterface):
 
 
 class KuruczGridInterface(RawGridInterface):
-    '''Kurucz grid interface.'''
+    '''Kurucz grid interface.
+
+    Spectra are in f_nu
+    in a filename like "t03500g00m25ap00k2v070z1i00.fits, ap00 means zero alpha enhancement, and k2 is the
+    microturbulence, I believe. I think z1 is the macroturbulence. These particular values are roughly the ones
+    appropriate for the Sun.
+    '''
     def __init__(self):
         super().__init__("Kurucz", "Kurucz/",
         temp_points = np.arange(3500, 9751, 250),

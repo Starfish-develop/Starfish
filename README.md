@@ -185,6 +185,7 @@ Postulated hierarchy of emcee samplers
 
 
 
+
 #Useful link to Wikipedia on covariance matrices/positive-semi definite
 
 

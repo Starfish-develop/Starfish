@@ -408,7 +408,7 @@ class RegionsSampler:
         self.cadence = 4 #samples to devote to each region before moving on to the next
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
-        self.max_regions = 12
+        self.max_regions = 5
         #to decide if more or fewer RegionSampler's are needed?
 
         self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
