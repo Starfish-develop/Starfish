@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import emcee
-from emcee.utils import MPIPool
 import sys
 from . import constants as C
 from .grid_tools import ModelInterpolator
