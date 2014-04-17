@@ -1,0 +1,36 @@
+#YAML comments are written just like in Python
+
+HDF5_path : ../libraries/PHOENIX_submaster.hdf5
+data_dir : ../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
+output_dir : ../../output/
+
+star_name : WASP14
+
+#Longer strings can be written like this. This will be loaded under the "Comments" variable.
+Comments: >
+  This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
+  for real data. Using tight priors centerd on Willie's values.
+
+#Nested data structures are allowed
+stellar_params :
+    temp : 6100
+    logg : 4.0
+    Z : -0.5
+    vsini : 5.5
+    vz : 15.5
+    logOmega: -19.665
+
+cheb_params :
+    c1 : -.017
+    c2 : -.017
+    c3 : -.003
+
+cov_params :
+    sigAmp : 1
+    logAmp : -14.0
+    l : 0.15
+
+
+#and sequences too
+orders: [22]
+#orders: [21, 22, 23]

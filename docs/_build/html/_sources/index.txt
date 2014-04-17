@@ -9,6 +9,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   quickstart
    spectrum
    grid_tools
    model

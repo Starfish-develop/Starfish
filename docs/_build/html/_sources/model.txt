@@ -1,7 +1,7 @@
 Model
 =====
 
-.. py:module:: model
+.. py:module:: StellarSpectra.model
 
-.. automodule:: model
+.. automodule:: StellarSpectra.model
    :members:

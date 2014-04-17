@@ -26,10 +26,11 @@ StellarSpectra requires the following packages:
 * h5py†
 * astropy†
 * cython†
+* pyyaml†
 * emcee
 * pyfftw
 
-Those marked with a † are included in the Anaconda distribution. The others should be available from ``pip`` or from the
+Those marked with a † are included in the latest Anaconda distribution. The others should be available from ``pip`` or from the
 project websites.
 
 And the following library
@@ -82,15 +83,7 @@ Mass has a prior from the sub-millimeter dynamical mass measurement. These param
 * *Spectra*: High resolution TRES spectrum. 51 orders, R = 48,000 (FWHM = 6.8 km/s) with typical signal to noise of 50 in each resolution element. All target spectra are flux-calibrated to within 10% error in c0 and 3% error in higher terms.
 * *Photometry*: UBVRI, Herbst, Grankin, 2MASS, and other sources. ugriz from Keplercam. Generally, some of infrared points will be contaminated with disk emission. ugriz data from Keplercam.
 
-# PHOENIX Models
 
-* Investigate Lejune models
-* Get BT-Settl models from France Allard's website
-
-# TRES Data and Reduction
-
-* Get sigma spectrum from IRAF/echelle, but I will have to do my own reduction.
-* Check method against Willie2012 targets: WASP-14 and HAT-P-9
 * Search TRES archive by position for all stars in proposal
 
 # Code
@@ -273,16 +266,16 @@ It could also be that one region is just way too much higher than the rest and w
 
 * Visualize cheb functions
 * Visualize spectrum and residuals
+* Serialize the model state using JSON
+* Load parameter files for runs using JSON (might be nice for creating visualizations, too)
+* Write samples in flatchain to an HDF5 file
+* use argparse to declare command line arguments for config file for base lnprob
 
 
 * Fix the mean of c0's to 1?
 That way c0 is just a perturbation to the mean?
 Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
 Right now we are setting the last order to have logc0 = 0.0
-
-Do some profiling. Stellar parameter evaluation takes the longest, probably because of the FFT.
-
-Arrange base_lnprob or model sampler so that ranges and connections can be set up easily.
 
 How does the interplay between different emcee samplers work? Especially when there are a different number of walkers?
 For example, after each iteration whose stellar parameters does each cheb sampler start with? I would think
@@ -350,6 +343,9 @@ is not that slow, but it's the interpolation from the FFT grid to the Data grid 
 because a lot of evaluation at all the points is needed. So by reducing the number of points we'll be playing it safe.
 
 * ModelInterpolater._determine_chunk() will need to be updated to use create_log_lam_grid()
+
+# Running the model (to be moved to the docs?)
+
 
 # Stellar parameter papers
 

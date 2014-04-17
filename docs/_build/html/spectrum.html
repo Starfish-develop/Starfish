@@ -26,7 +26,7 @@
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="StellarSpectra 0.1 documentation" href="index.html" />
     <link rel="next" title="Grid Tools" href="grid_tools.html" />
-    <link rel="prev" title="StellarSpectra documentation" href="index.html" /> 
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
   </head>
   <body>
     <div class="related">
@@ -42,7 +42,7 @@
           <a href="grid_tools.html" title="Grid Tools"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="StellarSpectra documentation"
+          <a href="quickstart.html" title="Quickstart"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">StellarSpectra 0.1 documentation</a> &raquo;</li> 
       </ul>
@@ -53,8 +53,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-spectrum">
-<span id="spectrum"></span><h1>Spectrum<a class="headerlink" href="#module-spectrum" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-StellarSpectra.spectrum">
+<span id="spectrum"></span><h1>Spectrum<a class="headerlink" href="#module-StellarSpectra.spectrum" title="Permalink to this headline">¶</a></h1>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -63,23 +63,23 @@
 </tr>
 </tbody>
 </table>
-<p><a class="reference internal" href="#module-spectrum" title="spectrum"><tt class="xref py py-mod docutils literal"><span class="pre">spectrum</span></tt></a> is a package containing many different specrum objects. It defines many useful objects
-that may be used in the <a class="reference internal" href="grid_tools.html#module-grid_tools" title="grid_tools"><tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt></a> package and the <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a> package.</p>
+<p><tt class="xref py py-mod docutils literal"><span class="pre">spectrum</span></tt> is a package containing many different specrum objects. It defines many useful objects
+that may be used in the <tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> package and the <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a> package.</p>
 <div class="section" id="full-featured-spectrum-objects">
 <h2>Full-featured spectrum objects<a class="headerlink" href="#full-featured-spectrum-objects" title="Permalink to this headline">¶</a></h2>
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-2f296229daa4833ec6bff98965f85f19ae3e6876.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-ce73c5d5ba2c7e5b91b6cde802916b66041daed7.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
-<area shape="rect" id="node1" href="#spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
-<area shape="rect" id="node3" href="#spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
-<area shape="rect" id="node2" href="#spectrum.BaseSpectrum" title="The base spectrum object, designed to be inherited." alt="" coords="5,5,123,30"/>
+<area shape="rect" id="node1" href="#StellarSpectra.spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
+<area shape="rect" id="node3" href="#StellarSpectra.spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
+<area shape="rect" id="node2" href="#StellarSpectra.spectrum.BaseSpectrum" title="The base spectrum object, designed to be inherited." alt="" coords="5,5,123,30"/>
 </map>
 </p>
 <dl class="class">
-<dt id="spectrum.BaseSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">BaseSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#BaseSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.BaseSpectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.BaseSpectrum">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">BaseSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#BaseSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.BaseSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>The base spectrum object, designed to be inherited.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -97,8 +97,8 @@ while being robust to check and handle errors.</p>
 </tbody>
 </table>
 <dl class="method">
-<dt id="spectrum.BaseSpectrum.convert_units">
-<tt class="descname">convert_units</tt><big>(</big><em>unit='f_nu'</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#BaseSpectrum.convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.BaseSpectrum.convert_units" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.BaseSpectrum.convert_units">
+<tt class="descname">convert_units</tt><big>(</big><em>unit='f_nu'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#BaseSpectrum.convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.BaseSpectrum.convert_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert between f_lam and f_nu. If <tt class="xref py py-attr docutils literal"><span class="pre">unit</span></tt> == <tt class="xref py py-attr docutils literal"><span class="pre">self.unit</span></tt>, do nothing.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -114,14 +114,14 @@ while being robust to check and handle errors.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.BaseSpectrum.copy">
-<tt class="descname">copy</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/spectrum.html#BaseSpectrum.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.BaseSpectrum.copy" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.BaseSpectrum.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#BaseSpectrum.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.BaseSpectrum.copy" title="Permalink to this definition">¶</a></dt>
 <dd><p>return a copy of the spectrum</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.BaseSpectrum.save">
-<tt class="descname">save</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#BaseSpectrum.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.BaseSpectrum.save" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.BaseSpectrum.save">
+<tt class="descname">save</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#BaseSpectrum.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.BaseSpectrum.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the spectrum as a 2D numpy array. wl = arr[0,:], fl = arr[1,:]</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -136,8 +136,8 @@ while being robust to check and handle errors.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="spectrum.Base1DSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">Base1DSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#Base1DSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.Base1DSpectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.Base1DSpectrum">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">Base1DSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#Base1DSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.Base1DSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>The base one-dimensional spectrum object, designed to be initialized with a generic spectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -156,9 +156,10 @@ while being robust to check and handle errors.</p>
 </table>
 <p>Initialization sorts the wl array to make sure all points are sequential and unique.</p>
 <dl class="method">
-<dt id="spectrum.Base1DSpectrum.calculate_log_lam_grid">
-<tt class="descname">calculate_log_lam_grid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/spectrum.html#Base1DSpectrum.calculate_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.Base1DSpectrum.calculate_log_lam_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements.</p>
+<dt id="StellarSpectra.spectrum.Base1DSpectrum.calculate_log_lam_grid">
+<tt class="descname">calculate_log_lam_grid</tt><big>(</big><em>min=True</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#Base1DSpectrum.calculate_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.Base1DSpectrum.calculate_log_lam_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements. This assumes
+that the input spectrum has already been properly oversampled.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -170,8 +171,8 @@ while being robust to check and handle errors.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.Base1DSpectrum.resample_to_grid">
-<tt class="descname">resample_to_grid</tt><big>(</big><em>grid</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#Base1DSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.Base1DSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.Base1DSpectrum.resample_to_grid">
+<tt class="descname">resample_to_grid</tt><big>(</big><em>grid</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#Base1DSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.Base1DSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resample the spectrum to a new grid. Update <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt> and <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -180,6 +181,24 @@ while being robust to check and handle errors.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>grid</strong> (<em>np.array</em>) &#8211; the new wavelength grid to resample/rebin to</li>
 <li><strong>integrate</strong> (<em>bool</em>) &#8211; rebin instead of resample?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.spectrum.Base1DSpectrum.to_LogLambda">
+<tt class="descname">to_LogLambda</tt><big>(</big><em>min_vc</em>, <em>instrument=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#Base1DSpectrum.to_LogLambda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.Base1DSpectrum.to_LogLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new spectrum that is <a class="reference internal" href="#StellarSpectra.spectrum.LogLambdaSpectrum" title="StellarSpectra.spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>min_vc</strong> (<em>float</em>) &#8211; The maximum spacing allowed</li>
+<li><strong>instrument</strong> &#8211; <tt class="xref py py-obj docutils literal"><span class="pre">Instrument</span></tt> object to transfer wl_ranges for truncation.</li>
 </ul>
 </td>
 </tr>
@@ -210,8 +229,8 @@ and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last p
 <div class="math">
 \[{\rm CRVAL1} = \log_{10} ( \lambda_{\rm start})\]</div>
 <dl class="data">
-<dt id="spectrum.log_lam_kws">
-<tt class="descclassname">spectrum.</tt><tt class="descname">log_lam_kws</tt><a class="headerlink" href="#spectrum.log_lam_kws" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.log_lam_kws">
+<tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">log_lam_kws</tt><a class="headerlink" href="#StellarSpectra.spectrum.log_lam_kws" title="Permalink to this definition">¶</a></dt>
 <dd><p>The parameters that define a log lambda spectrum. This set is use to validate input. By default these are set to</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
 </pre></div>
@@ -219,8 +238,8 @@ and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last p
 </dd></dl>
 
 <dl class="function">
-<dt id="spectrum.create_log_lam_grid">
-<tt class="descclassname">spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>wl_start=3000.0</em>, <em>wl_end=13000.0</em>, <em>min_wl=None</em>, <em>min_vc=None</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.create_log_lam_grid">
+<tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>wl_start=3000.0</em>, <em>wl_end=13000.0</em>, <em>min_wl=None</em>, <em>min_vc=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a log lambda spaced grid with <tt class="docutils literal"><span class="pre">N_points</span></tt> equal to a power of 2 for ease of FFT.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -245,11 +264,11 @@ and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last p
 <p>Takes the finer of min_WL or min_vc if both specified</p>
 </dd></dl>
 
-<p>The <a class="reference internal" href="#spectrum.LogLambdaSpectrum" title="spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a> is more of a workhorse than the previously defined spectra. Because it is regularly spaced
+<p>The <a class="reference internal" href="#StellarSpectra.spectrum.LogLambdaSpectrum" title="StellarSpectra.spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a> is more of a workhorse than the previously defined spectra. Because it is regularly spaced
 in velocity, it is easier to perform convolution and downsampling operations.</p>
 <dl class="class">
-<dt id="spectrum.LogLambdaSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">LogLambdaSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em>, <em>oversampling=3.5</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">LogLambdaSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em>, <em>oversampling=3.5</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>A spectrum that has log lambda spaced wavelengths.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -271,12 +290,12 @@ in velocity, it is easier to perform convolution and downsampling operations.</p
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">Because of the difficulty of keeping track of convolution, you only get to do
-{<a class="reference internal" href="#spectrum.LogLambdaSpectrum.instrument_convolve" title="spectrum.LogLambdaSpectrum.instrument_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_convolve()</span></tt></a>, <a class="reference internal" href="#spectrum.LogLambdaSpectrum.stellar_convolve" title="spectrum.LogLambdaSpectrum.stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">stellar_convolve()</span></tt></a>} or
-<a class="reference internal" href="#spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_and_stellar_convolve()</span></tt></a> once.</p>
+{<a class="reference internal" href="#StellarSpectra.spectrum.LogLambdaSpectrum.instrument_convolve" title="StellarSpectra.spectrum.LogLambdaSpectrum.instrument_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_convolve()</span></tt></a>, <a class="reference internal" href="#StellarSpectra.spectrum.LogLambdaSpectrum.stellar_convolve" title="StellarSpectra.spectrum.LogLambdaSpectrum.stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">stellar_convolve()</span></tt></a>} or
+<a class="reference internal" href="#StellarSpectra.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="StellarSpectra.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_and_stellar_convolve()</span></tt></a> once.</p>
 </div>
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.convolve_with_gaussian">
-<tt class="descname">convolve_with_gaussian</tt><big>(</big><em>FWHM</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.convolve_with_gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.convolve_with_gaussian" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.convolve_with_gaussian">
+<tt class="descname">convolve_with_gaussian</tt><big>(</big><em>FWHM</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.convolve_with_gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.convolve_with_gaussian" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convolve the spectrum with a Gaussian of FWHM</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -289,15 +308,15 @@ in velocity, it is easier to perform convolution and downsampling operations.</p
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">
-<tt class="descname">instrument_and_stellar_convolve</tt><big>(</big><em>instrument</em>, <em>vsini</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.instrument_and_stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">
+<tt class="descname">instrument_and_stellar_convolve</tt><big>(</big><em>instrument</em>, <em>vsini</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.instrument_and_stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform both instrumental and stellar broadening on the spectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>instrument</strong> &#8211; the <a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object containing the instrumental profile</li>
+<li><strong>instrument</strong> &#8211; the <tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object containing the instrumental profile</li>
 <li><strong>vsini</strong> (<em>float (km/s)</em>) &#8211; projected rotational speed of star</li>
 <li><strong>integrate</strong> &#8211; integrate to counts/pixel? <tt class="xref py py-attr docutils literal"><span class="pre">downsample</span></tt> must not be None</li>
 </ul>
@@ -308,15 +327,15 @@ in velocity, it is easier to perform convolution and downsampling operations.</p
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.instrument_convolve">
-<tt class="descname">instrument_convolve</tt><big>(</big><em>instrument</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.instrument_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.instrument_convolve" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.instrument_convolve">
+<tt class="descname">instrument_convolve</tt><big>(</big><em>instrument</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.instrument_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.instrument_convolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convolve the spectrum with an instrumental profile.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>instrument</strong> &#8211; the <a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object containing the instrumental profile</li>
+<li><strong>instrument</strong> &#8211; the <tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object containing the instrumental profile</li>
 <li><strong>integrate</strong> &#8211; integrate to counts/pixel? <tt class="xref py py-attr docutils literal"><span class="pre">downsample</span></tt> must not be None</li>
 </ul>
 </td>
@@ -326,11 +345,11 @@ in velocity, it is easier to perform convolution and downsampling operations.</p
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.resample_to_grid">
-<tt class="descname">resample_to_grid</tt><big>(</big><em>wl_dict</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.resample_to_grid">
+<tt class="descname">resample_to_grid</tt><big>(</big><em>wl_dict</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resample/interate the spectrum to a new log lambda grid.
 Updates the <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>, and log_lam_kws in the <tt class="xref py py-attr docutils literal"><span class="pre">metadata</span></tt>. This method is slightly
-different than <a class="reference internal" href="#spectrum.Base1DSpectrum.resample_to_grid" title="spectrum.Base1DSpectrum.resample_to_grid"><tt class="xref py py-meth docutils literal"><span class="pre">Base1DSpectrum.resample_to_grid()</span></tt></a> since it uses <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt> to ensure that the spectrum
+different than <a class="reference internal" href="#StellarSpectra.spectrum.Base1DSpectrum.resample_to_grid" title="StellarSpectra.spectrum.Base1DSpectrum.resample_to_grid"><tt class="xref py py-meth docutils literal"><span class="pre">Base1DSpectrum.resample_to_grid()</span></tt></a> since it uses <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt> to ensure that the spectrum
 remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_points</span></tt> is a power of 2.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -351,8 +370,8 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.stellar_convolve">
-<tt class="descname">stellar_convolve</tt><big>(</big><em>vsini</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.stellar_convolve" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.stellar_convolve">
+<tt class="descname">stellar_convolve</tt><big>(</big><em>vsini</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.stellar_convolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Broaden spectrum due to stellar rotation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -365,8 +384,8 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.LogLambdaSpectrum.write_to_FITS">
-<tt class="descname">write_to_FITS</tt><big>(</big><em>out_unit</em>, <em>filename</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#LogLambdaSpectrum.write_to_FITS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.LogLambdaSpectrum.write_to_FITS" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.LogLambdaSpectrum.write_to_FITS">
+<tt class="descname">write_to_FITS</tt><big>(</big><em>out_unit</em>, <em>filename</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#LogLambdaSpectrum.write_to_FITS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.LogLambdaSpectrum.write_to_FITS" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write a LogLambdaSpectrum to a FITS file.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -397,8 +416,8 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 <h2>Fast spectrum objects<a class="headerlink" href="#fast-spectrum-objects" title="Permalink to this headline">¶</a></h2>
 <p>These spectra assume many properties of the data and are built for speedy comparions via <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a></p>
 <dl class="class">
-<dt id="spectrum.DataSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">DataSpectrum</tt><big>(</big><em>wls</em>, <em>fls</em>, <em>sigmas</em>, <em>masks=None</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#DataSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.DataSpectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.DataSpectrum">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">DataSpectrum</tt><big>(</big><em>wls</em>, <em>fls</em>, <em>sigmas</em>, <em>masks=None</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Object to manipulate the data spectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -421,8 +440,8 @@ in the 0-axis.</p>
 <p class="last">For now, the DataSpectrum wls, fls, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.</p>
 </div>
 <dl class="classmethod">
-<dt id="spectrum.DataSpectrum.open">
-<em class="property">classmethod </em><tt class="descname">open</tt><big>(</big><em>base_file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#DataSpectrum.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.DataSpectrum.open" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.DataSpectrum.open">
+<em class="property">classmethod </em><tt class="descname">open</tt><big>(</big><em>base_file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum.open" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a spectrum from a directory link pointing to output from EchelleTools processing.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -444,16 +463,16 @@ in the 0-axis.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="spectrum.ModelSpectrum">
-<em class="property">class </em><tt class="descclassname">spectrum.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>interpolator</em>, <em>instrument</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>interpolator</em>, <em>instrument</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
 <dd><p>A 1D synthetic spectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>interpolator</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.ModelInterpolator" title="grid_tools.ModelInterpolator"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt></a>) &#8211; object to query stellar parameters</li>
-<li><strong>instrument</strong> (<a class="reference internal" href="grid_tools.html#grid_tools.Instrument" title="grid_tools.Instrument"><tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt></a> object describing wavelength range and instrumental profile) &#8211; Which instrument is this a model for?</li>
+<li><strong>interpolator</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt>) &#8211; object to query stellar parameters</li>
+<li><strong>instrument</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object describing wavelength range and instrumental profile) &#8211; Which instrument is this a model for?</li>
 </ul>
 </td>
 </tr>
@@ -465,8 +484,8 @@ in the 0-axis.</p>
 <li>Sample in only the easy &#8220;post-processing&#8221; parameters, like ff and v_z to speed the burn-in process.</li>
 </ol>
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.downsample">
-<tt class="descname">downsample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.downsample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.downsample" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum.downsample">
+<tt class="descname">downsample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum.downsample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum.downsample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -479,8 +498,8 @@ in the 0-axis.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_Av">
-<tt class="descname">update_Av</tt><big>(</big><em>Av</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_Av"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_Av" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum.update_Av">
+<tt class="descname">update_Av</tt><big>(</big><em>Av</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum.update_Av"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum.update_Av" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the extinction parameter.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -493,15 +512,15 @@ in the 0-axis.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_all">
-<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum.update_all">
+<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update all of the stellar parameters</p>
 <p>Give parameters as a dict and choose the params to update.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_logOmega">
-<tt class="descname">update_logOmega</tt><big>(</big><em>logOmega</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_logOmega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_logOmega" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum.update_logOmega">
+<tt class="descname">update_logOmega</tt><big>(</big><em>logOmega</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum.update_logOmega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum.update_logOmega" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span>, which multiplies the model spectrum to be the same scale as the data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -514,8 +533,8 @@ in the 0-axis.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectrum.ModelSpectrum.update_vz">
-<tt class="descname">update_vz</tt><big>(</big><em>vz</em><big>)</big><a class="reference internal" href="_modules/spectrum.html#ModelSpectrum.update_vz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectrum.ModelSpectrum.update_vz" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.spectrum.ModelSpectrum.update_vz">
+<tt class="descname">update_vz</tt><big>(</big><em>vz</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#ModelSpectrum.update_vz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.ModelSpectrum.update_vz" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the radial velocity parameter.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -551,8 +570,8 @@ in the 0-axis.</p>
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">StellarSpectra documentation</a></p>
+  <p class="topless"><a href="quickstart.html"
+                        title="previous chapter">Quickstart</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="grid_tools.html"
                         title="next chapter">Grid Tools</a></p>
@@ -591,14 +610,14 @@ in the 0-axis.</p>
           <a href="grid_tools.html" title="Grid Tools"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="StellarSpectra documentation"
+          <a href="quickstart.html" title="Quickstart"
              >previous</a> |</li>
         <li><a href="index.html">StellarSpectra 0.1 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Czekala.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+        &copy; Copyright 2013-14, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>
