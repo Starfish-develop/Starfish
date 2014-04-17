@@ -15,8 +15,8 @@ from functools import partial
 import itertools
 from collections import OrderedDict
 
-from StellarSpectra.spectrum import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid
-import StellarSpectra.constants as C
+from .spectrum import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid
+from . import constants as C
 
 def chunk_list(mylist, n=mp.cpu_count()):
     '''

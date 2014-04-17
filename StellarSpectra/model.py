@@ -1,30 +1,15 @@
 import numpy as np
-import yaml
 import sys
 import emcee
 from emcee.utils import MPIPool
 import sys
-import StellarSpectra.constants as C
-from StellarSpectra.grid_tools import ModelInterpolator
-from StellarSpectra.spectrum import ModelSpectrum, ChebyshevSpectrum
+from . import constants as C
+from .grid_tools import ModelInterpolator
+from .spectrum import ModelSpectrum, ChebyshevSpectrum
 #from StellarSpectra.spectrum import CovarianceMatrix #pure Python covariance spectrum
-from StellarSpectra.covariance import CovarianceMatrix
+from .covariance import CovarianceMatrix
 import time
 
-
-
-def load_config():
-    config = None
-    if len(sys.argv) > 1:
-        for arg in sys.argv:
-            if ".yaml" in arg:
-                confname = arg
-                f = open(confname)
-                config = yaml.load(f)
-                f.close()
-    if config is None:
-        import StellarSpectra #this triggers the __init__.py code
-        config = StellarSpectra.default_config
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
