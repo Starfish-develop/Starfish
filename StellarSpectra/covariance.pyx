@@ -477,7 +477,6 @@ cdef class GlobalCovarianceMatrix:
         #covariance structure
         self.A = cholmod_copy_sparse(self.sigma, self.c)
 
-
     def update(self, params):
         '''
         On update, calculate the logdet and the new cholmod_factorization.

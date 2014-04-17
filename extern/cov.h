@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
-#include "cholmod.h"
+#include <cholmod.h>
 
 #define PI 3.14159265358979323846
 #define TRUE 1
