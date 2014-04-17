@@ -11,6 +11,43 @@ Copyright Ian Czekala 2013
 
 We estimate stellar parameters by taking a Bayesian approach to generate a model of the data (and systematic errors) and sample this posterior using the `emcee` implementation of the Markov Chain Monte Carlo ensemble sampler by Goodman and Weare (2010).
 
+# Installation
+
+Currently, StellarSpectra has many dependencies, however most of them should be satisfied by an up-to-date scientific
+python installation. We highly recommend using the
+[Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to python 3.3.
+
+StellarSpectra requires the following packages:
+
+* numpy†
+* scipy†
+* jinja2†
+* matplotlib†
+* h5py†
+* astropy†
+* cython†
+* emcee
+* pyfftw
+
+Those marked with a † are included in the Anaconda distribution. The others should be available from ``pip`` or from the
+project websites.
+
+And the following library
+
+* the [SuiteSparse](https://www.cise.ufl.edu/research/sparse/SuiteSparse/) sparse matrix library, which is written in C.
+
+TODO: Need to figure out how to configure ``setup.py`` to use SuiteSparse from a non-user wide location.
+
+First recommend installing SuiteSparse. If you have administrator priveledges, installing from a package manager is
+ likeley the easiest. Otherwise, there is always downloading the package and installing from source to a
+ user defined directory.
+
+You can change the install directory by viewing the README.txt, and then editing SuiteSparse_config.mk
+
+For example, if you installed SuiteSparse to mylib, then you would call setup.py as
+
+    python setup.py build_ext --inplace -Lmydir/lib -Imydir/include
+
 ## Parameters
 
 Model parameters
