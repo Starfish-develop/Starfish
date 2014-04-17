@@ -275,15 +275,20 @@ class KuruczGridInterface(RawGridInterface):
     microturbulence, I believe. I think z1 is the macroturbulence. These particular values are roughly the ones
     appropriate for the Sun.
     '''
-    def __init__(self):
-        super().__init__("Kurucz", "Kurucz/",
-        temp_points = np.arange(3500, 9751, 250),
-        logg_points = np.arange(1.0, 5.1, 0.5),
-        Z_points = np.arange(-0.5, 0.6, 0.5))
+    def __init__(self, air=True, norm=True, base="libraries/raw/Kurucz/"):
+        super().__init__(name="Kurucz",
+                         points={"temp" : np.arange(3500, 9751, 250),
+                                 "logg": np.arange(1.0, 5.1, 0.5),
+                                 "Z": np.arange(-0.5, 0.6, 0.5),
+                                 "alpha": [0.0]},
+                         air=air, wl_range=[5000, 54000], base=base)
 
         self.Z_dict = {-0.5:"m05", 0.0:"p00", 0.5:"p05"}
         self.wl_full = np.load("wave_grids/kurucz_raw.npy")
-        self.rname = None
+        self.rname = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
+        #t06000/g40/t06000g40p00ap00k2v000z1i00.fits
+
+    #Set wl_file?
 
     def load_file(self, temp, logg, Z):
         '''Includes an interface that can map a queried number to the actual string'''
@@ -1370,10 +1375,9 @@ def air_to_vacuum(wl):
     return vac
 
 
-def get_wl_kurucz():
-    '''The Kurucz grid is already convolved with a FWHM=6.8km/s Gaussian. WL is log-linear spaced.'''
-    sample_file = "Kurucz/t06000g45m05v000.fits"
-    flux_file = fits.open(sample_file)
+def get_wl_kurucz(filename):
+    '''The Kurucz grid is log-linear spaced.'''
+    flux_file = fits.open(filename)
     hdr = flux_file[0].header
     num = len(flux_file[0].data)
     p = np.arange(num)

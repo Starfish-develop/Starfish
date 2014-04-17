@@ -646,7 +646,8 @@ class DataSpectrum:
         assert self.masks.shape == self.shape, "mask array incompatible shape."
 
         if orders != 'all':
-            assert type(orders) == np.ndarray and len(orders.shape) == 1, "orders must be a 1D numpy array"
+            #can either be a numpy array or a list
+            orders = np.array(orders) #just to make sure
             self.wls = self.wls[orders]
             self.fls = self.fls[orders]
             self.sigmas = self.sigmas[orders]

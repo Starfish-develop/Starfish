@@ -1,6 +1,0 @@
-<map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
-<area shape="rect" id="node1" href="#grid_tools.Instrument" title="Class describing instruments." alt="" coords="6,54,98,79"/>
-<area shape="rect" id="node2" href="#grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
-<area shape="rect" id="node3" href="#grid_tools.Reticon" title="Reticon Instrument" alt="" coords="147,54,219,79"/>
-<area shape="rect" id="node4" href="#grid_tools.TRES" title="TRES instrument" alt="" coords="147,103,219,129"/>
-</map>
