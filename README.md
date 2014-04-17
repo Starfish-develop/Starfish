@@ -48,7 +48,18 @@ For example, if you installed SuiteSparse to mylib, then you would call setup.py
 
     python setup.py build_ext --inplace -Lmydir/lib -Imydir/include
 
-#how to place StellarSpectra on the users path?
+
+To build
+
+    $ python setup.py build_ext --inplace
+
+If you have control of your own system
+
+    $ sudo python setup.py develop
+
+If not, (for example on the CF network)
+
+    $ python setup.py develop --user
 
 ## Parameters
 
