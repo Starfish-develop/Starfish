@@ -584,6 +584,7 @@ class HDF5GridStuffer:
 
             #Store header keywords as attributes in HDF5 file
             for key,value in header.items():
+                print(key, value)
                 flux.attrs[key] = value
 
 
