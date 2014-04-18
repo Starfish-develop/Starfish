@@ -1,5 +1,8 @@
 #YAML comments are written just like in Python
 
+library: PHOENIX
+#library : Kurucz
+
 HDF5_path : ../libraries/PHOENIX_submaster.hdf5
 data_dir : ../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
 output_dir : ../../output/
@@ -29,6 +32,7 @@ cov_params :
     sigAmp : 1
     logAmp : -14.0
     l : 0.15
+
 
 
 #and sequences too
