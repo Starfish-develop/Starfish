@@ -284,10 +284,12 @@ class KuruczGridInterface(RawGridInterface):
                          air=air, wl_range=[5000, 5400], base=base)
 
         self.Z_dict = {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}
-        self.wl_full = np.load("wave_grids/kurucz_raw_wl.npy")
+
         self.norm = norm #Convert to f_lam and average to 1, or leave in f_nu?
         self.rname = base + "t{temp:0>5.0f}/g{logg:0>2.0f}/t{temp:0>5.0f}g{logg:0>2.0f}{Z}ap00k2v000z1i00.fits"
+        self.wl_full = np.load("wave_grids/kurucz_raw_wl.npy")
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
+        self.wl = self.wl_full[self.ind]
 
 
     def load_flux(self, parameters, norm=True):
@@ -329,7 +331,7 @@ class KuruczGridInterface(RawGridInterface):
 
         #Also, we should convert from f_nu to f_lam
         if self.norm:
-            f *= C.c_ang / self.wl_full** 2 #Convert from f_nu to f_lambda
+            f *= C.c_ang / self.wl** 2 #Convert from f_nu to f_lambda
             f /= np.average(f) #divide by the mean flux, so avg(f) = 1
 
         #Add temp, logg, Z, alpha, norm to the metadata
