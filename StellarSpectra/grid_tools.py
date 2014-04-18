@@ -279,8 +279,8 @@ class KuruczGridInterface(RawGridInterface):
         super().__init__(name="Kurucz",
                          points={"temp" : np.arange(3500, 9751, 250),
                                  "logg": np.arange(0.0, 5.1, 0.5),
-                                 "Z": [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5],
-                                 "alpha": [0.0]},
+                                 "Z": np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5]),
+                                 "alpha": np.array([0.0])},
                          air=air, wl_range=[5000, 5400], base=base)
 
         self.Z_dict = {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}
