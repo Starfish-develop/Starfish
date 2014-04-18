@@ -4,7 +4,6 @@ import numpy as np
 from StellarSpectra.spectrum import create_log_lam_grid
 import StellarSpectra.constants as C
 
-
 class TestRawGridInterface:
     def setup_class(self):
         self.rawgrid = RawGridInterface("PHOENIX", {"temp":{5000, 5100, 5200}, "logg":{3.0, 3.5, 4.0}, "Z":{-0.5, 0.0}})
@@ -72,6 +71,47 @@ class TestPHOENIXGridInterface:
         spec = grid.load_file({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
         assert spec.metadata['norm'] == False
 
+class TestKuruczGridInterface:
+    def setup_class(self):
+        self.rawgrid = KuruczGridInterface()
+
+
+    def test_init(self):
+        pass
+
+    def test_check_params_alpha(self):
+        self.rawgrid.check_params({"temp":5000, "logg":3.5, "Z":0.0, "alpha":0.0})
+
+    def test_load_flux(self):
+        flux, hdr = self.rawgrid.load_flux({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+        print(flux)
+        assert flux != None
+
+        #not expected to be on leo, yet still part of the grid
+        with pytest.raises(C.GridError) as e:
+             self.rawgrid.load_flux({"temp":5000, "logg":3.5, "Z":0.0, "alpha":0.0})
+        print(e.value)
+
+    def test_load_alpha(self):
+        flux, hdr = self.rawgrid.load_flux({"temp":6000, "logg":3.5, "Z":0.0})
+        assert flux != None
+        print(flux)
+
+    def test_bad_base(self):
+        #Set a different base location, should raise an error because on this machine there is not file.
+        with pytest.raises(C.GridError) as e:
+            PHOENIXGridInterface(air=True, norm=True, base="wrong_base/")
+        print(e.value)
+
+    def test_no_air(self):
+        grid = PHOENIXGridInterface(air=False)
+        spec = grid.load_file({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
+        assert spec.metadata['air'] == False
+
+    def test_no_norm(self):
+        grid = PHOENIXGridInterface(norm=False)
+        spec = grid.load_file({"temp":5100, "logg":3.5, "Z":0.0, "alpha":0.0})
+        assert spec.metadata['norm'] == False
 
 class TestHDF5Creator:
     def setup_class(self):

@@ -278,21 +278,84 @@ class KuruczGridInterface(RawGridInterface):
     def __init__(self, air=True, norm=True, base="libraries/raw/Kurucz/"):
         super().__init__(name="Kurucz",
                          points={"temp" : np.arange(3500, 9751, 250),
-                                 "logg": np.arange(1.0, 5.1, 0.5),
-                                 "Z": np.arange(-0.5, 0.6, 0.5),
+                                 "logg": np.arange(0.0, 5.1, 0.5),
+                                 "Z": [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5],
                                  "alpha": [0.0]},
-                         air=air, wl_range=[5000, 54000], base=base)
+                         air=air, wl_range=[5000, 5400], base=base)
 
-        self.Z_dict = {-0.5:"m05", 0.0:"p00", 0.5:"p05"}
-        self.wl_full = np.load("wave_grids/kurucz_raw.npy")
-        self.rname = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
-        #t06000/g40/t06000g40p00ap00k2v000z1i00.fits
+        self.Z_dict = {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}
+        self.wl_full = np.load(base + "kurucz_raw_wl.npy")
+        self.norm = norm #Convert to f_lam and average to 1, or leave in f_nu?
+        self.rname = base + "t{temp:0>5.0f}/g{logg:0>2.0f}/t{temp:0>5.0f}g{logg:0>2.0f}{Z}ap00k2v000z1i00.fits"
+        self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
 
-    #Set wl_file?
 
-    def load_file(self, temp, logg, Z):
-        '''Includes an interface that can map a queried number to the actual string'''
-        super().load_file(temp, logg, Z)
+    def load_flux(self, parameters, norm=True):
+        '''
+       Load a file from the disk.
+
+       :param parameters: stellar parameters
+       :type parameters: dict
+
+       :raises C.GridError: if the file cannot be found on disk.
+
+       :returns: tuple (flux_array, header_dict)
+
+       '''
+        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+
+        str_parameters = parameters.copy()
+        #Rewrite Z
+        Z = parameters["Z"]
+        str_parameters["Z"] = self.Z_dict[Z]
+
+        #Multiply logg by 10
+        str_parameters["logg"] = 10 * parameters['logg']
+
+        fname = self.rname.format(**str_parameters)
+
+        #Still need to check that file is in the grid, otherwise raise a C.GridError
+        #Read all metadata in from the FITS header, and append to spectrum
+        try:
+            flux_file = fits.open(fname)
+            f = flux_file[0].data
+            hdr = flux_file[0].header
+            flux_file.close()
+        except OSError:
+            raise C.GridError("{} is not on disk.".format(fname))
+
+        #We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
+        #flux to be 1
+
+        #Also, we should convert from f_nu to f_lam
+        if self.norm:
+            f *= C.c_ang / self.wl_full** 2 #Convert from f_nu to f_lambda
+            f /= np.average(f) #divide by the mean flux, so avg(f) = 1
+
+        #Add temp, logg, Z, alpha, norm to the metadata
+        header = parameters
+        header["norm"] = self.norm
+        header["air"] = self.air
+        #Keep the relevant keywords
+        for key, value in hdr.items():
+            header[key] = value
+
+        return (f[self.ind], header)
+
+    def load_file(self, parameters):
+        '''
+        Load a file from the disk.
+
+        :param parameters: stellar parameters
+        :type parameters: dict
+
+        :raises C.GridError: if the file cannot be found on disk.
+
+        :returns: :obj:`model.Base1DSpectrum`
+        '''
+        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+        raise NotImplementedError("No load_file routine for Kurucz")
+
 
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface.'''
