@@ -580,11 +580,12 @@ class HDF5GridStuffer:
             #The PHOENIX spectra are stored as float32, and so we do the same here.
             flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(fl),),
                                                dtype="f", compression='gzip', compression_opts=9)
+            print("created dataset")
             flux[:] = fl
 
             #Store header keywords as attributes in HDF5 file
             for key,value in header.items():
-                print(key, value)
+                print("storing", key, value)
                 flux.attrs[key] = value
 
 
