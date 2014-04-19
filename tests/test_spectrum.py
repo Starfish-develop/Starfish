@@ -397,7 +397,7 @@ class TestCovarianceMatrix:
     def test_update(self):
         self.cov.update({"sigAmp":1, "logAmp":1, "l":1})
 
-class TestResampling:
+class TestResamplingPHOENIX:
     def setup_class(self):
         from StellarSpectra.grid_tools import HDF5Interface
         hdf5interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
@@ -479,6 +479,69 @@ class TestResampling:
         #plt.show()
 
         assert np.allclose(fl, fl_back), "Spectral information lost"
+
+class TestResamplingKurucz:
+    def setup_class(self):
+        from StellarSpectra.grid_tools import HDF5Interface
+        hdf5interface = HDF5Interface("libraries/Kurucz_master.hdf5")
+        self.wl = hdf5interface.wl
+        self.spec = hdf5interface.load_file({"temp":6000, "logg":4.5, "Z": 0.0, "alpha":0.0})
+
+    def test_closeness_TRES(self):
+        '''
+        First convert self.spec from a Base1DSpectrum to a LogLambdaSpectrum. Then, convert it back to the original
+        wl_grid and see if all of the information is preserved.
+        '''
+        from StellarSpectra.grid_tools import TRES
+        instrument = TRES()
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print(log_spec.get_min_v(), "km/s")
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
+
+        #truncate original wl and fl to instrument ranges
+        low, high = instrument.wl_range
+        ind = (self.wl >= low) & (self.wl <= high)
+        wl = self.spec.wl[ind]
+        fl = self.spec.fl[ind]
+
+        fl_back = interp(wl)
+
+        #import matplotlib.pyplot as plt
+        #fig, ax = plt.subplots(nrows=2, sharex=True)
+        #ax[0].plot(wl, fl)
+        #ax[0].plot(wl, fl_back)
+        #ax[1].plot(wl, fl - fl_back)
+        #plt.show()
+
+        assert np.allclose(fl, fl_back), "Spectral information lost"
+
+    def test_closeness_Reticon(self):
+        from StellarSpectra.grid_tools import Reticon
+        instrument = Reticon()
+        log_spec = self.spec.to_LogLambda(instrument=instrument, min_vc=0.1/C.c_kms)
+        print(log_spec.get_min_v(), "km/s")
+        interp = InterpolatedUnivariateSpline(log_spec.wl, log_spec.fl, k=5)
+
+        #truncate original wl and fl to instrument ranges
+        low, high = instrument.wl_range
+        ind = (self.wl >= low) & (self.wl <= high)
+        wl = self.spec.wl[ind]
+        fl = self.spec.fl[ind]
+
+        fl_back = interp(wl)
+
+        #import matplotlib.pyplot as plt
+        #fig, ax = plt.subplots(nrows=2, sharex=True)
+        #ax[0].plot(wl, fl)
+        #ax[0].plot(wl, fl_back)
+        #ax[1].plot(wl, fl - fl_back)
+        #plt.show()
+
+        assert np.allclose(fl, fl_back), "Spectral information lost"
+
+    # def test_closeness_KPNO(self):
+        #Can't do this test for Kurucz because they do not overlap
+        # pass
 
 
 class TestClosenessStellarAndInstrument:
