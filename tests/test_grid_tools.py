@@ -202,6 +202,39 @@ class TestHDF5Stuffer:
     def test_process_grid(self):
         self.stuffer.process_grid()
 
+class TestHDF5StufferKurucz:
+    def setup_class(self):
+        import StellarSpectra
+        self.rawgrid = KuruczGridInterface()
+        self.stuffer = HDF5GridStuffer(self.rawgrid, ranges={"temp":(6000, 6250), "logg":(3.5, 4.5), "Z":(0.0,0.0),
+                                                             "alpha":(0.0, 0.0)}, filename="tests/test.hdf5")
+
+    def test_point_limiter(self):
+        ranges = {"temp":(6000, 6250), "logg":(3.5, 4.5), "Z":(0.0,0.0),
+                  "alpha":(0.0, 0.0)}
+
+        points = self.stuffer.points
+        #Did the creator object appropriately truncate points out of bounds?
+        for key in ranges.keys():
+            low, high = ranges[key]
+            p = points[key]
+            assert np.all(p >= low) and np.all(p <= high), "Points not truncated properly."
+
+
+    def test_process_flux(self):
+        self.stuffer.process_flux({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+
+        #requires four parameters
+        with pytest.raises(AssertionError) as e:
+            self.stuffer.process_flux({"temp":6000, "logg":3.5, "Z":0.0})
+        print(e.value)
+
+        #test outside the grid, should be handeled internally
+        self.stuffer.process_flux({"temp":5000, "logg":3.5, "Z":0.0, "alpha":10})
+
+
+    def test_process_grid(self):
+        self.stuffer.process_grid()
 
 class TestHDF5Interface:
     def setup_class(self):
