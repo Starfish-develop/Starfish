@@ -3,16 +3,17 @@
 library: PHOENIX
 #library : Kurucz
 
-HDF5_path : ../libraries/PHOENIX_submaster.hdf5
-data_dir : ../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
-output_dir : ../../output/
+#HDF5_path : libraries/PHOENIX_submaster.hdf5
+HDF5_path : libraries/Kurucz_master.hdf5
+data_dir : data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
+output_dir : output/
 
 star_name : WASP14
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
   This run is to get a preliminary handle on WASP parameters and start checking to see if the residuals make sense
-  for real data. Using tight priors centerd on Willie's values.
+  for real data. Using tight priors centered on Willie's values.
 
 #Nested data structures are allowed
 stellar_params :
@@ -21,7 +22,8 @@ stellar_params :
     Z : -0.5
     vsini : 5.5
     vz : 15.5
-    logOmega: -19.665
+    logOmega: -12.7 #Kurucz
+    #logOmega: -19.665 #PHOENIX
 
 cheb_params :
     c1 : -.017
