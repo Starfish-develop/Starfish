@@ -9,7 +9,6 @@ import yaml
 
 #Use argparse to determine if we've specified a config file
 import argparse
-#Pass LIBRARY DIRS and INCLUDE_DIRS as command line arguments
 parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
 parser.add_argument("-p", "--params", help="*.yaml file specifying parameters.")
 args = parser.parse_args()
@@ -83,10 +82,10 @@ myCovSampler = CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=0
 myRegionsSampler = RegionsSampler(myModel, region_MH_cov, order_index=0)
 
 mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler), burnInCadence=(10, 6, 6, 2), cadence=(10, 6, 6, 2))
-mySampler.burn_in(1000)
+mySampler.burn_in(80)
 mySampler.reset()
 
-mySampler.run(4000)
+mySampler.run(80)
 mySampler.plot()
 mySampler.acceptance_fraction()
 
