@@ -65,13 +65,13 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 cheb_Starting = config['cheb_params']
 #Note that these values are sigma^2!!
-cheb_MH_cov = np.array([2e-3, 2e-3, 2e-3])**2 * np.identity(len(cheb_Starting))
-cheb_tuple = ("c1", "c2", "c3")
+cheb_MH_cov = np.array([2e-3, 2e-3, 2e-3, 2e-3])**2 * np.identity(len(cheb_Starting))
+cheb_tuple = ("logc0", "c1", "c2", "c3")
 
 cov_Starting = config['cov_params']
 #Note, THESE VALUES ARE sigma^2!!
 #Note that these values are sigma^2!!
-cov_MH_cov = np.array([0.02, 0.02, 0.005])**2 * np.identity(len(cheb_Starting))
+cov_MH_cov = np.array([0.02, 0.02, 0.005])**2 * np.identity(len(cov_Starting))
 cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
 
 region_tuple = ("h", "loga", "mu", "sigma")
@@ -100,23 +100,31 @@ shutil.copy(yaml_file, outdir)
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir)
-myModel.OrderModels[0].update_Cheb({"c1":-0.017, "c2":-0.017, "c3":-0.003})
-myModel.OrderModels[0].CovarianceMatrix.update_global(cov_Starting)
+
+
+#myModel.OrderModels[0].update_Cheb({"c1":-0.017, "c2":-0.017, "c3":-0.003})
+#myModel.OrderModels[0].CovarianceMatrix.update_global(cov_Starting)
 
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, outdir=outdir)
-myChebSampler = ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=0, outdir=outdir)
-myCovSampler = CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=0, outdir=outdir)
-myRegionsSampler = RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'], order_index=0, outdir=outdir)
 
-mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler),
-                        burnInCadence=(10, 6, 6, 2), cadence=(10, 6, 6, 2))
+#Create the three subsamplers for each order
+samplerList = []
+cadenceList = []
+for i in range(len(config['orders'])):
+    samplerList.append(ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=i, outdir=outdir))
+    samplerList.append(CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=i, outdir=outdir))
+    samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'], order_index=i, outdir=outdir))
+    cadenceList += [6, 6, 2]
+
+mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
+                        burnInCadence=[10] + cadenceList, cadence=[10] + cadenceList)
 mySampler.burn_in(config["burn_in"])
 mySampler.reset()
 
 mySampler.run(config["samples"])
-mySampler.plot()
 mySampler.acceptance_fraction()
 myModel.to_json()
 mySampler.write()
+mySampler.plot()
 
 
