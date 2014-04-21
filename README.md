@@ -49,6 +49,10 @@ For example, if you installed SuiteSparse to mylib, then you would call setup.py
 
     python setup.py build_ext --inplace -Lmydir/lib -Imydir/include
 
+For example, to use my SuiteSparse directories on the CfA CF network,
+
+    python setup.py build_ext --inplace -L/pool/scout0/.build/lib -I/pool/scout0/.build/include
+
 
 To build
 
