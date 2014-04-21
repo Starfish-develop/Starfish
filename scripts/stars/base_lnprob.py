@@ -90,6 +90,11 @@ outdir = base.format(run_num)
 print("Creating ", outdir)
 os.makedirs(outdir)
 
+for order in config['orders']:
+    order_dir = "{}{}".format(outdir, order)
+    print("Creating ", order_dir)
+    os.makedirs(order_dir)
+
 #Copy yaml file to outdir
 shutil.copy(yaml_file, outdir)
 
@@ -101,9 +106,10 @@ myModel.OrderModels[0].CovarianceMatrix.update_global(cov_Starting)
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, outdir=outdir)
 myChebSampler = ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=0, outdir=outdir)
 myCovSampler = CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=0, outdir=outdir)
-myRegionsSampler = RegionsSampler(myModel, region_MH_cov, order_index=0, outdir=outdir)
+myRegionsSampler = RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'], order_index=0, outdir=outdir)
 
-mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler), burnInCadence=(10, 6, 6, 2), cadence=(10, 6, 6, 2))
+mySampler = MegaSampler(samplers=(myStellarSampler, myChebSampler, myCovSampler, myRegionsSampler),
+                        burnInCadence=(10, 6, 6, 2), cadence=(10, 6, 6, 2))
 mySampler.burn_in(config["burn_in"])
 mySampler.reset()
 
@@ -111,5 +117,6 @@ mySampler.run(config["samples"])
 mySampler.plot()
 mySampler.acceptance_fraction()
 myModel.to_json()
+mySampler.write()
 
 
