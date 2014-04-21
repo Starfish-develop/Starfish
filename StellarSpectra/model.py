@@ -7,6 +7,8 @@ from .spectrum import ModelSpectrum, ChebyshevSpectrum
 from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
 import time
 import json
+import h5py
+import os
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
@@ -109,6 +111,7 @@ class Model:
         self.cov_tuple = cov_tuple
         self.region_tuple = region_tuple
         self.outdir = outdir
+        self.orders = self.DataSpectrum.orders
         self.norders = self.DataSpectrum.shape[0]
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
         if 'alpha' not in self.stellar_tuple:
@@ -310,7 +313,7 @@ class Sampler:
 
     def write(self):
         '''
-        Write all of the relevant output to an HDF file
+        Write all of the relevant output to an HDF file.
 
         flatchain
         acceptance fraction
@@ -319,52 +322,32 @@ class Sampler:
 
         /
         stellar parameters.flatchain
-        order0/
+        00/
         ...
-        order22/
-        order23/
+        22/
+        23/
             global_cov.flatchain
             regions/
                 region1.flatchain
 
 
-        There is also a corresponding JSON file that tracks the structure
+        It also writes the tuple parameters as an attribute in the header from self.param_tuple
 
-        Before any write calls are made, there is a separate function that goes through the JSON structure to
-        create the HDF5 file and creates the appropriate groups
-
-        It also writes the tuple parameters as an attribute in the header
+        Everything can be saved in the dataset self.fname
 
         '''
         #Assume a common HDF5 file for the whole run (or create it, if it doesn't exist)
+
         filename = self.outdir + "flatchains.hdf5"
-        hdf5 = None
-        if os.exists(fname):
-            hdf5 = h5py.File(filename, "r")
-        else:
-            hdf5 = h5py.File(filename, "w")
+        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        samples = self.sampler.flatchain
 
+        dset = hdf5.create_dataset(self.fname, samples.shape, compression='gzip', compression_opts=9)
+        dset[:] = samples
+        dset.attrs["parameters"] = "{}".format(self.param_tuple)
+        dset.attrs["acceptance"] = "{}".format(self.sampler.acceptance_fraction)
 
-
-        self.hdf5.flux_group = self.hdf5.create_group("flux")
-        self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
-
-        #Then, for each flatchain, all we are doing is creating a dataset in the right spot and filling it with float32 values
-
-        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
-        wl_dset[:] = self.wl
-        wl_dset.attrs["air"] = self.GridInterface.air
-
-
-        #Create a dataset that is self.fname
-
-        #write out the flatchain
-        #and create a header attribute with acceptance_fraction = XX
-
-
-
-
+        hdf5.close()
 
     def plot(self):
         '''
@@ -421,6 +404,10 @@ class ChebSampler(Sampler):
         #self.param_tuple = ("logc0", "c1", "c2", "c3")
         self.param_tuple = ("c1", "c2", "c3")
         self.order_index = order_index
+
+        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
+        fname = "{}/{}".format(model.orders[self.order_index], fname)
+
         super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
@@ -440,6 +427,8 @@ class CovGlobalSampler(Sampler):
         self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
 
         self.order_index = order_index
+        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
+        fname = "{}/{}".format(model.orders[self.order_index], fname)
         super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
@@ -465,7 +454,7 @@ class CovRegionSampler(Sampler):
 
         self.order_index = order_index
         self.region_index = region_index
-        fname += "{}".format(self.region_index)
+        fname += "{:0>2}".format(self.region_index)
         super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
@@ -497,8 +486,8 @@ class RegionsSampler:
     '''
     #TODO: subclass RegionsSampler from MegaSampler
 
-    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, order_index=None,
-                 outdir="", fname="cov_region"):
+    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, max_regions = 3,
+                 order_index=None,  outdir="", fname="cov_region"):
 
         self.model = model
         self.MH_cov = MH_cov
@@ -509,11 +498,13 @@ class RegionsSampler:
         self.cadence = 4 #samples to devote to each region before moving on to the next
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
-        self.max_regions = 3
+        self.max_regions = max_regions
         #to decide if more or fewer RegionSampler's are needed?
 
         self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
+        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
         self.outdir = outdir
+        fname = "{}/{}".format(model.orders[self.order_index], fname)
         self.fname = fname
 
     def evaluate_region_logic(self):
@@ -562,6 +553,10 @@ class RegionsSampler:
                 sampler.run(self.cadence)
                 print("completed in {:.2f} seconds".format(time.time() - t))
 
+    def write(self):
+        for sampler in self.samplers:
+            sampler.write()
+
     def plot(self):
         for sampler in self.samplers:
             sampler.plot()
@@ -603,6 +598,10 @@ class MegaSampler:
             print("\n\nMegasampler on iteration {} of {}".format(i, iterations))
             for j in range(self.nsamplers):
                 self.samplers[j].run(self.cadence[j])
+
+    def write(self):
+        for j in range(self.nsamplers):
+            self.samplers[j].write()
 
     def plot(self):
         for j in range(self.nsamplers):
