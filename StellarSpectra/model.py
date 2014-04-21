@@ -1,14 +1,12 @@
 import numpy as np
 import sys
 import emcee
-import sys
 from . import constants as C
 from .grid_tools import ModelInterpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum
-#from StellarSpectra.spectrum import CovarianceMatrix #pure Python covariance spectrum
-from .covariance import CovarianceMatrix
+from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
 import time
-
+import json
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
@@ -20,6 +18,60 @@ def plot_walkers(filename, samples, labels=None):
             ax[i].set_ylabel(labels[i])
     ax[-1].set_xlabel("Sample number")
     fig.savefig(filename)
+
+
+class ModelEncoder(json.JSONEncoder):
+    '''
+    Designed to serialize an instance of o=Model() to JSON
+    '''
+    def default(self, o):
+        try:
+            #We turn Model into a hierarchical dictionary, which will serialize to JSON
+
+            mydict = {"stellar_params": o.stellar_params, "orders": {}}
+
+            #Determine the list of orders
+            orders = o.DataSpectrum.orders
+
+            #for each order, then instantiate an order dictionary
+            for i,order in enumerate(orders):
+                #Will eventually be mydict['orders'] = {"22":order_dict, "23:order_dict, ...}
+                order_dict = {}
+                order_model = o.OrderModels[i]
+                order_dict["cheb"] = order_model.cheb_params
+                order_dict["global_cov"] = order_model.global_cov_params
+
+                #Now determine if we need to add any regions
+                order_dict["regions"] = order_model.get_regions_dict()
+
+                mydict['orders'].update({str(order): order_dict})
+
+        except TypeError:
+            pass
+        else:
+            return mydict
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, o)
+
+
+        # import json
+        # parameters = {}
+        #
+        # parameters["stellar"] = self.stellar_params
+        # orders = {}
+        # for i in range(self.norders):
+        #     order_dict = {}
+        #     order_model = self.OrderModels[i]
+        #     order_dict["global cov"] = order_model.global_cov_params
+        #
+        #     #get Cheb params
+        #     #regions = {}
+        #     #go through each region in region list
+        #     #regions[0] = {h, a, m, sigma}
+        #     #order_dict["regions"] =
+        #     orders[str(order_model.order)] = order_dict
+        # parameters["orders"] = orders
+
 
 class Model:
     '''
@@ -37,12 +89,26 @@ class Model:
     '''
 
     #TODO: static method to create and instantiate Model from JSON
+    # @classmethod
+    # def load(cls, filename):
+    #     '''
+    #     Instantiate from a JSON file.
+    #     '''
+    #     f = open(filename, "r")
+    #
+    #     #Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple
+    #     name = mydict['name']
+    #     tempcls = cls(name)
+    #     tempcls.__dict__.update(mydict)
+    #     return tempcls
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, region_tuple):
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple, outdir=""):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
+        self.cheb_tuple = cheb_tuple
         self.cov_tuple = cov_tuple
         self.region_tuple = region_tuple
+        self.outdir = outdir
         self.norders = self.DataSpectrum.shape[0]
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
         if 'alpha' not in self.stellar_tuple:
@@ -58,6 +124,9 @@ class Model:
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
+
+    def zip_Cheb_p(self, p):
+        return dict(zip(self.cheb_tuple, p))
 
     def zip_Cov_p(self, p):
         return dict(zip(self.cov_tuple, p))
@@ -76,8 +145,6 @@ class Model:
         return self.DataSpectrum
 
 
-    #def get_Cov(self):
-    #    return self.CovarianceMatrix.matrices
 
     def evaluate(self):
         '''
@@ -100,32 +167,12 @@ class Model:
 
     def to_json(self, fname="model.json"):
         '''
-        Write all of the available parameters to a JSON file so that we may go back and re-create the model
+        Write all of the available parameters to a JSON file so that we may go back and re-create the model.
         '''
-        import json
-        parameters = {}
 
-        parameters["stellar"] = self.stellar_params
-        orders = {}
-        for i in range(self.norders):
-            order_dict = {}
-            order_model = self.OrderModels[i]
-            order_dict["global cov"] = order_model.global_cov_params
-
-            #get Cheb params
-            #regions = {}
-            #go through each region in region list
-                #regions[0] = {h, a, m, sigma}
-            #order_dict["regions"] =
-            orders[str(order_model.order)] = order_dict
-        parameters["orders"] = orders
-        #orders =
-        #for each order, get the cheb parameters, global covariance parameters
-        #for each region, get the region parameters
-        f = open(fname, 'w')
-        json.dump(parameters, f, indent=2)
+        f = open(self.outdir + fname, 'w')
+        json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
         f.close()
-
 
 
 class OrderModel:
@@ -140,13 +187,21 @@ class OrderModel:
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
         self.global_cov_params = None
+        self.cheb_params = None
 
-    def update_Cheb(self, coefs):
-        self.ChebyshevSpectrum.update(coefs)
+        #We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added
+        self.region_list = []
+
+    def update_Cheb(self, params):
+        self.cheb_params = params
+        self.ChebyshevSpectrum.update(params)
 
     def update_Cov(self, params):
         self.global_cov_params = params
         self.CovarianceMatrix.update_global(params)
+
+    def get_regions_dict(self):
+        return self.CovarianceMatrix.get_regions_dict()
 
     def get_spectrum(self):
         return self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
@@ -202,7 +257,7 @@ class Sampler:
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, plot_name="plots/out", order_index=None):
+    def __init__(self, model, MH_cov, starting_param_dict, outdir="", fname="", order_index=None):
         #Each subclass will have to overwrite how it parses the param_dict into the correct order
         #and sets the param_tuple
 
@@ -223,7 +278,8 @@ class Sampler:
             self.sampler = emcee.MHSampler(MH_cov, self.ndim, self.lnprob, args=(order_index,))
 
         self.pos_trio = None
-        self.plot_name = plot_name
+        self.outdir = outdir
+        self.fname = fname
 
     def reset(self):
         self.sampler.reset()
@@ -252,6 +308,64 @@ class Sampler:
         self.run(iterations)
 
 
+    def write(self):
+        '''
+        Write all of the relevant output to an HDF file
+
+        flatchain
+        acceptance fraction
+
+        The actual HDF5 file is structured as follows
+
+        /
+        stellar parameters.flatchain
+        order0/
+        ...
+        order22/
+        order23/
+            global_cov.flatchain
+            regions/
+                region1.flatchain
+
+
+        There is also a corresponding JSON file that tracks the structure
+
+        Before any write calls are made, there is a separate function that goes through the JSON structure to
+        create the HDF5 file and creates the appropriate groups
+
+        It also writes the tuple parameters as an attribute in the header
+
+        '''
+        #Assume a common HDF5 file for the whole run (or create it, if it doesn't exist)
+        filename = self.outdir + "flatchains.hdf5"
+        hdf5 = None
+        if os.exists(fname):
+            hdf5 = h5py.File(filename, "r")
+        else:
+            hdf5 = h5py.File(filename, "w")
+
+
+
+        self.hdf5.flux_group = self.hdf5.create_group("flux")
+        self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
+
+        #Then, for each flatchain, all we are doing is creating a dataset in the right spot and filling it with float32 values
+
+        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
+        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
+        wl_dset[:] = self.wl
+        wl_dset.attrs["air"] = self.GridInterface.air
+
+
+        #Create a dataset that is self.fname
+
+        #write out the flatchain
+        #and create a header attribute with acceptance_fraction = XX
+
+
+
+
+
     def plot(self):
         '''
         Generate the relevant plots once the sampling is done.
@@ -262,9 +376,10 @@ class Sampler:
         samples = self.sampler.flatchain
         figure = triangle.corner(samples, labels=self.param_tuple, quantiles=[0.16, 0.5, 0.84],
                                  show_titles=True, title_args={"fontsize": 12})
-        figure.savefig(self.plot_name + "triangle.png")
+        figure.savefig(self.outdir + self.fname + "_triangle.png")
 
-        plot_walkers(self.plot_name + "chain_pos.png", samples, labels=self.param_tuple)
+        plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
+
 
 
     def acceptance_fraction(self):
@@ -274,11 +389,11 @@ class StellarSampler(Sampler):
     '''
     Subclass of Sampler for evaluating stellar parameters.
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, plot_name="plots/out_stellar"):
+    def __init__(self, model, MH_cov, starting_param_dict, outdir="", fname="stellar"):
         #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
 
-        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
 
     def lnprob(self, p):
@@ -297,7 +412,7 @@ class ChebSampler(Sampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, plot_name="plots/out_cheb"):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, outdir="", fname="cheb"):
         #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
         #From a simple param dict, create a more complex param_dict
 
@@ -306,12 +421,13 @@ class ChebSampler(Sampler):
         #self.param_tuple = ("logc0", "c1", "c2", "c3")
         self.param_tuple = ("c1", "c2", "c3")
         self.order_index = order_index
-        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
 
     def lnprob(self, p):
-        self.order_model.update_Cheb(p)
+        params = self.model.zip_Cheb_p(p)
+        self.order_model.update_Cheb(params)
         return self.order_model.evaluate()
 
 
@@ -319,12 +435,12 @@ class CovGlobalSampler(Sampler):
     '''
     Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, plot_name="plots/out_cov"):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, outdir="", fname="cov"):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
         self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
 
         self.order_index = order_index
-        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
 
@@ -343,14 +459,14 @@ class CovRegionSampler(Sampler):
     '''
     Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, region_index=None, plot_name="plots/out_cov_region"):
+    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, region_index=None, outdir="", fname="cov_region"):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
         self.param_tuple = ("h", "loga", "mu", "sigma")
 
         self.order_index = order_index
         self.region_index = region_index
-        plot_name += "{}".format(self.region_index)
-        super().__init__(model, MH_cov, starting_param_dict, plot_name=plot_name)
+        fname += "{}".format(self.region_index)
+        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
@@ -381,7 +497,8 @@ class RegionsSampler:
     '''
     #TODO: subclass RegionsSampler from MegaSampler
 
-    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, order_index=None, plot_name="plots/out_cov_region"):
+    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, order_index=None,
+                 outdir="", fname="cov_region"):
 
         self.model = model
         self.MH_cov = MH_cov
@@ -392,10 +509,12 @@ class RegionsSampler:
         self.cadence = 4 #samples to devote to each region before moving on to the next
         self.logic_counter = 0
         self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
-        self.max_regions = 5
+        self.max_regions = 3
         #to decide if more or fewer RegionSampler's are needed?
 
         self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
+        self.outdir = outdir
+        self.fname = fname
 
     def evaluate_region_logic(self):
         return self.order_model.evaluate_region_logic()
@@ -410,7 +529,7 @@ class RegionsSampler:
         region_index = len(self.samplers) #region_index is one more than the current amount of regions
 
         newSampler = CovRegionSampler(self.model, self.MH_cov, starting_param_dict, order_index=self.order_index,
-                                      region_index=region_index)
+                                      region_index=region_index, outdir=self.outdir, fname=self.fname)
         self.samplers.append(newSampler)
 
     def reset(self):

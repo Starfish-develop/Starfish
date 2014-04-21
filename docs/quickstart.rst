@@ -29,3 +29,9 @@ Echelle orders
 
 To prevent confusion, all echelle orders will be indexed from 0. This means that if there are :math:`N` total orders, then
  the first order is 0 and the last order is :math:`N - 1`.
+
+
+Covariance matrices
+===================
+
+Useful link to Wikipedia on covariance matrices/positive-semi definite

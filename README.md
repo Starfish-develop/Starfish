@@ -174,8 +174,6 @@ Put the decorator `@profile` over the function you want to profile
 
 # Roadmap
 
-* use the full PHOENIX spectrum from the master grid (and interpolator), then downsample to the TRES instrument
-* Finish necessary grid_tools fixes/tests in order to guarantee the Master grid is correct for the production run
 * sort out usage of C.kms_air and C.kms_vac
 
 ## grid_tools.py
@@ -190,142 +188,43 @@ Order 24 has the problem of giving substantially lower logg, bumping up against 
 multiple order sampling leaves a bi-modal distribution of parameter space, thanks to the strong
 iron lines in order 24 (that are somehow incorrect).
 
-Postulated hierarchy of emcee samplers
-
-* sampler for stellar parameters
-  generates new stellar spectrum, evaluates a global lnprob by summing together the lnprobs of each OrderModel
-
-    * then, using a list of OrderSamplers, order by order
-
-        * sample the Chebyshev coefficients  ``lnprob`` parameterized by an OrderNum in the **args
-        * sample the global order covariance properties via the Matern kernel, using a ``lnprob`` parameterized by the **args
-
-        ## Region Sampling
-
-        there is a MegaRegion sampler that belongs to each OrderSampler
-
-        -- This is the responsibility of the OrderSampler
-        * go into the loop to examine the regions of the spectrum
-
-            * find the high points of the residuals
-            * assess whether they are already covered by a region
-            * assess whether there are any regions that do not cover a high point
-
-        then:
-
-        * for each region, instantiate a Region sampler
-            * sample the parameters {h, a, mu, sigma} that define this bad region
-        * these all tap into lnprobs that access the CovarianceMatrix for the order.
-
-        THEN
-
-        * Identify the pixel with the largest residual
-        * Instantiate a region with mu = pixel (+/- 2 or 3 pixels), a, sigma in some range
-        * We can have some priors on this region, ie, must remain w/in 5 AA of originally declared bad point. These priors
-         are updated on the general model
-        * These regions can be stored as individual sparse matrices, and then final covariance matrix is a super-position of all
-        of them
-
-
-
-
-#Useful link to Wikipedia on covariance matrices/positive-semi definite
-
-
-Open questions:
+## Line logic
 
 * How many times should we add lines? Do you ever delete lines?
 
-* What is happening when we have an error that the matrix is not positive semi-definite? How can we catch this error?
-It seems like it happens for perfectly normal parameter combinations.
-Although it might also be happening when h is very small, like 0.03 AA, which means it will actually be
-smaller than the separation of pixels. What should we do in this case? Is it zeroing out pixels somehow?
-It seems like it might be a problem with h and sigma somehow, but I'm not sure.
-
-Why does a system return nan as we instantiate more regions?
-
-Would it be a hack to just test if the jump is nan, otherwise return -np.inf?
-What do the regions actually look like with these parameters? Maybe the taper is not working correctly.
-What makes a region positive semi definite?
-We could stop as soon as it goes negative
-
 Is it a problem when the sigma's overlap? Can we better insure the tapering?
-First plan of action is to set up JSON serialization
-Second plan is to look at whether region taperings can overlap
-For example, does creating two overlapping regions result in a non-definite matrix?
 
 Should we make some assertion that the amplitude of the region can't be less than the global covariance height?
-
-It could also be that one region is just way too much higher than the rest and we are getting numerical problems
+Otherwise in the cleanup logic, we remove the region?
 
 # Speedups and improvements
 
-* Right now, we should focus only on order 23 and get the bad region sampler to work.
+JSON serialization
+Always output the model position on finish, so we can resume sampling if need be
 
-* Output, plot the sigma_matrix as a 1D slice through row=constant
+* Output, plot the sigma_matrix as a 1D slice through row=constant (how correlated is a given pixel with everything else?)
+* Could we scroll through rows?
 
 * Visualize cheb functions
 * Visualize spectrum and residuals
 * Serialize the model state using JSON
 * Load parameter files for runs using JSON (might be nice for creating visualizations, too)
 * Write samples in flatchain to an HDF5 file
-* use argparse to declare command line arguments for config file for base lnprob
-
+* Extend config files for # of samples
 
 * Fix the mean of c0's to 1?
 That way c0 is just a perturbation to the mean?
 Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
 Right now we are setting the last order to have logc0 = 0.0
 
-How does the interplay between different emcee samplers work? Especially when there are a different number of walkers?
-For example, after each iteration whose stellar parameters does each cheb sampler start with? I would think
-that we would need to keep the total number of walkers constant, otherwise certain cheb and noise coefficients would never
-be properly updated?
-
-OR, is it just taking the last value of the model (whichever walker was evaluated last), assigning that to everyone, and going forward? This is probably
-what is happening. But for the actual iterations of the stellar parameters, it resumes with the previous pos_tuple () This causes some discontinuity,
-because the Gibbs sampler is not actually conditioning on the same parameters that the star will have when it resumes. I suppose we'll just
-have to assume that they are similar enough. If we really need to, we can always go back to Metropolis-Hastings Gibbs sampler. Or, perhaps keep the
-number of walkers constant throughout the entire run, but I don't think this is going to work because you can't put
-the positions of the variables that you aren't sampling. You probably have to look in detail what is going on in the guts of the algorithm,
-what values of the walkers are being stored.
-
-* Model object contains:
-
-    Objects of the following
-
-    * Data Object
-        * contains spectrum object, which also has masks and an error spectrum
-        * photometry object
-        * also a link to the specific instrument which created it?
-
-    * Model spectrum
-
-        * contains spectrum object
-        * photometry object
-        * instrument object? do we want to fit for FWHM or kernel? What about Gauss-Hermite polynomials?
-        * downsample to Data spectrum wls (when passed Data spectrum as argument, could also be part of a evaluate method)
-
-        * Contains a ModelInterpolator object that determines how to chunk model spectrum, returns only flux. Has stored a "raw_wl" object.
-
-    * Chebyshev coefficients
-        * set cheb functions
-
-    * Covariance matrix
-        * overall poisson noise set using DataObject.sigma
-        * instantiate regions
-        * Keep track of regions: make sure they do not overlap
-        * set individual regions? Do we want to Gibbs sample in just the individual regions?
-
 
 * If a function requires a parameter and it's not in the parameter list, it looks up the default value.
+
 
 
 #Grid Creator Code
 
 * it turns out that the grid sampling actually needed to be *increased* to about 0.08 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
-
-How to restructure the code so that the HDF5 file does not overfill everything.
 
 * from the finished product, chunking loading is used 400:500 instead of [False False True True ... False] ? needs testing/timing.
 * interpolator combines the averaged spectra
