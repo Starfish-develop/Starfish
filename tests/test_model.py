@@ -9,9 +9,9 @@ from StellarSpectra.model import Model
 
 class TestModel:
     def setup_class(self):
-        myDataSpectrum = DataSpectrum.open("../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
-        myInstrument = TRES()
-        myHDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
+        self.DataSpectrum = DataSpectrum.open("../data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([22]))
+        self.Instrument = TRES()
+        self.HDF5Interface = HDF5Interface("../libraries/PHOENIX_submaster.hdf5")
 
         stellar_Starting = {"temp":6000, "logg":4.05, "Z":-0.4, "vsini":10.5, "vz":15.5, "logOmega":-19.665}
         stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
@@ -20,7 +20,7 @@ class TestModel:
         cov_tuple = ("sigAmp", "logAmp", "l")
         region_tuple = ("h", "loga", "mu", "sigma")
 
-        self.Model = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
+        self.Model = Model(self.DataSpectrum, self.Instrument, self.HDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                            cov_tuple=cov_tuple, region_tuple=region_tuple, outdir="")
 
     def test_update(self):
@@ -37,4 +37,7 @@ class TestModel:
 
     def test_to_json(self):
         self.Model.to_json()
+
+    def test_from_json(self):
+        newModel = Model.from_json("final_model.json", self.DataSpectrum, self.Instrument, self.HDF5Interface)
 

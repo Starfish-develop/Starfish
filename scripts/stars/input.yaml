@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/22/
+name: WASP14/Kurucz/21_22_23/
 
 #library: PHOENIX
 library : Kurucz
@@ -27,10 +27,16 @@ stellar_params :
     logOmega: -12.7 #Kurucz
     #logOmega: -19.665 #PHOENIX
 
+#cheb_params :
+#    c1 : -.017
+#    c2 : -.017
+#    c3 : -.003
+
 cheb_params :
-    c1 : -.017
-    c2 : -.017
-    c3 : -.003
+    logc0: 0.0
+    c1 : 0.0
+    c2 : 0.0
+    c3 : 0.0
 
 cov_params :
     sigAmp : 1
@@ -39,12 +45,12 @@ cov_params :
 
 
 #and sequences too
-orders: [22]
-#orders: [21, 22, 23]
+#orders: [22]
+orders: [21, 22, 23]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 4
+max_regions : 0
 
 #Burn in time
-burn_in : 600
+burn_in : 500
 samples : 3000

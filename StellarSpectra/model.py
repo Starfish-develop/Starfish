@@ -9,10 +9,11 @@ import time
 import json
 import h5py
 import os
+import matplotlib.pyplot as plt
+
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
-    import matplotlib.pyplot as plt
     fig, ax = plt.subplots(nrows=ndim, sharex=True)
     for i in range(ndim):
         ax[i].plot(samples[:,i])
@@ -20,6 +21,7 @@ def plot_walkers(filename, samples, labels=None):
             ax[i].set_ylabel(labels[i])
     ax[-1].set_xlabel("Sample number")
     fig.savefig(filename)
+    plt.close(fig)
 
 
 class ModelEncoder(json.JSONEncoder):
@@ -30,7 +32,8 @@ class ModelEncoder(json.JSONEncoder):
         try:
             #We turn Model into a hierarchical dictionary, which will serialize to JSON
 
-            mydict = {"stellar_params": o.stellar_params, "orders": {}}
+            mydict = {"stellar_tuple":o.stellar_tuple, "cheb_tuple": o.cheb_tuple, "cov_tuple": o.cov_tuple,
+            "region_tuple": o.region_tuple, "stellar_params": o.stellar_params, "orders": {}}
 
             #Determine the list of orders
             orders = o.DataSpectrum.orders
@@ -52,27 +55,8 @@ class ModelEncoder(json.JSONEncoder):
             pass
         else:
             return mydict
-        # Let the base class default method raise the TypeError
+        # Let the base class default method raise the TypeError, if there is one
         return json.JSONEncoder.default(self, o)
-
-
-        # import json
-        # parameters = {}
-        #
-        # parameters["stellar"] = self.stellar_params
-        # orders = {}
-        # for i in range(self.norders):
-        #     order_dict = {}
-        #     order_model = self.OrderModels[i]
-        #     order_dict["global cov"] = order_model.global_cov_params
-        #
-        #     #get Cheb params
-        #     #regions = {}
-        #     #go through each region in region list
-        #     #regions[0] = {h, a, m, sigma}
-        #     #order_dict["regions"] =
-        #     orders[str(order_model.order)] = order_dict
-        # parameters["orders"] = orders
 
 
 class Model:
@@ -90,19 +74,56 @@ class Model:
 
     '''
 
-    #TODO: static method to create and instantiate Model from JSON
-    # @classmethod
-    # def load(cls, filename):
-    #     '''
-    #     Instantiate from a JSON file.
-    #     '''
-    #     f = open(filename, "r")
-    #
-    #     #Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple
-    #     name = mydict['name']
-    #     tempcls = cls(name)
-    #     tempcls.__dict__.update(mydict)
-    #     return tempcls
+    @classmethod
+    def from_json(cls, filename, DataSpectrum, Instrument, HDF5Interface):
+        '''
+        Instantiate from a JSON file.
+        '''
+
+        #Determine tuples from the JSON output
+        f = open(filename, "r")
+        read = json.load(f)
+        f.close()
+
+        #Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple
+        stellar_tuple = tuple(read['stellar_tuple'])
+        cheb_tuple = tuple(read['cheb_tuple'])
+        cov_tuple = tuple(read['cov_tuple'])
+        region_tuple = tuple(read['region_tuple'])
+
+        #Initialize the Model object
+        model = cls(DataSpectrum, Instrument, HDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
+                      cov_tuple=cov_tuple, region_tuple=region_tuple)
+
+        #Update all of the parameters so covariance matrix uploads
+        #1) update stellar parameters
+        model.update_Model(read['stellar_params'])
+
+        #2) Figure out how many orders, and for each order
+        orders_dict = read["orders"]
+        print("orders_dict is", orders_dict)
+        orders = [int(i) for i in orders_dict.keys()]
+        orders.sort()
+        for i, order in enumerate(orders):
+            order_model = model.OrderModels[i]
+            order_dict = orders_dict[str(order)]
+            print("order_dict is", order_dict)
+            #2.1) update cheb and global cov parametersorder_dict = orders_dict[order]
+            order_model.update_Cheb(order_dict['cheb'])
+            order_model.update_Cov(order_dict['global_cov'])
+
+            #2.2) instantiate and create all regions, if any exist
+            regions_dict = order_dict['regions']
+            regions = [int(i) for i in regions_dict.keys()]
+            regions.sort()
+            if len(regions_dict) > 0:
+                #Create regions, otherwise skip
+                CovMatrix = order_model.CovarianceMatrix
+                for i, region in enumerate(regions):
+                    print("creating region ", i, region, regions_dict[str(region)])
+                    CovMatrix.create_region(regions_dict[str(region)])
+
+        return model
 
     def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple, outdir=""):
         self.DataSpectrum = DataSpectrum
@@ -138,8 +159,8 @@ class Model:
         return dict(zip(self.region_tuple, p))
 
     def update_Model(self, params):
-        self.stellar_params = params
         self.ModelSpectrum.update_all(params)
+        self.stellar_params = params
 
     def get_data(self):
         '''
@@ -196,12 +217,12 @@ class OrderModel:
         self.region_list = []
 
     def update_Cheb(self, params):
-        self.cheb_params = params
         self.ChebyshevSpectrum.update(params)
+        self.cheb_params = params
 
     def update_Cov(self, params):
-        self.global_cov_params = params
         self.CovarianceMatrix.update_global(params)
+        self.global_cov_params = params
 
     def get_regions_dict(self):
         return self.CovarianceMatrix.get_regions_dict()
@@ -317,6 +338,7 @@ class Sampler:
 
         flatchain
         acceptance fraction
+        tuple parameters as an attribute in the header from self.param_tuple
 
         The actual HDF5 file is structured as follows
 
@@ -330,13 +352,9 @@ class Sampler:
             regions/
                 region1.flatchain
 
-
-        It also writes the tuple parameters as an attribute in the header from self.param_tuple
-
         Everything can be saved in the dataset self.fname
 
         '''
-        #Assume a common HDF5 file for the whole run (or create it, if it doesn't exist)
 
         filename = self.outdir + "flatchains.hdf5"
         hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
@@ -362,6 +380,7 @@ class Sampler:
         figure.savefig(self.outdir + self.fname + "_triangle.png")
 
         plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
+        plt.close(figure)
 
 
 
@@ -401,8 +420,8 @@ class ChebSampler(Sampler):
 
         #Then set param_tuple
         #For now it is just set manually
-        #self.param_tuple = ("logc0", "c1", "c2", "c3")
-        self.param_tuple = ("c1", "c2", "c3")
+        self.param_tuple = ("logc0", "c1", "c2", "c3")
+        #self.param_tuple = ("c1", "c2", "c3")
         self.order_index = order_index
 
         # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
@@ -576,11 +595,13 @@ class MegaSampler:
 
 
     '''
-    def __init__(self, samplers, burnInCadence, cadence):
+    def __init__(self, model, samplers, burnInCadence, cadence):
+        self.model = model
         self.samplers = samplers
         self.nsamplers = len(self.samplers)
         self.burnInCadence = burnInCadence
         self.cadence = cadence
+        self.json_dump = 10 #Number of times to dump to output
 
     def burn_in(self, iterations):
         for i in range(iterations):
@@ -594,10 +615,17 @@ class MegaSampler:
             self.samplers[j].reset()
 
     def run(self, iterations):
+        #Choose 10 random numbers for which to dump output
+        dump_indexes = np.random.randint(iterations, size=(self.json_dump,))
+        print("Will dump output on iterations", dump_indexes)
+
         for i in range(iterations):
             print("\n\nMegasampler on iteration {} of {}".format(i, iterations))
             for j in range(self.nsamplers):
                 self.samplers[j].run(self.cadence[j])
+            if i in dump_indexes:
+                self.model.to_json("model{:0>2}.json".format(i))
+
 
     def write(self):
         for j in range(self.nsamplers):
