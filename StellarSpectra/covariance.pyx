@@ -248,6 +248,15 @@ cdef class CovarianceMatrix:
 
         return string
 
+    def get_regions_dict(self):
+        '''
+        Return a JSON dictionary with all of the region parameters.
+        '''
+        mydict = {}
+        for i in range(len(self.RegionList)):
+            mydict[str(i)] = self.RegionList[i].get_params()
+        return mydict
+
 
     def update_sum_regions(self):
         '''
@@ -513,6 +522,7 @@ cdef class RegionCovarianceMatrix:
     cdef npoints
     cdef mu
     cdef sigma0
+    cdef params
 
     def __init__(self, DataSpectrum, order_index, params, Common common):
         self.common = common 
@@ -531,6 +541,7 @@ cdef class RegionCovarianceMatrix:
         self.mu = params["mu"] #take the anchor point for reference?
         self.sigma0 = 3.
         self.update(params) #do the first initialization
+        self.params = None
 
 
 
@@ -546,12 +557,16 @@ cdef class RegionCovarianceMatrix:
     def get_bounds(self):
         return (self.mu - self.sigma0, self.mu + self.sigma0)
 
+    def get_params(self):
+        return self.params
+
 
     def update(self, params):
         '''
         Parameters is a dictionary of {h, a, mu, sigma}.
         Back in CovarianceMatrix, calculate the logdet and the new cholmod_factorization.
         '''
+        self.params = params
         h = params['h']
         a = 10**params['loga']
         mu = params['mu']

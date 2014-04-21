@@ -1108,7 +1108,7 @@ class ChebyshevSpectrum:
         ##    Dmu = np.einsum("ij,j->j", D, mu)
         ##    muDmu = np.einsum("j,j->", mu, Dmu)
 
-    def update(self, coefs):
+    def update(self, params):
         '''
         Given a linear list of coefs (say from `emcee`), create a k array to multiply against model fls
         '''
@@ -1116,11 +1116,10 @@ class ChebyshevSpectrum:
         #Fix the last order c0 to 1.
         if self.fix_c0:
             logc0 = 0.0
-            cns = coefs
-            #cns = coefs #this was previously true if we only gave 3 parameters.
         else:
-            logc0 = coefs[0]
-            cns = coefs[1:]
+            logc0 = params["logc0"]
+
+        cns = np.array([params["c1"], params["c2"], params["c3"]])
 
         #if c0 < 0:
         #    raise C.ModelError("Negative c0s are not allowed.")
