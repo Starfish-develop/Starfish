@@ -29,6 +29,7 @@ class TestCCovarianceMatrix:
 
     def test_evaluate(self):
         print("\n NO REGION lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
+        print(self.CovarianceMatrix.get_regions_dict())
 
     def test_get_region_coverage_once(self):
         cov = self.CovarianceMatrix.get_region_coverage()
@@ -67,6 +68,9 @@ class TestCCovarianceMatrix:
     def test_get_region_coverage_twice(self):
         cov = self.CovarianceMatrix.get_region_coverage()
         print(np.sum(cov))
+
+    def test_get_region_dict(self):
+        print(self.CovarianceMatrix.get_regions_dict())
 
     def test_cholmod_to_scipy_sparse(self):
         S = self.CovarianceMatrix.cholmod_to_scipy_sparse().todense()
