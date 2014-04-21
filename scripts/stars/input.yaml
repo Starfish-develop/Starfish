@@ -45,7 +45,6 @@ orders: [22]
 #Maximum number of sub-regions allowed per order
 max_regions : 4
 
-
 #Burn in time
-burn_in : 8
-samples : 8
+burn_in : 600
+samples : 3000
