@@ -566,7 +566,6 @@ cdef class RegionCovarianceMatrix:
         Parameters is a dictionary of {h, a, mu, sigma}.
         Back in CovarianceMatrix, calculate the logdet and the new cholmod_factorization.
         '''
-        self.params = params
         h = params['h']
         a = 10**params['loga']
         mu = params['mu']
@@ -589,6 +588,8 @@ cdef class RegionCovarianceMatrix:
             cholmod_free_sparse(&self.A, self.c)
 
         self.A = temp
+        self.params = params
+
 #Run some profiling code to see what our bottlenecks might be.
 #With stock format
 #Update takes 0.138 seconds, evaluate takes 0.001s
