@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/21_22_23/
+name: WASP14/Kurucz/21_22_23_logg/
 
 #library: PHOENIX
 library : Kurucz
@@ -20,7 +20,7 @@ Comments: >
 #Nested data structures are allowed
 stellar_params :
     temp : 6330
-    logg : 3.9
+    #logg : 3.9
     Z : -0.42
     vsini : 4.5
     vz : 15.4
@@ -52,5 +52,5 @@ orders: [21, 22, 23]
 max_regions : 0
 
 #Burn in time
-burn_in : 500
+burn_in : 600
 samples : 3000

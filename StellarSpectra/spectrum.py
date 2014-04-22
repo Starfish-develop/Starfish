@@ -837,7 +837,8 @@ class ModelSpectrum:
 
         '''
         #First set stellar parameters using _update_grid_params
-        grid_params = {key:params[key] for key in self.interpolator.parameters}
+        grid_params = {'temp':params['temp'], 'logg': 4.29, 'Z':params['Z']}
+        #grid_params = {key:params[key] for key in self.interpolator.parameters}
 
         self._update_grid_params(grid_params)
 
@@ -1025,7 +1026,14 @@ class ModelSpectrumLog:
 
         '''
         #First set stellar parameters using _update_grid_params
-        grid_params = {key:params[key] for key in self.interpolator.parameters}
+
+        #self.interpolator.parameters automatically contains alpha or not
+
+        #Kludgey code to account for Willie setting logg = 4.29
+
+        grid_params = {'temp':params['temp'], 'logg': 4.29, 'Z':params['Z']}
+        #grid_params = {key:params[key] for key in self.interpolator.parameters}
+
 
         self._update_grid_params(grid_params)
 
