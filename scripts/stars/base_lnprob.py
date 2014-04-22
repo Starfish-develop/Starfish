@@ -40,7 +40,7 @@ myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
 #Note that these values are sigma^2!!
-stellar_MH_cov = np.array([2, 0.02, 0.02, 0.02, 0.02, 1e-4])**2 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([2, 0.02, 0.02, 0.02, 1e-4])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 #Tuning the correlations should depend on how the models were normalized, right?
