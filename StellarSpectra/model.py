@@ -123,6 +123,9 @@ class Model:
                     print("creating region ", i, region, regions_dict[str(region)])
                     CovMatrix.create_region(regions_dict[str(region)])
 
+        #Now update the stellar model again so it accounts for the Chebyshevs when downsampling
+        model.update_Model(read['stellar_params'])
+
         return model
 
     def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple, outdir=""):
@@ -216,13 +219,22 @@ class OrderModel:
         #We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added
         self.region_list = []
 
+    def get_data(self):
+        return (self.wl, self.fl)
+
     def update_Cheb(self, params):
         self.ChebyshevSpectrum.update(params)
         self.cheb_params = params
 
+    def get_Cheb(self):
+        return self.ChebyshevSpectrum.k
+
     def update_Cov(self, params):
         self.CovarianceMatrix.update_global(params)
         self.global_cov_params = params
+
+    def get_Cov(self):
+        return self.CovarianceMatrix.cholmod_to_scipy_sparse()
 
     def get_regions_dict(self):
         return self.CovarianceMatrix.get_regions_dict()
