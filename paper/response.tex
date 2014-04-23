@@ -66,9 +66,20 @@ We prepare flux-calibrate our data spectrum by comparison with the observation o
 
 The raw synthetic spectra are also given in spectral flux density ($f_\lambda$), sampled at $R\approx$500,000. I prefer to think of the synthetic spectrum as band-limited function that is sampled at many points, hopefully enough to Nyquist sample it. In this paradigm of thought, it doesn't matter what the wavelength locations of the samplings are or how many of them there are, as long as the function remains Nyquist sampled. For example, if the raw synthetic spectrum were instead sampled at $R\approx$1,000,000 there would be twice as many points in the spectrum but the function would be otherwise unchanged. We could delete half of these points and we would not loose any information. Stellar spectra in particular are band-limited by several effects. The first is that intrinsic stellar phenomenon like microturbulence, macroturbulence, and rotation all act to suppress high frequency features in the spectrum.  Second, the line-spread function of the observing instrument also removes high frequency stellar features. Finally, the width of the pixel on the CCD also destroys spectral information of the highest frequencies, if any remain. The result is that a band-limited spectrum has a Nyquist frequency, above which we need not sample, but below which we sample at our peril.
 
-To transform our raw interpolated spectrum into a format that matches our data spectrum, we first resample the uniformly sampled (in angstroms) raw spectrum to a log-linear wavelength grid using spline interpolation. We take care to use a fine enough spacing such that no spectral information is lost. We test that we can interpolate from the log-linear grid \emph{back} to the original uniform grid and recover the same flux values to within floating point accuracy. A log-linear grid has constant spacing in velocity space, and so it is the appropriate grid to use for an FFT. Once in Fourier space, we then multiply the spectrum by the PSF kernel of the instrument and then by a $v \sin i$ kernel for broadening induced by the rotation of the star. Because the pixels of our spectrograph sufficiently oversample PSF of the instrument, we do not need to worry\footnote{or so I currently think, please correct me if I am wrong!} about the size of the pixels. In the image plane, an individual pixel could be represented as a box-car or top-hat function which convolves the spectrum $f_\lambda$ and is then resampled at the pixel-center $\lambda_0$. In the Fourier domain, the effect of the pixel is represented as multiplication by a sinc function. Because the width of the pixel is small, the main lobe of the sinc function is large. Figure XX shows that all of the stellar information in Fourier space is well within this main lobe, and so we do not need to worry about pixel-convolutions. The situation would be different if our pixels undersampled the PSF. Ignoring the pixel width effects, we do an IFFT back to the wavelength domain and then use splines to resample the flux-density at the exact pixels of our dataset. At this point we again do spline interpolation tests using differently spaced wavelength grids to check that we can still recover the same spectrum to within numerical accuracy. The pixels of our particular CCD are roughly log-linear spaced, and there are at least 2.5 pixels across the FWHM of the spectrograph PSF. This whole time we have been resampling instead of rebinning because we are dealing with spectral flux density in our data spectrum, not ADUs/pixel.
+To transform our raw interpolated spectrum into a format that matches our data spectrum, we first resample the uniformly sampled (in angstroms) raw spectrum to a log-linear wavelength grid using spline interpolation. We take care to use a fine enough spacing such that no spectral information is lost. We test that we can interpolate from the log-linear grid \emph{back} to the original uniform grid and recover the same flux values to within floating point accuracy. A log-linear grid has constant spacing in velocity space, and so it is the appropriate grid to use for an FFT. Once in Fourier space, we then multiply the spectrum by the PSF kernel of the instrument and then by a $v \sin i$ kernel for broadening induced by the rotation of the star. Because the pixels of our spectrograph sufficiently oversample PSF of the instrument, we do not need to worry\footnote{or so I currently think, please correct me if I am wrong!} about the size of the pixels. In the image plane, an individual pixel could be represented as a box-car or top-hat function which convolves the spectrum $f_\lambda$ and is then resampled at the pixel-center $\lambda_0$. In the Fourier domain, the effect of the pixel is represented as multiplication by a sinc function. Because the width of the pixel is small, the main lobe of the sinc function is large. Figure~\ref{fig:pixel_response} shows that all of the stellar information in Fourier space is well within this main lobe, and so we do not need to worry about pixel-convolutions. The situation would be different if our pixels undersampled the PSF. Ignoring the pixel width effects, we do an IFFT back to the wavelength domain and then use splines to resample the flux-density at the exact pixels of our dataset. At this point we again do spline interpolation tests using differently spaced wavelength grids to check that we can still recover the same spectrum to within numerical accuracy. The pixels of our particular CCD are roughly log-linear spaced, and there are at least 2.5 pixels across the FWHM of the spectrograph PSF. This whole time we have been resampling instead of rebinning because we are dealing with spectral flux density in our data spectrum, not ADUs/pixel.
+
+\begin{figure}[!htb]
+\begin{center}
+  \includegraphics[width=0.5\textwidth]{pixel_response}
+\caption{Pixel response}
+\label{fig:pixel_response}
+\end{center}
+\end{figure}
+
+In the future, we may consider doing away with the FFT routine entirely in favour of a sliding convolution approach, where the resolution of the kernel can change with wavelength, the way the actual PSF changes on the spectrograph.
 
 \subsection{Pixel-convolved PSF}
+
 The previous approach is not very rigorous about the distinction between intensity and flux. In your blog and papers you've mentioned the ``pixel-convolved'' PSF at the focal plane, or the ``pixel-beam.'' I was wondering if you could point me to a reference explaining the concept that makes prodigious use of equations? I've worked out the following\ldots could you point out anywhere I have gone wrong?
 
 The intensity field $I(\vec{x}, \vec{n})$ is a function of three dimensional space and direction, denoted by a position vector $\vec{x}$ and direction vector $\vec{n}$.  In a spectrograph, this intensity field is modified by the system response of the dispersive mechanism, called the line spread function or point spread function (PSF). Assuming monochromatic light, the intensity field behind the spectrograph can be written as
@@ -89,10 +100,10 @@ If we have a infinitesimal pixel with size $dA$, then in time $dt$ a source at a
 
 My impression is that the ``pixel-beam'' becomes important when we consider that each pixel is not infinitesimal in size nor does it have a uniform response throughout the pixel nor to all directions of incoming light. If we define a directional pixel efficiency as $\eta_\nu(x, y, \vec{n})$, then the energy received by a pixel with finite area is
 \begin{equation}
-  E = \int \int \int \int \int I_{\nu, {\rm FP}} (x, y, \vec{n})\, dt\, (dx\,dy \cos \theta) \eta_\nu(x, y, \vec{n}) \cdot \vec{n} \, d\vec{n}\, d\nu
+  E = \int \iint \int \int I_{\nu, {\rm FP}} (x, y, \vec{n})\, dt\, (dx\,dy \cos \theta) \eta_\nu(x, y, \vec{n}) \cdot \vec{n} \, d\vec{n}\, d\nu
 \end{equation}
 
-where the spatial integral over $dx, dy$ spans the size of the pixel. By ``pixel-beam,'' do you mean something similar to $\eta_\nu$? I am interested in learning more about how this is done, but have been unable to find a detailed mathematical example.
+where the spatial integral over $dx, dy$ spans the size of the pixel. By ``pixel-beam,'' do you mean something similar to $\eta_\nu$? I am interested in learning more about how this is done, but have been unable to find a detailed mathematical example. Of course, for spectra, there is the additional problem of extraction, or converting the 2D spectrum into a 1D spectrum.
 
 
 \section{Correlated noise}
@@ -120,6 +131,32 @@ k(x, x^\prime | a, \mu, \sigma) = \frac{a^2}{2 \pi \sigma} \exp \left ( - \frac{
 \end{equation}
 
 
+\begin{figure}[!htb]
+\begin{center}
+\includegraphics{fake_line}
+\caption{A fake Gaussian residual}
+\label{fig:fake_line}
+\end{center}
+\end{figure}
+
+\begin{figure}[!htb]
+\begin{center}
+\includegraphics{matrix_region}
+\caption{Left: sparsity. Right: covariance matrix with a Gaussian kernel as described above.}
+\label{fig:matrix_region}
+\end{center}
+\end{figure}
+
+Some text.
+
+\begin{figure}[!htb]
+\begin{center}
+\includegraphics{random_draw}
+\caption{15 random draws from the covariance matrix, overplotted with the residuals.}
+\label{fig:random_draw}
+\end{center}
+\end{figure}
+
 TODO: include simple figures showing that this covariance matrix can generate noise shaped like spectral lines. 
 
 DFM recommended that we also implement a stationary covariance kernel to account for the general covariance structure of the data. For this, we use a Matern kernel \begin{equation}
@@ -137,6 +174,14 @@ For now we use wavelength, since this is easy to parameterize, and each waveleng
 \hcom{good on the stuff about there being important information where the models and data disagree.}
 
 Point out that different covariance functions could be useful for different spectral problems, such as M dwarf continuum (show reference, or lifted plot).
+
+By creating a new kernel with a finite bandwith, we can now 
+We use a more general covariance function, which is the squared exponential with a Gaussian taper
+
+\begin{equation}
+k(x, x^\prime | h, a, \mu, \sigma) = \exp \left ( \frac{-( x - x^\prime)^2 }{2 h^2} \right ) \frac{a^2}{2 \pi \sigma} \exp \left ( - \frac{[(x - \mu)^2 + (x^\prime - \mu)^2]}{2 \sigma^2}\right )
+\end{equation}
+here $h$ is a "bandwidth" that controls the power of the oscillations. If $h$ is small, then there will be high-frequency structure. If $h$ is large, then only low-frequency structure will remain.
 
 \begin{figure}[!htb]
 \begin{center}
