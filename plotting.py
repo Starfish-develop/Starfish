@@ -26,21 +26,6 @@ masks = np.load(base + ".mask.npy")
 #k.xaxis.set_major_formatter(FSF("%.0f"))
 #k.locator_params(axis='x', nbins=5)
 
-def plot_logg_grid():
-    fig, ax = plt.subplots(nrows=13, sharex=True, sharey=True, figsize=(11, 8))
-    #fig = plt.figure(figsize=(11,8))
-    #ax = fig.add_subplot(111)
-    ax[0].plot(m.wl, m.fl)
-    ax[0].set_ylabel("GW Ori")
-    for i, j in enumerate(np.arange(0.5, 6.1, 0.5)):
-        f = m.model(5900, -30, logg=j)
-        ax[i + 1].plot(m.wl, f / f[0])
-        ax[i + 1].set_ylabel("%.2f" % j)
-    ax[-1].locator_params(axis='y', nbins=3)
-    ax[-1].set_xlabel(r"$\lambda\quad[\AA]$")
-    ax[-1].xaxis.set_major_formatter(FSF("%.0f"))
-    fig.subplots_adjust(top=0.96, right=0.96)
-    plt.show()
 
 def compare_kurucz():
     wg_full = np.load('wave_grids/PHOENIX_2kms_air.npy')
