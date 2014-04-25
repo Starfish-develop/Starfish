@@ -263,6 +263,7 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 * Buchhave 2012 has parameters for many KOI's. We can access all the TRES data easily.
 * Schornrich 2013: OSU paper for Bayseian method
 * Hernandez 2004: using FAST spectra, identified spectral features sensitive to temperature
+* http://arxiv.org/abs/1404.5578 Fe I oscillator strengths are off. May be why PHOENIX gives the wrong metallicity?
 
 
 # Process Kurucz grid using grid creator code
