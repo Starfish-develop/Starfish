@@ -1,27 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import model as m
 from matplotlib.ticker import FormatStrFormatter as FSF
 from matplotlib.ticker import MultipleLocator
-import yaml
-import PHOENIX_tools as pt
-import h5py
 from astropy.io import ascii
-import plot_MCMC as pltMC
 from scipy.optimize import fmin
-
-f = open('config.yaml')
-config = yaml.load(f)
-f.close()
+from StellarSpectra.spectrum import DataSpectrum
 
 c_ang = 2.99792458e18 #A s^-1
-
-base = 'data/' + config['dataset']
-wls = np.load(base + ".wls.npy")
-fls = np.load(base + ".fls.npy")
-#fls_true = np.load(base + ".true.fls.npy")
-sigmas = np.load(base + ".sigma.npy")
-masks = np.load(base + ".mask.npy")
 
 #k.xaxis.set_major_formatter(FSF("%.0f"))
 #k.locator_params(axis='x', nbins=5)
@@ -268,12 +253,15 @@ def plot_line_residuals():
 
     plt.show()
 
-def line_classes():
+def line_classes_panel():
     fig, ax = plt.subplots(nrows=2, ncols=4, figsize=(6,4.))
-    #need to set config.yaml['orders'] = [22,23], WASP-14
-    fl23, fl24 = m.fls
-    sig23, sig24 = m.sigmas
 
+
+    spec = DataSpectrum.open("data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=[22,23])
+    fl23, fl24 = spec.fls
+    sig23, sig24 = spec.sigmas
+
+    #Model?
     wlsz23 = np.load("residuals/wlsz23.npy")[0]
     f23 = np.load("residuals/fl23.npy")[0]
     wlsz24 = np.load("residuals/wlsz24.npy")[0]
@@ -290,7 +278,6 @@ def line_classes():
     fl24 /= 2e-13
     f23 /= 2e-13
     f24 /= 2e-13
-
 
     ax[0,0].plot(wlsz23, fl23, "b", label="data")
     ax[0,0].plot(wlsz23, f23, "r", label="model")
@@ -356,11 +343,119 @@ def line_classes():
 
     fig.subplots_adjust(left=0.09, right=0.99, top=0.94, bottom=0.18, hspace=0.1, wspace=0.27)
     fig.text(0.48, 0.02, r"$\lambda$ (\AA)")
-    fig.savefig("plots/badlines.eps")
+    fig.savefig("plots/badlines.png")
     #plt.show()
 
+def line_classes_strip():
 
-    pass
+    spec = DataSpectrum.open("data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=[22,23])
+    fl23, fl24 = spec.fls
+    sig23, sig24 = spec.sigmas
+
+    #Model?
+    wlsz23 = np.load("residuals/wlsz23.npy")[0]
+    f23 = np.load("residuals/fl23.npy")[0]
+    wlsz24 = np.load("residuals/wlsz24.npy")[0]
+    f24 = np.load("residuals/fl24.npy")[0]
+
+    #import matplotlib
+    #font = {'size' : 8}
+
+    #matplotlib.rc('font', **font)
+    #matplotlib.rc('labelsize', **font)
+    r23 = (fl23 - f23)/sig23
+    r24 = (fl24 - f24)/sig24
+    fl23 /= 2e-13
+    fl24 /= 2e-13
+    f23 /= 2e-13
+    f24 /= 2e-13
+
+    #Class 0
+    fig, ax = plt.subplots(nrows=2, figsize=(3,4), sharex=True)
+    ax[0].plot(wlsz23, fl23, "b", label="data")
+    ax[0].plot(wlsz23, f23, "r", label="model")
+    ax[0].legend(loc="lower left")
+    ax[0].set_title("Class 0")
+    ax[1].plot(wlsz23, r23, "g")
+    ax[1].set_xlim(5136.4, 5140.4)
+    ax[1].set_ylim(-4,4)
+    labels = ax[1].get_xticklabels()
+    for label in labels:
+        label.set_rotation(60)
+    ax[0].set_ylabel(r"$\propto f_\lambda$")
+    ax[1].set_ylabel(r"Residuals$/\sigma_P$")
+    ax[1].xaxis.set_major_formatter(FSF("%.0f"))
+    ax[1].xaxis.set_major_locator(MultipleLocator(1.))
+    for i in [0, 1]:
+        ax[i].tick_params(axis='both', which='major', labelsize=10)
+    fig.subplots_adjust(left=0.19, hspace=0.1, right=0.96, top=0.92)
+    fig.savefig("plots/class0.png")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(4,4.))
+    #Class I
+    ax[0,0].plot(wlsz23, fl23, "b")
+    ax[0,0].plot(wlsz23, f23, "r")
+    ax[0,0].set_title("Class I")
+    ax[0,0].set_ylim(0.4, 1.1)
+
+    ax[1,0].plot(wlsz23, r23, "g")
+    ax[0,0].set_xlim(5188, 5189.5)
+    ax[1,0].set_xlim(5188, 5189.5)
+    #ax[1,1].set_ylim(-4,4)
+
+    #Class II
+    ax[0,1].plot(wlsz24, fl24, "b", label='data')
+    ax[0,1].plot(wlsz24, f24, "r", label='model')
+    ax[0,1].set_ylim(0.3, 1.1)
+    ax[0,1].legend(loc="lower center", prop={'size':10})
+    ax[0,1].set_title("Class II")
+
+    ax[1,1].plot(wlsz24, r24, "g")
+    ax[0,1].set_xlim(5258, 5260)
+    ax[1,1].set_xlim(5258, 5260)
+    ax[0,0].set_ylabel(r"$\propto f_\lambda$")
+    ax[1,0].set_ylabel(r"Residuals$/\sigma_P$")
+
+    for i in [0,1]:
+        for j in [0,1]:
+            ax[i,j].xaxis.set_major_formatter(FSF("%.1f"))
+            ax[i,j].xaxis.set_major_locator(MultipleLocator(0.5))
+            ax[i,j].tick_params(axis='both', which='major', labelsize=10)
+        ax[0,i].xaxis.set_ticklabels([])
+
+    for j in range(2):
+        labels = ax[1,j].get_xticklabels()
+        for label in labels:
+            label.set_rotation(60)
+
+    fig.subplots_adjust(left=0.15, hspace=0.1, wspace=0.23, right=0.96, top=0.92, bottom=0.15)
+    fig.savefig("plots/classI_II.png")
+    plt.close(fig)
+
+    #Class III
+    fig, ax = plt.subplots(nrows=2, figsize=(3,4), sharex=True)
+    ax[0].plot(wlsz24, fl24, "b", label="data")
+    ax[0].plot(wlsz24, f24, "r", label="model")
+    ax[0].legend(loc="lower left")
+    ax[0].set_title("Class III")
+    ax[1].plot(wlsz24, r24, "g")
+    ax[1].set_xlim(5260, 5271)
+    ax[1].set_ylim(-15, 15)
+    ax[0].set_ylabel(r"$\propto f_\lambda$")
+    ax[1].set_ylabel(r"Residuals$/\sigma_P$")
+    ax[1].xaxis.set_major_formatter(FSF("%.0f"))
+    ax[1].xaxis.set_major_locator(MultipleLocator(2.))
+    for i in [0, 1]:
+        ax[i].tick_params(axis='both', which='major', labelsize=10)
+    labels = ax[1].get_xticklabels()
+    for label in labels:
+        label.set_rotation(60)
+
+    fig.subplots_adjust(left=0.19, hspace=0.1, right=0.96, top=0.92)
+    fig.savefig("plots/classIII.png")
+    plt.close(fig)
+
 
 def main():
     #identify_lines([5083, 5086], [5900, 6000], [3.0, 3.5], ["-1.0", "-0.5"])
@@ -372,9 +467,7 @@ def main():
     #wlsz, refluxed, k, flatchain = m.model_p(p24)
     #np.save("residuals/wlsz24.npy", wlsz)
     #np.save("residuals/fl24.npy", refluxed)
-    line_classes()
-
-    pass
+    line_classes_strip()
 
 
 
