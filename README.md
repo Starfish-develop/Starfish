@@ -247,6 +247,9 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 
 * ModelInterpolater._determine_chunk() will need to be updated to use create_log_lam_grid()
 
+# 5188.84 is Ca II, present in Kurucz, missing in PHOENIX
+
+
 # Running the model (to be moved to the docs?)
 
 
