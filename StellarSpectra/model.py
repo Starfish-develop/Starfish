@@ -101,13 +101,13 @@ class Model:
 
         #2) Figure out how many orders, and for each order
         orders_dict = read["orders"]
-        print("orders_dict is", orders_dict)
+        #print("orders_dict is", orders_dict)
         orders = [int(i) for i in orders_dict.keys()]
         orders.sort()
         for i, order in enumerate(orders):
             order_model = model.OrderModels[i]
             order_dict = orders_dict[str(order)]
-            print("order_dict is", order_dict)
+            #print("order_dict is", order_dict)
             #2.1) update cheb and global cov parametersorder_dict = orders_dict[order]
             order_model.update_Cheb(order_dict['cheb'])
             order_model.update_Cov(order_dict['global_cov'])
