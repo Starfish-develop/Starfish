@@ -63,8 +63,10 @@ Ian~Czekala\altaffilmark{1} et al.
 \section{Introduction}
 \begin{itemize}
   \item Where our technique fits in the ecosystem of stellar methods.
-  \item Applicable to any kind of spectrum (long-slit, echelle, infrared, flux-calibrated or not)
-  \item Examples of fields where accurate and unbiased stellar parameters are crucial. Exoplanets. T Tauri stars.
+  \item Applicable to any kind of spectrum (long-slit, echelle, infrared,
+    flux-calibrated or not)
+  \item Examples of fields where accurate and unbiased stellar parameters are
+    crucial. Exoplanets. T Tauri stars.
 \end{itemize}
 
 \section{Method}
@@ -150,8 +152,11 @@ Creating a new spectrum with a specific $\vg$ requires either synthesizing a
 Because it is computationally expensive to synthesize a spectrum at high
  resolution over a wide wavelength range, we choose to interpolate. 
 Spline interpolation for spectra \citep{hus12}.
-\todo{Implement band-limited interpolation from the synthetic grid using spline interpolation. Caution: As is, 100K/0.5 logg spacing in $\vg$ may not be Nyquist sampling.}
-\todo{Investigate a ``Bayesian Emulator'' for using Gaussian processes for interpolating from a simulation grid.}
+\todo{Implement band-limited interpolation from the synthetic grid using spline
+ interpolation. Caution: As is, 100K/0.5 logg spacing in $\vg$ may not be
+ Nyquist sampling.}
+\todo{Investigate a ``Bayesian Emulator'' for using Gaussian processes for
+ interpolating from a simulation grid.}
 
 \subsection{Post-processing synthetic spectra to match the data}
 Libraries of synthetic spectra are generally computed at high resolution ($R
@@ -173,13 +178,15 @@ Because the resolution of the spectrograph and spacing of the pixels are
  space, the $v \sin i$ and LSF operations are represented by the convolution of
  the synthetic spectrum with these two kernels
 \begin{equation}
-  \finst(\lambda) = g_{v \sin i}(\lambda) \otimes g_{\rm LSF}(\lambda) \otimes \fsynth(\lambda)
+  \finst(\lambda) = g_{v \sin i}(\lambda) \otimes g_{\rm LSF}(\lambda) 
+   \otimes \fsynth(\lambda)
   \label{eqn:convolution}
 \end{equation}
 Using the convolution theorem, we can rewrite these operations as
  multiplications in Fourier space 
 \begin{equation}
-  F_{\lambda, {\rm inst}}(s) = G_{\rm LSF}(s) G_{v \sin i}(s) F_{\lambda, {\rm synth}}(s)
+  F_{\lambda, {\rm inst}}(s) = G_{\rm LSF}(s) G_{v \sin i}(s) F_{\lambda, 
+    {\rm synth}}(s)
 \end{equation}
  where $G \leftrightarrow g$ and $F \leftrightarrow f$ are Fourier transform
  pairs. 
@@ -278,12 +285,14 @@ If the vector of residuals is
 \end{equation}
  with a length of $N$ data points, then the likelihood function is
 \begin{equation}
-  p(\fD | \vstar) = \frac{1}{\sqrt{(2 \pi)^N \det(C)}} \exp\left ( -\frac{1}{2} \fR^T C^{-1} \fR \right ) 
+  p(\fD | \vstar) = \frac{1}{\sqrt{(2 \pi)^N \det(C)}} \exp\left ( -\frac{1}{2}
+   \fR^T C^{-1} \fR \right ) 
 \end{equation}
  and the log-likelihood function is
 \begin{equation}
-    \ln[p(\vstar)] = -\frac{1}{2} \fR^T C^{-1} \fR - \frac{1}{2} \ln \det C  - \frac{N}{2} \ln 2 \pi 
-    \label{eqn:lnprob}
+  \ln[p(\vstar)] = -\frac{1}{2} \fR^T C^{-1} \fR - \frac{1}{2} \ln \det C  
+   - \frac{N}{2} \ln 2 \pi 
+  \label{eqn:lnprob}
 \end{equation}
 $C$ is the covariance matrix which describes the covariance between pixels in
  the spectrum. 
@@ -302,7 +311,8 @@ with $\sigma_{ij} = 0$ everywhere and equation~\ref{eqn:lnprob} reduces to the
  familiar $\chi^2$ form of a sum over the square of the residuals, weighted by
  the inverse variance of each data point
 \begin{equation}
-  \ln[p(\vstar)] \propto - \frac{1}{2} \chi^2 = - \frac{1}{2} \sum_i \frac{R_i^2}{\sigma_i^2}
+  \ln[p(\vstar)] \propto - \frac{1}{2} \chi^2 = - \frac{1}{2} \sum_i
+   \frac{R_i^2}{\sigma_i^2}
 \end{equation}
 
 However, residuals from a spectroscopic fit are often correlated due to
@@ -349,7 +359,8 @@ To account for this structure, which is generally mild and typically exists
 Functions like this are also called \emph{radial basis functions}. 
 For spectra, we map $r$ to the velocity difference between two pixels
 \begin{equation}
-  r(\lambda_i, \lambda_j) = \Delta v = \frac{c}{2} \left | \frac{\lambda_i - \lambda_j}{ \lambda_i + \lambda_j} \right |
+  r(\lambda_i, \lambda_j) = \Delta v = \frac{c}{2} \left | \frac{\lambda_i 
+   - \lambda_j}{ \lambda_i + \lambda_j} \right |
 \end{equation}
 We choose the \matern\ $3/2$ kernel because\ldots
 \todo{Explore difference between using \matern\ kernel and squared exponential
@@ -358,7 +369,8 @@ Why \matern\ and why Hann?
 Because they are the vanilla covariance functions that are tried and tested in
  the machine learning communities.}
 \begin{equation}
-  k_{\nu = 3/2}(r, a, l) = a \left(1 + \frac{\sqrt{3} r}{l} \right ) \exp \left (- \frac{\sqrt{3} r}{l} \right )
+  k_{\nu = 3/2}(r, a, l) = a \left(1 + \frac{\sqrt{3} r}{l} \right ) \exp 
+   \left (- \frac{\sqrt{3} r}{l} \right )
 \end{equation}
 In order to keep the covariance matrix sparse for computational efficiency, we
  taper for compact support using a Hann window
@@ -415,7 +427,9 @@ If instead of a diagonal covariance matrix, we were to draw samples from a
 \todo{Explain how we come up with this kernel, which is the covariance
  resulting from a Gaussian function.}
 \begin{equation}
-  k_{\rm G}(\lambda_i, \lambda_j | a, \lambda_\mu, \sigma) = \frac{a^2}{2 \pi \sigma} \exp \left ( - \frac{r^2(\lambda_i, \lambda_\mu) + r^2(\lambda_j, \lambda_\mu)}{2 \sigma^2}\right )
+  k_{\rm G}(\lambda_i, \lambda_j | a, \lambda_\mu, \sigma) = 
+   \frac{a^2}{2 \pi \sigma} \exp \left ( - \frac{r^2(\lambda_i, \lambda_\mu) 
+    + r^2(\lambda_j, \lambda_\mu)}{2 \sigma^2}\right )
 \end{equation}
 The squared exponential kernel is
 \todo{Why do we use the squared exponential and not \matern?}
@@ -427,7 +441,9 @@ If $h$ is small, then there will be high-frequency structure. If $h$ is large,
  then only low-frequency structure will remain. 
 We also use the Hann window to taper the kernel for compact support
 \begin{equation}
-  k(\lambda_i, \lambda_j | h, a, \mu, \sigma, r_0) = w(r, r_0)\; k_{ \rm exp}(r, h) \; k_{\rm G}(\lambda_i, \lambda_j | a, \mu, \sigma)
+  k(\lambda_i, \lambda_j | h, a, \mu, \sigma, r_0) = 
+   w(r, r_0)\; k_{ \rm exp}(r, h) \; 
+   k_{\rm G}(\lambda_i, \lambda_j | a, \mu, \sigma)
 \end{equation}
 
 \todo{Similar paragraph about visualizing the covariance matrix, drawing samples. References to Figure~\ref{fig:region}.}
