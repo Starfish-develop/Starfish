@@ -15,4 +15,5 @@ vc.tex: ../.git/logs/HEAD
 	latexmk -pdf $<
 
 clean:
-	rm *.aux *.bbl *.blg *.dvi *.log *.out *.fdb_latexmk *.fls *Notes.bib
+	latexmk -c
+	rm *.bbl *.blg *.dvi *.fdb_latexmk *Notes.bib
