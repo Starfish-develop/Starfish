@@ -1,7 +1,7 @@
 baseurl: /iczekala
 name: StellarSpectra Output #website name
 markdown: redcarpet
-pygments: true
+#pygments: true
 timezone: America/New_York
 encoding: utf-8
 website: https://github.com/iancze/StellarSpectra
