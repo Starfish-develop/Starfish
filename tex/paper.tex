@@ -38,7 +38,6 @@
 
 \newcommand{\todo}[1]{ \textcolor{Blue}{\\TODO: #1}}
 
-\graphicspath{{figs/}}
 
 %% Nomenclature guide
 %%%%%%%%%%%%%%%%%%%%%
@@ -50,6 +49,8 @@
 \shortauthors{Czekala et al.}
 
 \begin{document}
+
+\graphicspath{{figs/}}
 
 \title{A Method for the spectroscopic inference of fundamental stellar parameters}
 \author{\today{}\\
@@ -134,7 +135,7 @@ Because properly sampled spectra have correlated pixels, we present a framework
 
 \begin{figure*}[!htb]
 \begin{center}
-  \includegraphics{figs/model_data}
+  \includegraphics{model_data}
   \caption{\textbf{Top}: Chebyshev polynomial which modifies the model spectrum
    to account for inaccuracies in the flux-calibration. 
   \textbf{Middle}: The data spectrum and model spectrum, after it has been
