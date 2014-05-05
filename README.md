@@ -15,6 +15,8 @@ If you are at the CfA and using the CF, you can use the version of git installed
 
     set path=(/data/astropy/ska/arch/x86_64-linux_CentOS-5/bin $path)
 
+You may also want to set up your [SSH keys](https://help.github.com/articles/generating-ssh-keys).
+
 ## Getting the files
 
 In order to download a local copy of this repository, so that you may edit or add files, ``cd`` to the location where you want it and then do
