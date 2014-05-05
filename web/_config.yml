@@ -1,3 +1,4 @@
+baseurl: /iczekala
 name: StellarSpectra Output #website name
 markdown: redcarpet
 pygments: true
