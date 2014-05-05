@@ -12,7 +12,7 @@ vc.tex: ../.git/logs/HEAD
 # latex distributions
 # -use-make tells latexmk to call 'make' to generate missing files
 %.pdf: %.tex vc.tex
-	latexmk -pdf -use-make $<
+	latexmk -pdf $<
 
 clean:
 	rm *.aux *.bbl *.blg *.dvi *.log *.out *.fdb_latexmk *.fls *Notes.bib
