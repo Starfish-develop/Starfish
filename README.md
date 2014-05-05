@@ -73,7 +73,7 @@ And then finally
 
 ## Compiling
 
-Compiling the paper with ``latex`` should be as easy as ``cd``ing to the ``tex`` directory and then doing ``make``, as long as you have the necessary ``latex`` packages to compile a typical AASTEX file. The Makefile is inspired by those in some of @davidwhogg's document directories.
+Compiling the paper with ``latex`` should be as easy as ``cd``ing to the ``tex`` directory and then doing ``make``, as long as you have the necessary ``latex`` packages to compile a typical AASTEX file. The Makefile is inspired by those in authored by @davidwhogg. 
 
 ### Compiling on the CF
 
@@ -124,8 +124,6 @@ project websites.
 And the following library
 
 * the [SuiteSparse](https://www.cise.ufl.edu/research/sparse/SuiteSparse/) sparse matrix library, which is written in C.
-
-TODO: Need to figure out how to configure ``setup.py`` to use SuiteSparse from a non-user wide location.
 
 First recommend installing SuiteSparse. If you have administrator priveledges, installing from a package manager is
  likeley the easiest. Otherwise, there is always downloading the package and installing from source to a
@@ -373,13 +371,9 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 
 # Before 1.0 release
 
-* Convert DataSpectrum orders into an np.array()
 * update ModelSpectrum to draw defaults from C.var_defaults
-
 * More tests for ModelSpectrum.downsample()
 * cprofile lnprob, check to see if pyFFTW wisdom and planning flags would speed things up.
-* Clear out cov.h definitions so that setup.py works with default build flags
-* Revert sysconfig
 
 * Testing:
 for some reason, running all of the tests in ``test_spectrum.py`` at once will fail for ModelSpectrum, but if I run
