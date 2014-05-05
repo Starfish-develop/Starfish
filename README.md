@@ -3,9 +3,97 @@ StellarSpectra
 
 Repository for MCMC fitting of TRES T Tauri Spectra
 
-Copyright Ian Czekala 2013
+Copyright Ian Czekala 2013 (pronounced Check-al-uh, or Check-aw-ah, if you want to be Polish about it.)
 
 `iczekala@cfa.harvard.edu`
+
+# Using git to interact with this repository
+
+First, if you have not already done so, create a github [user account](https://github.com/) and [install git](http://git-scm.com/downloads) on your computer.
+
+If you are at the CfA and using the CF, you can use the version of git installed by Tom Aldcroft by adding the following to your ``.cshrc``
+
+    set path=(/data/astropy/ska/arch/x86_64-linux_CentOS-5/bin $path)
+
+## Getting the files
+
+In order to download a local copy of this repository, so that you may edit or add files, ``cd`` to the location where you want it and then do
+
+    git clone git@github.com:iancze/StellarSpectra.git
+    cd StellarSpectra
+
+and you should see a copy of everything that is on github.com.
+
+## Editing the files
+
+You can edit files however you might normally interact with files on your computer, even creating new files and deleting other ones (though you should first have a good reason to do this). 
+
+When you have finished your edits, you will want to ``add`` and then ``commit`` your changes to your local copy of the repository.
+
+If you have created any new files, first do
+
+    git add my_new_file
+
+Then to commit your changes (including any changes to previously existing files) do
+
+    git commit -am "my commit message here"
+
+It is helpful to write a brief but descriptive commit message, such as, "added Figure 2 caption" or something of the like.
+
+To ``push`` these changes to the remote copy of the repository on github, you then do
+
+    git push origin master
+
+If everything worked, you should be able to go to the repository on github and view your changes. If something went wrong, see the next section for help.
+
+## Updating your files
+
+The previous instructions for editing files will normally work fine as long as there haven't been any changes to the remote github repository while you were editing the local copy. In single user-mode, this is generally the case and everything should work. For now, I'll try to restrict my own edits to a separate branch so that no conflicts occur. In the future, however, this will likely not be the case and we will want to utilize the full power of git and github. 
+
+Because the documentation can explain this better than I can, I would recommend reading
+
+1. [Fetching and merging](https://help.github.com/articles/fetching-a-remote)
+2. [Dealing with non-fast forward errors](https://help.github.com/articles/dealing-with-non-fast-forward-errors)
+3. [Pushing to a remote](https://help.github.com/articles/pushing-to-a-remote)
+
+Generally, what these documents boil down to is that if some time has elapsed and there are updates to the repository on github, before doing ``git push``, you must first update your local copy by ``cd``ing to the StellarSpectra directory and executing
+
+    git pull origin master
+
+which will ``pull`` the latest files from the ``origin`` branch (a fancy name for the version that is on github) and automatically merge them into your local files. If there are conflicts with the code you have edited, you must manually merge these files (see #1 and #2) and then do another 
+
+    git commit -am "merged from upstream"
+
+And then finally
+
+    git push origin master 
+
+
+# Information for compiling and editing the paper
+
+## Compiling
+
+Compiling the paper with ``latex`` should be as easy as ``cd``ing to the ``tex`` directory and then doing ``make``, as long as you have the necessary ``latex`` packages to compile a typical AASTEX file. The Makefile is inspired by those in some of @davidwhogg's document directories.
+
+### Compiling on the CF
+
+However, if you use the outdated (2007) tex distribution that is default to a CF computer, the document will likely not compile. Therefore, if you are compiling this on the CF, then you might want to do the following:
+
+From the CF: 
+As of August 2012, the CF has an installation of TeX Live 2012 (version 20120701) available in ``/opt/texlive/2012``. Symlinks to executables for this TeX system have been placed in ``/opt/bin`` on all CF managed Solaris and Linux computers.
+
+This version can be added to your shell search path by adding ``/opt/bin`` first in your ``$path`` and running the ``rehash`` command:
+
+    set path = ( /opt/bin $path )
+    rehash
+
+It is not recommended that you add this to your ``.cshrc``, so I guess you will need to run this each time you open up a shell.
+
+## Editing the paper
+
+Proposed Style guide: since the ApJ now accepts PDF format figures, I propose to eschew the horrible EPS format entirely and just use PDF figures!
+
+Since git works by doing a line-by-line ``diff`` between files, it is best to use hard word wraps of size 80 characters to minimize clutter and make it easier to compare changes. In addition, each sentence should start on its own line. If the sentence is longer than 80 characters, then the subsequent lines of the sentence should be indented by one space. 
 
 # Summary of Approach
 
