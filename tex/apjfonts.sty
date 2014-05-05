@@ -1,0 +1,371 @@
+
+%% This is apjfonts.sty, version Jul 21 1999
+%%
+%% This is a style file to switch to Times fonts for text and math, while
+%% using CM versions for greek letters and math symbols. Works for LaTeX 2e
+%% and 2.09.  
+%% 
+%% (Based in part on timesmat.sty, whose authors are unknown to us, and Alan
+%% Jeffrey's mathptm.sty)
+%% 
+%% 21.07.99  AV    Removed \let\r\relax in the 2e mode as it broke \AA
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Copyright 1996-1999 Alexey Vikhlinin and Maxim Markevitch.
+%%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License available from CTAN archives in
+%% directory macros/latex/base/lppl.txt. This means you are free to use and
+%% distribute this package; however, if you modify anything, please change the
+%% file name and remove the author's email addresses.
+%%
+%% Alexey Vikhlinin <alexey@head-cfa.harvard.edu>
+%% Maxim Markevitch <maxim@head-cfa.harvard.edu>
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\@ifundefined{documentclass}{
+%% This part is used with Latex 2.09. No boldface. The part for Latex2e is
+%% below.
+
+% latex style with times roman text and times italic math (MM)
+
+% plain text:
+
+\def\@mrm{unmr}% times - roman, version Nimbus
+\def\@mit{ptmri}% times - italic
+\def\@msl{ptmro}% times - oblique
+\def\@mbf{ptmb}% times - bold
+\def\@mcsc{ptmrc}% times - roman - small caps
+\def\@mtt{pcrr}% courier
+\def\@mss{phvr}% helvetica
+
+
+% math text font:
+
+\font\twfvmi = ptmri at 25pt
+\font\twtymi = ptmri at 20pt
+\font\svtnmi = ptmri at 17pt
+\font\frtnmi = ptmri at 14pt
+\font\twlmi  = ptmri at 12pt
+\font\elvmi  = ptmri at 11pt
+\font\tenmi  = ptmri at 10pt
+\font\ninmi  = ptmri at 9pt
+\font\egtmi  = ptmri at 8pt
+\font\sevmi  = ptmri at 7pt
+\font\sixmi  = ptmri at 6pt
+\font\fivmi  = ptmri at 5pt 
+
+% math symbol font (Symbol from ctan/fonts/psfonts/adobe/times) 
+% reencoded by texmital.enc):
+
+%\font\twfvcmmi = zpsycmrv at 25pt
+%\font\twtycmmi = zpsycmrv at 20pt
+%\font\svtncmmi = zpsycmrv at 17pt
+%\font\frtncmmi = zpsycmrv at 14pt
+%\font\twlcmmi  = zpsycmrv at 12pt
+%\font\elvcmmi  = zpsycmrv at 11pt
+%\font\tencmmi  = zpsycmrv at 10pt
+%\font\nincmmi  = zpsycmrv at 9pt 
+%\font\egtcmmi  = zpsycmrv at 8pt 
+%\font\sevcmmi  = zpsycmrv at 7pt 
+%\font\sixcmmi  = zpsycmrv at 6pt 
+%\font\fivcmmi  = zpsycmrv at 5pt 
+% cmmi greek is better:
+\font\twfvcmmi = cmmi10 at 25pt
+\font\twtycmmi = cmmi10 at 20pt
+\font\svtncmmi = cmmi10 at 17pt
+\font\frtncmmi = cmmi10 at 14pt
+\font\twlcmmi  = cmmi10 at 12pt
+\font\elvcmmi  = cmmi10 at 11pt
+\font\tencmmi  = cmmi10 at 10pt
+\font\nincmmi  = cmmi9
+\font\egtcmmi  = cmmi8
+\font\sevcmmi  = cmmi7
+\font\sixcmmi  = cmmi6
+\font\fivcmmi  = cmmi5
+
+
+%%% these are pieces from dvips/contrib/timesmat.sty:
+
+% Put cmmi back into TeX, as a new maths alphabet, so that we
+% can get back the Greek & other characters missing in Times.
+
+% (MM: I found experimantally that textfont9 is the first unused font)
+\def\@tempa{9}
+
+% Tell TeX where cmmi is.
+% Assumes \@ptsize is defined by article, report, book
+\ifcase \@ptsize
+  \textfont\@tempa\tencmmi
+  \scriptfont\@tempa\sevcmmi
+  \scriptscriptfont\@tempa\fivcmmi
+\or
+  \textfont\@tempa\elvcmmi
+  \scriptfont\@tempa\sevcmmi
+  \scriptscriptfont\@tempa\fivcmmi
+\or
+  \textfont\@tempa\twlcmmi
+  \scriptfont\@tempa\egtcmmi
+  \scriptscriptfont\@tempa\sixcmmi
+\fi
+
+% cmmi and Times-italic have different positions for some punctuation marks
+%% (MM: this may be replaced by re-encoding times-italic by texmital.enc)
+% \mathcode`\ ="8000 % \space
+% \mathcode`\!="5021
+% \mathcode`\'="8000 % ^\prime
+% \mathcode`\(="4028
+% \mathcode`\)="5029
+% \mathcode`\*="22.4 % \ast
+% \mathcode`\+="202B
+\mathcode`\,="602C
+% \mathcode`\-="2200
+\mathcode`\.="002E
+\mathcode`\/="002F
+% \mathcode`\:="303A
+% \mathcode`\;="603B
+\mathcode`\<="303C
+% \mathcode`\=="303D
+\mathcode`\>="303E
+% \mathcode`\?="503F
+% \mathcode`\[="405B
+% \mathcode`\\="026E % \backslash
+% \mathcode`\]="505D
+% \mathcode`\_="8000 % \_
+% \mathcode`\{="4266
+% \mathcode`\|="026A
+% \mathcode`\}="5267
+\mathchardef\ldotp="602E % ldot as a punctuation mark
+
+% Put back the missing lowercase Greek characters.
+\mathchardef\alpha="0\@tempa 0B
+\mathchardef\beta="0\@tempa 0C
+\mathchardef\gamma="0\@tempa 0D
+\mathchardef\delta="0\@tempa 0E
+\mathchardef\epsilon="0\@tempa 0F
+\mathchardef\zeta="0\@tempa 10
+\mathchardef\eta="0\@tempa 11
+\mathchardef\theta="0\@tempa 12
+\mathchardef\iota="0\@tempa 13
+\mathchardef\kappa="0\@tempa 14
+\mathchardef\lambda="0\@tempa 15
+\mathchardef\mu="0\@tempa 16
+\mathchardef\nu="0\@tempa 17
+\mathchardef\xi="0\@tempa 18
+\mathchardef\pi="0\@tempa 19
+\mathchardef\rho="0\@tempa 1A
+\mathchardef\sigma="0\@tempa 1B
+\mathchardef\tau="0\@tempa 1C
+\mathchardef\upsilon="0\@tempa 1D
+\mathchardef\phi="0\@tempa 1E
+\mathchardef\chi="0\@tempa 1F
+\mathchardef\psi="0\@tempa 20
+\mathchardef\omega="0\@tempa 21
+\mathchardef\varepsilon="0\@tempa 22
+\mathchardef\vartheta="0\@tempa 23
+\mathchardef\varpi="0\@tempa 24
+\mathchardef\varrho="0\@tempa 25
+\mathchardef\varsigma="0\@tempa 26
+\mathchardef\varphi="0\@tempa 27
+
+% Put back other missing characters.
+\mathchardef\imath="0110
+\mathchardef\jmath="0\@tempa 7C
+\mathchardef\ell="0\@tempa 60
+\mathchardef\wp="0\@tempa 7D
+\mathchardef\partial="0\@tempa 40
+\mathchardef\flat="0\@tempa 5B
+\mathchardef\natural="0\@tempa 5C
+\mathchardef\sharp="0\@tempa 5D
+\mathchardef\smile="3\@tempa 5E
+\mathchardef\frown="3\@tempa 5F
+\mathchardef\leftharpoonup="3\@tempa 28
+\mathchardef\leftharpoondown="3\@tempa 29
+\mathchardef\rightharpoonup="3\@tempa 2A
+\mathchardef\rightharpoondown="3\@tempa 2B
+\mathchardef\lhook="3\@tempa 2C \def\hookrightarrow{\lhook\joinrel\rightarrow}
+\mathchardef\rhook="3\@tempa 2D \def\hookleftarrow{\leftarrow\joinrel\rhook}
+\mathchardef\star="2\@tempa 3F
+\mathchardef\vecMC="0\@tempa 7E
+\def\vec{\mathaccent\the\vecMC }
+
+
+\input psfonts.sty
+\input psgreek.sty
+}
+%
+% This is LaTeX2e style by Alexey Vikhlinin to mix Times for text and math
+% and CM for greek and symbols.
+%
+%
+%
+%
+%
+{
+\def\fileversion{5.2}
+\def\filedate{1995/08/16}
+\def\docdate {1995/03/12}
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{apjfonts}[\filedate{} Times + math package]
+
+\RequirePackage[T1]{fontenc} %%% \let\r\relax -- THIS BROKE \AA
+
+\DeclareOption{onecolumn}{
+\relax   % this style is often used as \usepackage{emulateapj,timesfonts}
+}
+\ExecuteOptions{}
+\ProcessOptions
+
+\renewcommand{\sfdefault}{phv}
+\renewcommand{\rmdefault}{ptm}
+\renewcommand{\ttdefault}{pcr}
+
+\DeclareSymbolFont{cmoperators}   {OT1}{cmr}{m}{n}
+\DeclareSymbolFont{cmitoperators} {OT1}{cmr}{m}{it}
+\DeclareSymbolFont{operators}     {OT1}{ptm}{m}{n}
+%\DeclareSymbolFont{ptmoperators}  {OT1}{ptmcm}{m}{n}
+\DeclareSymbolFont{letters}       {OML}{ptmcm}{m}{it}
+%\DeclareSymbolFont{rusletters}    {OML}{petersburg}{m}{it}
+\DeclareSymbolFont{ptmletters}    {OML}{ptmcm}{m}{it}
+\DeclareSymbolFont{cmletters}     {OML}{cmm}{m}{it}
+\DeclareSymbolFont{symbols}       {OMS}{cmsy}{m}{n}
+\DeclareSymbolFont{ptmsymbols}    {U}{psy}{m}{n}
+\DeclareSymbolFont{largesymbols}  {OMX}{cmex}{m}{n}
+\DeclareSymbolFont{bold}          {OT1}{ptm}{bx}{n}
+\DeclareSymbolFont{italic}        {OT1}{ptm}{m}{it}
+
+\SetSymbolFont{cmoperators}   {bold}{OT1}{cmr}{b}{n}
+\SetSymbolFont{cmitoperators} {bold}{OT1}{cmr}{bx}{it}
+\SetSymbolFont{operators}     {bold}{OT1}{ptm}{bx}{n}
+%\SetSymbolFont{ptmoperators}  {bold}{OT1}{ptmCM}{b}{n}
+\SetSymbolFont{letters}       {bold}{OML}{ptmCM}{b}{it}
+%\SetSymbolFont{rusletters}    {bold}{OML}{petersburg}{bx}{it}
+\SetSymbolFont{ptmletters}    {bold}{OML}{ptmCM}{b}{it}
+\SetSymbolFont{cmletters}     {bold}{OML}{cmm}{b}{it}
+\SetSymbolFont{symbols}       {bold}{OMS}{cmsy}{b}{n}
+\SetSymbolFont{largesymbols}  {bold}{OMX}{cmex}{m}{n}
+\SetSymbolFont{bold}          {bold}{OT1}{ptm}{bx}{n}
+\SetSymbolFont{italic}        {bold}{OT1}{ptm}{b}{it}
+
+
+\DeclareMathAlphabet{\mathbf}{OT1}{ptm}{bx}{n}
+\DeclareMathAlphabet{\mathit}{OT1}{ptm}{m}{it}
+\DeclareMathAlphabet{\mathbit}{OT1}{ptm}{bx}{it}
+
+\DeclareMathSymbol{\omicron}{0}{operators}{`\o}
+
+\thinmuskip=2mu 
+\medmuskip=2.5mu plus 1mu minus 1mu
+\thickmuskip=4mu plus 1.5mu minus 1mu
+
+% \everydisplay {\thinmuskip=2mu \medmuskip=2.5mu plus 1mu minus 1mu%
+% 	\thickmuskip=4mu plus 1.5mu minus 1mu}
+% \thinmuskip=2mu 
+% \medmuskip=2mu  minus 1mu
+% \thickmuskip=2mu  minus 1mu
+
+% % \def\boldmath{%
+% %    \@warning{there is no bold Symbol font}%
+% %    \global\let\boldmath=\relax
+% % }
+
+
+%\DeclareMathSymbol{/}   {\mathord}{cmletters}{'075}
+%\DeclareMathSymbol{=}   {\mathrel}{cmoperators}{'075}
+%\DeclareMathSymbol{+}   {\mathbin}{cmoperators}{'053}
+%\DeclareMathSymbol{(}   {\mathopen}{cmoperators}{'050}
+%\DeclareMathSymbol{)}   {\mathclose}{cmoperators}{'051}
+
+%\DeclareMathSymbol{>}   {\mathrel}{ptmsymbols}{62}
+%\DeclareMathSymbol{<}   {\mathrel}{ptmsymbols}{60}
+\DeclareMathSymbol{-}   {\mathbin}{ptmsymbols}{45}
+\DeclareMathSymbol{+}   {\mathbin}{ptmsymbols}{43}
+%\DeclareMathSymbol{/}   {\mathord}{ptmsymbols}{164}
+
+\DeclareMathSymbol{\alpha}   {\mathord}{cmletters}{'013}
+\DeclareMathSymbol{\beta}    {\mathord}{cmletters}{'014}
+\DeclareMathSymbol{\gamma}   {\mathord}{cmletters}{'015}
+\DeclareMathSymbol{\delta}   {\mathord}{cmletters}{'016}
+\DeclareMathSymbol{\epsilon} {\mathord}{cmletters}{'017}
+\DeclareMathSymbol{\zeta}    {\mathord}{cmletters}{'020}
+\DeclareMathSymbol{\eta}     {\mathord}{cmletters}{'021}
+\DeclareMathSymbol{\theta}   {\mathord}{cmletters}{'022}
+\DeclareMathSymbol{\iota}    {\mathord}{cmletters}{'023}
+\DeclareMathSymbol{\kappa}   {\mathord}{cmletters}{'024}
+\DeclareMathSymbol{\lambda}  {\mathord}{cmletters}{'025}
+\DeclareMathSymbol{\mu}      {\mathord}{cmletters}{'026}
+\DeclareMathSymbol{\nu}      {\mathord}{cmletters}{'027}
+\DeclareMathSymbol{\xi}      {\mathord}{cmletters}{'030}
+%%% \DeclareMathSymbol{o}        {\mathord}{cmletters}{'157}
+\DeclareMathSymbol{\pi}      {\mathord}{cmletters}{'031}
+\DeclareMathSymbol{\rho}     {\mathord}{cmletters}{'032}
+\DeclareMathSymbol{\sigma}   {\mathord}{cmletters}{'033}
+\DeclareMathSymbol{\tau}     {\mathord}{cmletters}{'034}
+\DeclareMathSymbol{\upsilon} {\mathord}{cmletters}{'035}
+\DeclareMathSymbol{\phi}     {\mathord}{cmletters}{'036}
+\DeclareMathSymbol{\chi}     {\mathord}{cmletters}{'037}
+\DeclareMathSymbol{\psi}     {\mathord}{cmletters}{'040}
+\DeclareMathSymbol{\omega}   {\mathord}{cmletters}{'041}
+
+
+
+\DeclareMathSymbol{\varepsilon}   {\mathord}{cmletters}{'042}
+\DeclareMathSymbol{\vartheta}     {\mathord}{cmletters}{'043}
+\DeclareMathSymbol{\varomega}     {\mathord}{cmletters}{'044}
+\DeclareMathSymbol{\varrho}       {\mathord}{cmletters}{'045}
+\DeclareMathSymbol{\varsigma}     {\mathord}{cmletters}{'046}
+\DeclareMathSymbol{\varphi}       {\mathord}{cmletters}{'047}
+
+\DeclareMathSymbol{\partial}   {\mathord}{cmletters}{'100}
+% Partial - from russian fonts
+% \DeclareMathSymbol{\partial}   {\mathord}{rusletters}{"C4} % correct for WIN
+                                                        % enc + reencoding
+
+\DeclareMathSymbol{\ell}       {\mathord}{cmletters}{'140}
+\DeclareMathSymbol{\ell}       {\mathord}{cmletters}{'140}
+\def\hbar{{\raise-0.15truept\hbox{$\mkern-0.5mu\barbar$}\mkern-8.5muh}}
+
+
+\DeclareMathSymbol\Gamma    {\mathord}{cmoperators}{"00}
+\DeclareMathSymbol\Delta    {\mathord}{cmoperators}{"01}
+\DeclareMathSymbol\Theta    {\mathord}{cmoperators}{"02}
+\DeclareMathSymbol\Lambda   {\mathord}{cmoperators}{"03}
+\DeclareMathSymbol\Xi       {\mathord}{cmoperators}{"04}
+\DeclareMathSymbol\Pi       {\mathord}{cmoperators}{"05}
+\DeclareMathSymbol\Sigma    {\mathord}{cmoperators}{"06}
+\DeclareMathSymbol\Upsilon  {\mathord}{cmoperators}{"07}
+\DeclareMathSymbol\Phi      {\mathord}{cmoperators}{"08}
+\DeclareMathSymbol\Psi      {\mathord}{cmoperators}{"09}
+\DeclareMathSymbol\Omega    {\mathord}{cmoperators}{"0A}
+
+
+
+
+\DeclareMathSymbol\varGamma    {\mathord}{cmletters}{"00}
+\DeclareMathSymbol\varDelta    {\mathord}{cmletters}{"01}
+\DeclareMathSymbol\varTheta    {\mathord}{cmletters}{"02}
+\DeclareMathSymbol\varLambda   {\mathord}{cmletters}{"03}
+\DeclareMathSymbol\varXi       {\mathord}{cmletters}{"04}
+\DeclareMathSymbol\varPi       {\mathord}{cmletters}{"05}
+\DeclareMathSymbol\varSigma    {\mathord}{cmletters}{"06}
+\DeclareMathSymbol\varUpsilon  {\mathord}{cmletters}{"07}
+\DeclareMathSymbol\varPhi      {\mathord}{cmletters}{"08}
+\DeclareMathSymbol\varPsi      {\mathord}{cmletters}{"09}
+\DeclareMathSymbol\varOmega    {\mathord}{cmletters}{"0A}
+
+\DeclareMathAccent{\acute}  {\mathalpha}{cmoperators}{'023}
+\DeclareMathAccent{\bar}    {\mathalpha}{cmoperators}{'026}
+\DeclareMathAccent{\breve}  {\mathalpha}{cmoperators}{'025}
+\DeclareMathAccent{\check}  {\mathalpha}{cmoperators}{'024}
+\DeclareMathAccent{\ddot}   {\mathalpha}{cmitoperators}{'177}
+\DeclareMathAccent{\dot}    {\mathalpha}{cmitoperators}{'137}
+\DeclareMathAccent{\grave}  {\mathalpha}{cmoperators}{'022}
+\DeclareMathAccent{\hat}    {\mathalpha}{cmoperators}{'136}
+\DeclareMathAccent{\tilde}   {\mathalpha}{cmoperators}{'176}
+\DeclareMathAccent{\vec}    {\mathord}  {cmletters}  {"7E}
+
+\DeclareMathSymbol{\barbar}    {\mathalpha}{cmoperators}{'026}
+}
+
+\endinput
