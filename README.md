@@ -9,6 +9,8 @@ Copyright Ian Czekala 2013 (pronounced Check-al-uh, or Check-aw-ah, if you want 
 
 # Using git to interact with this repository
 
+This is a test.
+
 First, if you have not already done so, create a github [user account](https://github.com/) and [install git](http://git-scm.com/downloads) on your computer.
 
 If you are at the CfA and using the CF, you can use the version of git installed by Tom Aldcroft by adding the following to your ``.cshrc``
