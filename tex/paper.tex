@@ -37,6 +37,7 @@
 \newcommand{\matern}{Mat\'{e}rn}
 
 \newcommand{\todo}[1]{ \textcolor{Blue}{\\TODO: #1}}
+\newcommand{\comm}[1]{ \textcolor{Red}{SA: #1}}
 
 
 %% Nomenclature guide
@@ -74,6 +75,62 @@ Ian~Czekala\altaffilmark{1} et al.
 \end{itemize}
 
 \section{Method}
+
+\comm{This section needs a true introduction of its own.  So far, you just sort 
+of fly right into the details.  The introduction should basically summarize the 
+underlying approach you are going to take, and then literally lay out a basic 
+roadmap for the following subsections.  Some suggested paragraphs below.}
+
+\comm{(1) describe the {\it philosophy} behind the approach: you want to make 
+inferences on fundamental stellar parameters using the vast amount of 
+information available in a spectrum, but at the same time you want to 
+acknowledge and pro-actively account for both intrinsic parametric degeneracies 
+and any practical covariances introduced into the data and the way its 
+treated.  Ideally, this can be done in a flexible, modular way to easily 
+incorporate additional complexity to treat different kinds of problems.  By 
+casting the problem in a specific (Bayesian) framework, you can do that while 
+also simultaneously learning in a data-driven way about how the underlying 
+models of stellar spectra might be improved.  [Note that this paragraph might 
+seem repetitive in the paper, but it sort of encapsulates all the key points so 
+it merits reinforcement.]} 
+
+\comm{(2) now give an overview of the basic ``steps" involved in the process; 
+in essence this is a $\sim$1-2 sentence summary of each subsequent subsection.  
+This is to give the reader a ``big picture" overview of the methodology.  If we 
+exclude this, then the following subsections become very confusing and 
+incoherent, even for an expert in the subject.  At the same time, you want to 
+be specific enough that its clear what you are going to do: (a) for a given set 
+of stellar parameters, you generate (somehow) a synthetic model spectrum 
+(Section 2.1); (b) you then post-process that spectrum for realism (using 
+additional parameters) and to match the data (using nuisance parameters) 
+(Section 2.2); (c) you then perform a pixel-by-pixel comparison with the data 
+using a prescribed likelihood function (Section 2.3) and a parametric treatment 
+of the covariance matrix (Section 2.4); and then (d) you iterate this procedure 
+in an MCMC simulation to explore the posterior PDF (Section 2.5).  At the end, 
+you want to be specific about what you ``get" from this procedure: robust 
+estimates of the stellar parameters (and associated nuisance parameters), and a 
+characterization of the covariance matrix that could (in principle) be used to 
+identify and quantify the key discrepancies between the data and the models.}
+
+
+\subsection{Synthetic Model Spectra (\comm{note change})}
+
+\comm{This subsection needs to make a little more effort to be generic first.  
+Your initial instinct is fine: first introduce the (three) fundamental 
+parameters you care about (but note that these could be expanded in principle, 
+to include things like B-fields, etc.).  But then, we do not want to state a 
+``preferred" way of generating a synthetic model spectrum.  Instead, it would 
+be interesting to make a few comments here harking back to the different 
+approaches you have outlined (or will outline) in Sect 1 -- you can (a) run a 
+stellar structure + radiative transfer code to generate a spectrum 
+corresponding to these parameters (brute force; impractical computationally); 
+(b) interpolate from a grid of stellar structures and run a simple radiative 
+transfer code (i.e., SME); or (c) interpolate from a library of synthetic 
+spectra (i.e., SPC, maybe others...).  Comment on the trade-off for speed 
+versus accuracy (very briefly), and then say that we are going to focus here on 
+the latter approach (although fundamentally the methodology is applicable to 
+all three equally).}
+
 Typically, the stellar properties we most desire are effective temperature
  $T_{\rm eff}$, radius or surface gravity $\log g$, and metallicity $\Z$.
 Several high-quality libraries of synthetic spectra now exist (PHOENIX, Kurucz,
@@ -82,16 +139,11 @@ Several high-quality libraries of synthetic spectra now exist (PHOENIX, Kurucz,
 Synthetic libraries provide high-resolution spectra which span a range of $\vg$
  covering the main sequence of spectral types. The library is typically
  specified on a grid of equal spacing in $T_{\rm eff}$, $\log g$, and $\Z$.
+\comm{Note the re-arrangement here (below); I think this subsection should deal 
+only with ``obtaining" a full-resolution synthetic model spectrum with the key 
+stellar parameters.  So, I've moved stuff about $v \sin i$, etc. into Sect 2.2.}
 
-In addition to these fundamental parameters, a star also has several observed
- properties that are a function of its kinematics, geometry, and location in our
- galaxy: projected rotational velocity $v \sin i$, line of sight velocity $v_z$,
- total extinction $A_V$, and solid angle $\Omega$. 
-We call these secondary parameters $\vpp$, because we can model their effects
- on the synthetic spectra in a ``post-processing'' step by convolution with an
- appropriate kernel or multiplication with a smooth function. 
-Together, we call $\vstar = \{\vg, \vpp\}$.
-
+\comm{These sentences should be recast and moved into the Sect 2 introduction.}
 Using a synthetic stellar library as a backend and applying post-processing
  techniques, we attempt to forward-model the observed stellar spectra in order
  to determine the best-fit $\vstar$. 
@@ -129,7 +181,8 @@ $k_{\rm global}$  & global covariance kernel\\
 $k_{\rm region}$  & regional covariance kernel\\
 \hline
 \end{tabular}
-\caption{Nomenclature used in this document}
+\caption{Nomenclature used in this document \comm{Obviously this table does not 
+belong here...}}
 \label{tab:nomenclature}
 \end{table}
 
@@ -149,7 +202,6 @@ $k_{\rm region}$  & regional covariance kernel\\
 \end{center}
 \end{figure*}
 
-\subsection{Interpolation from synthetic spectral libraries}
 Creating a new spectrum with a specific $\vg$ requires either synthesizing a
  new spectrum using radiative transfer codes or interpolating from nearby grid
  points in the library. 
@@ -158,11 +210,25 @@ Because it is computationally expensive to synthesize a spectrum at high
 Spline interpolation for spectra \citep{hus12}.
 \todo{Implement band-limited interpolation from the synthetic grid using spline
  interpolation. Caution: As is, 100K/0.5 logg spacing in $\vg$ may not be
- Nyquist sampling.}
+ Nyquist sampling. \comm{I think this is an important thing to do {\it now}.}}
 \todo{Investigate a ``Bayesian Emulator'' for using Gaussian processes for
- interpolating from a simulation grid.}
+ interpolating from a simulation grid.  \comm{I do not think this is essential, 
+so it should be put off until the paper is basically done, if even then.}}
 
-\subsection{Post-processing synthetic spectra to match the data}
+
+\subsection{Post-Processing}
+
+\comm{You need to incorporate these statements (moved from previous subsection) 
+somewhere into the paragraph below.}
+In addition to these fundamental parameters, a star also has several observed
+ properties that are a function of its kinematics, geometry, and location in our
+ galaxy: projected rotational velocity $v \sin i$, line of sight velocity $v_z$,
+ total extinction $A_V$, and solid angle $\Omega$. 
+We call these secondary parameters $\vpp$, because we can model their effects
+ on the synthetic spectra in a ``post-processing'' step by convolution with an
+ appropriate kernel or multiplication with a smooth function. 
+Together, we call $\vstar = \{\vg, \vpp\}$.
+
 Libraries of synthetic spectra are generally computed at high resolution ($R
  \geq $100,000), sampled with many pixels per resolution element, and do not
  include any rotational broadening or account for any instrumental effects. 
@@ -212,6 +278,12 @@ When resampling the spectrum, we are careful to ensure band-limited
  interpolation using splines in order to prevent introducing non-physical high
  frequency structure into the spectrum.
 
+\comm{It seems odd to me to do the extinction correction here, after all the 
+work on velocities.  I suppose it does not really matter, but it would seem 
+more harmonious if you finished discussion of all velocity-related manipulation 
+and then applied both the extinction correction and the overall luminosity (or 
+solid angle) scaling after that.  So, maybe re-arrange a bit for a more logical 
+flow (regardless of what the code itself is doing).}
 Finally we apply corrections for interstellar extinction and Doppler shift.
 Interstellar extinction attenuates the spectrum by an amount $A_\lambda$, which
 is wavelength-dependent. 
@@ -220,7 +292,8 @@ We use the (name here) dust-extinction model, which is parameterized by
 We correct for a radial velocity difference $v_z$ between the star and the
  earth by Doppler shifting the model spectrum. 
 \todo{Doppler shifting the wavelengths could be implemented as a phase-shift in
- Fourier space, but it's pretty fast as-is.}
+ Fourier space, but it's pretty fast as-is.  \comm{Is there a reason that would 
+be better?  If this is not a bottleneck, I would ignore this.}}
 
 \todo{We might try implementing the convolution in wavelength space, rather
  than the FFT. 
@@ -228,7 +301,8 @@ This would allow the LSF to change with wavelength.\\}
 Pixel width effects are not important as long as the LSF of the instrument is
  adequately sampled ($\gtrsim 3$ pixels across the LSF). 
 If our spectrum were not properly sampled, we would need to additionally
- convolve with a boxcar the width of the pixels.
+ convolve with a boxcar the width of the pixels.  \comm{I interpret this as a 
+comment to yourself...either integrate into the text in a clear way, or remove.}
 
 \begin{figure*}[!htb]
 \begin{center}
@@ -250,6 +324,12 @@ If our spectrum were not properly sampled, we would need to additionally
 \end{center}
 \end{figure*}
 
+\comm{I feel like this (important) part of the section is rushed into...it is 
+lacking some kind of introductory, pedagogical lead-in to make the reader 
+recognize its power and flexibility.  You are essentially touching on the big 
+issue of parameterizing your calibration.  Now, we don't want to go down that 
+path in detail, but it would be worth discussing by way of a better motivation 
+for using these polynomials.}
 Due to small imperfections in the flux-calibration of the data spectrum, there
  may be broad regions of the spectrum which are offset from the true continuum
  level by a slight amount. 
@@ -267,7 +347,11 @@ If the behavior of the spectrograph is characterized by observations of
  spectrophotometric standards, then we can put priors on the coefficients that
  will prevent overfitting of the polynomials. 
 For an example of a typical spectrum, and Chebyshev polynomial, see
- Figure~\ref{fig:model_data}.
+ Figure~\ref{fig:model_data}.  \comm{One thing that has never really been clear 
+to me is how you differentiate the coefficients from the solid angle scaling 
+(or {\it if} you do that.  It would be worthwhile to describe that if necessary 
+especially because I currently see no mention of $L_{\ast}$ or $R_{\ast}/d$ 
+anywhere in this section (and of course, it should be here somewhere).}
 
 With more uncertainty, the polynomial multiplication can also be used as a
  substitute for flux-calibration since the sensitivity function of an instrument
@@ -279,7 +363,17 @@ In this case, the polynomial might destroy broad-scale information present in
  the spectrum by fitting it out, something that would be avoided with more
  accurate priors provided by the flux calibration for the model.
 
-\subsection{Likelihood function}
+
+\subsection{Likelihood Calculation}
+
+\comm{I will reserve some comments about notation and symbols for another 
+iteration, but I think you at least want to be very careful about writing the 
+conditional probabilities properly in Eq (5) and (7) -- it should always be 
+$p(D | \theta)$ (and note that its $\theta$, not just $\vstar$).  Ultimately, I 
+would like to see a brief synposis first here as well, primarily to describe 
+the nomenclature up front.  E.g., what do you mean by $D$ and $M$?  I know what 
+you mean, but you cannot assume the reader does without telling them.}
+
 To evaluate which parameters of the model $\fM$ fit the data set $\fD$ best we
  use a standard multidimensional Gaussian likelihood function which allows for
  covariance between data points. 
@@ -318,6 +412,14 @@ with $\sigma_{ij} = 0$ everywhere and equation~\ref{eqn:lnprob} reduces to the
   \ln[p(\vstar)] \propto - \frac{1}{2} \chi^2 = - \frac{1}{2} \sum_i
    \frac{R_i^2}{\sigma_i^2}
 \end{equation}
+\comm{I am not sure how I feel about the dividing line between Sect 2.3 and 
+2.4.  It might make more sense to end right after Eq (5), and then begin Sect 
+2.4 with a discussion of $C$ and the corresponding likelihood in the sample 
+(independent) case, and then progress into the adopted parameterization.  I 
+think I would prefer that, so please wrap up briefly after Eq (5) and push all 
+this text into a re-write of Sect 2.4.  Like we discussed, you ought to just 
+write as if your explanation to Tom Loredo is correct; you can always revisit 
+that if need be when you hear back from him.}
 
 However, residuals from a spectroscopic fit are often correlated due to
  \todo{DUE TO WHAT, exactly?? I'm confused. 
@@ -345,7 +447,12 @@ If the covariant structure of the noise is ignored, a simple $\chi^2$ will
  in a biased determination of the slope and intercept of the line, typically
  with uncertainties that are too small.
 
+
 \subsection{Parameterizing the covariance structure}
+
+\comm{I am leaving this alone for now, since it obviously needs more work to be 
+edit-able.  Give it a shot.}
+
 We parameterize the covariance structure using covariance kernels, which sets
  the covariance between two pixels $\lambda_i$ and $\lambda_j$. 
 This behavior is analogous to the two-point correlation function used in
