@@ -118,7 +118,7 @@ StellarSpectra requires the following packages:
 * cython†
 * pyyaml†
 * emcee
-* pyfftw
+
 
 Those marked with a † are included in the latest Anaconda distribution. The others should be available from ``pip`` or from the
 project websites.
@@ -153,6 +153,8 @@ If you have control of your own system
 If not, (for example on the CF network)
 
     $ python setup.py develop --user
+
+We can optionally install pyfftw (optional... dependecies can be difficult)
 
 ## Parameters
 
