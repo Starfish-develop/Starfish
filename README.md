@@ -15,7 +15,7 @@ If you are at the CfA and using the CF, you can use the version of git installed
 
     set path=(/data/astropy/ska/arch/x86_64-linux_CentOS-5/bin $path)
 
-You may also want to set up your [SSH keys](https://help.github.com/articles/generating-ssh-keys).
+If this is the first time you are using github on your computer, you will also want to set up your [SSH keys](https://help.github.com/articles/generating-ssh-keys).
 
 ## Getting the files
 
@@ -58,7 +58,7 @@ Because the documentation can explain this better than I can, I would recommend 
 2. [Dealing with non-fast forward errors](https://help.github.com/articles/dealing-with-non-fast-forward-errors)
 3. [Pushing to a remote](https://help.github.com/articles/pushing-to-a-remote)
 
-Generally, what these documents boil down to is that if some time has elapsed and there are updates to the repository on github, before doing ``git push``, you must first update your local copy by ``cd``ing to the StellarSpectra directory and executing
+Generally, what these documents boil down to is that if some time has elapsed since you last did a ``git pull``, and another collaborator has made updates to the repository on github, then you must first update your own repository with that collaborators edits. Before doing ``git push``, you can update your local copy by ``cd``ing to the StellarSpectra directory and executing
 
     git pull origin master
 
@@ -118,7 +118,7 @@ StellarSpectra requires the following packages:
 * cython†
 * pyyaml†
 * emcee
-* pyfftw
+
 
 Those marked with a † are included in the latest Anaconda distribution. The others should be available from ``pip`` or from the
 project websites.
@@ -153,6 +153,11 @@ If you have control of your own system
 If not, (for example on the CF network)
 
     $ python setup.py develop --user
+
+We can optionally install pyfftw (optional... dependecies can be difficult). For some reason, CHOLMOD would fail when
+we ran this with numpy. Why? It seemed to work fine locally.
+
+Time pyFFTW vs numpy
 
 ## Parameters
 
