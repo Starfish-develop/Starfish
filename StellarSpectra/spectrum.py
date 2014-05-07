@@ -807,6 +807,7 @@ class ModelSpectrum:
 
         self.influx[:] = self.fl
         self.fft_object()
+        # FF = np.fft.rfft(self.fl)
 
         sigma = self.instrument.FWHM / 2.35 # in km/s
 
@@ -823,10 +824,13 @@ class ModelSpectrum:
 
         #institute velocity and instrumental taper
         self.FF *= sb * taper
+        # FF_tap = FF * sb * taper
 
         #do ifft
         self.ifft_object()
         self.fl[:] = self.outflux
+
+        # self.fl = np.fft.irfft(FF_tap)
 
 
     def update_all(self, params):
