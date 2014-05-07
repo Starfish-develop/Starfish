@@ -154,7 +154,10 @@ If not, (for example on the CF network)
 
     $ python setup.py develop --user
 
-We can optionally install pyfftw (optional... dependecies can be difficult)
+We can optionally install pyfftw (optional... dependecies can be difficult). For some reason, CHOLMOD would fail when
+we ran this with numpy. Why? It seemed to work fine locally.
+
+Time pyFFTW vs numpy
 
 ## Parameters
 
