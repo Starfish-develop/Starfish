@@ -294,30 +294,27 @@ Is it a problem when the sigma's overlap? Can we better insure the tapering?
 Should we make some assertion that the amplitude of the region can't be less than the global covariance height?
 Otherwise in the cleanup logic, we remove the region?
 
+
+
 # Speedups and improvements
 
-JSON serialization
-Always output the model position on finish, so we can resume sampling if need be
+* Use a .json file to initialize the model and continue sampling
 
 * Output, plot the sigma_matrix as a 1D slice through row=constant (how correlated is a given pixel with everything else?)
 * Could we scroll through rows?
 
 * Visualize cheb functions
 * Visualize spectrum and residuals
-* Serialize the model state using JSON
-* Load parameter files for runs using JSON (might be nice for creating visualizations, too)
-* Write samples in flatchain to an HDF5 file
-* Extend config files for # of samples
 
 * Fix the mean of c0's to 1?
 That way c0 is just a perturbation to the mean?
 Or, should we actually be sampling in log of c0, and ensure that the mean of c0 is equal to 1?
 Right now we are setting the last order to have logc0 = 0.0
 
-
 * If a function requires a parameter and it's not in the parameter list, it looks up the default value.
 
-
+* There should be a way to output all of the parameters into one global chain (thinned), but respecting the covariance
+  between parameters and hyperparameters, if there are any.
 
 #Grid Creator Code
 
@@ -340,7 +337,9 @@ because a lot of evaluation at all the points is needed. So by reducing the numb
 
 * ModelInterpolater._determine_chunk() will need to be updated to use create_log_lam_grid()
 
-# 5188.84 is Ca II, present in Kurucz, missing in PHOENIX
+5188.84 is Ca II, present in Kurucz, missing in PHOENIX
+
+
 
 
 # Running the model (to be moved to the docs?)
