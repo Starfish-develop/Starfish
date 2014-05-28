@@ -10,6 +10,8 @@ import json
 import bokeh
 from bokeh.plotting import *
 from bokeh.objects import Range1d
+from bokeh.resources import Resources
+from bokeh.embed import autoload_static
 
 #Use argparse to determine if we've specified a config file
 import argparse
@@ -78,7 +80,37 @@ S = model.get_Cov()
 
 filename = args.output if args.output else "image.html"
 
-output_file(filename, title="plot_model.py WASP14")
+
+#####################
+# Bokeh Section
+#####################
+
+def make_snippet(plot):
+    # js_static_js = "static/js/"
+    js_static_js = "/usr/lib/python3.4/site-packages/bokeh/server/static/js/"
+    # js_static_css = "static/css/"
+    js_static_css = "/usr/lib/python3.4/site-packages/bokeh/server/static/css/"
+
+    # js_filename = plot._id + ".js"
+    # js_path = js_static_js + js_filename
+
+    js_path = "output.js"
+
+    res = Resources("relative")
+    res.js_files = [js_static_js + "bokeh.min.js"]
+    res.css_files = [js_static_css + "bokeh.min.css"]
+
+    js, tag = autoload_static(plot, res, js_path)
+
+    with open(js_path, "w") as f:
+        f.write(js)
+    print("Wrote %s" % js_path)
+
+    return tag, plot._id
+
+
+
+# output_file(filename, title="plot_model.py WASP14")
 
 min_x, max_x = np.min(wl), np.max(wl)
 min_y, max_y = np.min(wl), np.max(wl)
@@ -87,42 +119,52 @@ xy_range = Range1d(start=min_x, end=max_x)
 hold()
 
 figure(title="WASP-14",
-       tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
+       tools="pan,wheel_zoom,box_zoom,reset,previewsave,select,embed",
        plot_width=800, plot_height=300)
+
 
 plot0 = line(wl, fl, line_width=1.5, legend="WASP14", x_range=xy_range, color="blue")
 plot1 = line(wl, flm, line_width=1.5, legend="model", x_range=xy_range, color="red")
 
-figure(title="Residuals",
-       tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
-       plot_width=800, plot_height=300)
 
-plot0 = line(wl, residuals, line_width=1.5, legend="residuals", x_range=xy_range)
+tag1, id1 = make_snippet(plot1)
+print("tag")
+print(tag1)
+print("id1")
+print(id1)
 
-figure(title="Covariance",
-       tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
-       plot_width=800, plot_height=800)
 
-img = np.log10(S.todense() + 1e-29)
+# figure(title="Residuals",
+#        tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
+#        plot_width=800, plot_height=300)
+#
+# plot0 = line(wl, residuals, line_width=1.5, legend="residuals", x_range=xy_range)
 
-image(image=[img],
-      x=[min_x],
-      y=[min_y],
-      dw=[max_x-min_x],
-      dh=[max_y-min_y],
-      palette=["Spectral-11"],
-      x_range = xy_range,
-      y_range = xy_range,
-      title="Covariance",
-      tools="pan,wheel_zoom,box_zoom,reset,previewsave",
-      plot_width=800,
-      plot_height=800
-)
+#Temporarily disable Matrix plotting for now
+# figure(title="Covariance",
+#        tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
+#        plot_width=800, plot_height=800)
+#
+# img = np.log10(S.todense() + 1e-29)
+#
+# image(image=[img],
+#       x=[min_x],
+#       y=[min_y],
+#       dw=[max_x-min_x],
+#       dh=[max_y-min_y],
+#       palette=["Spectral-11"],
+#       x_range = xy_range,
+#       y_range = xy_range,
+#       title="Covariance",
+#       tools="pan,wheel_zoom,box_zoom,reset,previewsave",
+#       plot_width=800,
+#       plot_height=800
+# )
 
-figure(title="Chebyshev",
-       tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
-       plot_width=800, plot_height=300)
+# figure(title="Chebyshev",
+#        tools="pan,wheel_zoom,box_zoom,reset,previewsave,select",
+#        plot_width=800, plot_height=300)
 
-plot0 = line(wl, cheb, line_width=1.5, legend="Chebyshev", x_range=xy_range)
+# plot0 = line(wl, cheb, line_width=1.5, legend="Chebyshev", x_range=xy_range)
 
-show()
+#show()
