@@ -1,0 +1,23 @@
+---
+layout: default
+title: Run Index
+---
+
+<div class="container">
+  <h1>Latest Runs</h1>
+    <ul class="posts">
+      {% for post in site.posts %}
+        <li>
+        <span>{{ post.date | date_to_string }}</span> &raquo; 
+        <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+        {% for category in post.categories %}
+            {{ category }}
+        {% endfor %}
+
+        {{ post.excerpt }}
+        </li>
+      {% endfor %}
+    </ul>
+</div>
+
+This will be further organized by category, in a hierarchical structure.
