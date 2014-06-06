@@ -21,10 +21,10 @@ stellar_params :
     temp : 4500
     logg : 3.9
     Z : -0.1
-    vsini : 10
-    vz : 0
+    vsini : 14
+    vz : 18.8
     #logOmega: -12.7 #Kurucz
-    logOmega: -19.665 #PHOENIX
+    logOmega: -20.19 #PHOENIX
 
 cheb_params :
     logc0 : 0.0
@@ -52,5 +52,5 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 100
-samples : 100
+burn_in : 400
+samples : 400
