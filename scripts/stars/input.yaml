@@ -39,8 +39,8 @@ cov_params :
 
 
 #and sequences too
-orders: [22]
-#orders: [21, 22, 23]
+#orders: [22]
+orders: [32, 33]
 
 #Maximum number of sub-regions allowed per order
 max_regions : 0
