@@ -1,11 +1,11 @@
 #YAML comments are written just like in Python
 
-name: LkCa15/PHOENIX/32_33/
+name: LkCa15/PHOENIX/22/
 
 library: PHOENIX
 #library : Kurucz
 
-HDF5_path : libraries/PHOENIX_master.hdf5
+HDF5_path : libraries/PHOENIX_LkCa15.hdf5
 #HDF5_path : libraries/Kurucz_master.hdf5
 data : data/LkCa15/LkCa15-2013-10-12.hdf5
 outdir : output/
@@ -18,13 +18,14 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 4900
+    temp : 4800
     logg : 4.4
     Z : -0.2
     vsini : 13.2
     vz : 18.6
     #logOmega: -12.7 #Kurucz
-    logOmega: -20.17 #PHOENIX
+    #logOmega: -20.17 #PHOENIX
+    logOmega: -20.0 #PHOENIX
 
 cheb_params :
     logc0 : 0.0
@@ -39,12 +40,12 @@ cov_params :
 
 
 #and sequences too
-#orders: [22]
-orders: [32, 33]
+#orders: [22, 23, 24]
+orders: [22]
 
 #Maximum number of sub-regions allowed per order
 max_regions : 0
 
 #Burn in time
-burn_in : 400
-samples : 800
+burn_in : 500
+samples : 3000
