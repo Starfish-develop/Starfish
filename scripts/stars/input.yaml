@@ -40,7 +40,7 @@ cheb_params :
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.0
+    logAmp : -15.0
     l : 0.15
 
 
