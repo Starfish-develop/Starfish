@@ -5,7 +5,7 @@ name: LkCa15/PHOENIX/22/
 library: PHOENIX
 #library : Kurucz
 
-HDF5_path : libraries/PHOENIX_submaster.hdf5
+HDF5_path : libraries/PHOENIX_master.hdf5
 #HDF5_path : libraries/Kurucz_master.hdf5
 data : data/LkCa15/LkCa15-2013-10-12.hdf5
 outdir : output/
@@ -28,19 +28,13 @@ stellar_params :
 
 cheb_params :
     logc0 : 0.0
-    c1 : 0
-    c2 : 0
-    c3 : 0
-
-#cheb_params :
-#    logc0: 0.0
-#    c1 : 0.0
-#    c2 : 0.0
-#    c3 : 0.0
+    c1 : 0.
+    c2 : 0.
+    c3 : 0.
 
 cov_params :
     sigAmp : 1
-    logAmp : -15.0
+    logAmp : -14.0
     l : 0.15
 
 
