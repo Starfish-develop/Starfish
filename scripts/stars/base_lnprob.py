@@ -34,7 +34,7 @@ else:
     #config = StellarSpectra.default_config
 
 
-myDataSpectrum = DataSpectrum.open(config['data_dir'], orders=config['orders'])
+myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
