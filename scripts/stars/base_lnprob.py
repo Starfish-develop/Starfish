@@ -40,7 +40,7 @@ myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
 #Note that these values are sigma^2!!
-stellar_MH_cov = np.array([2, 0.02, 0.02, 0.02, 0.02, 1e-4])**2 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([10, 0.05, 0.05, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
 # stellar_MH_cov = np.array([0.1, 0.001, 0.001, 0.001, 0.001, 1e-5])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
@@ -66,7 +66,7 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 cheb_Starting = config['cheb_params']
 #Note that these values are sigma^2!!
-cheb_MH_cov = np.array([2e-3, 2e-3, 2e-3, 2e-3])**2 * np.identity(len(cheb_Starting))
+cheb_MH_cov = np.array([5e-3, 5e-3, 5e-3, 5e-3])**2 * np.identity(len(cheb_Starting))
 cheb_tuple = ("logc0", "c1", "c2", "c3")
 
 cov_Starting = config['cov_params']
