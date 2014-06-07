@@ -1,40 +1,14 @@
 #!/usr/bin/env python
 
-#Use argparse to determine if we've specified a config file
-import argparse
-parser = argparse.ArgumentParser(prog="plotly_model.py", description="Plot the model and residuals using plot.ly")
-parser.add_argument("json", help="*.json file describing the model.")
-parser.add_argument("params", help="*.yaml file specifying run parameters.")
-# parser.add_argument("-o", "--output", help="*.html file for output")
-args = parser.parse_args()
-
-import json
-import yaml
-
-if args.json: #
-    #assert that we actually specified a *.json file
-    if ".json" not in args.json:
-        import sys
-        sys.exit("Must specify a *.json file.")
-
-if args.params: #
-    #assert that we actually specified a *.yaml file
-    if ".yaml" in args.params:
-        yaml_file = args.params
-        f = open(args.params)
-        config = yaml.load(f)
-        f.close()
-
-    else:
-        import sys
-        sys.exit("Must specify a *.yaml file.")
-        yaml_file = args.params
-
 import numpy as np
 import plotly.plotly as py
 from plotly.graph_objs import *
 
 def plotly_order(name, wl, fl, flm, residuals):
+    '''
+    Given the quantities from a fit, use plot.ly to create a web-plot and return the url, for
+    embedding as an iframe.
+    '''
 
     dspec = Scatter( #data spectrum
                      x=wl,
@@ -83,39 +57,74 @@ def plotly_order(name, wl, fl, flm, residuals):
     fig = Figure(data=data, layout=layout)
 
     plot_url = py.plot(fig, filename=name)
+    return plot_url
 
-from StellarSpectra.model import Model
-from StellarSpectra.spectrum import DataSpectrum
-from StellarSpectra.grid_tools import TRES, HDF5Interface
+def main():
+    #Use argparse to determine if we've specified a config file
+    import argparse
+    parser = argparse.ArgumentParser(prog="plotly_model.py", description="Plot the model and residuals using plot.ly")
+    parser.add_argument("json", help="*.json file describing the model.")
+    parser.add_argument("params", help="*.yaml file specifying run parameters.")
+    # parser.add_argument("-o", "--output", help="*.html file for output")
+    args = parser.parse_args()
 
-#Figure out what the relative path is to base
-import StellarSpectra
-base = StellarSpectra.__file__[:-26]
+    import json
+    import yaml
 
-myDataSpectrum = DataSpectrum.open(base + config['data'], orders=config['orders'])
-myInstrument = TRES()
-myHDF5Interface = HDF5Interface(base + config['HDF5_path'])
+    if args.json: #
+        #assert that we actually specified a *.json file
+        if ".json" not in args.json:
+            import sys
+            sys.exit("Must specify a *.json file.")
 
-myModel = Model.from_json(args.json, myDataSpectrum, myInstrument, myHDF5Interface)
+    if args.params: #
+        #assert that we actually specified a *.yaml file
+        if ".yaml" in args.params:
+            yaml_file = args.params
+            f = open(args.params)
+            config = yaml.load(f)
+            f.close()
 
-for model in myModel.OrderModels:
+        else:
+            import sys
+            sys.exit("Must specify a *.yaml file.")
+            yaml_file = args.params
 
-    #Get the data
-    wl, fl = model.get_data()
+    from StellarSpectra.model import Model
+    from StellarSpectra.spectrum import DataSpectrum
+    from StellarSpectra.grid_tools import TRES, HDF5Interface
 
-    #Get the model flux
-    flm = model.get_spectrum()
+    #Figure out what the relative path is to base
+    import StellarSpectra
+    base = StellarSpectra.__file__[:-26]
 
-    #Get residuals
-    residuals = model.get_residuals()
+    myDataSpectrum = DataSpectrum.open(base + config['data'], orders=config['orders'])
+    myInstrument = TRES()
+    myHDF5Interface = HDF5Interface(base + config['HDF5_path'])
 
-    name = "Order {}".format(model.order)
+    myModel = Model.from_json(args.json, myDataSpectrum, myInstrument, myHDF5Interface)
 
-    plotly_order(name, wl, fl, flm, residuals)
+    for model in myModel.OrderModels:
 
-    #Get the Chebyshev spectrum
-    # cheb = model.get_Cheb()
+        #Get the data
+        wl, fl = model.get_data()
 
-    #Get the covariance matrix
-    # S = model.get_Cov()
+        #Get the model flux
+        flm = model.get_spectrum()
 
+        #Get residuals
+        residuals = model.get_residuals()
+
+        name = "Order {}".format(model.order)
+
+        url = plotly_order(name, wl, fl, flm, residuals)
+        print(url)
+
+        #Get the Chebyshev spectrum
+        # cheb = model.get_Cheb()
+
+        #Get the covariance matrix
+        # S = model.get_Cov()
+
+if __name__=="__main__":
+    main()
