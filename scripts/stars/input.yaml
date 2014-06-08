@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: LkCa15/PHOENIX/22/
+name: LkCa15/PHOENIX/large/
 
 library: PHOENIX
 #library : Kurucz
@@ -40,11 +40,11 @@ cov_params :
 
 
 #and sequences too
-#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [22]
+orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+#orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 0
+max_regions : 3
 
 #Burn in time
 burn_in : 500
