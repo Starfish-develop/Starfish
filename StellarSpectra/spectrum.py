@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from astropy.io import ascii,fits
 from scipy.sparse.linalg import spsolve
 import gc
-# import pyfftw
+import pyfftw
 import warnings
 import StellarSpectra.constants as C
 import copy
@@ -761,12 +761,12 @@ class ModelSpectrum:
         chunk = len(self.wl_FFT)
         assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
 
-        # self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
-        # self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-        # self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
-        #                           direction='FFTW_BACKWARD')
+        self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
+        self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+                                  direction='FFTW_BACKWARD')
 
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
@@ -844,9 +844,9 @@ class ModelSpectrum:
 
         self.vsini = vsini
 
-        # self.influx[:] = self.fl
-        # self.fft_object()
-        FF = np.fft.rfft(self.fl)
+        self.influx[:] = self.fl
+        self.fft_object()
+        # FF = np.fft.rfft(self.fl)
 
         sigma = self.instrument.FWHM / 2.35 # in km/s
 
@@ -862,14 +862,14 @@ class ModelSpectrum:
         taper[0] = 1.
 
         #institute velocity and instrumental taper
-        # self.FF *= sb * taper
-        FF_tap = FF * sb * taper
+        self.FF *= sb * taper
+        # FF_tap = FF * sb * taper
 
         #do ifft
-        # self.ifft_object()
-        # self.fl[:] = self.outflux
+        self.ifft_object()
+        self.fl[:] = self.outflux
 
-        self.fl = np.fft.irfft(FF_tap)
+        # self.fl = np.fft.irfft(FF_tap)
 
 
     def update_all(self, params):
