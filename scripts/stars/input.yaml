@@ -1,16 +1,16 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/22/
+name: LkCa15/PHOENIX/large/
 
-#library: PHOENIX
-library : Kurucz
+library: PHOENIX
+#library : Kurucz
 
-#HDF5_path : libraries/PHOENIX_submaster.hdf5
-HDF5_path : libraries/Kurucz_master.hdf5
-data_dir : data/WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux
+HDF5_path : libraries/PHOENIX_LkCa15.hdf5
+#HDF5_path : libraries/Kurucz_master.hdf5
+data : data/LkCa15/LkCa15-2013-10-12.hdf5
 outdir : output/
 
-star_name : WASP14
+star_name : LkCa15
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
@@ -18,39 +18,34 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6200
-    logg : 3.9
-    Z : -0.4
-    vsini : 4.5
-    vz : 15.4
-    logOmega: -12.7 #Kurucz
-    #logOmega: -19.665 #PHOENIX
+    temp : 4800
+    logg : 4.4
+    Z : -0.2
+    vsini : 13.2
+    vz : 18.6
+    #logOmega: -12.7 #Kurucz
+    #logOmega: -20.17 #PHOENIX
+    logOmega: -20.0 #PHOENIX
 
 cheb_params :
     logc0 : 0.0
-    c1 : -.017
-    c2 : -.017
-    c3 : -.003
-
-#cheb_params :
-#    logc0: 0.0
-#    c1 : 0.0
-#    c2 : 0.0
-#    c3 : 0.0
+    c1 : 0.
+    c2 : 0.
+    c3 : 0.
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.0
-    l : 0.15
+    logAmp : -14.4
+    l : 0.33
 
 
 #and sequences too
-orders: [22]
-#orders: [21, 22, 23]
+orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+#orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 0
+max_regions : 3
 
 #Burn in time
-burn_in : 10
-samples : 10
+burn_in : 500
+samples : 5000
