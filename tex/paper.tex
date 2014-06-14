@@ -453,8 +453,6 @@ Eq.~\ref{eqn:expectation}, the kernel that describes the covariance of any two p
 the $k^{\rm th}$ residual region is
 \begin{equation}
   \mathcal{K}_k(\lambda_i, \lambda_j | a_k, \mu_k, \sigma_k) = \frac{1}{2\pi} \left(\frac{a_k}{\sigma_k}\right)^2 \exp \left [ - \, \frac{r^2(\lambda_i, \mu_k) + r^2(\lambda_j, \mu_k)}{2 \sigma_k^2}\right ].
-% SA: There was an error in this equation; the sigma in the denominator should be squared, but was 
-%     not -- please check and make sure this is not manifested as a code bug.
 \label{eqn:klocal}
 \end{equation}
 We again taper this kernel with a Hann window (Eq.~\ref{eqn:Hann}) to ensure computational 
