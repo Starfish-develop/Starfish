@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from astropy.io import ascii,fits
 from scipy.sparse.linalg import spsolve
 import gc
-# import pyfftw
+import pyfftw
 import warnings
 import StellarSpectra.constants as C
 import copy
@@ -665,9 +665,39 @@ class DataSpectrum:
             self.orders = np.arange(self.shape[0])
 
     @classmethod
-    def open(cls, base_file, orders='all'):
+    def open(cls, file, orders='all'):
         '''
-        Load a spectrum from a directory link pointing to output from EchelleTools processing.
+        Load a spectrum from a directory link pointing to HDF5 output from EchelleTools processing.
+
+        :param base_file: HDF5 file containing files on disk.
+        :type base_file: string
+        :returns: DataSpectrum
+        :param orders: Which orders should we be fitting?
+        :type orders: np.array of indexes
+
+        '''
+        #Open the HDF5 file, try to load each of these values.
+        import h5py
+        with h5py.File(file, "r") as hdf5:
+            wls = hdf5["wls"][:]
+            fls = hdf5["fls"][:]
+            sigmas = hdf5["sigmas"][:]
+
+            try:
+                #Try to see if masks is available, otherwise return an all-true mask.
+                masks = hdf5["masks"][:]
+            except KeyError as e:
+                masks = np.ones_like(wls, dtype="bool")
+
+        #Although the actual fluxes and errors may be reasonably stored as float32, we need to do all of the calculations
+        #in float64, and so we convert here.
+        #The wls must be stored as float64, because of precise velocity issues.
+        return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders)
+
+    @classmethod
+    def open_npy(cls, base_file, orders='all'):
+        '''
+        Load a spectrum from a directory link pointing to .npy output from EchelleTools processing.
 
         :param base_file: base path name to be appended with ".wls.npy", ".fls.npy", ".sigmas.npy", and ".masks.npy" to load files from disk.
         :type base_file: string
@@ -681,6 +711,8 @@ class DataSpectrum:
         sigmas = np.load(base_file + ".sigmas.npy")
         masks = np.load(base_file + ".masks.npy")
         return cls(wls, fls, sigmas, masks, orders)
+
+
 
     def __str__(self):
         return "DataSpectrum object with shape {}".format(self.shape)
@@ -729,12 +761,12 @@ class ModelSpectrum:
         chunk = len(self.wl_FFT)
         assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
 
-        # self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
-        # self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-        # self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
-        #                           direction='FFTW_BACKWARD')
+        self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
+        self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+                                  direction='FFTW_BACKWARD')
 
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
@@ -812,9 +844,9 @@ class ModelSpectrum:
 
         self.vsini = vsini
 
-        # self.influx[:] = self.fl
-        # self.fft_object()
-        FF = np.fft.rfft(self.fl)
+        self.influx[:] = self.fl
+        self.fft_object()
+        # FF = np.fft.rfft(self.fl)
 
         sigma = self.instrument.FWHM / 2.35 # in km/s
 
@@ -830,14 +862,14 @@ class ModelSpectrum:
         taper[0] = 1.
 
         #institute velocity and instrumental taper
-        # self.FF *= sb * taper
-        FF_tap = FF * sb * taper
+        self.FF *= sb * taper
+        # FF_tap = FF * sb * taper
 
         #do ifft
-        # self.ifft_object()
-        # self.fl[:] = self.outflux
+        self.ifft_object()
+        self.fl[:] = self.outflux
 
-        self.fl = np.fft.irfft(FF_tap)
+        # self.fl = np.fft.irfft(FF_tap)
 
 
     def update_all(self, params):
