@@ -130,7 +130,7 @@ class PHOENIXGridInterface(RawGridInterface):
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-2., 1.1, 0.5),
         "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=[2999, 13001], base=base)
+        air=air, wl_range=[2999, 60001], base=base) #wl_range used to be [2999, 13001]
 
         self.norm = norm #Normalize to 1 solar luminosity?
         self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
@@ -1297,6 +1297,8 @@ class Instrument:
         return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, wl_range: {}".format(self.name, self.FWHM,
                                                                               self.oversampling, self.wl_range)
 
+#Convert R to FWHM in km/s by \Delta v = c/R
+
 class TRES(Instrument):
     '''TRES instrument'''
     def __init__(self, name="TRES", FWHM=6.8, wl_range=(3500, 9500)):
@@ -1319,6 +1321,10 @@ class KPNO(Instrument):
     def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6250,6650)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+class SPEX(Instrument):
+    '''SPEX Instrument'''
+    def __init__(self, name="SPEX", FWHM=150, wl_range=(7500, 60000)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 #wl_file = fits.open("raw_grids/PHOENIX/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")

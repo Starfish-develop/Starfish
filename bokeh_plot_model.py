@@ -15,7 +15,7 @@ from bokeh.embed import autoload_static
 
 #Use argparse to determine if we've specified a config file
 import argparse
-parser = argparse.ArgumentParser(prog="plot_model.py", description="Plot the model.")
+parser = argparse.ArgumentParser(prog="bokeh_plot_model.py", description="Plot the model.")
 parser.add_argument("json", help="*.json file describing the model.")
 parser.add_argument("params", help="*.yaml file specifying run parameters.")
 parser.add_argument("-o", "--output", help="*.html file for output")
@@ -110,7 +110,7 @@ def make_snippet(plot):
 
 
 
-# output_file(filename, title="plot_model.py WASP14")
+# output_file(filename, title="bokeh_plot_model.py WASP14")
 
 min_x, max_x = np.min(wl), np.max(wl)
 min_y, max_y = np.min(wl), np.max(wl)
