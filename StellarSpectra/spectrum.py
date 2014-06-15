@@ -855,7 +855,11 @@ class ModelSpectrum:
 
         #Determine the stellar broadening kernel
         ub = 2. * np.pi * self.vsini * self.ss
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+
+        if np.allclose(self.vsini, 0):
+            sb = np.ones_like(ub)
+        else:
+            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
 
         #set zeroth frequency to 1 separately (DC term)
         sb[0] = 1.
