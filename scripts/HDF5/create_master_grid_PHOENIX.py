@@ -12,7 +12,4 @@ HDF5Stuffer = grid_tools.HDF5GridStuffer(mygrid, filename=out_path)
 HDF5Stuffer.process_grid()
 
 
-#This requires at least 250MB per process. Spectrum objects (combination of wl, fl) can be very large. Also references
-#to interpolator objects are created (but handled properly).
-
 
