@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <title>Order plot</title>
+  <meta name="description" content="Text" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <script language="javascript" type="text/javascript" src="{{ base }}web/flot/jquery.js"></script>
+  <script language="javascript" type="text/javascript" src="{{ base }}web/flot/jquery.flot.js"></script>
+  <script language="javascript" type="text/javascript" src="{{ base }}web/flot/jquery.flot.selection.js"></script>
+  <script type="text/javascript">
+
+	$(function() {
+
+        var data_plot = {
+            color:"blue",
+            data:{{ data }},
+            label:"data",
+        }
+
+        var model_plot = {
+            color:"red",
+            data:{{ model }},
+            label:"model",
+        }
+
+        var resid_plot = {
+           color:"black",
+           data: {{ residuals }},
+           label:"residuals",
+        }
+
+        function sciFormatter(val, axis) {
+            //
+            return val.toExponential(1);
+        }
+
+        var options = {
+            yaxis: {
+                tickFormatter: sciFormatter,
+            },
+
+            selection: {
+                mode: "xy",
+            },
+
+        }
+
+		var placeholder0 = $("#placeholder0");
+		var placeholder1 = $("#placeholder1");
+
+		placeholder0.bind("plotselected", function (event, ranges) {
+
+            //replot the first plot at the new ranges
+            plot0 = $.plot("#placeholder0", [ data_plot, model_plot ],
+                    $.extend(true, {}, options, {
+                        xaxis : {min: ranges.xaxis.from, max:ranges.xaxis.to },
+                        yaxis : {min: ranges.yaxis.from, max:ranges.yaxis.to }
+                    })
+            );
+
+            //retain the original y-axis scaling, so just reset x-axis
+            $.each(plot1.getXAxes(), function(_, axis) {
+               var opts = axis.options;
+               opts.min = ranges.xaxis.from;
+               opts.max = ranges.xaxis.to;
+            });
+            plot1.setupGrid();
+            plot1.draw();
+            plot1.clearSelection();
+
+		});
+
+        placeholder1.bind("plotselected", function (event, ranges) {
+
+            //retain the original y-axis scaling, so just reset x-axis
+            $.each(plot0.getXAxes(), function(_, axis) {
+               var opts = axis.options;
+               opts.min = ranges.xaxis.from;
+               opts.max = ranges.xaxis.to;
+            });
+            plot0.setupGrid();
+            plot0.draw();
+            plot0.clearSelection();
+
+            //replot the first plot at the new ranges
+            plot1 = $.plot("#placeholder1", [ resid_plot ],
+                    $.extend(true, {}, options, {
+                        xaxis : {min: ranges.xaxis.from, max:ranges.xaxis.to },
+                        yaxis : {min: ranges.yaxis.from, max:ranges.yaxis.to }
+                    })
+            );
+
+        });
+
+		var plot0 = $.plot("#placeholder0", [ data_plot, model_plot ], options);
+		var plot1 = $.plot("#placeholder1", [ resid_plot ], options);
+
+		$("#reset").click(function () {
+			//Reset both axis
+            plot0 = $.plot("#placeholder0", [ data_plot, model_plot ],
+                    $.extend(true, {}, options, {
+                        xaxis : {min: null, max:null },
+                        yaxis : {min: null, max:null }
+                    })
+            );
+
+            plot1 = $.plot("#placeholder1", [ resid_plot ],
+                    $.extend(true, {}, options, {
+                        xaxis : {min: null, max:null },
+                        yaxis : {min: null, max:null }
+                    })
+            );
+
+		});
+
+	});
+
+  </script>
+
+  <style>
+    .flot-container {
+        box-sizing: border-box;
+        width: 850px;
+        height: 300px;
+        padding: 20px 15px 15px 15px;
+        margin: 15px auto 30px auto;
+        border: 1px solid #ddd;
+        background: #fff;
+        background: linear-gradient(#f6f6f6 0, #fff 50px);
+        background: -o-linear-gradient(#f6f6f6 0, #fff 50px);
+        background: -ms-linear-gradient(#f6f6f6 0, #fff 50px);
+        background: -moz-linear-gradient(#f6f6f6 0, #fff 50px);
+        background: -webkit-linear-gradient(#f6f6f6 0, #fff 50px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        -o-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        -ms-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        -moz-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        -webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div id="placeholder0" class="flot-container"></div>
+
+<div id="placeholder1" class="flot-container"></div>
+
+<p>
+<button id="reset">Reset</button>
+</p>
+
+</body>
+</html>
