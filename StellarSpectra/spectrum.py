@@ -746,6 +746,8 @@ class ModelSpectrum:
         print("Grid stretches from {} to {}".format(wl_min, wl_max))
         print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
         # self.min_v = 0.08
+
+        self.min_v = None # get this from the HDF5Interface.wl.attrs['min_v']
         self.min_v = calculate_min_v(wl_dict)
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
@@ -761,12 +763,12 @@ class ModelSpectrum:
         chunk = len(self.wl_FFT)
         assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
 
-        self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
-        self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-        self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
-                                  direction='FFTW_BACKWARD')
+        # self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        # self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
+        # self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
+        # self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
+        # self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
+        #                           direction='FFTW_BACKWARD')
 
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)
@@ -830,6 +832,61 @@ class ModelSpectrum:
         except C.InterpolationError as e:
             raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
 
+    def _update_grid_params_approx(self, grid_params):
+        '''
+        Private method to update just those stellar parameters. Designed to be used as part of update_all.
+        ASSUMES that grid is log-linear spaced and already instrument-convolved
+
+        :param grid_params: grid parameters, including alpha or not.
+        :type grid_params: dict
+
+        '''
+        try:
+            self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
+            self.grid_params.update(grid_params)
+
+        except C.InterpolationError as e:
+            raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
+
+    def _update_vsini(self, vsini):
+        '''
+        Private method to update just the vsini kernel. Designed to be used as part of update_all
+        *after* the grid_params have been updated using _update_grid_params_approx.
+        ASSUMES that the grid is log-linear spaced and already instrument-convolved
+
+        :param vsini: projected stellar rotation velocity
+        :type vsini: float (km/s)
+
+        '''
+        if vsini < 0:
+            raise C.ModelError("vsini must be positive")
+
+        self.vsini = vsini
+
+        # self.influx[:] = self.fl
+        # self.fft_object()
+        FF = np.fft.rfft(self.fl)
+
+        #Determine the stellar broadening kernel
+        ub = 2. * np.pi * self.vsini * self.ss
+
+        if np.allclose(self.vsini, 0):
+            sb = np.ones_like(ub)
+        else:
+            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+
+        #set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+
+        #institute velocity and instrumental taper
+        # self.FF *= sb
+        FF_tap = FF * sb
+
+        #do ifft
+        # self.ifft_object()
+        # self.fl[:] = self.outflux
+        self.fl = np.fft.irfft(FF_tap)
+
     def _update_vsini_and_instrument(self, vsini):
         '''
         Private method to update just the vsini and instrumental kernel. Designed to be used as part of update_all
@@ -887,7 +944,8 @@ class ModelSpectrum:
         # grid_params = {'temp':params['temp'], 'logg': 4.29, 'Z':params['Z']}
         grid_params = {key:params[key] for key in self.interpolator.parameters}
 
-        self._update_grid_params(grid_params)
+        #self._update_grid_params(grid_params)
+        self._update_grid_params_approx(grid_params)
 
         #Reset the relative variables
         self.vz = 0
@@ -895,7 +953,8 @@ class ModelSpectrum:
         self.logOmega = 0
 
         #Then vsini and instrument using _update_vsini
-        self._update_vsini_and_instrument(params['vsini'])
+        #self._update_vsini_and_instrument(params['vsini'])
+        self._update_vsini(params['vsini'])
 
         #Then vz, logOmega, and Av using public methods
         self.update_vz(params['vz'])
