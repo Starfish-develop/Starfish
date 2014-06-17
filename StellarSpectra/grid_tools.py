@@ -130,7 +130,7 @@ class PHOENIXGridInterface(RawGridInterface):
         "logg":np.arange(0.0, 6.1, 0.5),
         "Z":np.arange(-2., 1.1, 0.5),
         "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=[2999, 60001], base=base) #wl_range used to be [2999, 13001]
+        air=air, wl_range=[2999, 62001], base=base) #wl_range used to be [2999, 13001]
 
         self.norm = norm #Normalize to 1 solar luminosity?
         self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
@@ -620,9 +620,7 @@ class HDF5ObjGridCreator:
 
         #Calculate a log_lam grid based upon the range of the instrument
         #and natural sampling of the PHOENIX grid
-
         wl_min, wl_max = self.Instrument.wl_range
-
         #use the min_vc that preserves the quality of the PHOENIX grid
         wl_dict = create_log_lam_grid(wl_min - 100., wl_max + 100., min_vc=0.08/C.c_kms)
         self.wl_FFT = wl_dict["wl"]
@@ -1487,7 +1485,7 @@ class KPNO(Instrument):
 
 class SPEX(Instrument):
     '''SPEX Instrument'''
-    def __init__(self, name="SPEX", FWHM=150, wl_range=(7500, 60000)):
+    def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 60000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
