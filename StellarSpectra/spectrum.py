@@ -87,7 +87,6 @@ class BaseSpectrum:
         '''
         return copy.deepcopy(self)
 
-
 class Base1DSpectrum(BaseSpectrum):
     '''
     The base one-dimensional spectrum object, designed to be initialized with a generic spectrum.
@@ -226,6 +225,7 @@ class Base1DSpectrum(BaseSpectrum):
 
         #6) create and return LogLambdaSpectrum object with wl_dict and header info
         return LogLambdaSpectrum(wl_log, fl_log, air=self.air, metadata=self.metadata)
+
 
 
 def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
@@ -566,7 +566,6 @@ class LogLambdaSpectrum(Base1DSpectrum):
         return min_v
 
 
-
 def rfftfreq(n, d=1.0):
     """
     Return the Discrete Fourier Transform sample frequencies
@@ -685,7 +684,7 @@ class DataSpectrum:
 
             try:
                 #Try to see if masks is available, otherwise return an all-true mask.
-                masks = hdf5["masks"][:]
+                masks = np.array(hdf5["masks"][:], dtype="bool")
             except KeyError as e:
                 masks = np.ones_like(wls, dtype="bool")
 
