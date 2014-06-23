@@ -169,11 +169,19 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
+1. Test the new libraries to make sure the pre-convolved spectra actually work
+2. Transfer the covariance kernels to velocity space
+3. Remove the h in the line kernel
+
+4. How should Chebyshev polynomials work in the presence of masked pixels?
+
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 
 * test the grid reader for the BTSettl models
 
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
+
+
 
 
 ## Read SPEX data into DataSpectrum
