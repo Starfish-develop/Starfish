@@ -21,6 +21,6 @@ out_path = "libraries/" + "PHOENIX_TRES_6000.hdf5"
 # out_path = "libraries/" + "PHOENIX_SPEX_2300.hdf5"
 
 HDF5InstGridCreator = grid_tools.HDF5InstGridCreator(myHDF5Interface, filename=out_path, Instrument=myInstrument,
-                        ranges={"temp":(5000, 6700), "logg":(2.5,5.0), "Z":(-1.,0.5), "alpha":(0.0,0.0)})
+                        ranges={"temp":(5000, 6800), "logg":(2.5,5.0), "Z":(-1.,0.5), "alpha":(0.0,0.0)})
 
 HDF5InstGridCreator.process_grid()
