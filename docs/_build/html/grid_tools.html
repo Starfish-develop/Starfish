@@ -55,11 +55,19 @@
             
   <div class="section" id="module-StellarSpectra.grid_tools">
 <span id="grid-tools"></span><h1>Grid Tools<a class="headerlink" href="#module-StellarSpectra.grid_tools" title="Permalink to this headline">¶</a></h1>
-<p><tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> is a package to manipulate synthetic stellar spectra. It defines many useful functions and objects
-that may be used in the modeling package <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a>, such as <a class="reference internal" href="#StellarSpectra.grid_tools.Interpolator" title="StellarSpectra.grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">mod:</th><td class="field-body"><cite>grid_tools</cite> is a package to manipulate synthetic stellar spectra. It defines many useful functions and objects
+that may be used in the modeling package <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt>, such as <a class="reference internal" href="#StellarSpectra.grid_tools.Interpolator" title="StellarSpectra.grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a>.</td>
+</tr>
+</tbody>
+</table>
 <div class="section" id="module-level-methods">
 <h2>Module level methods<a class="headerlink" href="#module-level-methods" title="Permalink to this headline">¶</a></h2>
-<p>These methods are meant to be used for low-level access to spectral libraries. Generally there is no error checking.</p>
+<p>These methods are meant to be used for low-level access to spectral libraries.
+Generally there is only a small amount of error checking.</p>
 <span class="target" id="module-StellarSpectra.grid_tools"></span><dl class="function">
 <dt id="StellarSpectra.grid_tools.load_flux_full">
 <tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">load_flux_full</tt><big>(</big><em>temp</em>, <em>logg</em>, <em>Z</em>, <em>alpha=None</em>, <em>norm=False</em>, <em>vsini=0</em>, <em>grid='PHOENIX'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#load_flux_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.load_flux_full" title="Permalink to this definition">¶</a></dt>
@@ -146,7 +154,7 @@ that may be used in the modeling package <a class="reference internal" href="mod
 <dl class="function">
 <dt id="StellarSpectra.grid_tools.calculate_n">
 <tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">calculate_n</tt><big>(</big><em>wl</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#calculate_n"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.calculate_n" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate <em>n</em>, the refractive index of light at a given wavelength.T</p>
+<dd><p>Calculate <em>n</em>, the refractive index of light at a given wavelength.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -175,12 +183,14 @@ Currently there are extensions for three main grids:</p>
 <li><a class="reference external" href="http://phoenix.ens-lyon.fr/Grids/BT-Settl/">PHOENIX BT-Settl</a> spectra by France Allard</li>
 </ol>
 </div></blockquote>
+<p>All interactions with the grid are designed to be abstracted such that the user can easily extend to add a new
+spectral grid simply by writing a new class which inherits <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a>.</p>
 <p class="graphviz">
-<img src="_images/inheritance-3316fb15594b2e491056a2fc590246929579a0db.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-51d3c3c5dfca9e734bbea834e4ee19841dde9823.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
-<area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
+<area shape="rect" id="node1" href="#StellarSpectra.grid_tools.BTSettlGridInterface" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
 <area shape="rect" id="node2" href="#StellarSpectra.grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
-<area shape="rect" id="node3" title="Kurucz grid interface." alt="" coords="192,54,339,79"/>
+<area shape="rect" id="node3" href="#StellarSpectra.grid_tools.KuruczGridInterface" title="Kurucz grid interface." alt="" coords="192,54,339,79"/>
 <area shape="rect" id="node4" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="An Interface to the PHOENIX/Husser synthetic library." alt="" coords="185,103,346,129"/>
 </map>
 </p>
@@ -295,7 +305,7 @@ are allowed in the grid.</p>
 
 <dl class="class">
 <dt id="StellarSpectra.grid_tools.PHOENIXGridInterface">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">PHOENIXGridInterface</tt><big>(</big><em>air=True</em>, <em>norm=True</em>, <em>base='libraries/raw/PHOENIX/'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#PHOENIXGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">PHOENIXGridInterface</tt><big>(</big><em>air=True, norm=True, wl_range=[3000, 13000], base='libraries/raw/PHOENIX/'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#PHOENIXGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-class docutils literal"><span class="pre">StellarSpectra.grid_tools.RawGridInterface</span></tt></a></p>
 <p>An Interface to the PHOENIX/Husser synthetic library.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -346,23 +356,115 @@ are allowed in the grid.</p>
 
 </dd></dl>
 
-<p>In order to load a file from the PHOENIX grid, one would do</p>
+<dl class="class">
+<dt id="StellarSpectra.grid_tools.KuruczGridInterface">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">KuruczGridInterface</tt><big>(</big><em>air=True, norm=True, wl_range=[5000, 5400], base='libraries/raw/Kurucz/'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#KuruczGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.KuruczGridInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-class docutils literal"><span class="pre">StellarSpectra.grid_tools.RawGridInterface</span></tt></a></p>
+<p>Kurucz grid interface.</p>
+<p>Spectra are in f_nu
+in a filename like &#8220;t03500g00m25ap00k2v070z1i00.fits, ap00 means zero alpha enhancement, and k2 is the
+microturbulence, I believe. I think z1 is the macroturbulence. These particular values are roughly the ones
+appropriate for the Sun.</p>
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.KuruczGridInterface.load_file">
+<tt class="descname">load_file</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#KuruczGridInterface.load_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.KuruczGridInterface.load_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a file from the disk.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.GridError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if the file cannot be found on disk.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="xref py py-obj docutils literal"><span class="pre">model.Base1DSpectrum</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.KuruczGridInterface.load_flux">
+<tt class="descname">load_flux</tt><big>(</big><em>parameters</em>, <em>norm=True</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#KuruczGridInterface.load_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.KuruczGridInterface.load_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a file from the disk.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.GridError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if the file cannot be found on disk.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">tuple (flux_array, header_dict)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="StellarSpectra.grid_tools.BTSettlGridInterface">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">BTSettlGridInterface</tt><big>(</big><em>air=True, norm=True, wl_range=[2999, 13000], base='libraries/raw/BTSettl/'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#BTSettlGridInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.BTSettlGridInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-class docutils literal"><span class="pre">StellarSpectra.grid_tools.RawGridInterface</span></tt></a></p>
+<p>BTSettl grid interface.</p>
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.BTSettlGridInterface.load_file">
+<tt class="descname">load_file</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#BTSettlGridInterface.load_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.BTSettlGridInterface.load_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a file from the disk.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises C.GridError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if the file cannot be found on disk.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="xref py py-obj docutils literal"><span class="pre">model.Base1DSpectrum</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.BTSettlGridInterface.load_flux">
+<tt class="descname">load_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#BTSettlGridInterface.load_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.BTSettlGridInterface.load_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Because of the crazy format of the BTSettl, we need to sort the wl to make sure
+everything is unique, and we&#8217;re not screwing ourselves with the spline.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>In order to load a raw file from the PHOENIX grid, one would do</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">myPHONEIXgrid</span> <span class="o">=</span> <span class="n">PHOENIXGridInterface</span><span class="p">(</span><span class="n">air</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="n">spec</span> <span class="o">=</span> <span class="n">myPHOENIXgrid</span><span class="o">.</span><span class="n">load_file</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">6000</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">3.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">})</span> <span class="c">#Base1DSpectrum object</span>
 </pre></div>
 </div>
+<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a> and subclasses exist solely to interface with the raw files on disk. At minimum,
+they should each define a <a href="#id1"><span class="problematic" id="id2">:method:`load_flux`</span></a> method, which takes in a dictionary of parameters and returns a
+flux array and a dictionary of whatever information may be contained in the file header.</p>
+<p>Under the hood, each of these is implemented differently depending on how the synthetic grid is created. In the case
+of the BTSettl grid, each file in the grid may actually have a flux array that has been sampled at separate
+wavelengths. Therefore, it is necessary to actually interpolate each spectrum to a new, common grid, since
+the wavelength axis of each spectrum is not always the same.</p>
 </div>
 </div>
-<div class="section" id="hdf5-creator-and-reader">
-<h2>HDF5 creator and reader<a class="headerlink" href="#hdf5-creator-and-reader" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="hdf5-creators-and-interfaces">
+<h2>HDF5 creators and interfaces<a class="headerlink" href="#hdf5-creators-and-interfaces" title="Permalink to this headline">¶</a></h2>
 <p>While using the <a class="reference internal" href="#raw-grid-interfaces-label"><em>Raw Grid Interfaces</em></a> may be useful for ordinary spectral reading, for fast read/write it
 is best to use HDF5 files, which store data in a hierarchical data format.</p>
-<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridCreator" title="StellarSpectra.grid_tools.HDF5GridCreator"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridCreator</span></tt></a> uses a raw grid interface to load all of the available files, processes these files to a
-common format and wavelength sampling, and saves them as individual datasets in the HDF5 file with all available metadata.</p>
-<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces.</p>
+<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridStuffer" title="StellarSpectra.grid_tools.HDF5GridStuffer"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridStuffer</span></tt></a> uses a raw grid interface to load all of the available files and saves them as individual
+datasets in the HDF5 file with all available metadata. If the wavelength format is different between individual
+files in the raw grid (BTSettl), it does minimal processing to unify them to the same wavelength grid. It aims to
+simply reproduce relevant sections of the raw grid (say, full optical, or certain temperature and metallicity ranges)
+in a unified file format (HDF5), so that it can be easily stored and transferred from the location of the files
+(say,  some external disk) to a laptop.</p>
 <dl class="class">
-<dt id="StellarSpectra.grid_tools.HDF5GridCreator">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">HDF5GridCreator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>wl_dict</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em>, <em>nprocesses=1</em>, <em>chunksize=1</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridCreator" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.grid_tools.HDF5GridStuffer">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">HDF5GridStuffer</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridStuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridStuffer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -371,34 +473,17 @@ common format and wavelength sampling, and saves them as individual datasets in 
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>GridInterface</strong> &#8211; <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a> object or subclass thereof to access raw spectra on disk.</li>
 <li><strong>filename</strong> &#8211; where to create the HDF5 file. Suffix <cite>*</cite>.hdf5 recommended.</li>
-<li><strong>wl_dict</strong> (<em>dict</em>) &#8211; a dictionary containing the wavelength and metadata describing the common wavelength.</li>
 <li><strong>ranges</strong> (<em>dict of keywords mapped to 2-tuples</em>) &#8211; lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.</li>
-<li><strong>nprocesses</strong> (<em>int</em>) &#8211; if &gt; 1, run in parallel using nprocesses</li>
-<li><strong>chunksize</strong> (<em>int</em>) &#8211; chunksize to use for lazy mp.imap</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Once initialized, the HDF5Interface creates an HDF5 file and then closes it.</p>
+<p>This object is designed to be run in serial.</p>
 <dl class="method">
-<dt id="StellarSpectra.grid_tools.HDF5GridCreator.create_wl">
-<tt class="descname">create_wl</tt><big>(</big><em>hdf5</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridCreator.create_wl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridCreator.create_wl" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates the master wavelength as a dataset within an HDF5 file using the information in <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hdf5</strong> (<em>an h5py HDF5 file object</em>) &#8211; the hdf5 file which will store the wavelength</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="StellarSpectra.grid_tools.HDF5GridCreator.process_flux">
-<tt class="descname">process_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridCreator.process_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridCreator.process_flux" title="Permalink to this definition">¶</a></dt>
-<dd><p>Processs a spectrum from the raw grid so that it is suitable to be inserted into the HDF5 file.</p>
+<dt id="StellarSpectra.grid_tools.HDF5GridStuffer.process_flux">
+<tt class="descname">process_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridStuffer.process_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridStuffer.process_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a flux file from the raw grid ande insert it into the HDF5 file.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -424,29 +509,21 @@ the <tt class="xref py py-attr docutils literal"><span class="pre">GridInterface
 </dd></dl>
 
 <dl class="method">
-<dt id="StellarSpectra.grid_tools.HDF5GridCreator.process_grid">
-<tt class="descname">process_grid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridCreator.process_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridCreator.process_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridCreator.process_flux" title="StellarSpectra.grid_tools.HDF5GridCreator.process_flux"><tt class="xref py py-meth docutils literal"><span class="pre">process_flux()</span></tt></a> for all of the spectra within the <cite>ranges</cite> and store the processed spectra in the
+<dt id="StellarSpectra.grid_tools.HDF5GridStuffer.process_grid">
+<tt class="descname">process_grid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5GridStuffer.process_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5GridStuffer.process_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridStuffer.process_flux" title="StellarSpectra.grid_tools.HDF5GridStuffer.process_flux"><tt class="xref py py-meth docutils literal"><span class="pre">process_flux()</span></tt></a> for all of the spectra within the <cite>ranges</cite> and store the processed spectra in the
 HDF5 file.</p>
-<p>Executed in parallel if <tt class="xref py py-attr docutils literal"><span class="pre">nprocess</span></tt> &gt; 1.</p>
+<p>Only executed in serial.</p>
 </dd></dl>
 
 </dd></dl>
 
-<p>For example, to create a master grid for the PHOENIX spectra, we use our previously created <a class="reference internal" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="StellarSpectra.grid_tools.PHOENIXGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">PHOENIXGridInterface</span></tt></a>
-and create a new <tt class="xref py py-obj docutils literal"><span class="pre">HDFGridCreator</span></tt>. Then we run <tt class="docutils literal"><span class="pre">process_grid()</span></tt> to process all of the raw files on disk into an
-HDF5 file.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c">#First, load a test file to determine the wldict</span>
-<span class="n">spec</span> <span class="o">=</span> <span class="n">myPHOENIXgrid</span><span class="o">.</span><span class="n">load_file</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">5000</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">3.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">})</span>
-<span class="n">wldict</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">calculate_log_lam_grid</span><span class="p">()</span> <span class="c">#explaned in the model.py documentation</span>
-
-
-<span class="n">HDF5Creator</span> <span class="o">=</span> <span class="n">HDF5GridCreator</span><span class="p">(</span><span class="n">myPHOENIXgrid</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s">&quot;test.hdf5&quot;</span><span class="p">,</span> <span class="n">wldict</span><span class="o">=</span><span class="n">wldict</span><span class="p">,</span> <span class="n">nprocesses</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">HDF5Creator</span><span class="o">.</span><span class="n">process_grid</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Once an HDF5 file has been created using an <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridCreator" title="StellarSpectra.grid_tools.HDF5GridCreator"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridCreator</span></tt></a>, spectra can be easily accesed from it through an
-<a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> instance.</p>
+<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite> method similar to that of the raw grid interfaces. It does not make any
+assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file
+share the same wavelength grid, which is part of the HDF5 file in &#8216;wl&#8217;. The flux files are stored within the HDF5
+file, in a subfile called &#8216;flux&#8217;, and are labelled as a dataset with the format</p>
+<blockquote>
+<div>t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}</div></blockquote>
 <dl class="class">
 <dt id="StellarSpectra.grid_tools.HDF5Interface">
 <em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
@@ -498,12 +575,145 @@ HDF5 file.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.HDF5Interface.load_flux_hdr">
+<tt class="descname">load_flux_hdr</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface.load_flux_hdr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5Interface.load_flux_hdr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Just like load_flux, but also returns the header</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>The <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5InstGridCreator" title="StellarSpectra.grid_tools.HDF5InstGridCreator"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5InstGridCreator</span></tt></a> is designed to use the <tt class="xref py py-obj docutils literal"><span class="pre">HDFInterface</span></tt> to interface to an HDF5 file which has
+already been created by <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5GridStuffer" title="StellarSpectra.grid_tools.HDF5GridStuffer"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridStuffer</span></tt></a>, and then process the relevant flux files to a sub grid that for the
+instrument under consideration.</p>
+<dl class="class">
+<dt id="StellarSpectra.grid_tools.HDF5InstGridCreator">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">HDF5InstGridCreator</tt><big>(</big><em>HDF5Interface</em>, <em>filename</em>, <em>Instrument</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5InstGridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5InstGridCreator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Designed to harness an HDF5 interface (that has been created using HDF5GridStuffer) to create a library of spectra
+designed specifically for just one instrument and one object. This means that it is convolved with the
+instrumental PSF and downsampled to some fraction of the FWHM.</p>
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.HDF5InstGridCreator.process_flux">
+<tt class="descname">process_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5InstGridCreator.process_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5InstGridCreator.process_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a flux file from the raw grid and instrumentally broaden then downsample it and return the flux.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; the stellar parameters</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This function assumes that it&#8217;s going to get parameters (temp, logg, Z, alpha), regardless of whether
+the <tt class="xref py py-attr docutils literal"><span class="pre">GridInterface</span></tt> actually has alpha or not</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises AssertionError:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">if the <cite>param parameters</cite> dictionary is not length 4.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.grid_tools.HDF5InstGridCreator.process_grid">
+<tt class="descname">process_grid</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5InstGridCreator.process_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.HDF5InstGridCreator.process_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5InstGridCreator.process_flux" title="StellarSpectra.grid_tools.HDF5InstGridCreator.process_flux"><tt class="xref py py-meth docutils literal"><span class="pre">process_flux()</span></tt></a> for all of the spectra within the <cite>ranges</cite> and store the processed spectra in the
+HDF5 file.</p>
+<p>Only executed in serial.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>Once the grid subsampled for a specific instrument has been created, then it too can be read by the same
+<a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> class.</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>For example, to create a master grid for the PHOENIX spectra, we use our previously created <a class="reference internal" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="StellarSpectra.grid_tools.PHOENIXGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">PHOENIXGridInterface</span></tt></a>
+and create a new <tt class="xref py py-obj docutils literal"><span class="pre">HDFGridStuffer</span></tt>. Then we run <tt class="docutils literal"><span class="pre">process_grid()</span></tt> to process all of the raw files on disk into an
+HDF5 file.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#First, load a test file to determine the wldict</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="n">myPHOENIXgrid</span><span class="o">.</span><span class="n">load_file</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">5000</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">3.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">})</span>
+<span class="n">wldict</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">calculate_log_lam_grid</span><span class="p">()</span> <span class="c">#explaned in the model.py documentation</span>
+
+
+<span class="n">HDF5Creator</span> <span class="o">=</span> <span class="n">HDF5GridCreator</span><span class="p">(</span><span class="n">myPHOENIXgrid</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s">&quot;test.hdf5&quot;</span><span class="p">,</span> <span class="n">wldict</span><span class="o">=</span><span class="n">wldict</span><span class="p">,</span> <span class="n">nprocesses</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">HDF5Creator</span><span class="o">.</span><span class="n">process_grid</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Once an HDF5 file has been created using an <tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridCreator</span></tt>, spectra can be easily accesed from it through an
+<a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> instance.</p>
+<dl class="class">
+<dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Connect to an HDF5 file that stores spectra.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; the name of the HDF5 file</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<tt class="descname">load_file</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface.load_file"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>load a spectrum from the grid and return it as a <tt class="xref py py-obj docutils literal"><span class="pre">model.Base1DSpectrum</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; the stellar parameters</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises KeyError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if spectrum is not found in the HDF5 file.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">load_flux</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface.load_flux"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Load <em>just the flux</em> from the grid, with possibly an index truncation. This is a speed method designed for MCMC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>parameters</strong> (<em>dict</em>) &#8211; the stellar parameters</li>
+<li><strong>ind</strong> (<em>(int low, int high) 2-tuple</em>) &#8211; slice to load</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises KeyError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">if spectrum is not found in the HDF5 file.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">load_flux_hdr</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#HDF5Interface.load_flux_hdr"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Just like load_flux, but also returns the header</p>
+</dd></dl>
+
 </dd></dl>
 
 <p>For example, to load a file from our HDF5 grid</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">myHDF5</span> <span class="o">=</span> <span class="n">HDF5Interface</span><span class="p">(</span><span class="s">&quot;test.hdf5&quot;</span><span class="p">)</span>
 <span class="n">spec</span> <span class="o">=</span> <span class="n">myHDF5</span><span class="o">.</span><span class="n">load_file</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">6100</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">4.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">})</span>
 </pre></div>
+</div>
+<p>The <tt class="xref py py-obj docutils literal"><span class="pre">HDF5GridCreatorDep</span></tt> is designed to transfer the raw grid to a sub sampled grid. It is deprecated,
+but was used for the <tt class="xref py py-obj docutils literal"><span class="pre">MasterToFITSGridCreator</span></tt> methods and so it remains.</p>
 </div>
 </div>
 <div class="section" id="interpolators">
@@ -546,43 +756,7 @@ HDF5 file.</p>
 
 <dl class="class">
 <dt id="StellarSpectra.grid_tools.Interpolator">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">Interpolator</tt><big>(</big><em>interface</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>avg_hdr_keys=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#Interpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.Interpolator" title="Permalink to this definition">¶</a></dt>
-<dd><p>An object which generates spectra interpolated from a grid.
-It is able to cache spectra for easier memory load.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>interface</strong> &#8211; <a class="reference internal" href="#StellarSpectra.grid_tools.HDF5Interface" title="StellarSpectra.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> (recommended) or <a class="reference internal" href="#StellarSpectra.grid_tools.RawGridInterface" title="StellarSpectra.grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a> to load spectra</li>
-<li><strong>cache_max</strong> (<em>int</em>) &#8211; maximum number of spectra to hold in cache</li>
-<li><strong>cache_dump</strong> (<em>int</em>) &#8211; how many spectra to purge from the cache once <tt class="xref py py-attr docutils literal"><span class="pre">cache_max</span></tt> is reached</li>
-<li><strong>avg_hdr_keys</strong> (<em>1-D list, tuple, or set.</em>) &#8211; header keys whose properties can be averaged when combining spectra.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="StellarSpectra.grid_tools.Interpolator.__call__">
-<tt class="descname">__call__</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#Interpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.Interpolator.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interpolate a spectrum</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameters</strong> (<em>dict</em>) &#8211; stellar parameters</td>
-</tr>
-</tbody>
-</table>
-<p>Automatically pops <tt class="xref py py-attr docutils literal"><span class="pre">cache_dump</span></tt> items from cache if full.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="StellarSpectra.grid_tools.ModelInterpolator">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">ModelInterpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>trilinear=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#ModelInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.ModelInterpolator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.grid_tools.</tt><tt class="descname">Interpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>trilinear=False</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#Interpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.Interpolator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
 easier memory load.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -602,8 +776,8 @@ easier memory load.</p>
 </table>
 <p>Setting <tt class="xref py py-attr docutils literal"><span class="pre">trilinear</span></tt> to <strong>True</strong> is useful for when you want to do a run with [Fe/H] &gt; 0.0</p>
 <dl class="method">
-<dt id="StellarSpectra.grid_tools.ModelInterpolator.__call__">
-<tt class="descname">__call__</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#ModelInterpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.ModelInterpolator.__call__" title="Permalink to this definition">¶</a></dt>
+<dt id="StellarSpectra.grid_tools.Interpolator.__call__">
+<tt class="descname">__call__</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#Interpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.Interpolator.__call__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interpolate a spectrum</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -617,9 +791,9 @@ easier memory load.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="StellarSpectra.grid_tools.ModelInterpolator.interpolate">
-<tt class="descname">interpolate</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#ModelInterpolator.interpolate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.ModelInterpolator.interpolate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interpolate a spectrum without clearing cache. Recommended to use <a class="reference internal" href="#StellarSpectra.grid_tools.ModelInterpolator.__call__" title="StellarSpectra.grid_tools.ModelInterpolator.__call__"><tt class="xref py py-meth docutils literal"><span class="pre">__call__()</span></tt></a> instead.</p>
+<dt id="StellarSpectra.grid_tools.Interpolator.interpolate">
+<tt class="descname">interpolate</tt><big>(</big><em>parameters</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/grid_tools.html#Interpolator.interpolate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.grid_tools.Interpolator.interpolate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate a spectrum without clearing cache. Recommended to use <a class="reference internal" href="#StellarSpectra.grid_tools.Interpolator.__call__" title="StellarSpectra.grid_tools.Interpolator.__call__"><tt class="xref py py-meth docutils literal"><span class="pre">__call__()</span></tt></a> instead.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -648,7 +822,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-8e1f7dd35591cbc2663255fce77ce680198fc792.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-081e44f147495ddca4cd0320763fb47da14257c3.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#StellarSpectra.grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="6,54,98,79"/>
 <area shape="rect" id="node2" href="#StellarSpectra.grid_tools.KPNO" title="KNPO Instrument" alt="" coords="147,5,219,30"/>
@@ -869,7 +1043,10 @@ usually grid bounds.</p>
 <li><a class="reference internal" href="#raw-grid-interfaces">Raw Grid Interfaces</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#hdf5-creator-and-reader">HDF5 creator and reader</a></li>
+<li><a class="reference internal" href="#hdf5-creators-and-interfaces">HDF5 creators and interfaces</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#interpolators">Interpolators</a></li>
 <li><a class="reference internal" href="#instruments">Instruments</a></li>
 <li><a class="reference internal" href="#fits-creator">FITS creator</a></li>

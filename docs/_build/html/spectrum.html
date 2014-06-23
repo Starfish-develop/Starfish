@@ -64,13 +64,13 @@
 </tbody>
 </table>
 <p><tt class="xref py py-mod docutils literal"><span class="pre">spectrum</span></tt> is a package containing many different specrum objects. It defines many useful objects
-that may be used in the <tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> package and the <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a> package.</p>
+that may be used in the <tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> package and the <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt> package.</p>
 <div class="section" id="full-featured-spectrum-objects">
 <h2>Full-featured spectrum objects<a class="headerlink" href="#full-featured-spectrum-objects" title="Permalink to this headline">¶</a></h2>
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-ce73c5d5ba2c7e5b91b6cde802916b66041daed7.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-083dc4d7d6d159af0deafd1a51e056b28bcec94a.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#StellarSpectra.spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,306,30"/>
 <area shape="rect" id="node3" href="#StellarSpectra.spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="355,5,515,30"/>
@@ -414,7 +414,7 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 </div>
 <div class="section" id="fast-spectrum-objects">
 <h2>Fast spectrum objects<a class="headerlink" href="#fast-spectrum-objects" title="Permalink to this headline">¶</a></h2>
-<p>These spectra assume many properties of the data and are built for speedy comparions via <a class="reference internal" href="model.html#module-model" title="model"><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></a></p>
+<p>These spectra assume many properties of the data and are built for speedy comparions via <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></p>
 <dl class="class">
 <dt id="StellarSpectra.spectrum.DataSpectrum">
 <em class="property">class </em><tt class="descclassname">StellarSpectra.spectrum.</tt><tt class="descname">DataSpectrum</tt><big>(</big><em>wls</em>, <em>fls</em>, <em>sigmas</em>, <em>masks=None</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum" title="Permalink to this definition">¶</a></dt>
@@ -441,8 +441,29 @@ in the 0-axis.</p>
 </div>
 <dl class="classmethod">
 <dt id="StellarSpectra.spectrum.DataSpectrum.open">
-<em class="property">classmethod </em><tt class="descname">open</tt><big>(</big><em>base_file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum.open" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a spectrum from a directory link pointing to output from EchelleTools processing.</p>
+<em class="property">classmethod </em><tt class="descname">open</tt><big>(</big><em>file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a spectrum from a directory link pointing to HDF5 output from EchelleTools processing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>base_file</strong> (<em>string</em>) &#8211; HDF5 file containing files on disk.</li>
+<li><strong>orders</strong> (<em>np.array of indexes</em>) &#8211; Which orders should we be fitting?</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">DataSpectrum</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="StellarSpectra.spectrum.DataSpectrum.open_npy">
+<em class="property">classmethod </em><tt class="descname">open_npy</tt><big>(</big><em>base_file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/spectrum.html#DataSpectrum.open_npy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.spectrum.DataSpectrum.open_npy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a spectrum from a directory link pointing to .npy output from EchelleTools processing.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

@@ -25,6 +25,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="StellarSpectra 0.1 documentation" href="index.html" />
+    <link rel="next" title="Scripts" href="scripts.html" />
     <link rel="prev" title="Grid Tools" href="grid_tools.html" /> 
   </head>
   <body>
@@ -37,6 +38,9 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="scripts.html" title="Scripts"
+             accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="grid_tools.html" title="Grid Tools"
              accesskey="P">previous</a> |</li>
@@ -53,25 +57,25 @@
 <span id="model"></span><h1>Model<a class="headerlink" href="#module-StellarSpectra.model" title="Permalink to this headline">¶</a></h1>
 <span class="target" id="module-StellarSpectra.model"></span><dl class="class">
 <dt id="StellarSpectra.model.ChebSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">ChebSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>plot_name='plots/out_cheb'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ChebSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ChebSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">ChebSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>outdir=''</em>, <em>fname='cheb'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ChebSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ChebSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subclass of Sampler for evaluating Chebyshev parameters.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="StellarSpectra.model.CovGlobalSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">CovGlobalSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>plot_name='plots/out_cov'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#CovGlobalSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.CovGlobalSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">CovGlobalSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>outdir=''</em>, <em>fname='cov'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#CovGlobalSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.CovGlobalSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="StellarSpectra.model.CovRegionSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">CovRegionSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>region_index=None</em>, <em>plot_name='plots/out_cov_region'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#CovRegionSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.CovRegionSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">CovRegionSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>order_index=None</em>, <em>region_index=None</em>, <em>outdir=''</em>, <em>fname='cov_region'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#CovRegionSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.CovRegionSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="StellarSpectra.model.MegaSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">MegaSampler</tt><big>(</big><em>samplers</em>, <em>burnInCadence</em>, <em>cadence</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#MegaSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.MegaSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">MegaSampler</tt><big>(</big><em>model</em>, <em>samplers</em>, <em>burnInCadence</em>, <em>cadence</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#MegaSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.MegaSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>One Sampler to rule them all</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -89,7 +93,7 @@
 
 <dl class="class">
 <dt id="StellarSpectra.model.Model">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em>, <em>cov_tuple</em>, <em>region_tuple</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">Model</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em>, <em>cheb_tuple</em>, <em>cov_tuple</em>, <em>region_tuple</em>, <em>outdir=''</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Container class to create and bring together all of the relevant data and models to aid in evaulation.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -99,7 +103,7 @@
 <li><strong>DataSpectrum</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt> object) &#8211; the data to fit</li>
 <li><strong>Instrument</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object) &#8211; the instrument with which the data was acquired</li>
 <li><strong>HDF5Interface</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.HDF5Interface</span></tt> object) &#8211; the interface to the synthetic stellar library</li>
-<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters. If <tt class="docutils literal"><span class="pre">alpha</span></tt> is missing, :obj:<tt class="docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt> is trilinear.</li>
+<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters. If <tt class="docutils literal"><span class="pre">alpha</span></tt> is missing, :obj:<tt class="docutils literal"><span class="pre">grid_tools.Interpolator</span></tt> is trilinear.</li>
 </ul>
 </td>
 </tr>
@@ -111,6 +115,12 @@
 <dd><p>Compare the different data and models.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="StellarSpectra.model.Model.from_json">
+<em class="property">classmethod </em><tt class="descname">from_json</tt><big>(</big><em>filename</em>, <em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Model.from_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Model.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate from a JSON file.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="StellarSpectra.model.Model.get_data">
 <tt class="descname">get_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Model.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Model.get_data" title="Permalink to this definition">¶</a></dt>
@@ -120,14 +130,65 @@
 <dl class="method">
 <dt id="StellarSpectra.model.Model.to_json">
 <tt class="descname">to_json</tt><big>(</big><em>fname='model.json'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Model.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Model.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write all of the available parameters to a JSON file so that we may go back and re-create the model</p>
+<dd><p>Write all of the available parameters to a JSON file so that we may go back and re-create the model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="StellarSpectra.model.ModelEncoder">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">ModelEncoder</tt><big>(</big><em>skipkeys=False</em>, <em>ensure_ascii=True</em>, <em>check_circular=True</em>, <em>allow_nan=True</em>, <em>sort_keys=False</em>, <em>indent=None</em>, <em>separators=None</em>, <em>default=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Designed to serialize an instance of o=Model() to JSON</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="StellarSpectra.model.ModelHighAccuracy">
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">ModelHighAccuracy</tt><big>(</big><em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em>, <em>stellar_tuple</em>, <em>cheb_tuple</em>, <em>cov_tuple</em>, <em>region_tuple</em>, <em>outdir=''</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelHighAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelHighAccuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is for testing purposes.
+Container class to create and bring together all of the relevant data and models to aid in evaulation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>DataSpectrum</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">spectrum.DataSpectrum</span></tt> object) &#8211; the data to fit</li>
+<li><strong>Instrument</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object) &#8211; the instrument with which the data was acquired</li>
+<li><strong>HDF5Interface</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.HDF5Interface</span></tt> object) &#8211; the interface to the synthetic stellar library</li>
+<li><strong>stellar_tuple</strong> (<em>tuple</em>) &#8211; describes the order of parameters. If <tt class="docutils literal"><span class="pre">alpha</span></tt> is missing, :obj:<tt class="docutils literal"><span class="pre">grid_tools.Interpolator</span></tt> is trilinear.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="StellarSpectra.model.ModelHighAccuracy.evaluate">
+<tt class="descname">evaluate</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelHighAccuracy.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelHighAccuracy.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare the different data and models.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="StellarSpectra.model.ModelHighAccuracy.from_json">
+<em class="property">classmethod </em><tt class="descname">from_json</tt><big>(</big><em>filename</em>, <em>DataSpectrum</em>, <em>Instrument</em>, <em>HDF5Interface</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelHighAccuracy.from_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelHighAccuracy.from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate from a JSON file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.model.ModelHighAccuracy.get_data">
+<tt class="descname">get_data</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelHighAccuracy.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelHighAccuracy.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a DataSpectrum object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="StellarSpectra.model.ModelHighAccuracy.to_json">
+<tt class="descname">to_json</tt><big>(</big><em>fname='model.json'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#ModelHighAccuracy.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.ModelHighAccuracy.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write all of the available parameters to a JSON file so that we may go back and re-create the model.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="StellarSpectra.model.RegionsSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">RegionsSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>default_param_dict={'sigma': 0.1</em>, <em>'loga': -14.2</em>, <em>'h': 0.1}</em>, <em>order_index=None</em>, <em>plot_name='plots/out_cov_region'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#RegionsSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.RegionsSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">RegionsSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>default_param_dict={'sigma': 0.1</em>, <em>'loga': -14.2</em>, <em>'h': 0.1}</em>, <em>max_regions=3</em>, <em>order_index=None</em>, <em>outdir=''</em>, <em>fname='cov_region'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#RegionsSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.RegionsSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>The point of this sampler is to do all the region sampling for a specific order.</p>
 <p>It must also be able to create new samplers.</p>
 <p>There will be a list of RegionSamplers, one for each region. This keys into the specific region properly.</p>
@@ -143,7 +204,7 @@ how to manage the RegionSamplerList.</p>
 
 <dl class="class">
 <dt id="StellarSpectra.model.Sampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">Sampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>plot_name='plots/out'</em>, <em>order_index=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Sampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">Sampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>outdir=''</em>, <em>fname=''</em>, <em>order_index=None</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Sampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C</p>
 <dl class="method">
 <dt id="StellarSpectra.model.Sampler.burn_in">
@@ -157,11 +218,34 @@ how to manage the RegionSamplerList.</p>
 <dd><p>Generate the relevant plots once the sampling is done.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="StellarSpectra.model.Sampler.write">
+<tt class="descname">write</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#Sampler.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.Sampler.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write all of the relevant output to an HDF file.</p>
+<p>flatchain
+acceptance fraction
+tuple parameters as an attribute in the header from self.param_tuple</p>
+<p>The actual HDF5 file is structured as follows</p>
+<p>/
+stellar parameters.flatchain
+00/
+...
+22/
+23/</p>
+<blockquote>
+<div><p>global_cov.flatchain
+regions/</p>
+<blockquote>
+<div>region1.flatchain</div></blockquote>
+</div></blockquote>
+<p>Everything can be saved in the dataset self.fname</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="StellarSpectra.model.StellarSampler">
-<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">StellarSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>plot_name='plots/out_stellar'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#StellarSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.StellarSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">StellarSpectra.model.</tt><tt class="descname">StellarSampler</tt><big>(</big><em>model</em>, <em>MH_cov</em>, <em>starting_param_dict</em>, <em>outdir=''</em>, <em>fname='stellar'</em><big>)</big><a class="reference internal" href="_modules/StellarSpectra/model.html#StellarSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StellarSpectra.model.StellarSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subclass of Sampler for evaluating stellar parameters.</p>
 </dd></dl>
 
@@ -176,6 +260,9 @@ how to manage the RegionSamplerList.</p>
   <h4>Previous topic</h4>
   <p class="topless"><a href="grid_tools.html"
                         title="previous chapter">Grid Tools</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="scripts.html"
+                        title="next chapter">Scripts</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/model.txt"
@@ -207,6 +294,9 @@ how to manage the RegionSamplerList.</p>
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="scripts.html" title="Scripts"
+             >next</a> |</li>
         <li class="right" >
           <a href="grid_tools.html" title="Grid Tools"
              >previous</a> |</li>
