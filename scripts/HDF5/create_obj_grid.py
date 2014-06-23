@@ -4,7 +4,7 @@ from StellarSpectra import grid_tools
 # raw_library_path = "/n/holyscratch/panstarrs/iczekala/raw_libraries/PHOENIX/"
 # out_path = "/scratch/" + "PHOENIX_LkCa15.hdf5"
 
-myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster.hdf5")
+myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_F.hdf5")
 # myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_LkCa15.hdf5")
 # myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_submaster_M.hdf5")
 
