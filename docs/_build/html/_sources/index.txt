@@ -13,6 +13,7 @@ Contents:
    spectrum
    grid_tools
    model
+   scripts
 
 Copyright Ian Czekala 2013, 2014
 
