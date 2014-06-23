@@ -3,7 +3,7 @@ import sys
 import emcee
 from . import constants as C
 from .grid_tools import ModelInterpolator
-from .spectrum import ModelSpectrum, ChebyshevSpectrum
+from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHighAccuracy
 from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
 import time
 import json
@@ -144,6 +144,149 @@ class Model:
             trilinear = False
         myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
         self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
+        self.stellar_params = None
+
+        #Now create a a list which contains an OrderModel for each order
+        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index) for index in range(self.norders)]
+
+    def zip_stellar_p(self, p):
+        return dict(zip(self.stellar_tuple, p))
+
+    def zip_Cheb_p(self, p):
+        return dict(zip(self.cheb_tuple, p))
+
+    def zip_Cov_p(self, p):
+        return dict(zip(self.cov_tuple, p))
+
+    def zip_Region_p(self, p):
+        return dict(zip(self.region_tuple, p))
+
+    def update_Model(self, params):
+        self.ModelSpectrum.update_all(params)
+        self.stellar_params = params
+
+    def get_data(self):
+        '''
+        Returns a DataSpectrum object.
+        '''
+        return self.DataSpectrum
+
+
+
+    def evaluate(self):
+        '''
+        Compare the different data and models.
+        '''
+        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
+
+        lnps = np.empty((self.norders,))
+
+        for i in range(self.norders):
+            #Correct the warp of the model using the ChebyshevSpectrum
+            # model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
+
+            #Evaluate using the current CovarianceMatrix
+            # lnps[i] = self.OrderModels[i].evaluate(model_fl)
+            lnps[i] = self.OrderModels[i].evaluate()
+
+        return np.sum(lnps)
+
+
+    def to_json(self, fname="model.json"):
+        '''
+        Write all of the available parameters to a JSON file so that we may go back and re-create the model.
+        '''
+
+        f = open(self.outdir + fname, 'w')
+        json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
+        f.close()
+
+class ModelHighAccuracy:
+    '''
+    This is for testing purposes.
+    Container class to create and bring together all of the relevant data and models to aid in evaulation.
+
+    :param DataSpectrum: the data to fit
+    :type DataSpectrum: :obj:`spectrum.DataSpectrum` object
+    :param Instrument: the instrument with which the data was acquired
+    :type Instrument: :obj:`grid_tools.Instrument` object
+    :param HDF5Interface: the interface to the synthetic stellar library
+    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object
+    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.ModelInterpolator`` is trilinear.
+    :type stellar_tuple: tuple
+
+    '''
+
+    @classmethod
+    def from_json(cls, filename, DataSpectrum, Instrument, HDF5Interface):
+        '''
+        Instantiate from a JSON file.
+        '''
+
+        #Determine tuples from the JSON output
+        f = open(filename, "r")
+        read = json.load(f)
+        f.close()
+
+        #Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple
+        stellar_tuple = tuple(read['stellar_tuple'])
+        cheb_tuple = tuple(read['cheb_tuple'])
+        cov_tuple = tuple(read['cov_tuple'])
+        region_tuple = tuple(read['region_tuple'])
+
+        #Initialize the Model object
+        model = cls(DataSpectrum, Instrument, HDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
+                    cov_tuple=cov_tuple, region_tuple=region_tuple)
+
+        #Update all of the parameters so covariance matrix uploads
+        #1) update stellar parameters
+        model.update_Model(read['stellar_params'])
+
+        #2) Figure out how many orders, and for each order
+        orders_dict = read["orders"]
+        #print("orders_dict is", orders_dict)
+        orders = [int(i) for i in orders_dict.keys()]
+        orders.sort()
+        for i, order in enumerate(orders):
+            order_model = model.OrderModels[i]
+            order_dict = orders_dict[str(order)]
+            #print("order_dict is", order_dict)
+            #2.1) update cheb and global cov parametersorder_dict = orders_dict[order]
+            order_model.update_Cheb(order_dict['cheb'])
+            order_model.update_Cov(order_dict['global_cov'])
+
+            #2.2) instantiate and create all regions, if any exist
+            regions_dict = order_dict['regions']
+            regions = [int(i) for i in regions_dict.keys()]
+            regions.sort()
+            if len(regions_dict) > 0:
+                #Create regions, otherwise skip
+                CovMatrix = order_model.CovarianceMatrix
+                for i, region in enumerate(regions):
+                    print("creating region ", i, region, regions_dict[str(region)])
+                    CovMatrix.create_region(regions_dict[str(region)])
+
+        #Now update the stellar model again so it accounts for the Chebyshevs when downsampling
+        model.update_Model(read['stellar_params'])
+
+        return model
+
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple, outdir=""):
+        self.DataSpectrum = DataSpectrum
+        self.stellar_tuple = stellar_tuple
+        self.cheb_tuple = cheb_tuple
+        self.cov_tuple = cov_tuple
+        self.region_tuple = region_tuple
+        self.outdir = outdir
+        self.orders = self.DataSpectrum.orders
+        self.norders = self.DataSpectrum.shape[0]
+        #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
+        if 'alpha' not in self.stellar_tuple:
+            trilinear = True
+        else:
+            trilinear = False
+        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        self.ModelSpectrum = ModelSpectrumHighAccuracy(myInterpolator, Instrument)
         self.stellar_params = None
 
         #Now create a a list which contains an OrderModel for each order
