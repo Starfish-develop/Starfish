@@ -7,8 +7,6 @@ import yaml
 import os
 import shutil
 
-#Designed to be run from within lnprobs
-
 #Use argparse to determine if we've specified a config file
 import argparse
 parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
@@ -40,7 +38,7 @@ myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
 #Note that these values are sigma^2!!
-stellar_MH_cov = np.array([10, 0.05, 0.05, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([5, 0.05, 0.05, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
 # stellar_MH_cov = np.array([0.1, 0.001, 0.001, 0.001, 0.001, 1e-5])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
@@ -65,13 +63,10 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
 
 cheb_Starting = config['cheb_params']
-#Note that these values are sigma^2!!
 cheb_MH_cov = np.array([5e-3, 5e-3, 5e-3, 5e-3])**2 * np.identity(len(cheb_Starting))
 cheb_tuple = ("logc0", "c1", "c2", "c3")
 
 cov_Starting = config['cov_params']
-#Note, THESE VALUES ARE sigma^2!!
-#Note that these values are sigma^2!!
 cov_MH_cov = np.array([0.02, 0.02, 0.005])**2 * np.identity(len(cov_Starting))
 cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
 
@@ -102,9 +97,6 @@ shutil.copy(yaml_file, outdir)
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir)
 
-
-#myModel.OrderModels[0].update_Cheb({"c1":-0.017, "c2":-0.017, "c3":-0.003})
-#myModel.OrderModels[0].CovarianceMatrix.update_global(cov_Starting)
 
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, outdir=outdir)
 
