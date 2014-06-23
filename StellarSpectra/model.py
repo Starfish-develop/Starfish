@@ -11,7 +11,6 @@ import h5py
 import os
 import matplotlib.pyplot as plt
 
-
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
     fig, ax = plt.subplots(nrows=ndim, sharex=True)
@@ -22,7 +21,6 @@ def plot_walkers(filename, samples, labels=None):
     ax[-1].set_xlabel("Sample number")
     fig.savefig(filename)
     plt.close(fig)
-
 
 class ModelEncoder(json.JSONEncoder):
     '''
@@ -343,7 +341,6 @@ class ModelHA:
         json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
         f.close()
 
-
 class OrderModel:
     def __init__(self, ModelSpectrum, DataSpectrum, index):
         print("Creating OrderModel {}".format(index))
@@ -429,6 +426,7 @@ class OrderModel:
         #CovarianceMatrix will do the lnprob math without priors
         lnp = self.CovarianceMatrix.evaluate(model_fl)
         return lnp
+
 
 class Sampler:
     '''
@@ -563,7 +561,6 @@ class StellarSampler(Sampler):
             #print("Stellar returning -np.inf")
             return -np.inf
 
-
 class ChebSampler(Sampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
@@ -590,7 +587,6 @@ class ChebSampler(Sampler):
         self.order_model.update_Cheb(params)
         return self.order_model.evaluate()
 
-
 class CovGlobalSampler(Sampler):
     '''
     Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
@@ -615,7 +611,6 @@ class CovGlobalSampler(Sampler):
             return self.order_model.evaluate()
         except C.ModelError:
             return -np.inf
-
 
 class CovRegionSampler(Sampler):
     '''
