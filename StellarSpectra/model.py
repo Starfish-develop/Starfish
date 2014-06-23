@@ -2,8 +2,8 @@ import numpy as np
 import sys
 import emcee
 from . import constants as C
-from .grid_tools import ModelInterpolator
-from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHighAccuracy
+from .grid_tools import Interpolator
+from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
 from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
 import time
 import json
@@ -69,7 +69,7 @@ class Model:
     :type Instrument: :obj:`grid_tools.Instrument` object
     :param HDF5Interface: the interface to the synthetic stellar library
     :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object
-    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.ModelInterpolator`` is trilinear.
+    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.Interpolator`` is trilinear.
     :type stellar_tuple: tuple
 
     '''
@@ -142,7 +142,7 @@ class Model:
             trilinear = True
         else:
             trilinear = False
-        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
         self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
         self.stellar_params = None
 
@@ -201,7 +201,7 @@ class Model:
         json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
         f.close()
 
-class ModelHighAccuracy:
+class ModelHA:
     '''
     This is for testing purposes.
     Container class to create and bring together all of the relevant data and models to aid in evaulation.
@@ -212,7 +212,7 @@ class ModelHighAccuracy:
     :type Instrument: :obj:`grid_tools.Instrument` object
     :param HDF5Interface: the interface to the synthetic stellar library
     :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object
-    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.ModelInterpolator`` is trilinear.
+    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.Interpolator`` is trilinear.
     :type stellar_tuple: tuple
 
     '''
@@ -285,8 +285,8 @@ class ModelHighAccuracy:
             trilinear = True
         else:
             trilinear = False
-        myInterpolator = ModelInterpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        self.ModelSpectrum = ModelSpectrumHighAccuracy(myInterpolator, Instrument)
+        myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        self.ModelSpectrum = ModelSpectrumHA(myInterpolator, Instrument)
         self.stellar_params = None
 
         #Now create a a list which contains an OrderModel for each order

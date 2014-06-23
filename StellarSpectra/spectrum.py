@@ -992,7 +992,7 @@ class ModelSpectrum:
         del interp
         gc.collect()
 
-class ModelSpectrumHighAccuracy:
+class ModelSpectrumHA:
     '''
     A 1D synthetic spectrum.
 

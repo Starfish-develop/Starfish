@@ -1,3 +1,7 @@
+
+print("Hello")
+
+
 def downsample(w_m, f_m, w_TRES):
     '''Given a model wavelength and flux (w_m, f_m) and the instrument wavelength (w_TRES), downsample the model to
     exactly match the TRES wavelength bins. '''
@@ -114,7 +118,7 @@ fluxes = np.empty((4, len(wave_grid)))
 def flux_interpolator_mini(temp, logg):
     '''Load flux in a memory-nice manner. lnprob will already check that we are within temp = 2300 - 12000 and logg =
     0.0 - 6.0, so we do not need to check that here.'''
-    #Determine T plus and minus 
+    #Determine T plus and minus
     #If the previous check by lnprob was correct, these should always have elements
     #Determine logg plus and minus
     i_Tm = np.argwhere(temp >= T_points)[-1][0]
