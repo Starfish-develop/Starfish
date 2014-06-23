@@ -178,9 +178,6 @@ Then, the install command is
 
 ## Read SPEX data into DataSpectrum
 
-* How do we treat orders?
- There are no orders, since they have been merged by the pipeline.
-
  We do need to incorporate masking into the DataSpectrum
 
  * Only un-masked points should be downsampled to
@@ -189,6 +186,10 @@ Then, the install command is
  Can this be as simple as just creating wl_masked = wl[masks] and same for flux?
 
  Might have to convert Chebyshev's from pixel space to wavelength space, in this case
+
+ How to plot appropriately
+
+ Spex is vacuum wls... shift back?
 
 ## make the "accuracy enabler" full-blown
 
