@@ -604,8 +604,8 @@ class CovGlobalSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
-        if params["l"] > 1:
-            return -np.inf
+        # if params["l"] > 1:
+        #     return -np.inf
         try:
             self.order_model.update_Cov(params)
             return self.order_model.evaluate()
@@ -618,7 +618,7 @@ class CovRegionSampler(Sampler):
     '''
     def __init__(self, model, MH_cov, starting_param_dict, order_index=None, region_index=None, outdir="", fname="cov_region"):
         #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = ("h", "loga", "mu", "sigma")
+        self.param_tuple = ("loga", "mu", "sigma")
 
         self.order_index = order_index
         self.region_index = region_index
@@ -654,7 +654,7 @@ class RegionsSampler:
     '''
     #TODO: subclass RegionsSampler from MegaSampler
 
-    def __init__(self, model, MH_cov, default_param_dict={"h":0.1, "loga":-14.2, "sigma":0.1}, max_regions = 3,
+    def __init__(self, model, MH_cov, default_param_dict={"loga":-14.2, "sigma":10.}, max_regions = 3,
                  order_index=None,  outdir="", fname="cov_region"):
 
         self.model = model

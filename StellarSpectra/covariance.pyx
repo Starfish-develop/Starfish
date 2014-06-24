@@ -100,7 +100,7 @@ cdef extern from "../extern/cov.h":
     double get_min_sep (double *wl, int N)
 
     cholmod_sparse *create_sigma(double *sigma, int N, cholmod_common *c)
-    cholmod_sparse *create_sparse(double *wl, int N, double max_sep, double a, 
+    cholmod_sparse *create_sparse(double *wl, int N, double min_sep, double a,
         double l, cholmod_common *c)
     cholmod_sparse *create_sparse_region(double *wl, int N, double a,
         double mu, double sigma, cholmod_common *c)
