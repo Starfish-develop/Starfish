@@ -8,6 +8,7 @@
 #include <cholmod.h>
 
 #define PI 3.14159265358979323846
+#define c_kms 2.99792458E5
 #define TRUE 1
 #define FALSE 0
 
@@ -18,29 +19,31 @@ double k_3_2 (double r, double a, double l, double r0)
     return taper * a*a * (1 + sqrt(3) * r/l) * exp(-sqrt(3) * r/l);
 }
 
-double k_region (double x0, double x1, double h, double a, double mu, double sigma)
+double k_region (double x0, double x1, double a, double mu, double sigma)
 {
     //Hanning-tapered covariance kernel
 
+    //printf("x0 %.4f x1 %.4f\n" , x0, x1);
     //Hanning taper is defined using radial distance from mu
-    double rx0 = fabs(x0 - mu);
-    double rx1 = fabs(x1 - mu);
+    double rx0 = c_kms / mu * fabs(x0 - mu);
+    double rx1 = c_kms / mu * fabs(x1 - mu);
     double r_tap = rx0 > rx1 ? rx0 : rx1; //choose the larger distance
     //double r_mu = sqrt((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu));
+    //printf("rx0 %.4f rx1 %.4f r_tap %.4f\n", rx0, rx1, r_tap);
     double r0 = 4.0 * sigma; //where the kernel goes to 0
     assert(r_tap <= r0);
     double taper = (0.5 + 0.5 * cos(PI * r_tap/r0));
 
     //defined as linear distance between x0 and x1
-    double r = fabs(x0 - x1);
+    //double r = c_kms / mu * fabs(x0 - x1);
 
     //double value = taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
     //    ((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu))/(sigma * sigma)) 
     //    * exp(-0.5 * r*r/(h * h));
     //printf("Initializing %.4f, %.4f with value %.4f\n", x0, x1, value);
     return  taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
-        ((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu))/(sigma * sigma)) 
-        * exp(-0.5 * r*r/(h * h));
+        (c_kms * c_kms) / (mu * mu) * ((x0 - mu)*(x0 - mu) + 
+            (x1 - mu)*(x1 - mu))/(sigma * sigma)); 
 }
 
 
@@ -160,7 +163,7 @@ cholmod_sparse *create_sparse(double *wl, int N, double max_sep, double a, doubl
         for (j = 0; j <= i; j++)
         {
             //printf("(%d,%d)\n", i, j);
-            r = fabs(wl[i] - wl[j]);
+            r = fabs(wl[i] - wl[j]) * c_kms /wl[i]; //Now in velocity
 
                 if (r < r0) //If the distance is below our cutoff, initialize
                 {
@@ -271,7 +274,7 @@ cholmod_sparse *create_sparse_long(double *wl, int N, double a, double l, cholmo
 	
 }
 
-cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a, 
+cholmod_sparse *create_sparse_region(double *wl, int N, double a, 
         double mu, double sigma, cholmod_common *c)
 {
     //Create a sparse region in the covariance matrix, to be added/updated
@@ -284,20 +287,27 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
 
     //this loop should exit with first_ind being equal to the first row,col occurence of the region
     do {
-        r = fabs(wl[i] - mu); //how far away are we from mu?
+        r = c_kms/mu * (mu - wl[i]); //how far away are we from mu?
         first_ind = i;
         i++;
-
     } while (r > r0);
+
+    if (r <= 0)
+    {
+        //if r had to go negative to escape the previous loop, then we know 
+        //the sigma is too small for any region to exist on the current 
+        //wavelength spacing, return null
+        return NULL;
+    }
 
     //this loop should exit with last_ind being equal to the last row,col occurence (inclusive)
     do {
         last_ind = i;
         i++;
-        r = fabs(wl[i] - mu); //how far away are we from mu?
-
+        r = c_kms/mu * fabs(wl[i] - mu); //how far away are we from mu?
     } while (r < r0);
     
+
     int M = (last_ind - first_ind + 1) * (last_ind - first_ind + 1); //how many non-zero elements
 
     // we want a square and symmetric matrix
@@ -320,16 +330,10 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
     {
         for (j = first_ind; j <= i; j++)
         {
-            //double r_mu = sqrt((wl[i] - mu)*(wl[i] - mu) 
-            //    + (wl[j] - mu)*(wl[j] - mu));
-
-            //if (r_mu < r0) //If the distance is below our cutoff, initialize
-            //{
             Ti[k] = i;
             Tj[k] = j;
-            Tx[k] = k_region(wl[i], wl[j], h, a, mu, sigma);
+            Tx[k] = k_region(wl[i], wl[j], a, mu, sigma);
             k++;
-            //}
         }
     }
     T->nnz = k;
@@ -341,75 +345,6 @@ cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a,
         cholmod_free_triplet(&T, c);
         return NULL;
     }
-    
-    //The conversion will transpose the entries and add to the upper half.
-    cholmod_sparse *A = cholmod_triplet_to_sparse(T, k, c);
-    cholmod_free_triplet(&T, c);
-    return A;
-}
-
-
-cholmod_sparse *create_sparse_region_long(double *wl, int N, double h, double a, 
-        double mu, double sigma, cholmod_common *c)
-{
-    //Create a sparse region in the covariance matrix, to be added/updated
-
-    //determine the wl indices that are within 4 sigma of mu
-    double r0 = 4.0 * sigma;
-    
-    //First, loop through to calculate all of the r distances
-    int i = 0, j = 0;
-
-    //First loop to determine the number non-zero elements
-    int M = 0; //number of non-zero elements
-    for (i = 0; i < N; i++)
-    {
-        for (j = 0; j < N; j++)
-        {
-            double r_mu = sqrt((wl[i] - mu)*(wl[i] - mu) + 
-                    (wl[j] - mu)*(wl[j] - mu));
-            if (r_mu < r0) //Is the separation below our cutoff?
-                M++;
-        }
-    }
-
-    printf("N^2=%d \n", N*N);
-    printf("M  =%d \n", M);
-
-    // we want a square and symmetric matrix
-    cholmod_triplet *T = cholmod_allocate_triplet(N, N, M, 1, CHOLMOD_REAL, c);
-
-    if (T == NULL || T->stype == 0)		    /* T must be symmetric */
-    {
-      cholmod_free_triplet (&T, c) ;
-      cholmod_finish (c) ;
-      return (0) ;
-    }
-    
-    //Do the loop again, this time to fill in the matrix
-    int * Ti = T->i;
-    int * Tj = T->j;
-    double * Tx = T->x;
-    int k = 0;
-
-    //This time, only fill in the lower entries (and diagonal). 
-    for (i = 0; i < N; i++)
-    {
-        for (j = 0; j <= i; j++)
-        {
-            double r_mu = sqrt((wl[i] - mu)*(wl[i] - mu) 
-                + (wl[j] - mu)*(wl[j] - mu));
-
-            if (r_mu < r0) //If the distance is below our cutoff, initialize
-            {
-                Ti[k] = i;
-                Tj[k] = j;
-                Tx[k] = k_region(wl[i], wl[j], h, a, mu, sigma);
-                k++;
-            }
-        }
-    }
-    T->nnz = k;
     
     //The conversion will transpose the entries and add to the upper half.
     cholmod_sparse *A = cholmod_triplet_to_sparse(T, k, c);
