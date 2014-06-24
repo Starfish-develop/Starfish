@@ -102,7 +102,7 @@ cdef extern from "../extern/cov.h":
     cholmod_sparse *create_sigma(double *sigma, int N, cholmod_common *c)
     cholmod_sparse *create_sparse(double *wl, int N, double max_sep, double a, 
         double l, cholmod_common *c)
-    cholmod_sparse *create_sparse_region(double *wl, int N, double h, double a, 
+    cholmod_sparse *create_sparse_region(double *wl, int N, double a,
         double mu, double sigma, cholmod_common *c)
 
     double get_logdet(cholmod_factor *L)
@@ -563,22 +563,21 @@ cdef class RegionCovarianceMatrix:
 
     def update(self, params):
         '''
-        Parameters is a dictionary of {h, a, mu, sigma}.
+        Parameters is a dictionary of {a, mu, sigma}.
         Back in CovarianceMatrix, calculate the logdet and the new cholmod_factorization.
         '''
-        h = params['h']
         a = 10**params['loga']
         mu = params['mu']
         sigma = params['sigma']
 
-        if (h <= 0) or (sigma <=0) or (a < 0):
-            raise C.ModelError("h {}, sigma {}, and a {} must be positive.".format(h, sigma, a))
+        if (sigma <=0) or (a < 0):
+            raise C.ModelError("sigma {}, and a {} must be positive.".format(sigma, a))
 
         if np.abs((mu - self.mu)) > self.sigma0:
             raise C.RegionError("mu {} has strayed too far from the \
                     original specification {}".format(mu, self.mu))
 
-        cdef cholmod_sparse *temp = create_sparse_region(self.wl, self.npoints, h, a, mu, sigma, self.c)
+        cdef cholmod_sparse *temp = create_sparse_region(self.wl, self.npoints, a, mu, sigma, self.c)
 
         if temp == NULL:
             raise C.RegionError("region is too small to contain any nonzero elements.")

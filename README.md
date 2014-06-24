@@ -167,9 +167,13 @@ Then, the install command is
 
 # Tasks and development
 
-# Before the 1.0 paper release
+## Completed
 
-1. Time the new libraries to see if we should bother keeping PyFFTW
+Time the new libraries to see if we should bother keeping pyFFTW. Answer: for a large swath of spectrum,
+pyFFTW is only about 15% faster. Because the downsample method takes about twice as long,
+I don't think there is really much to be gained by the pyFFTW dependency.
+
+# Before the 1.0 paper release
 
 2. Transfer the covariance kernels to velocity space
 3. Remove the h in the line kernel

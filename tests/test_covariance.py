@@ -6,7 +6,8 @@ import StellarSpectra.constants as C
 
 class TestCCovarianceMatrix:
     def setup_class(self):
-        self.dataspectrum = DataSpectrum.open("WASP14/WASP-14_2009-06-15_04h13m57s_cb.spec.flux", orders=np.array([21,22,23]))
+        self.dataspectrum = DataSpectrum.open("data/WASP14/WASP14-2009-06-14.hdf5",
+                                              orders=np.array([21,22,23]))
         # self.dataspectrum.fls = np.ones_like(self.dataspectrum.wls)
         #self.dataspectrum.sigmas = 2*np.ones_like(self.dataspectrum.wls)
         # print(self.dataspectrum.fls)
@@ -36,32 +37,32 @@ class TestCCovarianceMatrix:
         print(np.sum(cov))
 
     def test_create_region(self):
-        self.CovarianceMatrix.create_region({"h":1.0, "loga":-14.4, "mu":5189., "sigma":1.0})
+        self.CovarianceMatrix.create_region({"loga":-14.4, "mu":5189., "sigma":1.0})
         print(self.CovarianceMatrix.print_all_regions())
         print("\n REGION lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
 
     def test_two_regions_error(self):
         with pytest.raises(C.RegionError) as e:
-            self.CovarianceMatrix.create_region({"h":1.0, "loga":-14.4, "mu":5130., "sigma":1.0})
+            self.CovarianceMatrix.create_region({"loga":-14.4, "mu":5130., "sigma":1.0})
         print(e.value)
 
     def test_add_two_regions(self):
-        self.CovarianceMatrix.create_region({"h":1.0, "loga":-14.4, "mu":5142., "sigma":1.0})
+        self.CovarianceMatrix.create_region({"loga":-14.4, "mu":5142., "sigma":1.0})
         print(self.CovarianceMatrix.print_all_regions())
         print("\n TWO REGION lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
 
     def test_update_first_region_error(self):
         with pytest.raises(C.RegionError) as e:
-            self.CovarianceMatrix.update_region(0, {"h":1.0, "loga":-14.4, "mu":5180., "sigma":1.0})
+            self.CovarianceMatrix.update_region(0, {"loga":-14.4, "mu":5180., "sigma":1.0})
         print(e.value)
 
     def test_update_first_region(self):
-        self.CovarianceMatrix.update_region(0, {"h":5.0, "loga":-13.0, "mu":5189., "sigma":5.0})
+        self.CovarianceMatrix.update_region(0, {"loga":-13.0, "mu":5189., "sigma":5.0})
         print(self.CovarianceMatrix.print_all_regions())
         print("\n updated TWO REGION lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
 
     def test_update_second_region(self):
-        self.CovarianceMatrix.update_region(1, {"h":1.0, "loga":-14.4, "mu":5143., "sigma":1.0})
+        self.CovarianceMatrix.update_region(1, {"loga":-14.4, "mu":5143., "sigma":1.0})
         print(self.CovarianceMatrix.print_all_regions())
         print("\n updated TWO REGION lnprob = ", self.CovarianceMatrix.evaluate(self.flux))
 
