@@ -23,7 +23,7 @@ class TestCCovarianceMatrix:
 
 
     def test_update_global(self):
-        self.CovarianceMatrix.update_global({"sigAmp":1, "logAmp":-14.4, "l":0.18})
+        self.CovarianceMatrix.update_global({"sigAmp":1, "logAmp":-14.4, "l":8.})
         # S = self.CovarianceMatrix.cholmod_to_scipy_sparse()
         # print("Value of 100, 100 is ", S[100, 100])
 

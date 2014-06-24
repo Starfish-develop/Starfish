@@ -175,10 +175,8 @@ I don't think there is really much to be gained by the pyFFTW dependency.
 
 # Before the 1.0 paper release
 
-2. Transfer the covariance kernels to velocity space
-3. Remove the h in the line kernel
-
 4. How should Chebyshev polynomials work in the presence of masked pixels?
+5. Higher order Chebyshev's too
 
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 

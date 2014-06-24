@@ -72,11 +72,11 @@ cheb_MH_cov = np.array([5e-3, 5e-3, 5e-3, 5e-3])**2 * np.identity(len(cheb_Start
 cheb_tuple = ("logc0", "c1", "c2", "c3")
 
 cov_Starting = config['cov_params']
-cov_MH_cov = np.array([0.02, 0.02, 0.005])**2 * np.identity(len(cov_Starting))
+cov_MH_cov = np.array([0.02, 0.02, 0.4])**2 * np.identity(len(cov_Starting))
 cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
 
-region_tuple = ("h", "loga", "mu", "sigma")
-region_MH_cov = np.array([0.05, 0.04, 0.02, 0.02])**2 * np.identity(len(region_tuple))
+region_tuple = ("loga", "mu", "sigma")
+region_MH_cov = np.array([0.04, 0.02, 0.1])**2 * np.identity(len(region_tuple))
 
 
 outdir = config['outdir']
@@ -123,9 +123,9 @@ def main():
 
     mySampler.run(config["samples"])
     mySampler.acceptance_fraction()
-    # myModel.to_json("model_final.json")
-    # mySampler.write()
-    # mySampler.plot()
+    myModel.to_json("model_final.json")
+    mySampler.write()
+    mySampler.plot()
 
 
 if __name__=="__main__":
