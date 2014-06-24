@@ -169,7 +169,8 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
-1. Test the new libraries to make sure the pre-convolved spectra actually work
+1. Time the new libraries to see if we should bother keeping PyFFTW
+
 2. Transfer the covariance kernels to velocity space
 3. Remove the h in the line kernel
 
@@ -182,8 +183,6 @@ Then, the install command is
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
 
 
-
-
 ## Read SPEX data into DataSpectrum
 
  We do need to incorporate masking into the DataSpectrum
@@ -193,9 +192,11 @@ Then, the install command is
 
  Can this be as simple as just creating wl_masked = wl[masks] and same for flux?
 
- Might have to convert Chebyshev's from pixel space to wavelength space, in this case
+ Might have to convert Chebyshev's from pixel space to wavelength space, in this case? I don't think so. Probably we
+ can evaluate the Chebyshev's accross all pixels, and then let the masking come in during the plotting and likelihood
+  evaluation
 
- How to plot appropriately
+ How to plot appropriately with masks
 
  Spex is vacuum wls... shift back?
 

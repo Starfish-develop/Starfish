@@ -14,7 +14,7 @@ myInstrument = grid_tools.TRES()
 # myInstrument = grid_tools.SPEX_SXD()
 # myInstrument = grid_tools.SPEXMgb()
 
-out_path = "libraries/" + "PHOENIX_TRES_6000.hdf5"
+out_path = "libraries/" + "PHOENIX_TRES_F.hdf5"
 # out_path = "libraries/" + "PHOENIX_TRES_4000.hdf5"
 # out_path = "libraries/" + "PHOENIX_TRES_2300.hdf5"
 
