@@ -145,7 +145,7 @@ MU_TEST(test_factor_real_wl)
     printf("\ntest_factor_real_wl\n");
     double min_sep = get_min_sep(wl23, 2298);
     printf("min_sep = %.5f\n", min_sep);
-    cholmod_sparse *A = create_sparse(wl23, 2298, min_sep, 1.0, 1.0, &c);
+    cholmod_sparse *A = create_sparse(wl23, 2298, min_sep, 1.0, 20.0, &c);
     cholmod_factor *L ;
     L = cholmod_analyze (A, &c) ;		    
 
@@ -160,11 +160,13 @@ MU_TEST(test_factor_real_wl)
     printf("rcond = %.7f\n", cholmod_rcond(L, &c));
 
     printf("Logdet = %.7f\n", get_logdet(L));
-    mu_assert_close(-15991.257711869774, get_logdet(L), 1E-5); //checked by Julia
+    mu_assert_close(-9294.66425221337, get_logdet(L), 1E-5); //checked by Julia
 
     cholmod_free_sparse(&A, &c); 
     cholmod_free_factor(&L, &c);
 }
+
+
 
 MU_TEST(test_logdet)
 {
@@ -197,13 +199,13 @@ MU_TEST(test_logdet)
     linspace(wl, NN, 5100., 5200.);
     min_sep = get_min_sep(wl, NN);
 
-    cholmod_sparse *A = create_sparse(wl, NN, min_sep, 1.0, 1.0, &c);
+    cholmod_sparse *A = create_sparse(wl, NN, min_sep, 1.0, 100., &c);
     cholmod_factor *L = cholmod_analyze (A, &c) ;		    
     cholmod_factorize (A, L, &c) ;		    
     printf("is_ll %d, is_super %d\n", L->is_ll, L->is_super);
     mu_assert_int_eq(0, L->is_ll);
     mu_assert_int_eq(0, L->is_super);
-    mu_assert_close(-0.00134744563566, get_logdet(L), 1E-6);
+    mu_assert_close(-0.315693590221, get_logdet(L), 1E-6);
 
     // *************
     //Simplicial LLt
@@ -215,13 +217,13 @@ MU_TEST(test_logdet)
     c.supernodal = CHOLMOD_SIMPLICIAL;
     c.final_ll = TRUE; //LLt
 
-    A = create_sparse(wl, NN, min_sep, 1.0, 1.0, &c);
+    A = create_sparse(wl, NN, min_sep, 1.0, 100., &c);
     L = cholmod_analyze (A, &c) ;		    
     cholmod_factorize (A, L, &c) ;		    
     printf("is_ll %d, is_super %d\n", L->is_ll, L->is_super);
     mu_assert_int_eq(1, L->is_ll);
     mu_assert_int_eq(0, L->is_super);
-    mu_assert_close(-0.00134744563566, get_logdet(L), 1E-6);
+    mu_assert_close(-0.315693590221, get_logdet(L), 1E-6);
     
     // **************
     //Supernodal LDLt
@@ -248,24 +250,25 @@ MU_TEST(test_logdet)
     linspace(wl2, NN, 5100., 5200.);
     min_sep = get_min_sep(wl2, NN);
 
-    A = create_sparse(wl2, NN, min_sep, 1.0, 1.0, &c);
+    A = create_sparse(wl2, NN, min_sep, 1.0, 100., &c);
     L = cholmod_analyze (A, &c) ;		    
     cholmod_factorize (A, L, &c) ;		    
     printf("is_ll %d, is_super %d\n", L->is_ll, L->is_super);
     mu_assert_int_eq(1, L->is_ll);
     mu_assert_int_eq(1, L->is_super);
-    mu_assert_close(-23248.95169672, get_logdet(L), 1E-6);
+    mu_assert_close(-27978.367988332902, get_logdet(L), 1E-6);
 
     cholmod_free_sparse(&A, &c); 
     cholmod_free_factor(&L, &c);
 
 }
 
+
 MU_TEST(test_create_sparse_region)
 {
     printf("\ntest_create_sparse_region\n");
     //See if the sparse matrix is allocated with the correct properties
-    cholmod_sparse *A = create_sparse_region(wl, N, 5, 1.0, 5150., 1, &c);
+    cholmod_sparse *A = create_sparse_region(wl, N, 5, 5150., 1, &c);
     //Test to see what kind of matrix this is
 
     //cholmod_print_sparse(A, "A", &c);
@@ -273,14 +276,13 @@ MU_TEST(test_create_sparse_region)
 
 }
 
+
 MU_TEST(test_create_sparse_region_nonsense)
 {
     printf("\ntest_create_sparse_region_nonsense\n");
-    //cholmod_sparse *A = create_sparse_region(wl23, 2298, 0.1574385528127511, 6.59207e-15, 5218.0438918892651, 0.00025277079709683931, &c);
-    cholmod_sparse *A = create_sparse_region(wl23, 2298, 0.088189212937567069, 9.5203e-15, 5235.64617, 0.01594656772112427, &c); 
+    cholmod_sparse *A = create_sparse_region(wl23, 2298, 9.5203e-15, 5235.64617, 0.02, &c); 
 
-    
-    //the problem is that this currently returns a completely null matrix
+    //this should return NULL, because it's a crazy matrix
     
     cholmod_print_sparse(A, "A", &c);
 
@@ -289,17 +291,18 @@ MU_TEST(test_create_sparse_region_nonsense)
 
 }
 
+
 MU_TEST(test_logdet_region)
 {
     printf("\ntest_logdet_region\n");
 
-    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 1.0, &c); //often slow
-    cholmod_sparse *C = create_sparse_region(wl, N, 5, 1.0, 5150., 1., &c);
+    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 100, &c); //often slow
+    cholmod_sparse *C = create_sparse_region(wl, N, 5, 5150., 30., &c);
     double alpha [2] = {1,0}, beta [2] = {1,0} ;	    // basic scalars 
     cholmod_sparse *F = cholmod_add(A, C, alpha, beta, TRUE, TRUE, &c);
     cholmod_factor *L = cholmod_analyze (F, &c) ;		    
     cholmod_factorize (F, L, &c) ;  //tends to be slow    
-    mu_assert_close(-23248.79272934225, get_logdet(L), 1E-6);
+    mu_assert_close(-27978.34, get_logdet(L), 1E-4);
     printf("logdet region=%.5f\n",get_logdet(L));
 
     cholmod_free_sparse(&A, &c); 
@@ -307,13 +310,14 @@ MU_TEST(test_logdet_region)
     cholmod_free_factor(&L, &c);
 }
 
+
 MU_TEST(test_real_wl_evaluate)
 {
     printf("\nTEST_REAL_WL_EVALUATE\n");
 
 
     double alpha [2] = {1,0}, beta [2] = {1,0} ;	    
-    cholmod_sparse *A = create_sparse(wl23, 2298, min_sep, 1.0, 1.0, &c); 
+    cholmod_sparse *A = create_sparse(wl23, 2298, min_sep, 1.0, 100, &c); 
     cholmod_dense *r = cholmod_ones (A->nrow, 1, A->xtype, &c) ;   
     cholmod_sparse *S = create_sigma(sigma23, 2298, &c);
 
@@ -329,10 +333,9 @@ MU_TEST(test_real_wl_evaluate)
     printf("chi2 = %.2f\n", chi2(r, L, &c));
     printf("lnprob = %.5f\n", -0.5 * (chi2(r, L, &c) + get_logdet(L)));
 
-
     printf("\nWith region\n");
 
-    cholmod_sparse *C = create_sparse_region(wl23, 2298, 1., 1.0, 5180., 1., &c);
+    cholmod_sparse *C = create_sparse_region(wl23, 2298, 10.0, 5180., 30., &c);
     cholmod_sparse *F = cholmod_add(D, C, alpha, beta, TRUE, TRUE, &c);
     L = cholmod_analyze (F, &c) ;		    
     cholmod_factorize (F, L, &c) ;  
@@ -356,14 +359,14 @@ MU_TEST(test_real_wl_evaluate)
 MU_TEST(test_updown)
 {
     printf("\ntest_updown\n");
-    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 1., &c);
+    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 100., &c);
     cholmod_factor *L ;
     L = cholmod_analyze (A, &c) ;		    
     cholmod_factorize (A, L, &c) ;		    
     double orig = get_logdet(L);
     printf("logdet is %.2f\n", orig);
 
-    cholmod_sparse *C = create_sparse_region(wl, N, 5, 1.0, 5150., 1., &c);
+    cholmod_sparse *C = create_sparse_region(wl, N, 1.0, 5150., 30., &c);
     cholmod_sparse *F = cholmod_allocate_sparse(A->nrow, A->ncol, A->nzmax, A->sorted, A->packed, A->stype, A->xtype, &c);
     cholmod_transpose_sym(C, 1, L->Perm, F, &c);
     cholmod_sort(F, &c);
@@ -385,14 +388,14 @@ MU_TEST(test_updown)
 MU_TEST(test_chi2)
 {
     printf("\ntest_chi2\n");
-    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 1., &c);
+    cholmod_sparse *A = create_sparse(wl, N, min_sep, 1.0, 100., &c);
     cholmod_factor *L ;
     L = cholmod_analyze (A, &c) ;		    
     cholmod_factorize (A, L, &c);		    
     //Create a vector with the same number of rows as A
     cholmod_dense *r = cholmod_ones (A->nrow, 1, A->xtype, &c) ;   
     //printf("chi2 = %.2f", chi2(r, L, &c));
-    mu_assert_close(48.071706650708094, chi2(r, L, &c), 1E-6);
+    mu_assert_close(28.395953, chi2(r, L, &c), 1E-6);
     cholmod_free_dense(&r, &c);
 }
 
