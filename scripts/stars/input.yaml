@@ -34,17 +34,17 @@ cheb_params :
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.4
-    l : 0.15
+    logAmp : -14.2
+    l : 10.
 
 
 #and sequences too
-orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-#orders: [22]
+#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 0
+max_regions : 2
 
 #Burn in time
-burn_in : 50
-samples : 100
+burn_in : 100
+samples : 500
