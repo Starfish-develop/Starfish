@@ -2,16 +2,15 @@ import cProfile
 import pstats
 
 #Your module here
-from StellarSpectra.tests import profile_evaluate
+from scripts.stars.base_lnprob import main
+cProfile.run("main()", "prof")
 
-cProfile.run("profile_evaluate.main()", "prof")
-#cProfile.run("plot_MCMC.main()", "prof")
 
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
-    p.sort_stats('cumulative').print_stats(.9)
-    p.sort_stats('time').print_stats(.9)
+    p.sort_stats('cumulative').print_stats(.2)
+    p.sort_stats('time').print_stats(.2)
 
 
 display_stats('prof')

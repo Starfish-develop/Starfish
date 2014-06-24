@@ -858,7 +858,7 @@ class Interpolator:
 
         self.wl = self.interface.wl
         self.wl_dict = self.interface.wl_header
-        self._determine_chunk()
+        self._determine_chunk_log()
 
         self.setup_index_interpolators()
         self.cache = OrderedDict([])
@@ -905,12 +905,14 @@ class Interpolator:
 
             self.wl = self.wl[ind[0]:ind[1]]
             assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                                                                    "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                                                                          max(self.wl), wl_min, wl_max)
+                                    "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
+                                                                                           max(self.wl), wl_min, wl_max)
 
             self.interface.ind = ind
         else:
             self.interface.ind = None
+
+        print("DCL: Wl is {}".format(len(self.wl)))
 
     def _determine_chunk(self):
         '''
@@ -931,6 +933,7 @@ class Interpolator:
 
 
         self.interface.ind = (ind_low, ind_high)
+        print("Wl is {}".format(len(self.wl)))
 
 
     def __call__(self, parameters):

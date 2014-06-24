@@ -27,7 +27,12 @@ if args.params: #
         yaml_file = args.params
 else:
     #load the default config file
-    raise NotImplementedError("Default config file not yet specified.")
+    yaml_file = "scripts/stars/input.yaml"
+    f = open(yaml_file)
+    config = yaml.load(f)
+    f.close()
+
+    # raise NotImplementedError("Default config file not yet specified.")
     #import StellarSpectra #this triggers the __init__.py code
     #config = StellarSpectra.default_config
 
@@ -38,7 +43,7 @@ myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
 #Note that these values are sigma^2!!
-stellar_MH_cov = np.array([5, 0.05, 0.05, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([5, 0.02, 0.02, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
 # stellar_MH_cov = np.array([0.1, 0.001, 0.001, 0.001, 0.001, 1e-5])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
@@ -111,13 +116,17 @@ for i in range(len(config['orders'])):
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
                         burnInCadence=[10] + cadenceList, cadence=[10] + cadenceList)
-mySampler.burn_in(config["burn_in"])
-mySampler.reset()
 
-mySampler.run(config["samples"])
-mySampler.acceptance_fraction()
-myModel.to_json("model_final.json")
-mySampler.write()
-mySampler.plot()
+def main():
+    mySampler.burn_in(config["burn_in"])
+    mySampler.reset()
+
+    mySampler.run(config["samples"])
+    mySampler.acceptance_fraction()
+    # myModel.to_json("model_final.json")
+    # mySampler.write()
+    # mySampler.plot()
 
 
+if __name__=="__main__":
+    main()

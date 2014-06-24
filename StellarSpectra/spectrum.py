@@ -734,26 +734,15 @@ class ModelSpectrum:
     def __init__(self, interpolator, instrument):
         self.interpolator = interpolator
         #Set raw_wl from wl stored with interpolator
-        self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of ModelInterpolator
+        self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of Interpolator
         self.instrument = instrument
         self.DataSpectrum = self.interpolator.DataSpectrum #so that we can downsample to the same wls
-
-        #Calculate a log_lam grid based upon the length of the DataSpectrum
-        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
-        # wl_dict = create_log_lam_grid(wl_min - 4., wl_max + 4., min_vc=0.08/C.c_kms)
-        # self.wl_FFT = wl_dict["wl"]
-        # print("Grid stretches from {} to {}".format(wl_min, wl_max))
-        # print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
-        # self.min_v = 0.08
 
         self.wl_FFT = self.interpolator.wl
 
         self.min_v = self.interpolator.interface.wl_header["min_v"]
-        # self.min_v = calculate_min_v(wl_dict)
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
-        print("ss is len", len(self.ss))
-
 
         self.downsampled_fls = np.empty(self.DataSpectrum.shape)
         self.grid_params = {}
@@ -762,8 +751,8 @@ class ModelSpectrum:
         self.logOmega = 0.
 
         #Grab chunk from wl_FFT
-        # chunk = len(self.wl_FFT)
-        # assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
+        chunk = len(self.wl_FFT)
+        assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
 
         # self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
         # self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
@@ -815,26 +804,8 @@ class ModelSpectrum:
         #self.fl /= deredden(self.wl, Av, mags=False)
         #self.Av = Av
 
-    # def _update_grid_params(self, grid_params):
-    #     '''
-    #     Private method to update just those stellar parameters. Designed to be used as part of update_all.
-    #
-    #     :param grid_params: grid parameters, including alpha or not.
-    #     :type grid_params: dict
-    #
-    #     '''
-    #     try:
-    #         fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
-    #         interp = InterpolatedUnivariateSpline(self.wl_raw, fl, k=5)
-    #         self.fl = interp(self.wl_FFT)
-    #         del interp
-    #         gc.collect()
-    #         self.grid_params.update(grid_params)
-    #
-    #     except C.InterpolationError as e:
-    #         raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
-
-    def _update_grid_params_approx(self, grid_params):
+    #Make this private again after speed testing is done
+    def update_grid_params(self, grid_params):
         '''
         Private method to update just those stellar parameters. Designed to be used as part of update_all.
         ASSUMES that grid is log-linear spaced and already instrument-convolved
@@ -846,12 +817,12 @@ class ModelSpectrum:
         try:
             self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
             self.grid_params.update(grid_params)
-            print("interpolated fl is len", len(self.fl))
 
         except C.InterpolationError as e:
             raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
 
-    def _update_vsini(self, vsini):
+    #Make this private again after speed testing is done
+    def update_vsini(self, vsini):
         '''
         Private method to update just the vsini kernel. Designed to be used as part of update_all
         *after* the grid_params have been updated using _update_grid_params_approx.
@@ -949,7 +920,7 @@ class ModelSpectrum:
         grid_params = {key:params[key] for key in self.interpolator.parameters}
 
         #self._update_grid_params(grid_params)
-        self._update_grid_params_approx(grid_params)
+        self.update_grid_params(grid_params)
 
         #Reset the relative variables
         self.vz = 0
@@ -959,7 +930,7 @@ class ModelSpectrum:
 
         #Then vsini and instrument using _update_vsini
         #self._update_vsini_and_instrument(params['vsini'])
-        self._update_vsini(params['vsini'])
+        self.update_vsini(params['vsini'])
 
         #Then vz, logOmega, and Av using public methods
         self.update_vz(params['vz'])
