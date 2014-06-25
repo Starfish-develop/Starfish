@@ -175,9 +175,6 @@ I don't think there is really much to be gained by the pyFFTW dependency.
 
 # Before the 1.0 paper release
 
-4. How should Chebyshev polynomials work in the presence of masked pixels?
-5. Higher order Chebyshev's too
-
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 
 * test the grid reader for the BTSettl models
@@ -185,36 +182,53 @@ I don't think there is really much to be gained by the pyFFTW dependency.
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
 
 
-## Read SPEX data into DataSpectrum
+# SPEX
 
- We do need to incorporate masking into the DataSpectrum
+* Do we need to bother to convert Chebyshev to velocity, if we now have a reasonable amount of pixels? Perhaps not.
 
- * Only un-masked points should be downsampled to
- * Only un-masked points should participate in the likelihood function
+We *do* want the flux to actually be downsampled to these pixels, since we want to be able to actually
+plot what the model would look like here, in the case of say an emission line, or telluric contamination.
+This is important for masking lines where we actually do have data.
+But for regions where there are chip-gaps, for example between the orders, this is not necessary.
 
- Can this be as simple as just creating wl_masked = wl[masks] and same for flux?
+Clipping this gap into a different order might not really be the solution, since there are a different number of
+pixels in each order and this would really screw things up.
 
- Might have to convert Chebyshev's from pixel space to wavelength space, in this case? I don't think so. Probably we
- can evaluate the Chebyshev's accross all pixels, and then let the masking come in during the plotting and likelihood
-  evaluation
+* convert Chebyshev's from pixel space to wavelength space.
 
- How to plot appropriately with masks
-
- Spex is vacuum wls... shift back?
-
-## make the "accuracy enabler" full-blown
-
-* check to see if SPEX is downsampling to an acceptable accuracy
+* change Chebyshev polynomial degree to be higher for SPEX (how?)
 
 
 ## working test with IRTF spex M dwarf
 
 This will tell us what the residuals actually look like, which is important for developing a kernel to track them.
 
-In this case, I think it's worthwhile to use a Gaussian-tapered squared exponential,
-or Gaussian-tapered Matern kernel,  since that looks more ragged.
+In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
 
 * Fits for WASP 14 both w/ and without covariance kernel
+
+## Regions
+
+* get triangle.py titles and MSFormatter working
+* need better way to visualize MCMC region output and errors together
+* add logic to be destroyed when current value of amplitude goes below the global kernel
+* keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
+SPEX.
+* Need plotting tools to show everything output.
+
+#Alternate sampling stratagies
+
+* In theory, if this step is slow, we could sample all of the parameters, for all of the regions (and all of the
+ global parameters) at the same time (perhaps using a HMC algorithm). That way we get around the largest time cost of
+  the update_cov step, which for ~17 orders becomes a sizeable amount of time.
+
+* alternatively, for each region, it might be possible to actually isolate the exact chunk that we are sub-sampling.
+Although I have a feeling this won't be all that much faster anyway.
+
+After converging the global and stellar parameters, we could switch entirely to sampling the hyperparameters. Or
+sample them less frequently. I suppose the point is simply to track how they evolve.
+This is why reading in a couple different model.json files to visualize the current state of things might be helpful.
+
 
 ## text in paper
 

@@ -153,10 +153,12 @@ cdef class CovarianceMatrix:
         self.one[1] = 0
 
         #Pass the DataSpectrum to initialize the GlobalCovarianceMatrix
+        #Here we need to pass only the masked pixels
         self.DataSpectrum = DataSpectrum
         self.order_index = order_index
-        self.wl = DataSpectrum.wls[self.order_index]
-        self.fl = DataSpectrum.fls[self.order_index]
+        mask = self.DataSpectrum.masks[self.order_index]
+        self.wl = DataSpectrum.wls[self.order_index][mask]
+        self.fl = DataSpectrum.fls[self.order_index][mask]
         self.npoints = len(self.fl)
         self.logdet = 0.0
 
@@ -444,8 +446,10 @@ cdef class GlobalCovarianceMatrix:
         self.A = NULL
         self.amp = 1.0
 
+        #mask wl
+        mask = DataSpectrum.masks[order_index]
         #convert wl into an array
-        cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index]
+        cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index][mask]
         self.npoints = len(wl)
     
         #Dynamically allocate wl
