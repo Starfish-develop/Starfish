@@ -1,15 +1,15 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/
+name: Gl51/PHOENIX/
 
 library: PHOENIX
 
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-data : data/WASP14/WASP14-2009-06-14.hdf5
+HDF5_path : libraries/PHOENIX_SPEX_2300.hdf5
+data : data/Gl51/Gl51.hdf5
 outdir : output/
 
-star_name : WASP14
+star_name : Gl51
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
@@ -17,12 +17,12 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6100
-    logg : 4.0
+    temp : 3000
+    logg : 4.3
     Z : -0.2
-    vsini : 4
+    vsini : 10
     #vz : 15.4
-    vz : -5.
+    vz : 0.
     #logOmega: -12.7 #Kurucz
     logOmega: -19.665 #PHOENIX
 
@@ -35,15 +35,12 @@ cheb_params :
 cov_params :
     sigAmp : 1
     logAmp : -14.2
-    l : 10.
+    l : 40.
 
-
-#and sequences too
-#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [22]
+orders: [0]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 2
+max_regions : 0
 
 #Burn in time
 burn_in : 100

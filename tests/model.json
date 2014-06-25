@@ -1,0 +1,49 @@
+{
+  "cheb_tuple": [
+    "c1",
+    "c2",
+    "c3"
+  ],
+  "cov_tuple": [
+    "sigAmp",
+    "logAmp",
+    "l"
+  ],
+  "orders": {
+    "22": {
+      "cheb": {
+        "c1": -0.017,
+        "c2": -0.017,
+        "c3": -0.003
+      },
+      "global_cov": {
+        "l": 0.15,
+        "logAmp": -14.0,
+        "sigAmp": 1
+      },
+      "regions": {}
+    }
+  },
+  "region_tuple": [
+    "h",
+    "loga",
+    "mu",
+    "sigma"
+  ],
+  "stellar_params": {
+    "Z": -0.4,
+    "logOmega": -19.665,
+    "logg": 4.05,
+    "temp": 6005,
+    "vsini": 10.5,
+    "vz": 15.5
+  },
+  "stellar_tuple": [
+    "temp",
+    "logg",
+    "Z",
+    "vsini",
+    "vz",
+    "logOmega"
+  ]
+}

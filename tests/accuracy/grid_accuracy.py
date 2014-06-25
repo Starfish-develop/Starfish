@@ -72,13 +72,13 @@ class AccuracyComparison:
 
         self.fullModelLA = Model(self.DataSpectrum, self.Instrument, self.HDF5InterfaceLA, stellar_tuple=("temp",
                     "logg", "Z", "vsini", "vz", "logOmega"), cheb_tuple=("c1", "c2", "c3"), cov_tuple=("sigAmp",
-                    "logAmp", "l"), region_tuple=("h", "loga", "mu", "sigma"))
+                    "logAmp", "l"), region_tuple=("loga", "mu", "sigma"))
         self.modelLA = self.fullModelLA.OrderModels[0]
 
 
         self.fullModelHA = ModelHA(self.DataSpectrum, self.Instrument, self.HDF5InterfaceHA, stellar_tuple=("temp",
                     "logg", "Z", "vsini", "vz", "logOmega"), cheb_tuple=("c1", "c2", "c3"), cov_tuple=("sigAmp",
-                    "logAmp", "l"), region_tuple=("h", "loga", "mu", "sigma"))
+                    "logAmp", "l"), region_tuple=("loga", "mu", "sigma"))
         self.modelHA = self.fullModelHA.OrderModels[0]
 
         self.parameters = parameters
@@ -159,6 +159,9 @@ class AccuracyComparison:
         '''
 
         self.createEnvelopeSpectrum()
+
+        print("Spectrum is len ", len(self.wl))
+        print("Value at 3134 is ", self.wl[3135], self.base[3135])
 
         fig, ax = plt.subplots(nrows=2, figsize=(8,6), sharex=True)
         ax[0].plot(self.wl, self.base, "b", label="HA")

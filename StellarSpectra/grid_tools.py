@@ -844,7 +844,13 @@ class Interpolator:
 
     '''
 
-    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64, trilinear=False):
+    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64, trilinear=False, log=True):
+        '''
+        Param log decides how to chunk up the returned spectrum. If we are using a pre-instrument convolved grid,
+        then we want to use log=True.
+
+        If we are using the raw synthetic grid, then we want to use log=False.
+        '''
         self.interface = interface
         self.DataSpectrum = DataSpectrum
 
@@ -858,8 +864,10 @@ class Interpolator:
 
         self.wl = self.interface.wl
         self.wl_dict = self.interface.wl_header
-        self._determine_chunk_log()
-
+        if log:
+            self._determine_chunk_log()
+        else:
+            self._determine_chunk()
         self.setup_index_interpolators()
         self.cache = OrderedDict([])
         self.cache_max = cache_max
@@ -870,7 +878,8 @@ class Interpolator:
         Using the DataSpectrum, determine the minimum chunksize that we can use and then truncate the synthetic
         wavelength grid and the returned spectra.
 
-        Assumes HDF5Interface is LogLambda spaced
+        Assumes HDF5Interface is LogLambda spaced, because otherwise you shouldn't need a grid with 2^n points,
+        because you would need to interpolate in wl space after this anyway.
         '''
 
         wave_grid = self.interface.wl
@@ -883,7 +892,8 @@ class Interpolator:
 
         #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
         chunk = len_wg
-        assert chunk % 2 == 0, "spectrum is not a power of 2 to start!"
+        self.interface.ind = (0, chunk) #Set to be the full spectrum
+
         while chunk > len_data:
             if chunk/2 > len_data:
                 chunk = chunk//2
@@ -909,10 +919,8 @@ class Interpolator:
                                                                                            max(self.wl), wl_min, wl_max)
 
             self.interface.ind = ind
-        else:
-            self.interface.ind = None
 
-        print("DCL: Wl is {}".format(len(self.wl)))
+        print("Determine Chunk Log: Wl is {}".format(len(self.wl)))
 
     def _determine_chunk(self):
         '''

@@ -282,7 +282,7 @@ class ModelHA:
             trilinear = True
         else:
             trilinear = False
-        myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear, log=False)
         self.ModelSpectrum = ModelSpectrumHA(myInterpolator, Instrument)
         self.stellar_params = None
 
@@ -348,6 +348,7 @@ class OrderModel:
         self.DataSpectrum = DataSpectrum
         self.wl = self.DataSpectrum.wls[self.index]
         self.fl = self.DataSpectrum.fls[self.index]
+        self.mask = self.DataSpectrum.masks[self.index]
         self.order = self.DataSpectrum.orders[self.index]
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
@@ -422,6 +423,8 @@ class OrderModel:
         #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+
+        model_fl = model_fl[self.mask]
 
         #CovarianceMatrix will do the lnprob math without priors
         lnp = self.CovarianceMatrix.evaluate(model_fl)
