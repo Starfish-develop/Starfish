@@ -175,28 +175,13 @@ I don't think there is really much to be gained by the pyFFTW dependency.
 
 # Before the 1.0 paper release
 
-## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
-
-* test the grid reader for the BTSettl models
-
-* warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
-
-
 # SPEX
 
-* Do we need to bother to convert Chebyshev to velocity, if we now have a reasonable amount of pixels? Perhaps not.
+* get a converged FIT for SPEX
 
-We *do* want the flux to actually be downsampled to these pixels, since we want to be able to actually
-plot what the model would look like here, in the case of say an emission line, or telluric contamination.
-This is important for masking lines where we actually do have data.
-But for regions where there are chip-gaps, for example between the orders, this is not necessary.
+* Improve flot_plot to mask data
 
-Clipping this gap into a different order might not really be the solution, since there are a different number of
-pixels in each order and this would really screw things up.
-
-* convert Chebyshev's from pixel space to wavelength space.
-
-* change Chebyshev polynomial degree to be higher for SPEX (how?)
+* possibly change Chebyshev polynomial degree to be higher for SPEX (how?)
 
 
 ## working test with IRTF spex M dwarf
@@ -215,6 +200,13 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 * keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
 SPEX.
 * Need plotting tools to show everything output.
+
+## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
+
+* test the grid reader for the BTSettl models
+
+* warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
+
 
 #Alternate sampling stratagies
 
@@ -326,11 +318,7 @@ Tricky PHOENIX output. Order 24 has the problem of giving substantially lower lo
 * Hernandez 2004: using FAST spectra, identified spectral features sensitive to temperature
 * http://arxiv.org/abs/1404.5578 Fe I oscillator strengths are off. May be why PHOENIX gives the wrong metallicity?
 
-
-
-
-
-
+* Cite Barclay on GP for Kepler
 
 
 # Future data and spectral libraries

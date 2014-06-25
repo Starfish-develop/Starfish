@@ -35,7 +35,7 @@ cheb_params :
 cov_params :
     sigAmp : 1
     logAmp : -14.2
-    l : 40.
+    l : 400.
 
 orders: [0]
 
