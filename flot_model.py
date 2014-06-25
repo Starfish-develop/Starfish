@@ -95,6 +95,8 @@ def main():
     for model in myModel.OrderModels:
 
         #Get the data
+
+        #Get the masks
         wl, fl = model.get_data()
 
         #Get the model flux
