@@ -15,6 +15,6 @@ out_path = "libraries/" + "PHOENIX_M.hdf5"
 
 
 HDF5Stuffer = grid_tools.HDF5GridStuffer(mygrid, filename=out_path,
-                        ranges={"temp":(2300, 5000), "logg":(2.5,6.5), "Z":(-1.0,1.0), "alpha":(0.0,0.0)})
+                        ranges={"temp":(2300, 5000), "logg":(2.5,6.0), "Z":(-1.0,1.0), "alpha":(0.0,0.0)})
 
 HDF5Stuffer.process_grid()
