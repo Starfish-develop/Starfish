@@ -589,6 +589,7 @@ class ChebSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
+        print("params are", params)
         self.order_model.update_Cheb(params)
         return self.order_model.evaluate()
 

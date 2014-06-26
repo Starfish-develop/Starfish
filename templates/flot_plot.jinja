@@ -33,6 +33,12 @@
            label:"residuals",
         }
 
+        var cheb_plot = {
+           color:"black",
+           data: {{ cheb }},
+           label:"chebyshev",
+        }
+
         function sciFormatter(val, axis) {
             //
             return val.toExponential(1);
@@ -57,6 +63,7 @@
 
 		var placeholder0 = $("#placeholder0");
 		var placeholder1 = $("#placeholder1");
+		var placeholder2 = $("#placeholder2");
 
 		placeholder0.bind("plotselected", function (event, ranges) {
 
@@ -104,6 +111,7 @@
 
 		var plot0 = $.plot("#placeholder0", [ data_plot, model_plot ], options);
 		var plot1 = $.plot("#placeholder1", [ resid_plot ], options);
+		var plot2 = $.plot("#placeholder2", [ cheb_plot ], options);
 
 		$("#reset").click(function () {
 			//Reset both axis
@@ -161,6 +169,8 @@
 <p>
 <button id="reset">Reset</button>
 </p>
+
+<div id="placeholder2" class="flot-container"></div>
 
 </body>
 </html>

@@ -179,10 +179,7 @@ twice as long, I don't think there is really much to be gained by the pyFFTW dep
 * get a converged FIT for SPEX (going to take all day)
 
 * Add Bootstrap
-
-* possibly change Chebyshev polynomial degree to be higher for SPEX (how?)
-* make a test plot figure showing what a chebyshev looks like for many parameters
-
+* Visualize Cheb w/ flot
 
 ## working test with IRTF spex M dwarf
 
@@ -236,7 +233,6 @@ This is why reading in a couple different model.json files to visualize the curr
 Using `flot`,
 
 * Visualize cheb functions
-* Visualize spectrum and residuals
 
 * Output, plot the covariance matrix as a 1D slice through row=constant (how correlated is a given pixel with everything else?)
 * Scroll through rows?
