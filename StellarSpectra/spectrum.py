@@ -1389,17 +1389,29 @@ class ChebyshevSpectrum:
         self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False #Fix the last c0
 
         xs = np.arange(len_wl)
-        T0 = np.ones_like(xs)
-        Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
-        T1 = Ch1(xs)
-        Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])
-        T2 = Ch2(xs)
-        Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])
-        T3 = Ch3(xs)
 
-        self.T = np.array([T1, T2, T3])
+        #Create Ch1, etc... for each coefficient in npoly excepting logc0
+        #Evaluate these and stuff them into self.T
+        coeff = [1]
+        T = []
+        for i in range(1, npoly):
+            # print("i = ", i)
+            coeff = [0] + coeff
+            Chtemp = Ch(coeff, domain=[0, len_wl - 1])
+            Ttemp = Chtemp(xs)
+            T += [Ttemp]
+
+        # Ch1 = Ch([0, 1], domain=[0, len_wl - 1])
+        # T1 = Ch1(xs)
+        # Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])
+        # T2 = Ch2(xs)
+        # Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])
+        # T3 = Ch3(xs)
+
+        # self.T = np.array([T1, T2, T3])
+        self.T = np.array(T)
         self.npoly = npoly
-        assert self.npoly == 4, "Only handling order 4 Chebyshev for now."
+        # assert self.npoly == 4, "Only handling order 4 Chebyshev for now."
 
         #Dummy holders
         self.k = np.ones(len_wl)
@@ -1425,7 +1437,10 @@ class ChebyshevSpectrum:
         else:
             logc0 = params["logc0"]
 
-        cns = np.array([params["c1"], params["c2"], params["c3"]])
+        #Convert params dict to a 1d array of coefficients
+        cns = np.array([params["c{}".format(i)] for i in range(1, self.npoly)])
+
+        # cns = np.array([params["c1"], params["c2"], params["c3"]])
 
         #if c0 < 0:
         #    raise C.ModelError("Negative c0s are not allowed.")
