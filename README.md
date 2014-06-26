@@ -169,19 +169,19 @@ Then, the install command is
 
 ## Completed
 
-Time the new libraries to see if we should bother keeping pyFFTW. Answer: for a large swath of spectrum,
-pyFFTW is only about 15% faster. Because the downsample method takes about twice as long,
-I don't think there is really much to be gained by the pyFFTW dependency.
+Answer: for a large swath of spectrum, pyFFTW is only about 15% faster. Because the downsample method takes about
+twice as long, I don't think there is really much to be gained by the pyFFTW dependency.
 
 # Before the 1.0 paper release
 
 # SPEX
 
-* get a converged FIT for SPEX
+* get a converged FIT for SPEX (going to take all day)
 
-* Improve flot_plot to mask data
+* Add Bootstrap
 
 * possibly change Chebyshev polynomial degree to be higher for SPEX (how?)
+* make a test plot figure showing what a chebyshev looks like for many parameters
 
 
 ## working test with IRTF spex M dwarf

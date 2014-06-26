@@ -43,7 +43,7 @@ myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
 #Note that these values are sigma^2!!
-stellar_MH_cov = np.array([5, 0.02, 0.02, 0.02, 0.02, 2e-3])**2 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([5, 0.02, 0.02, 0.5, 0.1, 2e-3])**2 * np.identity(len(stellar_Starting))
 # stellar_MH_cov = np.array([0.1, 0.001, 0.001, 0.001, 0.001, 1e-5])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 
@@ -66,10 +66,15 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 #We could test to see if these jumps are being executed in the right direction by checking to see what the 2D pairwise
 # chain positions look like
 
+cheb_degree = config['cheb_degree']
+cheb_MH_cov = (5e-3)**2 * np.identity(cheb_degree)
+cheb_tuple = ("logc0",)
+#add in new coefficients
+for i in range(1, cheb_degree):
+    cheb_tuple += ("c{}".format(i),)
+#set starting position to 0
+cheb_Starting = {k:0.0 for k in cheb_tuple}
 
-cheb_Starting = config['cheb_params']
-cheb_MH_cov = np.array([5e-3, 5e-3, 5e-3, 5e-3])**2 * np.identity(len(cheb_Starting))
-cheb_tuple = ("logc0", "c1", "c2", "c3")
 
 cov_Starting = config['cov_params']
 cov_MH_cov = np.array([0.02, 0.02, 0.4])**2 * np.identity(len(cov_Starting))
@@ -113,6 +118,7 @@ for i in range(len(config['orders'])):
     samplerList.append(CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=i, outdir=outdir))
     samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'], order_index=i, outdir=outdir))
     cadenceList += [6, 6, 2]
+    # cadenceList += [6, 2]
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
                         burnInCadence=[10] + cadenceList, cadence=[10] + cadenceList)
