@@ -14,18 +14,19 @@ def np_to_json(arr0, arr1):
     listdata = data.tolist() #Convert numpy array to a list
     return json.dumps(listdata) #Serialize to JSON
 
-def order_json(wl, fl, flm):
+def order_json(wl, fl, flm, mask):
     '''
     Given the quantities from a fit, create the JSON necessary for flot.
     '''
 
     residuals = fl - flm
 
-    # create the three lines necessary for the plot
+    # create the three lines necessary for the plot, in JSON
     # data = [[wl0, fl0], [wl1, fl1], ...]
     # model = [wl0, flm0], [wl1, flm1], ...]
     # residuals = [[wl0, residuals0], [wl1, residuals1], ...]
-    plot_data = {"data":np_to_json(wl, fl), "model":np_to_json(wl, flm), "residuals": np_to_json(wl, residuals) }
+    plot_data = {"data":np_to_json(wl[mask], fl[mask]), "model":np_to_json(wl, flm), "residuals": np_to_json(wl[mask],
+                                                                                        residuals[mask]) }
     return plot_data
 
 
@@ -94,20 +95,15 @@ def main():
 
     for model in myModel.OrderModels:
 
-        #Get the data
-
-        #Get the masks
-        wl, fl = model.get_data()
+        #Get the data and mask
+        wl, fl, mask = model.get_data()
 
         #Get the model flux
         flm = model.get_spectrum()
 
-        #Get residuals
-        # residuals = model.get_residuals()
-
         name = "Order {}".format(model.order)
 
-        plot_data = order_json(wl, fl, flm)
+        plot_data = order_json(wl, fl, flm, mask)
 
         render_template(base, plot_data)
 

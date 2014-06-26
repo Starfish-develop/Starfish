@@ -145,7 +145,8 @@ class Model:
         self.stellar_params = None
 
         #Now create a a list which contains an OrderModel for each order
-        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index) for index in range(self.norders)]
+        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple))
+                            for index in range(self.norders)]
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
@@ -342,7 +343,7 @@ class ModelHA:
         f.close()
 
 class OrderModel:
-    def __init__(self, ModelSpectrum, DataSpectrum, index):
+    def __init__(self, ModelSpectrum, DataSpectrum, index, npoly=4):
         print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
@@ -351,7 +352,7 @@ class OrderModel:
         self.mask = self.DataSpectrum.masks[self.index]
         self.order = self.DataSpectrum.orders[self.index]
         self.ModelSpectrum = ModelSpectrum
-        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index)
+        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index, npoly=npoly)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
         self.global_cov_params = None
         self.cheb_params = None
@@ -360,7 +361,7 @@ class OrderModel:
         self.region_list = []
 
     def get_data(self):
-        return (self.wl, self.fl)
+        return (self.wl, self.fl, self.mask)
 
     def update_Cheb(self, params):
         self.ChebyshevSpectrum.update(params)
@@ -573,8 +574,9 @@ class ChebSampler(Sampler):
         #From a simple param dict, create a more complex param_dict
 
         #Then set param_tuple
+        nparams = len(starting_param_dict)
         #For now it is just set manually
-        self.param_tuple = ("logc0", "c1", "c2", "c3")
+        self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
         #self.param_tuple = ("c1", "c2", "c3")
         self.order_index = order_index
 
