@@ -26,7 +26,7 @@ stellar_params :
     #logOmega: -12.7 #Kurucz
     logOmega: -19.58 #PHOENIX
 
-cheb_degree : 9 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
+cheb_degree : 11 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
 cov_params :
     sigAmp : 1
@@ -40,4 +40,4 @@ max_regions : 0
 
 #Burn in time
 burn_in : 200
-samples : 2000
+samples : 10000
