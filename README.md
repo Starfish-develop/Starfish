@@ -204,6 +204,8 @@ SPEX.
 
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
 
+* use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
+
 
 #Alternate sampling stratagies
 
@@ -231,8 +233,6 @@ This is why reading in a couple different model.json files to visualize the curr
 ## Desireable plotting tools and output analysis, after 1.0 release
 
 Using `flot`,
-
-* Visualize cheb functions
 
 * Output, plot the covariance matrix as a 1D slice through row=constant (how correlated is a given pixel with everything else?)
 * Scroll through rows?

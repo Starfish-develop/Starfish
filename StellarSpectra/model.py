@@ -349,6 +349,7 @@ class OrderModel:
         self.DataSpectrum = DataSpectrum
         self.wl = self.DataSpectrum.wls[self.index]
         self.fl = self.DataSpectrum.fls[self.index]
+        self.sigma = self.DataSpectrum.sigmas[self.index]
         self.mask = self.DataSpectrum.masks[self.index]
         self.order = self.DataSpectrum.orders[self.index]
         self.ModelSpectrum = ModelSpectrum
@@ -361,7 +362,7 @@ class OrderModel:
         self.region_list = []
 
     def get_data(self):
-        return (self.wl, self.fl, self.mask)
+        return (self.wl, self.fl, self.sigma, self.mask)
 
     def update_Cheb(self, params):
         self.ChebyshevSpectrum.update(params)
