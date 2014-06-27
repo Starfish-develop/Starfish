@@ -54,6 +54,8 @@ if stellar is None:
 stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
 
+print("Stellar tuple is" stellar_tuple)
+
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
 else:
@@ -62,6 +64,7 @@ else:
     index_arr = []
     for param in stellar_params:
         #What index is this param in stellar_tuple?
+        print("Checking param", param)
         index_arr += [stellar_tuple.index(param)]
     index_arr = np.array(index_arr)
     stellar = stellar[:, index_arr]

@@ -200,8 +200,6 @@ SPEX.
 
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 
-* test the grid reader for the BTSettl models
-
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
@@ -286,6 +284,9 @@ Right now we are setting the last order to have logc0 = 0.0
 
 * There should be a way to output all of the parameters into one global chain (thinned), but respecting the covariance
   between parameters and hyperparameters, if there are any.
+
+* Introduce PSF width as a parameter that we can sample in. This would be a *correction* to the Gaussian pre-convoved
+grid, which is done at something smaller that we would ever go to, for example 6.0 km/s for TRES.
 
 #Grid Creator Code
 
