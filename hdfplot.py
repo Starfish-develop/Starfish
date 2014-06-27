@@ -54,7 +54,7 @@ if stellar is None:
 stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
 
-print("Stellar tuple is" stellar_tuple)
+print("Stellar tuple is", stellar_tuple)
 
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
