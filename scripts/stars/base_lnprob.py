@@ -67,7 +67,7 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 # chain positions look like
 
 cheb_degree = config['cheb_degree']
-cheb_MH_cov = (1e-3)**2 * np.identity(cheb_degree)
+cheb_MH_cov = (2e-4)**2 * np.identity(cheb_degree)
 cheb_tuple = ("logc0",)
 #add in new coefficients
 for i in range(1, cheb_degree):

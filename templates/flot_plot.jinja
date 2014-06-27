@@ -27,6 +27,12 @@
             label:"model",
         }
 
+        var sigma_plot = {
+           color:"gray",
+           data: {{ sigma }},
+           label:"sigma",
+        }
+
         var resid_plot = {
            color:"black",
            data: {{ residuals }},
@@ -100,7 +106,7 @@
             plot0.clearSelection();
 
             //replot the first plot at the new ranges
-            plot1 = $.plot("#placeholder1", [ resid_plot ],
+            plot1 = $.plot("#placeholder1", [ sigma_plot, resid_plot ],
                     $.extend(true, {}, options, {
                         xaxis : {min: ranges.xaxis.from, max:ranges.xaxis.to },
                         yaxis : {min: ranges.yaxis.from, max:ranges.yaxis.to }
@@ -110,8 +116,9 @@
         });
 
 		var plot0 = $.plot("#placeholder0", [ data_plot, model_plot ], options);
-		var plot1 = $.plot("#placeholder1", [ resid_plot ], options);
+		var plot1 = $.plot("#placeholder1", [ sigma_plot, resid_plot ], options);
 		var plot2 = $.plot("#placeholder2", [ cheb_plot ], options);
+
 
 		$("#reset").click(function () {
 			//Reset both axis
@@ -122,7 +129,7 @@
                     })
             );
 
-            plot1 = $.plot("#placeholder1", [ resid_plot ],
+            plot1 = $.plot("#placeholder1", [ sigma_plot, resid_plot ],
                     $.extend(true, {}, options, {
                         xaxis : {min: null, max:null },
                         yaxis : {min: null, max:null }
