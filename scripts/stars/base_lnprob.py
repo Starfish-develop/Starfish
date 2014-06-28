@@ -7,7 +7,7 @@ import yaml
 import os
 import shutil
 
-#Use argparse to determine if we've specified a config file
+
 import argparse
 parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
 parser.add_argument("-p", "--params", help="*.yaml file specifying parameters.")
@@ -32,20 +32,15 @@ else:
     config = yaml.load(f)
     f.close()
 
-    # raise NotImplementedError("Default config file not yet specified.")
-    #import StellarSpectra #this triggers the __init__.py code
-    #config = StellarSpectra.default_config
-
-
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
 stellar_Starting = config['stellar_params']
-#Note that these values are sigma^2!!
-stellar_MH_cov = np.array([5, 0.02, 0.02, 0.5, 0.1, 2e-3])**2 * np.identity(len(stellar_Starting))
-# stellar_MH_cov = np.array([0.1, 0.001, 0.001, 0.001, 0.001, 1e-5])**2 * np.identity(len(stellar_Starting))
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
+#go for each item in stellar_tuple, and assign the appropriate covariance to it
+stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
+                 * np.identity(len(stellar_Starting))
 
 #Tuning the correlations should depend on how the models were normalized, right?
 
@@ -67,7 +62,7 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 # chain positions look like
 
 cheb_degree = config['cheb_degree']
-cheb_MH_cov = (2e-4)**2 * np.identity(cheb_degree)
+cheb_MH_cov = float(config["cheb_jump"])**2 * np.identity(cheb_degree)
 cheb_tuple = ("logc0",)
 #add in new coefficients
 for i in range(1, cheb_degree):
@@ -77,8 +72,10 @@ cheb_Starting = {k:0.0 for k in cheb_tuple}
 
 
 cov_Starting = config['cov_params']
-cov_MH_cov = np.array([0.02, 0.02, 0.4])**2 * np.identity(len(cov_Starting))
 cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
+cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in cov_tuple])**2 \
+                 * np.identity(len(cov_Starting))
+
 
 region_tuple = ("loga", "mu", "sigma")
 region_MH_cov = np.array([0.04, 0.02, 0.1])**2 * np.identity(len(region_tuple))
@@ -107,8 +104,13 @@ shutil.copy(yaml_file, outdir)
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir)
 
+try:
+    fixlogg = config['fixlogg']
+except KeyError:
+    fixlogg = None
 
-myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, outdir=outdir)
+myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, fix_logg=config['fix_logg'],
+                                  outdir=outdir)
 
 #Create the three subsamplers for each order
 samplerList = []

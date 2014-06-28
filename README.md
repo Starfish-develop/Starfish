@@ -167,11 +167,6 @@ Then, the install command is
 
 # Tasks and development
 
-## Completed
-
-Answer: for a large swath of spectrum, pyFFTW is only about 15% faster. Because the downsample method takes about
-twice as long, I don't think there is really much to be gained by the pyFFTW dependency.
-
 # Before the 1.0 paper release
 
 # SPEX
@@ -187,11 +182,35 @@ This will tell us what the residuals actually look like, which is important for 
 
 In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
 
-* Fits for WASP 14 both w/ and without covariance kernel
+
+# List of tests
+
+WASP14:
+
+* all three orders, logg fixed, Kurucz models
+* all three orders, logg free, Kurucz models
+* all three orders, logg free, PHOENIX models
+* all three orders, just chi^2, PHOENIX models
+
+* all good orders, no regions
+
+Gl51
+
+* logg fixed to 5.0, low polynomial
+
+
+* to do a no global, save `base_lnprob` as `no_global`
+
+* can we tune the cadences somehow?
+
+# Priors on the parameters
+
+* Chebyshev's in particular
+
 
 ## Regions
 
-* get triangle.py titles and MSFormatter working
+* get triangle.py titles and MSFormatter working (with a simple example of a line)
 * need better way to visualize MCMC region output and errors together
 * add logic to be destroyed when current value of amplitude goes below the global kernel
 * keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
@@ -199,6 +218,8 @@ SPEX.
 * Need plotting tools to show everything output.
 
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
+
+* BTSettl, you cannot fit stars at non-zero metallicity.
 
 * warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
 
