@@ -24,7 +24,7 @@ parser.add_argument("-t", "--triangle", action="store_true", help="Make a triang
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
 
 parser.add_argument("--stellar_params", nargs="*", default="all", help="A list of which stellar parameters to plot, "
-                                                                    "separated by whitespace. Default is to plot all.")
+                                                                    "separated by WHITESPACE. Default is to plot all.")
 args = parser.parse_args()
 
 #Check for c1, c2, ...
@@ -54,8 +54,6 @@ if stellar is None:
 stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
 
-print("Stellar tuple is", stellar_tuple)
-
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
 else:
@@ -64,7 +62,6 @@ else:
     index_arr = []
     for param in stellar_params:
         #What index is this param in stellar_tuple?
-        print("Checking param", param)
         index_arr += [stellar_tuple.index(param)]
     index_arr = np.array(index_arr)
     stellar = stellar[:, index_arr]

@@ -548,15 +548,20 @@ class StellarSampler(Sampler):
     '''
     Subclass of Sampler for evaluating stellar parameters.
     '''
-    def __init__(self, model, MH_cov, starting_param_dict, outdir="", fname="stellar"):
+    def __init__(self, model, MH_cov, starting_param_dict, fix_logg=None, outdir="", fname="stellar"):
         #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
+
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
+        self.fix_logg = fix_logg if fix_logg is not None else False
 
         super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
 
 
     def lnprob(self, p):
         params = self.model.zip_stellar_p(p)
+        #If we have decided to fix logg, sneak update it here.
+        if self.fix_logg:
+            params.update({"logg": self.fix_logg})
         print("{}".format(params))
         try:
             self.model.update_Model(params) #This also updates downsampled_fls
@@ -576,9 +581,7 @@ class ChebSampler(Sampler):
 
         #Then set param_tuple
         nparams = len(starting_param_dict)
-        #For now it is just set manually
         self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
-        #self.param_tuple = ("c1", "c2", "c3")
         self.order_index = order_index
 
         # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
