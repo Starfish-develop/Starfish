@@ -678,12 +678,19 @@ class HDF5InstGridCreator:
 
         self.wl_native = self.HDF5Interface.wl #raw grid
 
-        #Calculate a log_lam grid based upon the range of the instrument
-        #and natural sampling of the PHOENIX grid
-        wl_min, wl_max = self.Instrument.wl_range
-        #use the min_vc that preserves the quality of the PHOENIX grid
-        wl_dict = create_log_lam_grid(wl_min - 100., wl_max + 100., min_vc=0.08/C.c_kms)
-        self.wl_FFT = wl_dict["wl"]
+        #Calculate a log_lam grid based upon the range of the instrument, natural sampling of the grid (R=500,000)
+        #and the actual range of the synthetic grid.
+
+        #if the grid is shorter than the instrument, just take the grid ranges
+        if (self.wl_native[0] > self.Instrument.wl_range[0]) or (self.wl_native[-1] < self.Instrument.wl_range[1]):
+            wl_dict = create_log_lam_grid(self.wl_native[0], self.wl_native[-1], min_vc=0.08/C.c_kms)
+            self.wl_FFT = wl_dict["wl"]
+
+        else:
+            wl_min, wl_max = self.Instrument.wl_range
+            #use the min_vc that preserves the quality of the PHOENIX grid
+            wl_dict = create_log_lam_grid(wl_min - 100., wl_max + 100., min_vc=0.08/C.c_kms)
+            self.wl_FFT = wl_dict["wl"]
 
         print("FFT grid stretches from {} to {}".format(wl_min, wl_max))
         print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
@@ -691,9 +698,15 @@ class HDF5InstGridCreator:
         self.min_v = calculate_min_v(wl_dict) #for the wl_FFT
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
 
-        #uses a different min_vc here, the (downsampled) output grid is interpolated onto
-        wl_dict = create_log_lam_grid(wl_min - 50., wl_max + 50., min_vc=self.min_vc)
-        self.wl_output = wl_dict["wl"]
+        if (self.wl_native[0] > self.Instrument.wl_range[0]) or (self.wl_native[-1] < self.Instrument.wl_range[1]):
+            wl_dict = create_log_lam_grid(self.wl_native[0], self.wl_native[-1], min_vc=self.min_vc)
+            self.wl_output = wl_dict["wl"]
+
+        else:
+            #uses a different min_vc here, the (downsampled) output grid is interpolated onto
+            wl_dict = create_log_lam_grid(wl_min - 50., wl_max + 50., min_vc=self.min_vc)
+            self.wl_output = wl_dict["wl"]
+
         print("Output grid is spaced {} km/s".format(calculate_min_v(wl_dict)))
 
         #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
