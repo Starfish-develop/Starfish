@@ -1,5 +1,5 @@
 % yahapj.bst -- yet another ApJ bibtex style file
-% Git SHA1 hash: $Id: 9b9c643983e9df6b4d8ee8f25f14c6162983c6f0 $
+% Git SHA1 hash: $Id: 7dbc31bdb3a2eca30044034dd526c2967eb1d5c9 $
 % Reference repository: https://github.com/pkgw/yahapj/
 %
 % The main features compared to other ApJ style files is that ArXiV
@@ -1010,7 +1010,10 @@ FUNCTION {maybe.doi.link.end}
 
 FUNCTION {format.journal}
 {
-  "\JournalTitle{" journal * "}" *
+  journal empty$
+    { "" } % warning will be issued by output.check
+    { "\JournalTitle{" journal * "}" * }
+  if$
 }
 
 FUNCTION {article}
