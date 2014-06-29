@@ -692,7 +692,7 @@ class HDF5InstGridCreator:
             wl_dict = create_log_lam_grid(wl_min - 100., wl_max + 100., min_vc=0.08/C.c_kms)
             self.wl_FFT = wl_dict["wl"]
 
-        print("FFT grid stretches from {} to {}".format(wl_min, wl_max))
+        print("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
         print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
 
         self.min_v = calculate_min_v(wl_dict) #for the wl_FFT
