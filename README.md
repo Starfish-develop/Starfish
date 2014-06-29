@@ -171,8 +171,6 @@ Then, the install command is
 
 # SPEX
 
-* get a converged FIT for SPEX (going to take all day)
-
 * Add Bootstrap
 * Visualize Cheb w/ flot
 
@@ -182,6 +180,17 @@ This will tell us what the residuals actually look like, which is important for 
 
 In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
 
+
+# Running many jobs in parallel
+
+* figure out how job-array actually indexes things
+
+* option to perturb starting position of chains
+
+* how to find autocorrelation time of a single chain?
+* do Gelman-Rubin statistic of many chains?
+
+* collate chains together when I'm done
 
 # List of tests
 

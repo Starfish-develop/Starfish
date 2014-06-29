@@ -10,21 +10,25 @@ import shutil
 
 import argparse
 parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
-parser.add_argument("-p", "--params", help="*.yaml file specifying parameters.")
+parser.add_argument("-i", "--input", help="*.yaml file specifying parameters.")
+parser.add_argument("-r", "--run_index", help="Which run (of those running concurrently) is this? All data will "
+                                        "be written into this directory, overwriting any that exists.")
+parser.add_argument("-p", "--perturb", action="store_true", help="Randomly perturb the starting position of the "
+                                                                 "chain, as a multiple of the jump parameters.")
 args = parser.parse_args()
 
-if args.params: #
+if args.input: #
     #assert that we actually specified a *.yaml file
-    if ".yaml" in args.params:
-        yaml_file = args.params
-        f = open(args.params)
+    if ".yaml" in args.input:
+        yaml_file = args.input
+        f = open(args.input)
         config = yaml.load(f)
         f.close()
 
     else:
         import sys
         sys.exit("Must specify a *.yaml file.")
-        yaml_file = args.params
+
 else:
     #load the default config file
     yaml_file = "scripts/stars/input.yaml"
@@ -84,12 +88,24 @@ region_MH_cov = np.array([0.04, 0.02, 0.1])**2 * np.identity(len(region_tuple))
 outdir = config['outdir']
 name = config['name']
 base = outdir + name + "run{:0>2}/"
-run_num = 0
-while os.path.exists(base.format(run_num)) and (run_num < 20):
-    print(base.format(run_num), "exists")
-    run_num += 1
 
-outdir = base.format(run_num)
+#This code is necessary for multiple simultaneous runs on odyssey, so that different runs do not write into the same
+#output directory
+if args.run_index == None:
+    run_index = 0
+    while os.path.exists(base.format(run_index)) and (run_index < 20):
+        print(base.format(run_index), "exists")
+        run_index += 1
+    outdir = base.format(run_index)
+
+else:
+    run_index = args.run_index
+    outdir = base.format(run_index)
+    #Delete this outdir, if it exists
+    if os.path.exists(outdir):
+        print("Deleting", outdir)
+        shutil.rmtree(outdir)
+
 print("Creating ", outdir)
 os.makedirs(outdir)
 
@@ -105,11 +121,11 @@ myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=ste
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir)
 
 try:
-    fixlogg = config['fixlogg']
+    fix_logg = config['fixlogg']
 except KeyError:
-    fixlogg = None
+    fix_logg = None
 
-myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, fix_logg=config['fix_logg'],
+myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, fix_logg=fix_logg,
                                   outdir=outdir)
 
 #Create the three subsamplers for each order
