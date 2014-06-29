@@ -171,18 +171,9 @@ Then, the install command is
 
 Convert Kurucz models into TRES format.
 
-
 # Running many jobs in parallel
 
-* If reading the HDF5 file continues to be a problem, we may have to make individual copies of the library to
-scratch, with a separate index by the node number.
-* option to perturb starting position of chains
-
-Both of these seem to work
-
-Inspect the latest output on Odyssey to see what it looks like
-
-
+* Combine plot WASP14 run
 
 * how to find autocorrelation time of a single chain?
 * do Gelman-Rubin statistic of many chains?
