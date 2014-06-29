@@ -21,7 +21,7 @@ myInstrument = grid_tools.TRES()
 
 out_path = "libraries/" + "Kurucz_TRES.hdf5"
 
-HDF5InstGridCreator = grid_tools.HDF5InstGridCreator(myHDF5Interface, filename=out_path, Instrument=myInstrument)#,
-                        #ranges={"temp":(2300, 5000), "logg":(2.5,6.0), "Z":(-1.,1.), "alpha":(0.0,0.0)})
+HDF5InstGridCreator = grid_tools.HDF5InstGridCreator(myHDF5Interface, filename=out_path, Instrument=myInstrument,
+                        ranges={"temp":(3500, 7500), "logg":(2.5,5.0), "Z":(-1.,1.), "alpha":(0.0,0.0)})
 
 HDF5InstGridCreator.process_grid()
