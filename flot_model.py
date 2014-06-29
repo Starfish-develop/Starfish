@@ -81,7 +81,8 @@ def main():
 
     from StellarSpectra.model import Model
     from StellarSpectra.spectrum import DataSpectrum
-    from StellarSpectra.grid_tools import TRES, HDF5Interface
+    from StellarSpectra.\
+        grid_tools import TRES, HDF5Interface
 
     #Figure out what the relative path is to base
     import StellarSpectra
