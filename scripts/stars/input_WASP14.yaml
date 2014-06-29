@@ -2,7 +2,8 @@
 
 name: WASP14/PHOENIX/22_23/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
