@@ -169,12 +169,6 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
-Convert Kurucz models into TRES format.
-
-Fix HDF5InstGridCreator to use instrument ranges properly, while also respecting the bounds of the wl grid itself.
-
-warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
-
 # Running many jobs in parallel
 
 * Combine plot WASP14 run
