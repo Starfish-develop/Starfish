@@ -9,7 +9,7 @@ Script designed to concatenate multiple HDF5 files from MCMC runs into one.
 
 import argparse
 parser = argparse.ArgumentParser(description="Concatenate multiple HDF5 files into one.")
-parser.add_argument("--dir", action="stor_true", help="Concatenate all of the flatchains stored within run* "
+parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored within run* "
                               "folders in the current directory. Designed to collate runs from a JobArray.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
 parser.add_argument("-o", "--output", default="combined.hdf5", help="Output HDF5 file.")
