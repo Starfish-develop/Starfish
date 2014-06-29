@@ -169,16 +169,7 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
-# SPEX
-
-* Add Bootstrap
-* Visualize Cheb w/ flot
-
-## working test with IRTF spex M dwarf
-
-This will tell us what the residuals actually look like, which is important for developing a kernel to track them.
-
-In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
+Convert Kurucz models into TRES format.
 
 
 # Running many jobs in parallel
@@ -192,7 +183,11 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 * collate chains together when I'm done
 
+* Add Bootstrap
+
 # List of tests
+
+Maybe these should go into a table?
 
 WASP14:
 
@@ -203,6 +198,8 @@ WASP14:
 
 * all good orders, no regions
 
+* order 24 no regions and using regions
+
 Gl51
 
 * logg fixed to 5.0, low polynomial
@@ -211,6 +208,12 @@ Gl51
 * to do a no global, save `base_lnprob` as `no_global`
 
 * can we tune the cadences somehow?
+
+## working test with IRTF spex M dwarf
+
+This will tell us what the residuals actually look like, which is important for developing a kernel to track them.
+
+In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
 
 # Priors on the parameters
 
@@ -327,7 +330,12 @@ grid, which is done at something smaller that we would ever go to, for example 6
 
 5188.84 is Ca II, present in Kurucz, missing in PHOENIX
 
-Tricky PHOENIX output. Order 24 has the problem of giving substantially lower logg, bumping up against 3.5. It seems like the multiple order sampling leaves a bi-modal distribution of parameter space, thanks to the strong iron lines in order 24 (that are somehow incorrect).
+Tricky PHOENIX output. Order 24 has the problem of giving substantially lower logg,
+bumping up against 3.5. It seems like the multiple order sampling leaves a bi-modal distribution of parameter space,
+thanks to the strong iron lines in order 24 (that are somehow incorrect). I think in this case, in particular,
+some large opacity sources are present in the model that shouldn't be there, generating large, positive residuals,
+which drive the fit towards lower metallicity. Labelling these as regions should really help. In fact, getting order 24
+to behave might be a very good test case for the regions.
 
 
 # Stellar parameter papers

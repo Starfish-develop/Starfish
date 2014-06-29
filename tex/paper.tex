@@ -1,5 +1,5 @@
-\documentclass[preprint]{aastex} 
-%\documentclass[iop,floatfix]{emulateapj} 
+%\documentclass[preprint]{aastex} 
+\documentclass[iop,floatfix]{emulateapj} 
 
 \usepackage[breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
 \usepackage{graphicx}
@@ -80,7 +80,7 @@ Several, well-tested techniques exist that use spectra to infer stellar paramete
 
 Owing to the high quality of libraries of pre-computed synthetic stellar spectra, it is now possible to generate an accurate forward model of a stellar spectrum. We seek to place this model in a Bayesian framework and construct a likelihood function suitable for comparing synthetic spectral models to real spectral data. We use a non-trivial covariance matrix, parameterized by a Gaussian process covariance kernel, to account for the residual pixel correlations that arise from a spectroscopic fit, which is a more complex problem than can be addressed with a simple $\chi^2$ best-fit metric. While designed for fitting stellar spectra, our method is general for all comparisons of spectra, and could be used to fit any type of spectra with a synthetic model, (e.g., galaxies or unresolved stellar clusters). In \S\ref{sec:method}, we describe the methodology, including a treatment of the covariance introduced by a spectroscopic fit. In \S\ref{sec:examples}, we present applications of our method to two examples, using optical spectra of an F type star and infrared spectra of an M star. In \S\ref{sec:discussion} we discuss the implications of our method and potential applications to develop data-driven models of stellar spectra.
 
-\section{Methodology \label{sec:method}}
+\section{Methodology} \label{sec:method}
 
 All astronomers recognize that spectroscopy offers a wealth of information that can help 
 characterize the fundamental properties of the observing target.  However, as noted in Section 
@@ -163,7 +163,8 @@ interpolation uncertainties into the likelihood calculations (as will be describ
 Section~\ref{subsec:likelihood}).  
 
 
-\subsection{Post-Processing \label{subsec:postprocess}}
+\subsection{Post-Processing}
+\label{subsec:postprocess}
 
 Generally, the ``raw" model spectrum $f_{\lambda}(\vt_{\ast})$ will be highly over-sampled compared 
 to a typical observed spectrum, and does not account for several additional observational and 
@@ -200,21 +201,14 @@ $N_{\rm pix}$-dimensional array $\vM$ (and $N_{\rm pix}$ is the number of pixels
 For reference, Figure \ref{fig:broadening} shows a graphical representation of these 
 post-processing steps.
 
-\begin{figure*}[!htb]
+\begin{figure}[!htb]
 \begin{center}
   \includegraphics{figs/kernels.pdf}
   \includegraphics{figs/high2low.pdf}
   \caption{Panel 1: the instrumental (${\rm FWHM} =6.8\;\kms$) and rotational ($v \sin i = 5\;\kms$) broadening kernels, and their composite. Panel 2: A section of the raw, high resolution synthetic model at $R=$500,000. Panel 3: The spectrum after applying the composite broadening kernel, $\varphi_v$. Panel 4: The broadened spectrum downsampled to the pixels of the detector.}
 \label{fig:broadening}
 \end{center}
-\end{figure*}
-
-% SA: My idea for this figure is sort of 1-column wide (~3.5"), with a set of spectral panels going 
-% down vertically.  The top panel shows a segment of the full resolution model.  The next one down 
-% can show the individual kernels described above, as well as their composite, \varphi_v.  Then the 
-% next panel down can show the convolved (but still full-resolution) spectrum.  Finally, the bottom 
-% panel will show the spectrum re-sampled onto the observed pixels.  It need not be a large figure 
-% (maybe 5" long?).
+\end{figure}
 
 At this stage, the model is further modified in the flux dimension.  A typical synthetic spectrum 
 is computed as the flux that would be measured {\it at the stellar surface}, and so needs to be 
@@ -268,16 +262,19 @@ model multiple spectral orders, we assign $c_0 = 1$ in an arbitrary order as an 
 the $c_0$ values in other orders to be different (as necessary).  It is worth noting that this 
 formalism can, in principle, be extended to develop models for completely uncalibrated spectra, 
 rather than the residual calibration mismatches as described here (with a suitable relaxation of 
-the priors on $\vT_{\rm cheb}$).  Figure \ref{fig:cheb} offers a practical demonstration of how 
+the priors on $\vT_{\rm cheb}$).  Figure \ref{fig:chebyshev} offers a practical demonstration of how 
 these nuisance parameters are applied. 
-\comm{I envision this figure much like the previous one, in a 1-column vertical distribution of 
- panels.  At top, you would show the data spectrum at an overlap of two spectral orders, along 
- with the post-processed model with no Chebyshev polynomials applied.  Next, you would show the 
- two Chebyshev polynomials appropriate for the two orders.  And then in the final panel you would 
- revisit the top panel with the polynomials applied, demonstrating the improvement.}
 
+\begin{figure}[!htb]
+\begin{center}
+  \includegraphics{figs/chebyshev.pdf}
+  \caption{A region of the echelle spectrum at the overlap between two adjacent orders of the echelle spectrum. Panel 1: In green and blue, we have the flux-calibrated dataset. The adjacent orders overlap but there is a slight discrepancy of $\lesssim 3$\%. In the background in red is a model spectrum generated for reasonable values of stellar parameters, $\vt$. Panel 2: In order to account for residual errors in the flux calibration, we allow the model to be multiplied by a Chebyshev polynomial. Here are the polynomials determined as best fit, to multiply the model. Panels 3 \& 4: In principle, we could divide the data by these polynomials to recover what the true flux-calibrated data should be (panel 3), but instead we multiply the model by the polynomials to recover the original discrepancy between orders (panel 4). This has the advantage of preserving the original dataset as a fixed quantity and makes the model linear in the Chebyshev polynomial coefficients.}
+\label{fig:chebyshev}
+\end{center}
+\end{figure}
 
-\subsection{Model Evaluation \label{subsec:likelihood}}
+\subsection{Model Evaluation}
+\label{subsec:likelihood}
 
 The quality of the model spectrum is assessed by comparing to the data with a pixel-by-pixel 
 likelihood calculation.  If we denote the data spectrum as $\vD$, then a corresponding 
@@ -501,8 +498,6 @@ interpolation uncertainties (see Section \ref{subsec:synthetic}; reasonable
 values are $b \approx 1.02$--1.10 for well-calibrated optical spectra; see Section
 \ref{sec:examples} for examples).  
 
-\comm{No idea if this is your intention for $b$, but it was the only way I could rationalize it.}
-
 \begin{figure*}[!htb]
 \begin{center}
 \includegraphics[width=0.4\textwidth]{figs/gauss_matrix.pdf}
@@ -514,7 +509,8 @@ values are $b \approx 1.02$--1.10 for well-calibrated optical spectra; see Secti
 \end{figure*}
 
 
-\subsection{Exploring the Posterior \label{subsec:MCMC}}
+\subsection{Exploring the Posterior }
+\label{subsec:MCMC}
 
 \comm{Not much done here...want to meet and discuss before I try editing.}
 
