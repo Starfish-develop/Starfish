@@ -171,9 +171,15 @@ Then, the install command is
 
 Convert Kurucz models into TRES format.
 
+Fix HDF5InstGridCreator to use instrument ranges properly, while also respecting the bounds of the wl grid itself.
+
+warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
+
 # Running many jobs in parallel
 
 * Combine plot WASP14 run
+* Extend HDF5cat to chebyshev and global cov
+* Later extend to sorting regions?
 
 * how to find autocorrelation time of a single chain?
 * do Gelman-Rubin statistic of many chains?
@@ -186,15 +192,20 @@ Convert Kurucz models into TRES format.
 
 Maybe these should go into a table?
 
+Start this before lunch:
 WASP14:
 
 * all three orders, logg fixed, Kurucz models
 * all three orders, logg free, Kurucz models
+
+Work on perfecting regions
+
+No regions
 * all three orders, logg free, PHOENIX models
 * all three orders, just chi^2, PHOENIX models
 
+With regions
 * all good orders, no regions
-
 * order 24 no regions and using regions
 
 Gl51
@@ -219,18 +230,32 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 ## Regions
 
+* Let's try to get a well-converged spectrum for WASP-14, order 23, PHOENIX
+    ie, all 12 bad "regions" are properly instantiated
+* keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
+    SPEX.
+
+
+* This also begets a need to have a proper visualization tool for a single order. This is Jekyll, bootstrap, etc.
+
+    Takes as input flatchains, model.json, input. Goes through all region areas, and maybe at first glance just plots
+     vertical lines on the plot.
+
+* flot_region? simple Gaussian envelope (high + low) superimposed where line is? (Filled areas for lines)
+
+
+
 * get triangle.py titles and MSFormatter working (with a simple example of a line)
 * need better way to visualize MCMC region output and errors together
 * add logic to be destroyed when current value of amplitude goes below the global kernel
-* keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
-SPEX.
-* Need plotting tools to show everything output.
+
+
 
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 
 * BTSettl, you cannot fit stars at non-zero metallicity.
 
-* warning in grid reader or GridStuffer to notify that the grid is actually smaller than you have requested.
+
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 

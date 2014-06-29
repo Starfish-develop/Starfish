@@ -520,11 +520,13 @@ When iteratively fitting a spectrum (see \S\ref{subsec:MCMC}), we continue to ad
   hyperparameters and add parameters to describe the \emph{population
   characteristics} of poorly modeled spectral lines (mostly the typical width,
   amplitude of these lines).  This will tell us about the frequency and
-distribution of spectral modelling errors.} 
-We explicitly fit for the hyperparameters of the covariance kernels at the same
-time we fit for the stellar parameters. While including these extra
-parameters does increase the dimensionality and complexity of our model, they do provide several advantages. \emph{A priori} we do not know which
-regions of the spectrum are improperly modeled. The covariance hyperparameters provide a framework to identify these regions iteratively and in a self-consistent manner. 
+distribution of spectral modelling errors.} We explicitly fit for the
+hyperparameters of the covariance kernels at the same time we fit for the
+stellar parameters. While including these extra parameters does increase the
+dimensionality and complexity of our model, they do provide several advantages.
+\emph{A priori} we do not know which regions of the spectrum are improperly
+modeled. The covariance hyperparameters provide a framework to identify these
+regions iteratively and in a self-consistent manner. 
 
 The traditional practice method of dealing with spectral mismatch is to simply mask out the regions of the spectrum which do not agree to within a certain tolerance.  Rather than arbitrarily excluding regions of the spectrum from the fit, these regions should instead be incorporated into in the fit with the appropriate weight. A model that includes covariance is far more likely than forcing the synthetic spectrum to fit perfectly, and far more flexible than arbitrarily masking regions which do not fit. The fitting procedure allows these weights to be determined self-consistently, such that lines which are slightly wrong can still bring information to bear on the stellar parameters. In fact, it may be the case that the lines that are off by a small amount (class 0 and III lines in Figure~\ref{fig:badlines}) actually provide the \emph{most information} about the stellar parameters, precisely because these lines are the most sensitive to stellar structure and consequentially are the most difficult to model correctly.
 
@@ -593,7 +595,7 @@ Here are some ideas of which tests we might want to show.
 
 \paragraph{Test 1}: Fitting with and without the global covariance kernel to show how the width of the posteriors nicely inflates to reasonable uncertainties.
 
-\paragraph{Test 2}: I think we should fit both an F/G star (WASP-14) and a K/M star (TBD) with both the Kurucz and PHOENIX spectra. This will show a few things
+\paragraph{Test 2}: I think we should fit an optical spectrum of an F star (WASP-14) and a near-IR spectrum of an M star (Gl51). The WASP will be fit with both the Kurucz and PHOENIX spectra, while the M star will be fit with just the PHOENIX. This will show a few things
 \begin{itemize}
   \item Spectral parameters can vary by a large margin depending on which spectral library you use ($200~K$ or more).
   \item Both spectral libraries have stars that they perform better and worse on.
