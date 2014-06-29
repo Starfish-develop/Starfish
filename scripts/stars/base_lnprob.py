@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run Stellar
 parser.add_argument("-i", "--input", help="*.yaml file specifying parameters.")
 parser.add_argument("-r", "--run_index", help="Which run (of those running concurrently) is this? All data will "
                                         "be written into this directory, overwriting any that exists.")
-parser.add_argument("-p", "--perturb", action="store_true", help="Randomly perturb the starting position of the "
+parser.add_argument("-p", "--perturb", type=float, help="Randomly perturb the starting position of the "
                                                                  "chain, as a multiple of the jump parameters.")
 args = parser.parse_args()
 
@@ -35,6 +35,17 @@ else:
     f = open(yaml_file)
     config = yaml.load(f)
     f.close()
+
+def perturb(startingDict, jumpDict, factor=3.):
+    '''
+    Given a starting parameter dictionary loaded from a config file, perturb the values as a multiple of the jump
+    distribution. This is designed so that chains do not all start in the same place, when run in parallel.
+
+    Modifies the startingDict
+    '''
+    for key in startingDict.keys():
+        startingDict[key] += factor * np.random.normal(loc=0, scale=jumpDict[key])
+
 
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
 myInstrument = TRES()
@@ -80,6 +91,12 @@ cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
 cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in cov_tuple])**2 \
                  * np.identity(len(cov_Starting))
 
+if args.perturb:
+    perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
+    cheb_jump = {key: config["cheb_jump"] for key in cheb_tuple}
+    perturb(cheb_Starting, cheb_jump, factor=args.perturb)
+    perturb(cov_Starting, config['cov_jump'], factor=args.perturb)
+
 
 region_tuple = ("loga", "mu", "sigma")
 region_MH_cov = np.array([0.04, 0.02, 0.1])**2 * np.identity(len(region_tuple))
@@ -121,7 +138,7 @@ myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=ste
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir)
 
 try:
-    fix_logg = config['fixlogg']
+    fix_logg = config['fix_logg']
 except KeyError:
     fix_logg = None
 
