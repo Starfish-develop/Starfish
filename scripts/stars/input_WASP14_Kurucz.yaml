@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/all_logg_fixed/
+name: WASP14/Kurucz/all/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -14,7 +14,7 @@ Comments: >
 #Nested data structures are allowed
 stellar_params :
     temp : 6100
-    #logg : 4.0
+    logg : 4.0
     Z : -0.2
     vsini : 4
     #vz : 15.4
@@ -25,13 +25,11 @@ stellar_params :
 #Average jump size in each parameter
 stellar_jump:
     temp : 4
-    #logg : 0.02
+    logg : 0.02
     Z : 0.02
     vsini : 0.05
     vz : 0.02
     logOmega: 2e-3
-
-fix_logg : 4.29
 
 cheb_degree: 4
 cheb_jump : 2e-3
