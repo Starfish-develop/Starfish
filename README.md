@@ -188,13 +188,10 @@ Maybe these should go into a table?
 
 Work on perfecting regions
 
-No covariance:
-print the covariance matrix, why does this look like it has some covariance?
-
 Interestingly, Kurucz with the covariant structure and without the covariant structure look exactly the same. Is this
  because the noise is so low? What do the residuals look like?  LogAmp = -14.56. Actual residuals are at what scale?
 
-Does this same behavior happen with the PHOENIX spectra?
+Does this same behavior happen with the PHOENIX spectra? Running tests to find out.
 
 No regions
 * all three orders, logg free, PHOENIX models
