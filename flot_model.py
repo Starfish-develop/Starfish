@@ -81,8 +81,7 @@ def main():
 
     from StellarSpectra.model import Model
     from StellarSpectra.spectrum import DataSpectrum
-    from StellarSpectra.\
-        grid_tools import TRES, HDF5Interface
+    from StellarSpectra.grid_tools import TRES, HDF5Interface
 
     #Figure out what the relative path is to base
     import StellarSpectra
@@ -95,6 +94,13 @@ def main():
     myModel = Model.from_json(args.json, myDataSpectrum, myInstrument, myHDF5Interface)
 
     for model in myModel.OrderModels:
+
+        #If an order has regions, read these out from model_final.json
+        region_dict = model.get_regions_dict()
+        print("Region dict", region_dict)
+        #loop through these to determine the wavelength of each
+        wl_regions = [value["mu"] for value in region_dict.values()]
+        print(wl_regions)
 
         #Get the data, sigmas, and mask
         wl, fl, sigma, mask = model.get_data()
@@ -110,9 +116,6 @@ def main():
         plot_data = order_json(wl, fl, sigma, mask, flm, cheb)
 
         render_template(base, plot_data)
-
-        #Get the Chebyshev spectrum
-        # cheb = model.get_Cheb()
 
         #Get the covariance matrix
         # S = model.get_Cov()

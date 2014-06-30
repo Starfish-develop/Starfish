@@ -1,9 +1,10 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/
+name: WASP14/PHOENIX/22/
 
-HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
-data : data/Gl51/Gl51.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
@@ -12,48 +13,44 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 3000
-    #logg : 5.2
-    Z : 0.3
-    vsini : 50
+    temp : 6100
+    logg : 4.0
+    Z : -0.4
+    vsini : 4
     #vz : 15.4
-    vz : 6.
+    vz : -5.
     #logOmega: -12.7 #Kurucz
-    logOmega: -19.58 #PHOENIX
+    logOmega: -19.665 #PHOENIX
 
 #Average jump size in each parameter
 stellar_jump:
     temp : 5
-    #logg : 0.02
+    logg : 0.02
     Z : 0.02
-    vsini : 0.5
-    vz : 0.1
+    vsini : 0.05
+    vz : 0.02
     logOmega: 2e-3
 
-
-#If this is declared, you should comment out logg from the stellar_params and stellar_jump
-fix_logg: 5.0
-
-cheb_degree : 4 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
-
-#Average jump size in each coefficient
-cheb_jump : 2e-4
+cheb_degree: 4
+cheb_jump : 2e-3
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.5
-    l : 300.
+    logAmp : -14.2
+    l : 10.
 
 cov_jump :
     sigAmp : 0.02
     logAmp : 0.02
-    l : 0.4
+    l : 0.05
 
-orders: [0]
+#and sequences too
+#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 0
+max_regions : 3
 
 #Burn in time
-burn_in : 10
-samples : 10
+burn_in : 100
+samples : 100

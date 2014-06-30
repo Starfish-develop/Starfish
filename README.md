@@ -189,7 +189,6 @@ Maybe these should go into a table?
 Start this before lunch:
 WASP14:
 
-* all three orders, logg fixed, Kurucz models
 * all three orders, logg free, Kurucz models
 
 Work on perfecting regions
@@ -221,13 +220,14 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 * Chebyshev's in particular
 
-
 ## Regions
 
 * Let's try to get a well-converged spectrum for WASP-14, order 23, PHOENIX
     ie, all 12 bad "regions" are properly instantiated
 * keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
     SPEX.
+
+* use flot annotations to mark a vertical line on the graph
 
 
 * This also begets a need to have a proper visualization tool for a single order. This is Jekyll, bootstrap, etc.
@@ -236,7 +236,6 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
      vertical lines on the plot.
 
 * flot_region? simple Gaussian envelope (high + low) superimposed where line is? (Filled areas for lines)
-
 
 
 * get triangle.py titles and MSFormatter working (with a simple example of a line)
@@ -248,8 +247,6 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
 
 * BTSettl, you cannot fit stars at non-zero metallicity.
-
-
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 
