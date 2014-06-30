@@ -155,6 +155,13 @@ def main():
     mySampler.write()
     mySampler.plot()
 
+    # import matplotlib.pyplot as plt
+    # for orderModel in myModel.OrderModels:
+    #     img = orderModel.get_Cov().todense()
+    #
+    #     plt.imshow(img, origin="upper", interpolation="none")
+    #     plt.show()
+
 
 if __name__=="__main__":
     main()

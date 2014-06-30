@@ -45,6 +45,12 @@
            label:"chebyshev",
         }
 
+        var markings = [
+        {% for wl in wl_regions %}
+            { color: "gray", linewidth: 1, xaxis: { from: {{ wl }}, to:{{ wl }} } },
+        {% endfor %}
+        ]
+
         function sciFormatter(val, axis) {
             //
             return val.toExponential(1);
@@ -116,7 +122,11 @@
         });
 
 		var plot0 = $.plot("#placeholder0", [ data_plot, model_plot ], options);
-		var plot1 = $.plot("#placeholder1", [ sigma_plot, resid_plot ], options);
+		var plot1 = $.plot("#placeholder1", [ sigma_plot, resid_plot ],
+		    $.extend(true, {}, options, {
+		        grid : {markings : markings}
+		        })
+		    );
 		var plot2 = $.plot("#placeholder2", [ cheb_plot ], options);
 
 
