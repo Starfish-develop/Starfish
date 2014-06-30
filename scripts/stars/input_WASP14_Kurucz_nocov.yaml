@@ -1,0 +1,46 @@
+#YAML comments are written just like in Python
+
+name: WASP14/Kurucz/nocov/
+
+HDF5_path : libraries/Kurucz_TRES.hdf5
+#HDF5_path : /scratch/Kurucz_TRES.hdf5
+data : data/WASP14/WASP14-2009-06-14.hdf5
+outdir : output/
+
+#Longer strings can be written like this. This will be loaded under the "Comments" variable.
+Comments: >
+  None so far.
+
+#Nested data structures are allowed
+stellar_params :
+    temp : 6100
+    logg : 4.0
+    Z : -0.2
+    vsini : 4
+    #vz : 15.4
+    vz : -5.
+    logOmega: -12.7 #Kurucz
+    #logOmega: -19.665 #PHOENIX
+
+#Average jump size in each parameter
+stellar_jump:
+    temp : 4
+    logg : 0.02
+    Z : 0.02
+    vsini : 0.05
+    vz : 0.02
+    logOmega: 2e-3
+
+cheb_degree: 4
+cheb_jump : 2e-3
+
+#and sequences too
+#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+orders: [21, 22, 23]
+
+#Maximum number of sub-regions allowed per order
+max_regions : 0
+
+#Burn in time
+burn_in : 4000
+samples : 4000

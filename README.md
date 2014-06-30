@@ -186,11 +186,6 @@ Then, the install command is
 
 Maybe these should go into a table?
 
-Start this before lunch:
-WASP14:
-
-* all three orders, logg free, Kurucz models
-
 Work on perfecting regions
 
 No regions
@@ -204,7 +199,6 @@ With regions
 Gl51
 
 * logg fixed to 5.0, low polynomial
-
 
 * to do a no global, save `base_lnprob` as `no_global`
 
@@ -232,15 +226,17 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 * This also begets a need to have a proper visualization tool for a single order. This is Jekyll, bootstrap, etc.
 
-    Takes as input flatchains, model.json, input. Goes through all region areas, and maybe at first glance just plots
-     vertical lines on the plot.
+Flot works well enough, and annotations are easy. Use the "markings" and the "fillBetween" plugins to get this done.
 
-* flot_region? simple Gaussian envelope (high + low) superimposed where line is? (Filled areas for lines)
+Takes as input flatchains, model.json, input. Goes through all region areas, and maybe at first glance just plots
+ vertical lines on the plot.
 
+I feel like this should be a separate plotting routine. Take in `*.yaml` file, input script,
+load all residuals and plot the regions on top, along with error envelopes.
 
-* get triangle.py titles and MSFormatter working (with a simple example of a line)
-* need better way to visualize MCMC region output and errors together
-* add logic to be destroyed when current value of amplitude goes below the global kernel
+simple Gaussian envelope (high + low) superimposed where line is? (Filled areas for lines)
+
+add logic to be destroyed when current value of amplitude goes below the global kernel
 
 
 
