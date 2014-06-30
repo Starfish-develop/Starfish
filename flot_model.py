@@ -115,6 +115,8 @@ def main():
         name = "Order {}".format(model.order)
 
         plot_data = order_json(wl, fl, sigma, mask, flm, cheb)
+        plot_data.update({"wl_regions":wl_regions})
+        print(plot_data['wl_regions'])
 
         render_template(base, plot_data)
 
