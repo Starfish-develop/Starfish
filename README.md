@@ -188,6 +188,14 @@ Maybe these should go into a table?
 
 Work on perfecting regions
 
+No covariance:
+print the covariance matrix, why does this look like it has some covariance?
+
+Interestingly, Kurucz with the covariant structure and without the covariant structure look exactly the same. Is this
+ because the noise is so low? What do the residuals look like?  LogAmp = -14.56. Actual residuals are at what scale?
+
+Does this same behavior happen with the PHOENIX spectra?
+
 No regions
 * all three orders, logg free, PHOENIX models
 * all three orders, just chi^2, PHOENIX models
@@ -223,6 +231,9 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 * use flot annotations to mark a vertical line on the graph
 
+    * needs to pan + zoom with the script
+    * also plot a vertical range that is 3X the global covariance height, or whatever our cutoff is (maybe this is
+    the first thing to do)
 
 * This also begets a need to have a proper visualization tool for a single order. This is Jekyll, bootstrap, etc.
 
