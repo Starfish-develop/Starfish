@@ -70,7 +70,8 @@
 \affil{Harvard-Smithsonian Center for Astrophysics, 60 Garden Street, Cambridge, MA 02138}
 %\email{iczekala@cfa.harvard.edu}
 
-\section{Introduction \label{sec:intro}}
+\section{Introduction}
+\label{sec:intro}
 
 A single stellar spectrum contains a vast amount of information about the physical properties of the star. It is of supreme interest to extract a maximal amount of this information from the spectrum in order to study the fundamental stellar parameters such as effective temperature, surface gravity, and metallicity. Accurate and unbiased estimates of stellar parameters are crucial to the study of numerous fields of astrophysics. For example, the mass, radius, and temperature of every newly discovered exoplanet (save for directly imaged planets) are measured relative to the properties of its host star. Large uncertainties or biases in the stellar parameters will translate into incorrect estimates of the habitable zone and the occurrence rate of earth-like planets \citep{kane14}. High quality stellar parameters are also necessary for the study of stellar evolution. Modelers of stellar evolution rely upon accurate samples of stellar parameters to chart the evolutionary tracks of stars through the Hertsprung-Russell diagram.
 
@@ -254,7 +255,7 @@ where $T_n$ are the standard Chebyshev functions of order $n$ and the coefficien
 set of nuisance (hyper-)parameters, $\vT_{\rm cheb} = \{c_n\}^{\rm order}$, for each available 
 spectral order in the dataset.  With judicious priors on $\vT_{\rm cheb}$, we can ensure that the 
 unintended treatment of real spectral features (e.g., broad, deep molecular bands) as calibration 
-artifacts is negligible (see Secton~\ref{sec:examples} for examples).  The lowest-order (scaling) 
+artifacts is negligible (see Section~\ref{sec:examples} for examples).  The lowest-order (scaling) 
 coefficient, $c_0$, is by its nature degenerate with the solid angle parameter, $\Omega$.  
 Therefore, we enforce an additional constraint by requiring that the mean of the polynomial is 
 unity.  For data with a single spectral order, this means setting $c_0 = 1$.  If the goal is to 
@@ -541,7 +542,7 @@ In addition to the stellar parameters $\vtstar$, we have introduced several nuis
 
 \begin{figure*}[!htb]
 \begin{center}
-  \includegraphics[draft, width=5in]{figs/stellar_triangle.png}
+  \includegraphics[width=5in]{figs/stellar_triangle_Kurucz.png}
   \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev and noise parameters. Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
 }
 \label{fig:stellar_posterior}
@@ -598,7 +599,8 @@ Linking the covariance matrices of stars could be done serially, where the aggre
 
 Once determined, this average covariance matrix could be delivered to the communities that created the synthetic libraries, which would enable them to rapidly pinpoint and correct defects in the synthetic models. \todo{more delicate phrasing?} Alternatively, we could correct the models ourselves by using the chain of logic and mathematical post-processing that we used to created the synthetic model spectrum to reverse-engineer what the behavior of the raw synthetic spectrum \emph{should} be, at the raw $R \gtrsim$~100,000 resolution. This fundamental application of machine learning would enable us to create our own library of semi-empirical stellar models. Rather than simply assembling an empirical spectral library using only real stellar spectra, this combined approach is more powerful because the stellar atmospheres provide an actual anchor point of fundamental stellar parameters tied down by the laws of stellar physics.
 
-\section{Worked Examples \label{sec:examples}}
+\section{Worked Examples}
+\label{sec:examples}
 Here are some ideas of which tests we might want to show.
 
 \paragraph{Test 1}: Fitting with and without the global covariance kernel to show how the width of the posteriors nicely inflates to reasonable uncertainties.
@@ -610,9 +612,12 @@ Here are some ideas of which tests we might want to show.
   \item This will be reflected in the increased level of global noise, and number of ``bad'' regions that have been instantiated.
 \end{itemize}
 
-\section{Discussion \label{sec:discussion}}
+\section{Discussion}
+\label{sec:discussion}
 
-\section{Conclusion \label{sec:conclusion}}
+
+\section{Conclusion}
+\label{sec:conclusion}
 
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}

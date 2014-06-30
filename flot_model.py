@@ -100,7 +100,8 @@ def main():
         print("Region dict", region_dict)
         #loop through these to determine the wavelength of each
         wl_regions = [value["mu"] for value in region_dict.values()]
-        print(wl_regions)
+
+        #Make vertical markings at the location of the wl_regions.
 
         #Get the data, sigmas, and mask
         wl, fl, sigma, mask = model.get_data()
