@@ -7,7 +7,7 @@
 \usepackage{enumerate}
 \usepackage{amsmath,amssymb}
 \usepackage{bm}
-\usepackage[usenames,dvipsnames,svgnames,table]{xcolor} 
+\usepackage{color}
 \usepackage[utf8]{inputenc}
 
 %version-control tagging based off of github.com/bd-j/speccal
@@ -19,7 +19,6 @@
 \newcommand{\yN}{\{y_i\}_{i=1}^N}
 
 \newcommand{\kms}{ \textrm{km s}^{-1} }
-
 
 %\vt stands for ``vector theta''
 \newcommand{\vt}{ {\bm \theta}}
@@ -52,8 +51,8 @@
 \newcommand{\A}{[\alpha/{\rm Fe}]}
 \newcommand{\matern}{Mat\'{e}rn}
 
-\newcommand{\todo}[1]{ \textcolor{Blue}{\\TODO: #1}}
-\newcommand{\comm}[1]{ \textcolor{Red}{SA: #1}}
+\newcommand{\todo}[1]{ \textcolor{blue}{\\TODO: #1}}
+\newcommand{\comm}[1]{ \textcolor{red}{SA: #1}}
 
 \shorttitle{Spectroscopic inference}
 \shortauthors{Czekala et al.}
@@ -612,9 +611,10 @@ Here are some ideas of which tests we might want to show.
   \item This will be reflected in the increased level of global noise, and number of ``bad'' regions that have been instantiated.
 \end{itemize}
 
+
+
 \section{Discussion}
 \label{sec:discussion}
-
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -622,52 +622,65 @@ Here are some ideas of which tests we might want to show.
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}
 
+\section{Tables}
+
+\begin{deluxetable}{rr}
+\tablecaption{Nomenclature used in this document}
+\tablehead{
+  \colhead{Symbol} & \colhead{Description}
+}
+\startdata
+%Symbol & Description\\
+%\hline
+%\hline
+$i$ & index specifying a pixel\\
+%$\lambda_i$ & wavelength corresponding to a given pixel $i$\\
+%$\vg$ & fundamental stellar parameters, $T_{\rm eff}, \log(g), \Z, \A$\\
+%  & that parameterize a synthetic spectrum from the grid\\
+%$\vpp$ & stellar parameters $v \sin i$, $v_z$, $A_V$, and $R^2/d^2$ that\\
+%  & are applied during ``post processing'' of the synthetic spectrum\\
+%$\vtstar$ & $\{\vg,\vpp \}$\\
+%$\finst(\lambda)$ & data spectrum\\
+%$\fsynth(\lambda)$ & synthetic spectrum\\
+%$\vtcheb$ & the set of Chebyshev polynomial coefficients $\{c_0, c_1, \ldots, c_N\}$\\
+%$\vtline{1}$ & \\
+%$\vtlines$ & \\
+%$\vtorder{1}$ & \\
+%$\vtorders$ & \\
+%$\vt$ & the parameters $\{\vg, \vpp, \vN\}$ that completely describe a model spectrum\\
+%$\fDi$ & data flux for a given pixel, $D(\lambda_i)$\\
+%$\fD$ & data vector comprised of all $\fDi$, $i = \{1, \ldots, N\}$\\
+%$\fMi$ & model flux for a given pixel, $M(\lambda_i | \vt)$\\
+%$\fM$ & model vector comprised of all $\fMi$, $i = \{1, \ldots, N\}$\\
+%$\sigma_i$ & Poisson noise for a given pixel $i$\\
+%$R_i$ & residuals $\fDi - \fMi$\\
+%$\fR$ & residual vector $\fD - \fM$\\
+%$C$ & covariance matrix\\
+%$\sigma_{ij}$ & element in the covariance matrix\\
+%$r(\lambda_i, \lambda_j)$ & radial distance in wavelength space corresponding to $\Delta v$\\
+%$k_{\rm global}$ & global covariance kernel\\
+%$k_{\rm line}$ & regional covariance kernel\\
+%\hline
+%\caption{Nomenclature used in this document.}
+%\label{tab:nomenclature}
+\enddata
+\end{deluxetable}
+
+\begin{deluxetable}{rr} 
+\tablecaption{\label{table:tests} Tests}
+\tablehead{\colhead{Object} & \colhead{Orders}}
+\startdata
+WASP-14 & 22-24 \\
+WASP-14 & 22-24 \\
+WASP-14 & 22-24 \\
+WASP-14 & 22-24 \\
+\enddata
+\end{deluxetable}
+
 \appendix
 
-\begin{table}[!htb]
-\begin{tabular}{ll}
-\hline
-\hline
-Symbol & Description\\
-\hline
-\hline
-$i$ & index specifying a pixel\\
-$\lambda_i$ & wavelength corresponding to a given pixel $i$\\
-$\vg$ & fundamental stellar parameters, $T_{\rm eff}, \log(g), \Z, \A$\\
-  & that parameterize a synthetic spectrum from the grid\\
-$\vpp$ & stellar parameters $v \sin i$, $v_z$, $A_V$, and $R^2/d^2$ that\\
-  & are applied during ``post processing'' of the synthetic spectrum\\
-$\vtstar$ & $\{\vg,\vpp \}$\\
-$\finst(\lambda)$ & data spectrum\\
-$\fsynth(\lambda)$ & synthetic spectrum\\
-$\vtcheb$ & the set of Chebyshev polynomial coefficients $\{c_0, c_1, \ldots, c_N\}$\\
-$\vtline{1}$ & \\
-$\vtlines$ & \\
-$\vtorder{1}$ & \\
-$\vtorders$ & \\
-$\vt$ & the parameters $\{\vg, \vpp, \vN\}$ that completely describe a model spectrum\\
-$\fDi$ & data flux for a given pixel, $D(\lambda_i)$\\
-$\fD$ & data vector comprised of all $\fDi$, $i = \{1, \ldots, N\}$\\
-$\fMi$ & model flux for a given pixel, $M(\lambda_i | \vt)$\\
-$\fM$ & model vector comprised of all $\fMi$, $i = \{1, \ldots, N\}$\\
-$\sigma_i$ & Poisson noise for a given pixel $i$\\
-$R_i$ & residuals $\fDi - \fMi$\\
-$\fR$ & residual vector $\fD - \fM$\\
-$C$ & covariance matrix\\
-$\sigma_{ij}$ & element in the covariance matrix\\
-$r(\lambda_i, \lambda_j)$ & radial distance in wavelength space corresponding to $\Delta v$\\
-$k_{\rm global}$ & global covariance kernel\\
-$k_{\rm line}$ & regional covariance kernel\\
-\hline
-\end{tabular}
-\caption{Nomenclature used in this document.}
-\label{tab:nomenclature}
-\end{table}
 
 This version of the paper was generated
  from a git repository available at \url{http://github.com/iancze/StellarSpectra/}
  with git hash \texttt{\githash\,(\gitdate)}.
-
-
-
 \end{document}
