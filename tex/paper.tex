@@ -624,56 +624,57 @@ Here are some ideas of which tests we might want to show.
 
 \section{Tables}
 
-\begin{deluxetable}{rr}
+\begin{deluxetable}{ll}
 \tablecaption{Nomenclature used in this document}
 \tablehead{
   \colhead{Symbol} & \colhead{Description}
 }
 \startdata
-%Symbol & Description\\
-%\hline
-%\hline
 $i$ & index specifying a pixel\\
-%$\lambda_i$ & wavelength corresponding to a given pixel $i$\\
-%$\vg$ & fundamental stellar parameters, $T_{\rm eff}, \log(g), \Z, \A$\\
-%  & that parameterize a synthetic spectrum from the grid\\
-%$\vpp$ & stellar parameters $v \sin i$, $v_z$, $A_V$, and $R^2/d^2$ that\\
-%  & are applied during ``post processing'' of the synthetic spectrum\\
-%$\vtstar$ & $\{\vg,\vpp \}$\\
-%$\finst(\lambda)$ & data spectrum\\
-%$\fsynth(\lambda)$ & synthetic spectrum\\
-%$\vtcheb$ & the set of Chebyshev polynomial coefficients $\{c_0, c_1, \ldots, c_N\}$\\
-%$\vtline{1}$ & \\
-%$\vtlines$ & \\
-%$\vtorder{1}$ & \\
-%$\vtorders$ & \\
-%$\vt$ & the parameters $\{\vg, \vpp, \vN\}$ that completely describe a model spectrum\\
-%$\fDi$ & data flux for a given pixel, $D(\lambda_i)$\\
-%$\fD$ & data vector comprised of all $\fDi$, $i = \{1, \ldots, N\}$\\
-%$\fMi$ & model flux for a given pixel, $M(\lambda_i | \vt)$\\
-%$\fM$ & model vector comprised of all $\fMi$, $i = \{1, \ldots, N\}$\\
-%$\sigma_i$ & Poisson noise for a given pixel $i$\\
-%$R_i$ & residuals $\fDi - \fMi$\\
-%$\fR$ & residual vector $\fD - \fM$\\
-%$C$ & covariance matrix\\
-%$\sigma_{ij}$ & element in the covariance matrix\\
-%$r(\lambda_i, \lambda_j)$ & radial distance in wavelength space corresponding to $\Delta v$\\
-%$k_{\rm global}$ & global covariance kernel\\
-%$k_{\rm line}$ & regional covariance kernel\\
-%\hline
-%\caption{Nomenclature used in this document.}
-%\label{tab:nomenclature}
+$\lambda_i$ & wavelength corresponding to a given pixel $i$\\
+$\vg$ & fundamental stellar parameters, $T_{\rm eff}, \log(g), \Z, \A$\\
+  & that parameterize a synthetic spectrum from the grid\\
+$\vpp$ & stellar parameters $v \sin i$, $v_z$, $A_V$, and $R^2/d^2$ that\\
+  & are applied during ``post processing'' of the synthetic spectrum\\
+$\vtstar$ & $\{\vg,\vpp \}$\\
+$\finst(\lambda)$ & data spectrum\\
+$\fsynth(\lambda)$ & synthetic spectrum\\
+$\vtcheb$ & the set of Chebyshev polynomial coefficients $\{c_0, c_1, \ldots, c_N\}$\\
+$\vtline{1}$ & \\
+$\vtlines$ & \\
+$\vtorder{1}$ & \\
+$\vtorders$ & \\
+$\vt$ & the parameters $\{\vg, \vpp, \vN\}$ that completely describe a model spectrum\\
+$\fDi$ & data flux for a given pixel, $D(\lambda_i)$\\
+$\fD$ & data vector comprised of all $\fDi$, $i = \{1, \ldots, N\}$\\
+$\fMi$ & model flux for a given pixel, $M(\lambda_i | \vt)$\\
+$\fM$ & model vector comprised of all $\fMi$, $i = \{1, \ldots, N\}$\\
+$\sigma_i$ & Poisson noise for a given pixel $i$\\
+$R_i$ & residuals $\fDi - \fMi$\\
+$\fR$ & residual vector $\fD - \fM$\\
+$C$ & covariance matrix\\
+$\sigma_{ij}$ & element in the covariance matrix\\
+$r(\lambda_i, \lambda_j)$ & radial distance in wavelength space corresponding to $\Delta v$\\
+$k_{\rm global}$ & global covariance kernel\\
+$k_{\rm line}$ & regional covariance kernel\\
 \enddata
 \end{deluxetable}
 
-\begin{deluxetable}{rr} 
+\begin{deluxetable}{llrlr@{$\pm$}lr@{$\pm$}lr@{$\pm$}ll} 
 \tablecaption{\label{table:tests} Tests}
-\tablehead{\colhead{Object} & \colhead{Orders}}
+\tablehead{
+  \colhead{Object} & \colhead{Orders} & \colhead{$\lambda$ range [\AA]} & \colhead{library} &
+  \multicolumn{2}{c}{$T_{\rm eff} \pm \sigma$} & \multicolumn{2}{c}{$\log g \pm \sigma$} &
+  \multicolumn{2}{c}{$\Z \pm \sigma$} & \colhead{comments}
+}
 \startdata
-WASP-14 & 22-24 \\
-WASP-14 & 22-24 \\
-WASP-14 & 22-24 \\
-WASP-14 & 22-24 \\
+WASP-14 & 22-24 & 5060-5315 & Kurucz &  &  &  &  &  & & No covariance\\
+WASP-14 & 22-24 & 5060-5315& Kurucz & 6314 & 50 & 3.92 & 0.08 & -0.39 & 0.03 & Matern only\\
+WASP-14 & 22-24 & 5060-5315& Kurucz & 6512 & 32 & \multicolumn{2}{c}{\nodata} & -0.27 & 0.02 & Matern + fixed $\log g = 4.29$\\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & No covariance \\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Matern only \\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Matern + fixed $\log g = 4.29$ \\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Regions included \\
 \enddata
 \end{deluxetable}
 
