@@ -602,6 +602,16 @@ Once determined, this average covariance matrix could be delivered to the commun
 \label{sec:examples}
 Here are some ideas of which tests we might want to show.
 
+\subsection{Fitting data}
+
+[This may need to be eventually moved to \S2, but here it is for now] Cite papers that acquired the data. Describe the instruments. Describe when it was taken. Describe the noise properties, etc. Maybe a table might be worthwhile to describe the spectra. Here also describe the WASP-14 fit using the Kurucz spectra, using a fixed log g, and state that they are the same as Willie's paper. Talk about putting things in a Bayesian framework, using a sensitivity to a prior, to a $\delta$-function prior. Point out that this Bayesian approach allows you to do this.
+
+\subsection{Generic Tests}
+
+Designed to show off what the model framework can actually do. 
+
+Talk about giving more reasonable errors using regions, in the biased case.
+
 \paragraph{Test 1}: Fitting with and without the global covariance kernel to show how the width of the posteriors nicely inflates to reasonable uncertainties.
 
 \paragraph{Test 2}: I think we should fit an optical spectrum of an F star (WASP-14) and a near-IR spectrum of an M star (Gl51). The WASP will be fit with both the Kurucz and PHOENIX spectra, while the M star will be fit with just the PHOENIX. This will show a few things
@@ -668,11 +678,12 @@ $k_{\rm line}$ & regional covariance kernel\\
   \multicolumn{2}{c}{$\Z \pm \sigma$} & \colhead{comments}
 }
 \startdata
-WASP-14 & 22-24 & 5060-5315 & Kurucz &  &  &  &  &  & & No covariance\\
+WASP-14 & 22-24 & 5060-5315 & Kurucz & 6310 & 52 & 3.91  & 0.08 & -0.38  & 0.03 & Poisson only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6314 & 50 & 3.92 & 0.08 & -0.39 & 0.03 & Matern only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6512 & 32 & \multicolumn{2}{c}{\nodata} & -0.27 & 0.02 & Matern + fixed $\log g = 4.29$\\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & No covariance \\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Matern only \\
+WASP-14 & 23 & & PHOENIX & 6021 & 16 & 3.83 & 0.3 & -0.50 & 0.01 & Poisson only \\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & 6117 & 30 & 3.73 & 0.06 & -0.52 & 0.02 & Poisson only \\
+WASP-14 & 22-24 & 5060-5315 & PHOENIX & 5865 & 43 & 3.2 & 0.08 & -0.85 & 0.03 & Matern only. Because of 24. \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Matern + fixed $\log g = 4.29$ \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Regions included \\
 \enddata
