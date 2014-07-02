@@ -98,8 +98,9 @@ if args.perturb:
     perturb(cov_Starting, config['cov_jump'], factor=args.perturb)
 
 
+region_Starting = config['region_params']
 region_tuple = ("loga", "mu", "sigma")
-region_MH_cov = np.array([0.04, 0.02, 0.1])**2 * np.identity(len(region_tuple))
+region_MH_cov = np.array([float(config["region_jump"][key]) for key in region_tuple])**2 * np.identity(len(region_tuple))
 
 
 outdir = config['outdir']
@@ -151,8 +152,9 @@ cadenceList = []
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=i, outdir=outdir))
     samplerList.append(CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=i, outdir=outdir))
-    samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'], order_index=i, outdir=outdir))
-    cadenceList += [6, 6, 2]
+    samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'],
+                    default_param_dict=region_Starting, order_index=i, outdir=outdir))
+    cadenceList += [6, 6, 1]
     # cadenceList += [6, 2]
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,

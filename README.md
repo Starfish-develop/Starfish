@@ -208,12 +208,10 @@ Interestingly, Kurucz with the covariant structure and without the covariant str
  because the noise is so low? What do the residuals look like?  LogAmp = -14.56. Actual residuals are at what scale?
 
 Tests are interesting. In some sense, the Matern kernel really doesn't matter all that much. Its allows the error
-bars to inflate. In many cases, the identifying and tracking bad lines is the more important behavior. Let's
-accelerate the tests on order 24 to see what happens.
+bars to inflate. In many cases, the identifying and tracking bad lines is the more important behavior.
 
-Just order 24, no masking, just Matern.
 
-order 24, with masking, or line regions.
+
 
 Does this same behavior happen with the PHOENIX spectra? Running tests to find out.
 
@@ -225,7 +223,7 @@ With regions
 * all good orders, no regions
 * order 24 no regions and using regions
 
-Gl51
+# Gl51
 
 * logg fixed to 5.0, low polynomial
 
@@ -234,6 +232,8 @@ Gl51
 * can we tune the cadences somehow?
 
 ## working test with IRTF spex M dwarf
+
+* What regions of the spectrum did Rojas-Ayala actually use? We should be limiting ourselves to just these regions.
 
 This will tell us what the residuals actually look like, which is important for developing a kernel to track them.
 
@@ -244,6 +244,10 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 * Chebyshev's in particular
 
 ## Regions
+
+Let's accelerate the tests on order 24 to see what happens.
+
+order 24, with masking, or line regions.
 
 * Let's try to get a well-converged spectrum for WASP-14, order 23, PHOENIX
     ie, all 12 bad "regions" are properly instantiated
