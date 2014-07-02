@@ -1,9 +1,9 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/
+name: WASP14/PHOENIX/23/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -44,13 +44,23 @@ cov_jump :
     logAmp : 0.02
     l : 0.05
 
+region_params:
+    loga: -14.2
+    sigma: 10
+
+region_jump:
+    loga : 0.2
+    mu : 0.15
+    sigma : 0.5
+
+
 #and sequences too
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [22]
+orders: [23]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 3
+max_regions : 14
 
 #Burn in time
-burn_in : 100
-samples : 100
+burn_in : 4000
+samples : 10000
