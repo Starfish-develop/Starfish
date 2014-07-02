@@ -169,6 +169,10 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
+Getting the region outliers working is really key to having converged posteriors.
+
+Is there a smarter way to initialize these? To sample in these?
+
 # Running many jobs in parallel
 
 * Combine plot WASP14 run
@@ -182,14 +186,34 @@ Then, the install command is
 
 * Add Bootstrap
 
+# Figures
+
+Fix Chebyshev figure to use thinner lines, no dataset in red in the top panel. You could cut off the bottom of the
+lines to actually show the mismatch between continuum.
+
+Fix Matern kernel w/ mildly covariance structure to include a broad-brush spectrum that puts the low-scale residuals
+in context.
+
+Move bad-lines figure towards the end of the paper.
+
 # List of tests
 
-Maybe these should go into a table?
+From the testing, it seems like using the Matern kernel really doesn't do much. In the case of the PHOENIX spectrum,
+it frees up some extra space, but it doesn't really free you from *bias*, which is what is important. Instead,
+it is the line identifications and downweighting that should be used.
 
 Work on perfecting regions
 
 Interestingly, Kurucz with the covariant structure and without the covariant structure look exactly the same. Is this
  because the noise is so low? What do the residuals look like?  LogAmp = -14.56. Actual residuals are at what scale?
+
+Tests are interesting. In some sense, the Matern kernel really doesn't matter all that much. Its allows the error
+bars to inflate. In many cases, the identifying and tracking bad lines is the more important behavior. Let's
+accelerate the tests on order 24 to see what happens.
+
+Just order 24, no masking, just Matern.
+
+order 24, with masking, or line regions.
 
 Does this same behavior happen with the PHOENIX spectra? Running tests to find out.
 
