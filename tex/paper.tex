@@ -315,27 +315,6 @@ residuals as manifestations of the still-imperfect model library are required to
 inferences of the physically interesting parameters ($\vt$).  The following subsections describe 
 how these issues are addressed in the practical implementation of $\vC$.  
 
-\begin{figure*}[!htb]
-\begin{center}
-  \includegraphics{figs/badlines.pdf}
-  \caption{A collection of spectral lines which have imperfect model fits.
-    From left to right: \textbf{Class 0} The majority of spectral lines
-    ($\gtrsim 60$\%) will have minor differences in strength between data and
-    model spectrum, which produce low-amplitude correlations in the residuals
-    on the length scale of the width of a typical spectral line.  \textbf{Class
-    I}: Sometimes ($\lesssim 5$\% of all lines), a missing opacity source in
-    the model (in this case a line-blended \ion{Ca}{2}) leaves a large, highly correlated
-    patch of negative residuals.  \textbf{Class II}: Sometimes ($\lesssim 5$\%
-    of all lines), an extraneous line in the model leaves a large, highly
-    correlated patch of positive residuals.  \textbf{Class III}: If the line strengths are
-    substantially discrepant ($\lesssim 10$\% of all lines), there will be many
-    correlated residuals of moderate amplitude.  The difficulty
-    with class III lines is that for any specific line, there might exist a
-    $\vtstar$ that will fit the line, but there does not exist a $\vtstar$ that
-    will properly fit \emph{all} the lines.}
-\label{fig:badlines}
-\end{center}
-\end{figure*}
 
 \subsubsection{Global Covariance Structure}
 
@@ -352,9 +331,8 @@ line width in this spectrum.
 
 \begin{figure*}[!htb]
 \begin{center}
-  $\vcenter{\hbox{\includegraphics{figs/class0_residuals.pdf}}}$
-  $\vcenter{\hbox{\includegraphics{figs/class0_autocorrelation.pdf}}}$
-  \caption{\textbf{Left} The same low-amplitude, mildly covariant residuals from Figure~\ref{fig:badlines}, panel 0, but enlarged to show the mildly covariant structure produced by slight mismatch between the data and model spectra.   
+  \includegraphics{correlation_panel.pdf}
+  \caption{\textbf{Top}: the big spectrum. \textbf{Left} The same low-amplitude, mildly covariant residuals from Figure~\ref{fig:badlines}, panel 0, but enlarged to show the mildly covariant structure produced by slight mismatch between the data and model spectra.   
   \textbf{Right} The autocorrelation (Equation~\ref{eqn:autocorrelation}) of the residual sequence shown at left. Notice that there is significant correlation for offsets of $\lesssim 4$ pixels.}
 \label{fig:class0}
 \end{center}
@@ -628,7 +606,27 @@ Summary end of this section is that we are
 
 this can feed into a discussion about tweaking models.
 
-
+\begin{figure*}[!htb]
+\begin{center}
+  \includegraphics{figs/badlines.pdf}
+  \caption{A collection of spectral lines which have imperfect model fits.
+    From left to right: \textbf{Class 0} The majority of spectral lines
+    ($\gtrsim 60$\%) will have minor differences in strength between data and
+    model spectrum, which produce low-amplitude correlations in the residuals
+    on the length scale of the width of a typical spectral line.  \textbf{Class
+    I}: Sometimes ($\lesssim 5$\% of all lines), a missing opacity source in
+    the model (in this case a line-blended \ion{Ca}{2}) leaves a large, highly correlated
+    patch of negative residuals.  \textbf{Class II}: Sometimes ($\lesssim 5$\%
+    of all lines), an extraneous line in the model leaves a large, highly
+    correlated patch of positive residuals.  \textbf{Class III}: If the line strengths are
+    substantially discrepant ($\lesssim 10$\% of all lines), there will be many
+    correlated residuals of moderate amplitude.  The difficulty
+    with class III lines is that for any specific line, there might exist a
+    $\vtstar$ that will fit the line, but there does not exist a $\vtstar$ that
+    will properly fit \emph{all} the lines.}
+\label{fig:badlines}
+\end{center}
+\end{figure*}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -689,7 +687,7 @@ WASP-14 & 22-24 & 5060-5315 & Kurucz & 6310 & 52 & 3.91  & 0.08 & -0.38  & 0.03 
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6314 & 50 & 3.92 & 0.08 & -0.39 & 0.03 & Matern only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6512 & 32 & \multicolumn{2}{c}{\nodata} & -0.27 & 0.02 & Matern + fixed $\log g = 4.29$\\
 WASP-14 & 23 & & PHOENIX & 6021 & 16 & 3.83 & 0.3 & -0.50 & 0.01 & Poisson only \\
-WASP-14 & 24 & & PHOENIX & & & & & & & Matern only, no regions \\
+WASP-14 & 23 & & PHOENIX & & & & & & & Matern only, no regions \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 6117 & 30 & 3.73 & 0.06 & -0.52 & 0.02 & Poisson only \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 5865 & 43 & 3.2 & 0.08 & -0.85 & 0.03 & Matern only. Because of 24. \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Matern + fixed $\log g = 4.29$ \\
