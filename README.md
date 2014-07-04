@@ -220,6 +220,9 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 ## Regions
 
+The regions need priors on sigma being < 15 km/s, and keeping mu to within something of 1AA or some w/ in velocity
+space.
+
 order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
  ~ 5800. You can't be sure if it's burned in or not, but basically this isn't a good order to test things on. I think
   we'll have to try this with a different order, perhaps order 23.
