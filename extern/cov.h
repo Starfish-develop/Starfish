@@ -24,7 +24,7 @@ double k_region (double x0, double x1, double a, double mu, double sigma)
     //Hanning-tapered covariance kernel
 
     //printf("x0 %.4f x1 %.4f\n" , x0, x1);
-    //Hanning taper is defined using radial distance from mu
+    //Hanning taper is defined using radial velocity distance from mu
     double rx0 = c_kms / mu * fabs(x0 - mu);
     double rx1 = c_kms / mu * fabs(x1 - mu);
     double r_tap = rx0 > rx1 ? rx0 : rx1; //choose the larger distance
@@ -38,14 +38,7 @@ double k_region (double x0, double x1, double a, double mu, double sigma)
     assert(r_tap <= r0);
     double taper = (0.5 + 0.5 * cos(PI * r_tap/r0));
 
-    //defined as linear distance between x0 and x1
-    //double r = c_kms / mu * fabs(x0 - x1);
-
-    //double value = taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
-    //    ((x0 - mu)*(x0 - mu) + (x1 - mu)*(x1 - mu))/(sigma * sigma)) 
-    //    * exp(-0.5 * r*r/(h * h));
-    //printf("Initializing %.4f, %.4f with value %.4f\n", x0, x1, value);
-    return  taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 * 
+    return  taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 *
         (c_kms * c_kms) / (mu * mu) * ((x0 - mu)*(x0 - mu) + 
             (x1 - mu)*(x1 - mu))/(sigma * sigma)); 
 }

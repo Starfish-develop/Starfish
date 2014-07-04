@@ -2,8 +2,8 @@
 
 name: WASP14/PHOENIX/23/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -13,9 +13,9 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6100
-    logg : 4.0
-    Z : -0.4
+    temp : 5900
+    logg : 3.0
+    Z : -0.7
     vsini : 4
     #vz : 15.4
     vz : -5.
@@ -45,12 +45,12 @@ cov_jump :
     l : 0.05
 
 region_params:
-    loga: -14.2
-    sigma: 10
+    loga: -12.
+    sigma: 7.
 
 region_jump:
-    loga : 0.2
-    mu : 0.15
+    loga : 0.1
+    mu : 0.05
     sigma : 0.5
 
 
@@ -59,8 +59,8 @@ region_jump:
 orders: [23]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 14
+max_regions : 15
 
 #Burn in time
-burn_in : 4000
-samples : 10000
+burn_in : 200
+samples : 1200
