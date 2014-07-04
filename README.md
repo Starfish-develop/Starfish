@@ -169,32 +169,16 @@ Then, the install command is
 
 # Before the 1.0 paper release
 
-Getting the region outliers working is really key to having converged posteriors.
-
-Is there a smarter way to initialize these? To sample in these?
+* auto function in iPython notebook to display figure inline and save it to svg, pdf, and png formats.
 
 # Running many jobs in parallel
 
-* Combine plot WASP14 run
 * Extend HDF5cat to chebyshev and global cov
 * Later extend to sorting regions?
 
 * how to find autocorrelation time of a single chain?
 * do Gelman-Rubin statistic of many chains?
 
-* collate chains together when I'm done
-
-* Add Bootstrap
-
-# Figures
-
-Fix Chebyshev figure to use thinner lines, no dataset in red in the top panel. You could cut off the bottom of the
-lines to actually show the mismatch between continuum.
-
-Fix Matern kernel w/ mildly covariance structure to include a broad-brush spectrum that puts the low-scale residuals
-in context.
-
-Move bad-lines figure towards the end of the paper.
 
 # List of tests
 
@@ -211,17 +195,8 @@ Tests are interesting. In some sense, the Matern kernel really doesn't matter al
 bars to inflate. In many cases, the identifying and tracking bad lines is the more important behavior.
 
 
-
-
 Does this same behavior happen with the PHOENIX spectra? Running tests to find out.
 
-No regions
-* all three orders, logg free, PHOENIX models
-* all three orders, just chi^2, PHOENIX models
-
-With regions
-* all good orders, no regions
-* order 24 no regions and using regions
 
 # Gl51
 
@@ -245,9 +220,9 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 ## Regions
 
-Let's accelerate the tests on order 24 to see what happens.
-
-order 24, with masking, or line regions.
+order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
+ ~ 5800. You can't be sure if it's burned in or not, but basically this isn't a good order to test things on. I think
+  we'll have to try this with a different order, perhaps order 23.
 
 * Let's try to get a well-converged spectrum for WASP-14, order 23, PHOENIX
     ie, all 12 bad "regions" are properly instantiated
@@ -274,11 +249,13 @@ simple Gaussian envelope (high + low) superimposed where line is? (Filled areas 
 
 add logic to be destroyed when current value of amplitude goes below the global kernel
 
+Good figure for paper will be a figure similar to fig 3 (correlations panel) for the regions. It will show the
+envelope (random draws) of the spectral line kernel around the strong residual.
+
+Masks do not play well when instantiating regions. It's probably because of a length mis-match.
 
 
 ## get spectral libraries (BTSettl, PHOENIX, Kurucz) in the right form
-
-* BTSettl, you cannot fit stars at non-zero metallicity.
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 

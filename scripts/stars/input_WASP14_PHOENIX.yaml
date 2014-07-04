@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/23/
+name: WASP14/PHOENIX/22/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
@@ -15,7 +15,7 @@ Comments: >
 stellar_params :
     temp : 6100
     logg : 4.0
-    Z : -0.2
+    Z : -0.4
     vsini : 4
     #vz : 15.4
     vz : -5.
@@ -46,7 +46,7 @@ cov_jump :
 
 #and sequences too
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [23]
+orders: [22]
 
 #Maximum number of sub-regions allowed per order
 max_regions : 0

@@ -712,6 +712,14 @@ class DataSpectrum:
         return cls(wls, fls, sigmas, masks, orders)
 
 
+    def add_mask(self, new_mask):
+        '''
+        Given a mask with the same self.shape, update self.masks to include the union with this new mask.
+        '''
+        assert new_mask.shape == self.shape, "new_mask shape ({}) must be the same shape as spectrum ({}).".format(
+            new_mask.shape, self.shape)
+
+        self.masks = self.masks & new_mask
 
     def __str__(self):
         return "DataSpectrum object with shape {}".format(self.shape)

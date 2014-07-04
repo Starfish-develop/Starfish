@@ -48,6 +48,10 @@ def perturb(startingDict, jumpDict, factor=3.):
 
 
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
+#Load mask and add it to DataSpectrum
+mask = np.load("notebooks/WASP14_24.mask.npy")
+myDataSpectrum.add_mask(np.atleast_2d(mask))
+
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
@@ -146,15 +150,27 @@ except KeyError:
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, fix_logg=fix_logg,
                                   outdir=outdir)
 
+# #Now, somehow instantiate the regions for order 24.
+# params = [(-12., 5245.6, 6),(-11.7, 5258.8, 10), (-12.3, 5260.6, 6),
+#           (-12.1, 5292.5, 6), (-12.2, 5236.2, 6), (-12.3, 5235.3, 6),
+#           (-12.1, 5268.3, 6), (-11.6, 5269.4, 15)]
+# for param in params:
+#     myModel.OrderModels[0].CovarianceMatrix.create_region(dict(zip(region_tuple, param)))
+
+# import matplotlib.pyplot as plt
+# plt.imshow(myModel.OrderModels[0].get_Cov().todense(), origin="upper", interpolation="none")
+# plt.show()
+
+# import sys
+# sys.exit()
+
 #Create the three subsamplers for each order
 samplerList = []
 cadenceList = []
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=i, outdir=outdir))
     samplerList.append(CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=i, outdir=outdir))
-    samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'],
-                    default_param_dict=region_Starting, order_index=i, outdir=outdir))
-    cadenceList += [6, 6, 2]
+    cadenceList += [6, 6]
     # cadenceList += [6, 2]
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
