@@ -432,7 +432,6 @@ class OrderModel:
         lnp = self.CovarianceMatrix.evaluate(model_fl)
         return lnp
 
-
 class Sampler:
     '''
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C

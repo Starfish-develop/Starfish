@@ -249,6 +249,7 @@ underlying uncertainty in the calibration process.  This is achieved in practice
 model spectrum with a (low-order) Chebyshev polynomial \citep[e.g.,][]{eisenstein06,koleva09}, 
 \begin{equation}
 \vM(\vt, \vT_{\rm cheb}) = \vM(\vt) \times \sum_n c_n \, T_n,
+\label{eqn:chebyshev}
 \end{equation}
 where $T_n$ are the standard Chebyshev functions of order $n$ and the coefficients are treated as a
 set of nuisance (hyper-)parameters, $\vT_{\rm cheb} = \{c_n\}^{\rm order}$, for each available 
@@ -268,7 +269,7 @@ these nuisance parameters are applied.
 \begin{figure}[!htb]
 \begin{center}
   \includegraphics{figs/chebyshev.pdf}
-  \caption{A region of the echelle spectrum at the overlap between two adjacent orders of the echelle spectrum. Panel 1: In green and blue, we have the flux-calibrated dataset. The adjacent orders overlap but there is a slight discrepancy of $\lesssim 3$\%. In the background in red is a model spectrum generated for reasonable values of stellar parameters, $\vt$. Panel 2: In order to account for residual errors in the flux calibration, we allow the model to be multiplied by a Chebyshev polynomial. Here are the polynomials determined as best fit, to multiply the model. Panels 3 \& 4: In principle, we could divide the data by these polynomials to recover what the true flux-calibrated data should be (panel 3), but instead we multiply the model by the polynomials to recover the original discrepancy between orders (panel 4). This has the advantage of preserving the original dataset as a fixed quantity and makes the model linear in the Chebyshev polynomial coefficients.}
+  \caption{The spectrum at the overlap of two echelle orders (23 \& 24). \textbf{Panel 1}: The flux-calibrated dataset shows a slight discrepancy of $\lesssim 3$\% between orders. \textbf{Panel 2}: To account for this residual error in the flux calibration, we multiply the model spectrum by a Chebyshev polynomial, whose coefficients are parameters that are part of the model. \textbf{Panels 3 \& 4}: In principle, we could divide the data by these polynomials to recover what the true flux-calibrated data should be (panel 3), but instead we multiply the model by the polynomials to recover the original discrepancy between orders (panel 4). This has the advantage of preserving the original dataset as a fixed quantity and makes the model (Equation~\ref{eqn:chebyshev}) linear in the Chebyshev polynomial coefficients.}
 \label{fig:chebyshev}
 \end{center}
 \end{figure}
@@ -423,10 +424,11 @@ model.  In that case, the $k^{\rm th}$ such local residual can be described as
 with an amplitude $a_k$, a mean wavelength $\mu_k$, and a width $\sigma_k$.  Following 
 Eq.~\ref{eqn:expectation}, the kernel that describes the covariance of any two pixels related to 
 the $k^{\rm th}$ residual region is
-\begin{equation}
-  \mathcal{K}_k(\lambda_i, \lambda_j | a_k, \mu_k, \sigma_k) = \frac{1}{2\pi} \left(\frac{a_k}{\sigma_k}\right)^2 \exp \left [ - \, \frac{r^2(\lambda_i, \mu_k) + r^2(\lambda_j, \mu_k)}{2 \sigma_k^2}\right ].
+\begin{multline}
+  \mathcal{K}_k(\lambda_i, \lambda_j | a_k, \mu_k, \sigma_k) = \\
+  \frac{1}{2\pi} \left(\frac{a_k}{\sigma_k}\right)^2 \exp \left [ - \, \frac{r^2(\lambda_i, \mu_k) + r^2(\lambda_j, \mu_k)}{2 \sigma_k^2}\right ].
 \label{eqn:klocal}
-\end{equation}
+\end{multline}
 We again taper this kernel with a Hann window (Eq.~\ref{eqn:Hann}) to ensure computational 
 efficiency with a sparse covariance matrix; in this case, the truncation distance $r_0$ can be set 
 to some multiple of the Gaussian width (we set $r_0 = 4\sigma_k$).  
@@ -462,11 +464,11 @@ we need to change this part of the text.}
 We can now compute the covariance matrix employed in the likelihood calculation 
 (Eq.~\ref{eqn:lnprob}) as the linear combination of these kernels and the trivial pixel-by-pixel 
 noise matrix, 
-\begin{eqnarray}
-\vC_{ij}(\vT_{\rm cov}) & = & b \, \delta_{ij}\sigma_i + \\ \nonumber
-         &   &  w(r_{ij}|r_0 = 4\ell) \,\, \mathcal{K}_g(\lambda_i, \lambda_j|a_g, \ell) + \\ \nonumber
-         &   &  \sum_k w(r_{ij}|r_0 = 4\sigma_k) \,\, \mathcal{S}_k(\lambda_i,\lambda_j | h_k) \,\, \mathcal{K}_k(\lambda_i, \lambda_j | a_k, \mu_k, \sigma_k),
-\end{eqnarray}
+\begin{multline}
+\vC_{ij}(\vT_{\rm cov})  = b \, \delta_{ij}\sigma_i + \\
+         w(r_{ij}|r_0 = 4\ell) \,\, \mathcal{K}_g(\lambda_i, \lambda_j|a_g, \ell) + \\ 
+         \sum_k w(r_{ij}|r_0 = 4\sigma_k) \,\, \mathcal{S}_k(\lambda_i,\lambda_j | h_k) \,\, \mathcal{K}_k(\lambda_i, \lambda_j | a_k, \mu_k, \sigma_k),
+\end{multline}
 where the covariance hyperparameters $\vT_{\rm cov} = [a_g, \ell, \{a_k, \mu_k, \sigma_k, 
 h_k\}^{N_{\rm reg}}]$, $N_{\rm reg}$ is the number of local residual regions
 (see below for details on how this is determined), and $b$ is assumed to be a
@@ -490,15 +492,9 @@ values are $b \approx 1.02$--1.10 for well-calibrated optical spectra; see Secti
 \subsection{Exploring the Posterior }
 \label{subsec:MCMC}
 
-\comm{Not much done here...want to meet and discuss before I try editing.}
-
 When iteratively fitting a spectrum (see \S\ref{subsec:MCMC}), we continue to add line covariance kernels until we have covered all of the high amplitude residuals. Typically, we will add line kernels until all residuals greater than three times the amplitude of the global covariance kernel are covered. In a single order of an echelle spectrum, there may be $N$ regions of high covariance that are parameterized by several line kernels (Equation~\ref{eqn:line}), which we group into an aggregate parameter $\vtlines = \{\vtline{1}, \vtline{2}, \ldots, \vtline{N}\}$. Along with the global covariance parameters and Chebyshev parameters for this order, we call the collection of nuisance hyperparameters for a specific order  (e.g., order $1$) $\vtorder{1} = \{\vtcheb, \vtglobal, \vtlines\}$. Taken together, the aggregated nuisance parameters for all of the $N$ orders are stored in $\vtorders = \{\vtorder{1}, \vtorder{2}, \ldots, \vtorder{N} \}$.
 
-\todo{We can (should?) add an additional level to the hierarchy of
-  hyperparameters and add parameters to describe the \emph{population
-  characteristics} of poorly modeled spectral lines (mostly the typical width,
-  amplitude of these lines).  This will tell us about the frequency and
-distribution of spectral modelling errors.} We explicitly fit for the
+ We explicitly fit for the
 hyperparameters of the covariance kernels at the same time we fit for the
 stellar parameters. While including these extra parameters does increase the
 dimensionality and complexity of our model, they do provide several advantages.
@@ -631,6 +627,12 @@ this can feed into a discussion about tweaking models.
 \section{Discussion}
 \label{sec:discussion}
 
+We can (should?) add an additional level to the hierarchy of
+  hyperparameters and add parameters to describe the \emph{population
+  characteristics} of poorly modeled spectral lines (mostly the typical width,
+  amplitude of these lines).  This will tell us about the frequency and
+distribution of spectral modelling errors.
+
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -686,8 +688,9 @@ $k_{\rm line}$ & regional covariance kernel\\
 WASP-14 & 22-24 & 5060-5315 & Kurucz & 6310 & 52 & 3.91  & 0.08 & -0.38  & 0.03 & Poisson only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6314 & 50 & 3.92 & 0.08 & -0.39 & 0.03 & Matern only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6512 & 32 & \multicolumn{2}{c}{\nodata} & -0.27 & 0.02 & Matern + fixed $\log g = 4.29$\\
-WASP-14 & 23 & & PHOENIX & 6021 & 16 & 3.83 & 0.3 & -0.50 & 0.01 & Poisson only \\
-WASP-14 & 23 & & PHOENIX & & & & & & & Matern only, no regions \\
+WASP-14 & 23 & & PHOENIX & 6021 & 16 & 3.83 & 0.03 & -0.50 & 0.01 & Poisson only \\
+WASP-14 & 23 & & PHOENIX & 5965 & 70 & 3.78 & 0.09 & -0.68 & 0.07 & Matern only, no regions \\
+WASP-14 & 23 & & PHOENIX & & & & & & & Matern and regions \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 6117 & 30 & 3.73 & 0.06 & -0.52 & 0.02 & Poisson only \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 5865 & 43 & 3.2 & 0.08 & -0.85 & 0.03 & Matern only. Because of 24. \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Matern + fixed $\log g = 4.29$ \\
