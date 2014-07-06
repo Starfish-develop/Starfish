@@ -138,6 +138,7 @@ cdef class CovarianceMatrix:
     cdef GlobalCovarianceMatrix GCM
     cdef RegionList
     cdef current_region
+    cdef logPrior
 
     #Both sum_regions and partial_sum_regions are initially NULL pointers, and will be until
     #any elements in the RegionList have been declared.
@@ -161,6 +162,7 @@ cdef class CovarianceMatrix:
         self.fl = DataSpectrum.fls[self.order_index][mask]
         self.npoints = len(self.fl)
         self.logdet = 0.0
+        self.logPrior = 0.0 #neutral prior, reflects the sum of GlobalCovariance.logPrior and all region.logPrior's
 
         self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index,self.common)
         self.RegionList = []
@@ -190,6 +192,7 @@ cdef class CovarianceMatrix:
         '''
         self.GCM.update(params)
         self.update_factorization()
+        self.update_logPrior()
 
     def create_region(self, params):
         '''
@@ -242,6 +245,7 @@ cdef class CovarianceMatrix:
             #Because we are creating an extra, COPY the matrix
             self.sum_regions = cholmod_copy_sparse(get_A(region), self.c)
         self.update_factorization()
+        self.update_logPrior()
 
     def print_all_regions(self):
         string = ""
@@ -265,7 +269,6 @@ cdef class CovarianceMatrix:
         Update the sparse matrix that is the sum of all region matrices. Used before starting global
         covariance sampling.
         '''
-        #print("updating sum_regions")
         cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), self.c)
         cdef cholmod_sparse *temp
 
@@ -318,6 +321,13 @@ cdef class CovarianceMatrix:
                 coverage = temp_ind | coverage
 
             return coverage
+
+    def update_logPrior(self):
+        '''
+        Go through all of the regions in RegionList and sum together their logPrior along 
+        with the GlobalCovariance logPrior
+        '''
+        self.logPrior = self.GCM.logPrior + np.sum([region.get_prior() for region in self.RegionList])
 
     def update_factorization(self):
         '''
@@ -372,7 +382,7 @@ cdef class CovarianceMatrix:
 
         #logdet does not depend on the residuals, so it is pre-computed
         #evaluate lnprob with logdet and chi2
-        cdef double lnprob = -0.5 * (chi2(r, self.L, self.c) + self.logdet)
+        cdef double lnprob = -0.5 * (chi2(r, self.L, self.c) + self.logdet) + self.logPrior
 
         cholmod_free_dense(&r, self.c)
 
@@ -439,12 +449,14 @@ cdef class GlobalCovarianceMatrix:
     cdef double min_sep
     cdef npoints
     cdef amp
+    cdef logPrior
 
     def __init__(self, DataSpectrum, order_index, Common common):
         self.common = common
         self.c = <cholmod_common *>&self.common.c
         self.A = NULL
         self.amp = 1.0
+        self.logPrior = 0.0
 
         #mask wl
         mask = DataSpectrum.masks[order_index]
@@ -527,6 +539,7 @@ cdef class RegionCovarianceMatrix:
     cdef mu
     cdef sigma0
     cdef params
+    cdef logPrior #This is carried around with each CovarianceMatrix
 
     def __init__(self, DataSpectrum, order_index, params, Common common):
         self.common = common 
@@ -543,11 +556,11 @@ cdef class RegionCovarianceMatrix:
             self.wl[i] = wl[i]
 
         self.mu = params["mu"] #take the anchor point for reference?
-        self.sigma0 = 3.
+        self.sigma0 = 1.
+        self.logPrior = 0.0 #neutral prior
+        print("Created Region and logPrior is ", self.logPrior)
         self.update(params) #do the first initialization
         self.params = None
-
-
 
     def __dealloc__(self):
         print("Deallocating RegionCovarianceMatrix")
@@ -563,6 +576,20 @@ cdef class RegionCovarianceMatrix:
 
     def get_params(self):
         return self.params
+
+    def eval_prior(self, params):
+        '''
+        Define and evaluate the prior for a given set of parameters.
+        '''
+        #Use a ln(logistic) function on sigma, that is flat before 10km/s and dies off for anything greater
+        sigma = params['sigma']
+
+        lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
+        
+        self.logPrior = lnLogistic
+
+    def get_prior(self):
+        return self.logPrior
 
 
     def update(self, params):
@@ -592,6 +619,9 @@ cdef class RegionCovarianceMatrix:
 
         self.A = temp
         self.params = params
+        self.eval_prior(params)
+
+        
 
 #Run some profiling code to see what our bottlenecks might be.
 #With stock format
