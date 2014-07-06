@@ -24,7 +24,7 @@ stellar_params :
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 5
+    temp : 8
     logg : 0.02
     Z : 0.02
     vsini : 0.05
@@ -61,5 +61,5 @@ orders: [22]
 max_regions : 12
 
 #Burn in time
-burn_in : 2000
-samples : 2000
+burn_in : 4000
+samples : 4000
