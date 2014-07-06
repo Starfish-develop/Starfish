@@ -557,26 +557,31 @@ Once determined, this average covariance matrix could be delivered to the commun
 
 \subsection{Fitting data}
 
-To illustrate the performance of our technique, we use two datasets with varying properties. The first is a high-resolution optical spectrum of an F-star, WASP-14. The second is a moderate resolution, mid-infrared spectrum of Gl 51.
-
-WASP-14 is a metal-poor F star acquired with the \emph{TRES} instrument \citep{mink11} on the 1.5m telescope at FLWO. The data was previously analyzed in the context of transiting exoplanet hosts by \citet{torres12}. Automated reduction pipeline by Buchhave. Has XX S/N per resolution element in the \ion{Mg}{b} order ($\sim 5100$ \AA). 51 echelle orders spanning from XX to XX.
-
-Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. CITE (Rojas-Ayala) use the H20 -K index, defined over what wl range? We do this as well as more general tests.
+To demonstrate our technique, we fit spectra of two different stars with varying stellar properties and acquired with different instruments. The first object is WASP-14, an F5 star \citep{joshi09}. The spectrum was obtained with the Tillinghast Reflector Echelle Spectrograph (\emph{TRES}) \citep{mink11} on the FLWO 1.5m telescope on June 14th, 2009. \emph{TRES} delivers a 51 echelle spectrum spanning the full optical wavelength spectrum $3860 - 9100$ \AA\ at a resolution of $R \sim$ 44,000. \citet{torres12} acquired the spectrum of WASP-14 to study the stellar properties of transiting exoplanet hosts. The raw spectrum was reduced using the well-tested \emph{TRES} pipeline written by L. Buchhave. In the \ion{Mg}{0}b order ($\sim 5100$ \AA), the spectrum has a signal to noise of 150 per resolution element.
 
 The SPC analysis within \citet{torres12} focused on a region of spectrum from $5000 5300$ \AA and used many methods. The other methods are not directly comparable because they use different underlying assumptions. Additionally, there are systematics introduced by metallicity assumptions and radiative transfer. Using this same spectral library as SPC, we recover the same parameters.
 
-Describe the instruments. Describe when it was taken. Describe the noise properties, etc. Maybe a table might be worthwhile to describe the spectra. Here also describe the WASP-14 fit using the Kurucz spectra, using a fixed log g, and state that they are the same as Willie's paper. Talk about putting things in a Bayesian framework, using a sensitivity to a prior, to a $\delta$-function prior. Point out that this Bayesian approach allows you to do this.
+When we fit this spectrum using the same assumptions, (amounting to a $\delta$-function prior on $\log g$. global noise amplitude is so low, almost non-existent. This demonstrates sensitivity to a prior as well as the fact that surface gravity estimates from spectroscopy may be biased against fits derived from planetary transits.
+
+The second object is Gl 51, an M5 star. The spectrum was obtained with the \emph{SPEX} instrument at IRTF. The spectrum is at moderate resolution ($R \sim $ 2,000), mid-infrared spectrum from $0.7 - 5.5\mu$m. Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. \citep{rojas-ayala12} use the H20 -K index (defined over what wl range?). 
+
+A Bayesian approach allows you to explore sensitivity to prior assumptions.
 
 \subsection{Generic Tests}
 
 Designed to show off what the model framework can actually do. 
 
+\begin{figure*}[!htb]
+\begin{center}
+  \includegraphics[draft,width=0.9\textwidth,height=4in]{figs/spectrum_region.pdf}
+  \caption{The spectrum residuals and many random draws from the final covariance matrix showing how the uncertainty in the ``outlier'' lines is identified by the local covariance kernels.}
+\label{fig:regions}
+\end{center}
+\end{figure*}
+
 Talk about giving more reasonable errors using regions, in the biased case.
 Show a figure of the regions determined, plotted with the increased variance envelope over the residuals.
 
-\paragraph{Test 1}: Fitting with and without the global covariance kernel to show how the width of the posteriors nicely inflates to reasonable uncertainties.
-
-\paragraph{Test 2}: I think we should fit an optical spectrum of an F star (WASP-14) and a near-IR spectrum of an M star (Gl51). The WASP will be fit with both the Kurucz and PHOENIX spectra, while the M star will be fit with just the PHOENIX. This will show a few things
 \begin{itemize}
   \item Spectral parameters can vary by a large margin depending on which spectral library you use ($200~K$ or more).
   \item Both spectral libraries have stars that they perform better and worse on.
@@ -677,8 +682,8 @@ WASP-14 & 22-24 & 5060-5315 & Kurucz & 6310 & 52 & 3.91  & 0.08 & -0.38  & 0.03 
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6314 & 50 & 3.92 & 0.08 & -0.39 & 0.03 & Matern only\\
 WASP-14 & 22-24 & 5060-5315& Kurucz & 6512 & 32 & \multicolumn{2}{c}{\nodata} & -0.27 & 0.02 & Matern + fixed $\log g = 4.29$\\
 WASP-14 & 23 & & PHOENIX & 6021 & 16 & 3.83 & 0.03 & -0.50 & 0.01 & Poisson only \\
-WASP-14 & 23 & & PHOENIX & 5965 & 70 & 3.78 & 0.09 & -0.68 & 0.07 & Matern only, no regions \\
-WASP-14 & 23 & & PHOENIX & & & & & & & Matern and regions \\
+WASP-14 & 23 & & PHOENIX & 5965 & 70 & 3.78 & 0.09 & -0.68 & 0.07 & Matern only, no regions (conv?) \\
+WASP-14 & 23 & & PHOENIX & 5883 & 55 & 3.71 & 0.07 & -0.74 & 0.05 & Matern and regions (conv?) \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 6117 & 30 & 3.73 & 0.06 & -0.52 & 0.02 & Poisson only \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & 5865 & 43 & 3.2 & 0.08 & -0.85 & 0.03 & Matern only. Because of 24. \\
 WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Matern + fixed $\log g = 4.29$ \\
