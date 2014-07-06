@@ -318,6 +318,7 @@ how these issues are addressed in the practical implementation of $\vC$.
 
 
 \subsubsection{Global Covariance Structure}
+\label{subsec:global_covariance}
 
 Astronomical spectrographs are designed so that the detector over-samples the instrumental line 
 broadening function with at least a few pixels.  Therefore, adjacent pixels are never completely 
@@ -334,7 +335,7 @@ line width in this spectrum.
 \begin{center}
   \includegraphics{correlation_panel.pdf}
   \caption{\textbf{Top}: the big spectrum. \textbf{Left} The same low-amplitude, mildly covariant residuals from Figure~\ref{fig:badlines}, panel 0, but enlarged to show the mildly covariant structure produced by slight mismatch between the data and model spectra.   
-  \textbf{Right} The autocorrelation (Equation~\ref{eqn:autocorrelation}) of the residual sequence shown at left. Notice that there is significant correlation for offsets of $\lesssim 4$ pixels.}
+  \textbf{Right} The autocorrelation of the residual sequence shown at left. Notice that there is significant correlation for offsets of $\lesssim 4$ pixels.}
 \label{fig:class0}
 \end{center}
 \end{figure*}
@@ -374,6 +375,7 @@ $\nu = 3/2$,
 \begin{equation}
   \mathcal{K}_{\rm g}(\lambda_i, \lambda_j \, |\, a_{\rm g},\, \ell) = a_{\rm g} \left(1 + \frac{\sqrt{3}\, r_{ij}}{\ell} \right ) \exp 
    \left (- \frac{\sqrt{3}\, r_{ij}}{\ell} \right ),
+   \label{eqn:global}
 \end{equation}
 which is parameterized by an amplitude $a_g$ and scale $\ell$ and makes for a smooth transition to 
 negligible covariance at large $r$.  To ensure that $\vC$ remains a relatively sparse matrix that 
@@ -405,6 +407,7 @@ comparison.
 
 
 \subsubsection{Local Covariance Structure}
+\label{subsec:local_covariance}
 
 Aside from the global covariance structure described above, there are likely also local regions of 
 strong, highly correlated residuals that need to be treated in the modeling framework.  These large 
@@ -445,19 +448,8 @@ These local kernels can be further modified to account for more complex residual
 example, late-type stars with imperfectly modeled molecular bandheads may produce a complicated 
 pattern of positive and negative residuals or a pronounced mismatch over a relatively large 
 spectral scale.  This phenomenologically different local covariance behavior can still be treated 
-in this framework, if we permit the kernel in Eq.~\ref{eqn:klocal} to be modified by another 
-(stationary) function.  Here we assume that function is a squared exponential,
-\begin{equation}
-  \mathcal{S}_k(\lambda_i, \lambda_j |\, h_k) = \exp \left ( - \, \frac{r_{ij}^2}{2\,h_k^2}\right ),
-\end{equation}
-where $h_k$ is a bandwidth parameter; small $h_k$ generates high-frequency structure, and vice 
-versa.  The functionality of this kernel modification (where the appropriate kernel is now $w_k \, 
-\mathcal{S}_k \, \mathcal{K}_k$) is demonstrated for the worked example presented in Section 
-\ref{subsec:mdwarf}.  
-\comm{I have to admit that I do not really understand this very well.  I think some appropriate 
-figures in Sect 3.2 will really help, though, so I'll wait for that before decided whether or not 
-we need to change this part of the text.}
-
+in this framework, if we design an appropriate covariance kernel. Given the behavior of molecular bandheads, a \matern\ kernel tapered by the Gaussian kernel in Eq.~\ref{eqn:klocal} works well. 
+\todo{We'll need to round out the Gl 51 example in Sect 3.2 before this text is finished.}
 
 \subsubsection{Composite Covariance Matrix}
 
@@ -482,7 +474,7 @@ values are $b \approx 1.02$--1.10 for well-calibrated optical spectra; see Secti
 \begin{center}
 \includegraphics[width=0.4\textwidth]{figs/gauss_matrix.pdf}
 \includegraphics[width=0.4\textwidth]{figs/gauss_draw.pdf}
-\caption{\textbf{Left} A typical covariance matrix including the Gaussian line kernel (Equation~\ref{eqn:line_total}). The same global covariance shown in Figure~\ref{fig:matern} is still present with the same hyperparameters, however now there is an additional patch of high covariance corresponding to the large, Gaussian-shaped residuals. These larger elements in the covariance matrix effectively down-weight the contribution of a poorly modeled synthetic spectral line.
+\caption{\textbf{Left} A typical covariance matrix including the Gaussian line kernel (Equation~\ref{eqn:klocal}). The same global covariance shown in Figure~\ref{fig:matern} is still present with the same hyperparameters, however now there is an additional patch of high covariance corresponding to the large, Gaussian-shaped residuals. These larger elements in the covariance matrix effectively down-weight the contribution of a poorly modeled synthetic spectral line.
 \textbf{Right} The same spectroscopic residuals shown in Figure~\ref{fig:badlines}, class I, shown with three random draws from the covariance matrix. The random draws can take on a range of amplitudes--positive, negative, or even flat--because they are simply random draws that are described by the covariance matrix. The wide range of possible residual amplitudes match the structure and amplitude of the pixel residuals.}
 \label{fig:region}
 \end{center}
@@ -492,7 +484,7 @@ values are $b \approx 1.02$--1.10 for well-calibrated optical spectra; see Secti
 \subsection{Exploring the Posterior }
 \label{subsec:MCMC}
 
-When iteratively fitting a spectrum (see \S\ref{subsec:MCMC}), we continue to add line covariance kernels until we have covered all of the high amplitude residuals. Typically, we will add line kernels until all residuals greater than three times the amplitude of the global covariance kernel are covered. In a single order of an echelle spectrum, there may be $N$ regions of high covariance that are parameterized by several line kernels (Equation~\ref{eqn:line}), which we group into an aggregate parameter $\vtlines = \{\vtline{1}, \vtline{2}, \ldots, \vtline{N}\}$. Along with the global covariance parameters and Chebyshev parameters for this order, we call the collection of nuisance hyperparameters for a specific order  (e.g., order $1$) $\vtorder{1} = \{\vtcheb, \vtglobal, \vtlines\}$. Taken together, the aggregated nuisance parameters for all of the $N$ orders are stored in $\vtorders = \{\vtorder{1}, \vtorder{2}, \ldots, \vtorder{N} \}$.
+When iteratively fitting a spectrum (see \S\ref{subsec:MCMC}), we continue to add line covariance kernels until we have covered all of the high amplitude residuals. Typically, we will add line kernels until all residuals greater than three times the amplitude of the global covariance kernel are covered. In a single order of an echelle spectrum, there may be $N$ regions of high covariance that are parameterized by several line kernels (Equation~\ref{eqn:klocal}), which we group into an aggregate parameter $\vtlines = \{\vtline{1}, \vtline{2}, \ldots, \vtline{N}\}$. Along with the global covariance parameters and Chebyshev parameters for this order, we call the collection of nuisance hyperparameters for a specific order  (e.g., order $1$) $\vtorder{1} = \{\vtcheb, \vtglobal, \vtlines\}$. Taken together, the aggregated nuisance parameters for all of the $N$ orders are stored in $\vtorders = \{\vtorder{1}, \vtorder{2}, \ldots, \vtorder{N} \}$.
 
  We explicitly fit for the
 hyperparameters of the covariance kernels at the same time we fit for the
@@ -502,21 +494,18 @@ dimensionality and complexity of our model, they do provide several advantages.
 modeled. The covariance hyperparameters provide a framework to identify these
 regions iteratively and in a self-consistent manner. 
 
-The traditional practice method of dealing with spectral mismatch is to simply mask out the regions of the spectrum which do not agree to within a certain tolerance.  Rather than arbitrarily excluding regions of the spectrum from the fit, these regions should instead be incorporated into in the fit with the appropriate weight. A model that includes covariance is far more likely than forcing the synthetic spectrum to fit perfectly, and far more flexible than arbitrarily masking regions which do not fit. The fitting procedure allows these weights to be determined self-consistently, such that lines which are slightly wrong can still bring information to bear on the stellar parameters. In fact, it may be the case that the lines that are off by a small amount (class 0 and III lines in Figure~\ref{fig:badlines}) actually provide the \emph{most information} about the stellar parameters, precisely because these lines are the most sensitive to stellar structure and consequentially are the most difficult to model correctly.
+The traditional manner of dealing with spectral mismatch is to simply mask out the regions of the spectrum which do not agree to within a certain tolerance.  Rather than arbitrarily excluding regions of the spectrum from the fit, these regions should instead be incorporated into in the fit with the appropriate weight. A model that includes covariance is far more likely than forcing the synthetic spectrum to fit perfectly, and far more flexible than arbitrarily masking regions which do not fit. The fitting procedure allows these weights to be determined self-consistently, such that lines which are slightly wrong can still bring information to bear on the stellar parameters. In fact, for some types of stars with difficult-to-model spectra, it may be possible that the lines that are off by a small amount (class 0 and III lines in Figure~\ref{fig:badlines}) actually provide the \emph{most information} about the stellar parameters, precisely because these lines are the most sensitive to stellar structure and consequentially are the most difficult to model correctly.
 
-Another powerful benefit of including the covariance hyperparameters is the result of their ability to quantify and account for model-data mismatch. When a data spectrum is fit with a high-quality spectral library, the pixel residuals are less likely to be correlated, and the covariance structure will have a smaller amplitude and correlation length. This means that the inference on the stellar parameters will be more precise, in the same way that high quality data allows a more precise result. However, if the systematic mismatch between the data and model is large, then the hyperparameters will be larger and the precision of the stellar parameters will naturally inflate to respect the quality of model-data fit.
+Another powerful benefit of including the covariance hyperparameters is the result of their ability to quantify and account for model-data mismatch. When a data spectrum is fit with a high-quality spectral library, the pixel residuals are less likely to be correlated, and the covariance structure will have a smaller amplitude and correlation length. This means that the inference on the stellar parameters will be more precise, in the same way that high quality data allows a more precise result. However, if the systematic mismatch between the data and model is large, then the hyperparameters will be larger and the precision of the stellar parameters will naturally inflate to respect the quality of model-data fit. The benefits of using covariance hyperparameters also extend beyond the use case of fitting a single stellar spectrum. If we fit many stars with the same set of synthetic models, we can use the structure of the covariance matrix to improve the models themselves (see \S\ref{subsec:learning}).
 
-The benefits of using covariance hyperparameters extend beyond the use case of fitting a single stellar spectrum. If we fit many stars with the same set of synthetic models, we can use the structure of the covariance matrix to improve the models themselves (see \S\ref{subsec:learning}).
-
-
-We use a Markov chain Monte Carlo (MCMC) algorithm coupled to a Gibbs sampler to explore the posterior distribution (Equation~\ref{eqn:lnprob}). The MCMC routine efficiently explores a high dimensional probability space using a stochastic, iterative approach. The Gibbs sampler provides a way to easily sample a large number of parameters in a simple, organized manner by sampling only a subset of parameters at any given time, but then rotating among all of the subsets of parameters. For more on MCMC and Gibbs samplers see \citet[ch 11]{gelman13} and the references therein. 
+We use a Markov chain Monte Carlo (MCMC) algorithm coupled to a Gibbs sampler to explore the posterior distribution (Equation~\ref{eqn:lnprob}). The MCMC routine efficiently explores a high dimensional probability space using a stochastic, iterative approach. The Gibbs sampler provides a way to easily sample a large number of parameters in a simple, organized manner by sampling only a subset of parameters at any given time, but then rotating among all of the subsets of parameters. For more on MCMC and Gibbs samplers see \citet[Ch. 11]{gelman13} and the references therein. 
 
 In addition to the stellar parameters $\vtstar$, we have introduced several nuisance parameters for calibration and residual modeling. These nuisance parameters have a logical hierarchical structure. At the lowest level of the hierarchy, a single order of an echelle spectrum has $N$ regions of high covariance $\vtlines = \{\vtline{1}, \vtline{2}, \ldots, \vtline{N}\}$. If we wish to evaluate the probability of the parameters of a specific line (e.g., line $1$) conditional on the current values of all other lines, then we denote this by $p(\vt_{\textrm{line} = 1} | \vt_{\textrm{lines} \ne 1})$. The collection of nuisance parameters for a specific order  (e.g., order $1$) is the aggregate parameter $\vtorder{1} = \{\vtcheb, \vtglobal, \vtlines\}$. Taken together, the aggregated nuisance parameters for all of the $N$ orders are stored in $\vtorders = \{\vtorder{1}, \vtorder{2}, \ldots, \vtorder{N} \}$. Because the nuisance parameters for a single echelle order are independent from the nuisance parameters for any other echelle order, we have $p(\vt_{\textrm{order} = 1} | \vt_{\textrm{orders} \ne 1}) = p(\vt_{\textrm{order} = 1})$. 
 
 \begin{figure*}[!htb]
 \begin{center}
   \includegraphics[width=5in]{figs/stellar_triangle_Kurucz.png}
-  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev and noise parameters. Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
+  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\vT_{\rm cheb}$) and noise parameters ($\vT_{\rm cov}$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
 }
 \label{fig:stellar_posterior}
 \end{center}
@@ -524,17 +513,9 @@ In addition to the stellar parameters $\vtstar$, we have introduced several nuis
 
 \begin{figure*}[!htb]
 \begin{center}
-  \includegraphics[width=5in]{figs/stellar_triangle_WASP14_Kurucz.png}
-  \caption{The posterior probability function of the stellar parameters for WASP-14, logg fixed to match \citep{torres12}. Using three orders, Kurucz grid. Same assumptions.}
-\label{fig:stellar_posterior_logg}
-\end{center}
-\end{figure*}
-
-\begin{figure*}[!htb]
-\begin{center}
   \includegraphics[draft, width=3in, height=3in]{figs/global_posteriors.pdf}
   \includegraphics[draft, width=3in, height=3in]{figs/line_posteriors.pdf}
-  \caption{\textbf{Left}: The posterior probability function of the global covariance parameters, as explored by the MCMC Gibbs sampler, marginalized over the stellar and line noise parameters. \textbf{Right}: The posterior probability function of the line parameters, marginalized over the stellar and global noise parameters.}
+  \caption{\textbf{Left}: The posterior probability function of the global covariance parameters, as explored by the MCMC Gibbs sampler, marginalized over the stellar and line noise parameters. \textbf{Right}: The posterior probability function of the parameters for a single line kernel, marginalized over the stellar and global noise parameters.}
 \label{fig:noise_posterior}
 \end{center}
 \end{figure*}
@@ -546,23 +527,22 @@ The Gibbs sampler iteratively explores this hierarchy of parameters. At each lev
   \item For each order of the echelle spectrum
     \begin{enumerate}
       \item Sample in the Chebyshev polynomial parameters. Adjust the spectrum as detailed in \S\ref{subsec:postprocess}.Gibbs sampler evaluates $p(\vtcheb^{i} | \vtstar^{i}, \vtglobal^{i -1}, \vtlines^{i-1})$.
-      \item Sample in the global covariance parameters. Adjust the covariance matrix $C$ as described in \S\ref{subsec:covariance}. Gibbs sampler evaluates $p(\vtglobal^{i}| \vtstar^{i}, \vtcheb^{i}, \vtlines^{i -1})$.
+      \item Sample in the global covariance parameters. Adjust the covariance matrix $C$ as described in \S\ref{subsec:global_covariance}. Gibbs sampler evaluates $p(\vtglobal^{i}| \vtstar^{i}, \vtcheb^{i}, \vtlines^{i -1})$.
 
       \item Check to see whether the algorithm should instantiate/delete new/old line kernels
       \item For each line kernel $k$
 	\begin{enumerate}
-	  \item Sample in the parameters for each line, conditional on the parameters for all the other lines. Adjust the covariance matrix $C$ as described in \S\ref{subsec:covariance}. Gibbs sampler evaluates $p(\vtline{k}^i| \vt_{\textrm{lines}\ne k}^{i - 1})$.
+	  \item Sample in the parameters for each line, conditional on the parameters for all the other lines. Adjust the covariance matrix $C$ as described in \S\ref{subsec:local_covariance}. Gibbs sampler evaluates $p(\vtline{k}^i| \vt_{\textrm{lines}\ne k}^{i - 1})$.
 	\end{enumerate}
     \end{enumerate}
 \end{enumerate}
 
-At each stage of the Gibbs sampler, the likelihood function (Equation~\ref{eqn:lnprob}) is evaluated for a proposal of a particular subset of parameters, conditional on the current values of all the other parameters. This hierarchical parameter structure and the kernel parameterization of the covariance matrix influences how the algorithm may be efficiently implemented in code. For a typical optical spectrum with $\gtrsim$1,000 pixels, the most computationally intensive step of the likelihood evaluation is usually the matrix product $\fR^T C^{-1} \fR$. Since we have designed the covariance matrix to be sparse, we can use optimized sparse matrix algorithms which are much faster and memory efficient than dense matrix operations. Because we are not interested in the matrix inverse $C^{-1}$ by itself, but rather the product with the residual vectors, we can use efficient routines for solving linear systems to bypass the computationally difficult step of matrix inversion. Additionally, because the covariance matrix is positive semi-definite, we can use the Cholesky factorization of the matrix to optimize the evaluation of the matrix product. Once the covariance matrix is factorized, any subsequent evaluation of the matrix product for different residual vectors $\fR$ is extremely rapid. This makes the $\vtstar$ and $\vtcheb$ steps of the Gibbs sampler extremely fast.
-When we sample in the nuisance parameters which affect the covariance matrix, we must redo the Cholesky factorization of $C$ for each update. However, because we designed the kernels to deliver a sparse matrix these operations are efficient enough to be used with an MCMC algorithm.  We use the high-performance \texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}} library to implement the sparse matrix and Cholesky factorization operations \citep{chen08, davis09} and the Metropolis-Hastings sampler included in the \texttt{Python} MCMC package \texttt{emcee} \citep{foreman-mackey12}.
+At each stage of the Gibbs sampler, the likelihood function (Equation~\ref{eqn:lnprob}) is evaluated for a proposal of a particular subset of parameters, conditional on the current values of all the other parameters. The hierarchical structure of the parameters influences how the algorithm may be efficiently implemented in code. For a typical optical spectrum with $\gtrsim$1,000 pixels, the most computationally intensive step of the likelihood evaluation is usually the matrix product $\fR^T C^{-1} \fR$. Since we have designed the covariance matrix to be sparse, we can use optimized sparse matrix algorithms which are much faster and memory efficient than dense matrix operations. Because we are not interested in the matrix inverse $C^{-1}$ by itself, but rather the product with the residual vectors, we can use efficient routines for solving linear systems to bypass the computationally difficult step of matrix inversion. Additionally, because the covariance matrix is positive semi-definite, we can use the Cholesky factorization of the matrix to optimize the evaluation of the matrix product. Once the covariance matrix is factorized, any subsequent evaluation of the matrix product for different residual vectors $\fR$ is extremely rapid. This makes the $\vtstar$ and $\vtcheb$ steps of the Gibbs sampler extremely fast.
+When we sample in the nuisance parameters which affect the covariance matrix, we must redo the Cholesky factorization of $C$ for each update. However, because we designed the kernels to deliver a sparse matrix these operations are still moderately efficient.  We use the high-performance \texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}} library to implement the sparse matrix and Cholesky factorization operations \citep{chen08, davis09} and utilize the Metropolis-Hastings sampler included in the \texttt{Python} MCMC package \texttt{emcee} \citep{foreman-mackey12}.
 
 We run the MCMC Gibbs sampler for many iterations until the estimate of the posterior distribution has converged. To check that the chain is not stuck in a local maximum of the posterior, we redo the MCMC run many times with different starting parameters, to ensure that the algorithm converges to the same global maximum. A major advantage of using the MCMC algorithm to explore the multidimensional probability space is that it provides numerical samples in each dimension. Therefore, marginalizing out a parameter (i.e., numerically integrating over a dimension in probability space) is as simple as combining all of the samples in this dimension. This enables us to present a posterior of the stellar parameters $\vtstar$ (Figure~\ref{fig:stellar_posterior}) which has been marginalized over all of the nuisance hyperparameters. This posterior is the final estimate of the stellar parameters which \emph{incorporates} any inherent uncertainty due to model mismatch (via the covariance hyperparameters) and flux-calibration (via the Chebyshev polynomials).
 
-The benefit of including nuisance parameters and then marginalizing over them is that we can self-consistently model the uncertainty inherent to any spectrum while naturally capturing any degeneracy between the model parameters. If stellar parameters are estimated using a method which ignores these nuisance parameters (e.g., by-eye fitting) and then the astronomer arbitrarily inflates the parameter uncertainties to reflect intuition, the degeneracy between parameters is artificially destroyed. This leads to estimates of stellar parameters with more uncertainty than necessary. 
-\todo{Since this point is better carried with an example or test using the global covariance structure and not using it (see Test 1), we might want to defer this discussion to the testing section.}
+The benefit of including nuisance parameters and then marginalizing over them is that we can self-consistently model the uncertainty inherent to any spectrum while naturally capturing any degeneracy between the model parameters. If stellar parameters are estimated using a method which ignores these nuisance parameters (e.g., by-eye fitting) and the astronomer arbitrarily inflates the parameter uncertainties to reflect intuition, the degeneracy between parameters is artificially destroyed. 
 
 \subsection{Applications}
 \label{subsec:learning}
@@ -570,21 +550,29 @@ By cataloguing the covariance structure of the residuals, especially those gener
 
 Linking the covariance matrices of stars could be done serially, where the aggregate covariance matrix of all previous fits is used as a prior for the current iteration. Or, the covariance matrices could instead be linked hierarchically, in that the parameters describing the depth and width of a line residual for a specific star $a_1$ and $\sigma_1$, are modeled as coming from of a population of possible depths and widths for a given spectral type. Each stellar spectrum will have a slightly different realization of a spectral line, which will have some scatter about the average residual height. Linking the covariance matrix between spectra of similar stars allows us to grow more confident in our assessment that certain synthetic spectral lines are indeed outliers and should be appropriately down-weighted. In turn, as we become more certain of the weights, the stellar posteriors will become narrower and make our estimates of the stellar parameters more precise. This ability of the model to mutually inform sets of parameters is one of the major advantages of hierarchical Bayesian analysis \citep{kruschke10}.
 
-Once determined, this average covariance matrix could be delivered to the communities that created the synthetic libraries, which would enable them to rapidly pinpoint and correct defects in the synthetic models. \todo{more delicate phrasing?} Alternatively, we could correct the models ourselves by using the chain of logic and mathematical post-processing that we used to created the synthetic model spectrum to reverse-engineer what the behavior of the raw synthetic spectrum \emph{should} be, at the raw $R \gtrsim$~100,000 resolution. This fundamental application of machine learning would enable us to create our own library of semi-empirical stellar models. Rather than simply assembling an empirical spectral library using only real stellar spectra, this combined approach is more powerful because the stellar atmospheres provide an actual anchor point of fundamental stellar parameters tied down by the laws of stellar physics.
+Once determined, this average covariance matrix could be delivered to the communities that created the synthetic libraries, which would enable them to rapidly pinpoint and correct non-physical lines in the synthetic models. Alternatively, we could correct the models ourselves by using the chain of logic and mathematical post-processing that we used to created the synthetic model spectrum to reverse-engineer what the behavior of the raw synthetic spectrum \emph{should} be, at the raw $R \gtrsim$~100,000 resolution. This fundamental application of machine learning would enable us to create our own library of data driven, semi-empirical stellar models. Rather than simply assembling an empirical spectral library using only real stellar spectra, this combined approach is more powerful because the synthetic stellar atmospheres provide an actual anchor point of fundamental stellar parameters tied down by the laws of stellar physics.
 
-\section{Worked Examples}
+\section{Examples}
 \label{sec:examples}
-Here are some ideas of which tests we might want to show.
 
 \subsection{Fitting data}
 
-[This may need to be eventually moved to \S2, but here it is for now] Cite papers that acquired the data. Describe the instruments. Describe when it was taken. Describe the noise properties, etc. Maybe a table might be worthwhile to describe the spectra. Here also describe the WASP-14 fit using the Kurucz spectra, using a fixed log g, and state that they are the same as Willie's paper. Talk about putting things in a Bayesian framework, using a sensitivity to a prior, to a $\delta$-function prior. Point out that this Bayesian approach allows you to do this.
+To illustrate the performance of our technique, we use two datasets with varying properties. The first is a high-resolution optical spectrum of an F-star, WASP-14. The second is a moderate resolution, mid-infrared spectrum of Gl 51.
+
+WASP-14 is a metal-poor F star acquired with the \emph{TRES} instrument \citep{mink11} on the 1.5m telescope at FLWO. The data was previously analyzed in the context of transiting exoplanet hosts by \citet{torres12}. Automated reduction pipeline by Buchhave. Has XX S/N per resolution element in the \ion{Mg}{b} order ($\sim 5100$ \AA). 51 echelle orders spanning from XX to XX.
+
+Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. CITE (Rojas-Ayala) use the H20 -K index, defined over what wl range? We do this as well as more general tests.
+
+The SPC analysis within \citet{torres12} focused on a region of spectrum from $5000 5300$ \AA and used many methods. The other methods are not directly comparable because they use different underlying assumptions. Additionally, there are systematics introduced by metallicity assumptions and radiative transfer. Using this same spectral library as SPC, we recover the same parameters.
+
+Describe the instruments. Describe when it was taken. Describe the noise properties, etc. Maybe a table might be worthwhile to describe the spectra. Here also describe the WASP-14 fit using the Kurucz spectra, using a fixed log g, and state that they are the same as Willie's paper. Talk about putting things in a Bayesian framework, using a sensitivity to a prior, to a $\delta$-function prior. Point out that this Bayesian approach allows you to do this.
 
 \subsection{Generic Tests}
 
 Designed to show off what the model framework can actually do. 
 
 Talk about giving more reasonable errors using regions, in the biased case.
+Show a figure of the regions determined, plotted with the increased variance envelope over the residuals.
 
 \paragraph{Test 1}: Fitting with and without the global covariance kernel to show how the width of the posteriors nicely inflates to reasonable uncertainties.
 
