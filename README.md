@@ -176,7 +176,7 @@ Then, the install command is
 * Extend HDF5cat to chebyshev and global cov
 * Later extend to sorting regions?
 
-* how to find autocorrelation time of a single chain?
+* use ACOR to find autocorrelation time (or MH.acor)
 * do Gelman-Rubin statistic of many chains?
 
 
@@ -186,25 +186,9 @@ From the testing, it seems like using the Matern kernel really doesn't do much. 
 it frees up some extra space, but it doesn't really free you from *bias*, which is what is important. Instead,
 it is the line identifications and downweighting that should be used.
 
-Work on perfecting regions
-
-Interestingly, Kurucz with the covariant structure and without the covariant structure look exactly the same. Is this
- because the noise is so low? What do the residuals look like?  LogAmp = -14.56. Actual residuals are at what scale?
-
-Tests are interesting. In some sense, the Matern kernel really doesn't matter all that much. Its allows the error
-bars to inflate. In many cases, the identifying and tracking bad lines is the more important behavior.
-
-
-Does this same behavior happen with the PHOENIX spectra? Running tests to find out.
-
-
 # Gl51
 
 * logg fixed to 5.0, low polynomial
-
-* to do a no global, save `base_lnprob` as `no_global`
-
-* can we tune the cadences somehow?
 
 ## working test with IRTF spex M dwarf
 
@@ -220,20 +204,13 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 ## Regions
 
-The regions need priors on sigma being < 15 km/s, and keeping mu to within something of 1AA or some w/ in velocity
-space.
+Mask WASP14 order 23 by hand and see what PHOENIX gives.
 
 Where do we put these priors? Can each region have a value, log_prior, that it carries around with it,
 and is summed during the CovarianceMatrix.evaluate() step?
 
 order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
- ~ 5800. You can't be sure if it's burned in or not, but basically this isn't a good order to test things on. I think
-  we'll have to try this with a different order, perhaps order 23.
-
-* Let's try to get a well-converged spectrum for WASP-14, order 23, PHOENIX
-    ie, all 12 bad "regions" are properly instantiated
-* keep an anchor on mu that makes sense relative to the PSF, +/- 3 ang for TRES is way too big. Need something for
-    SPEX.
+ ~ 5800.
 
 * use flot annotations to mark a vertical line on the graph
 
