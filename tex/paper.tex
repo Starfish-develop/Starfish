@@ -551,15 +551,16 @@ Given the logical hierarchical structure of the collection of stellar and nuisan
 The following procedure illustrates how the Gibbs sampler rotates among subsets of the parameters when sampling a multi-order echelle spectrum. We use superscripts to denote iterations of the MCMC algorithm, where $j$ denotes the parameters from the current iteration and $j - 1$ denotes the previous iteration.
 
 \begin{enumerate}
-  \item Choose starting parameters for $\allParameters^0$. Generally, these will be $\stellarParameters$ drawn from the literature, flat Chebyshev polynomials ($\Cheb$), and only Poisson noise ($\Cov$). 
-  \item Start a new iteration of the Gibbs sampler with the parameters of the current proposal denoted with the superscript $j$ and the previous iteration denoted by $j-1$. 
+  \item Choose starting parameters for $\allParameters^0$. Generally, these will be $\stellarParameters^0$ drawn from the literature, flat Chebyshev polynomials ($\Cheb^0$), and only Poisson noise ($\Cov^0$). 
+  \item Start a new iteration of the Gibbs sampler with the parameters of the current proposal denoted with the superscript $j$ and the previous iteration denoted by $j-1$. If this is the first iteration of the Gibbs sampler, then $j - 1 = 0$.
   \item Sample the stellar parameters $p(\stellarParameters^j | \Cheb^{j-1}, \Cov^{j-1})$. 
   \item For each order of the echelle spectrum, $i$
     \begin{enumerate}
-      \item Sample the Chebyshev polynomial parameters $p(\chebi{i}^j | \Chebi{i}^{j-1}, \stellarParameters^j, \Cov^{j-1} )$
+      \item Sample the Chebyshev polynomial parameters $p(\chebi{i}^j | \stellarParameters^j, \covi{i}^{j-1} )$
       \item Check to see whether the algorithm should instantiate/delete new/old local kernels
-      \item Sample the covariance parameters $p(\covi{i}^j | \Covi{i}^{j-1}, \stellarParameters^j, \Cheb^{j-1})$ 
+      \item Sample the covariance parameters $p(\covi{i}^j | \stellarParameters^j, \chebi{i}^{j})$ 
     \end{enumerate}
+  after step 4 is completed, all Chebyshev and covariance parameters have been updated: $\Cheb^{j-1} \rightarrow \Cheb^j$ and $\Cov^{j-1} \rightarrow \Cov^j$
     \item return to step 2 until Markov Chain is converged
 \end{enumerate}
 
