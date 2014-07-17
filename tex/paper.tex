@@ -1,5 +1,5 @@
-%\documentclass[preprint]{aastex} 
-\documentclass[iop,floatfix]{emulateapj} 
+\documentclass[preprint]{aastex} 
+%\documentclass[iop,floatfix]{emulateapj} 
 
 \usepackage[breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
 \usepackage{graphicx}
@@ -20,22 +20,6 @@
 
 \newcommand{\kms}{ \textrm{km s}^{-1} }
 
-%\vt stands for ``vector theta''
-\newcommand{\vt}{ {\bm \theta}}
-\newcommand{\vT}{ {\bm \Theta}}
-\newcommand{\vg}{\vt_{\star, {\rm grid}}}
-\newcommand{\vpp}{\vt_{\star, {\rm post}}}
-\newcommand{\finst}{f_{\lambda, {\rm inst}}}
-\newcommand{\fsynth}{f_{\lambda, {\rm synth}}}
-\newcommand{\vN}{\vt_{\rm N}}
-\newcommand{\vtstar}{\vt_{\star}}
-\newcommand{\vtcheb}{\vt_{\rm Cheb}}
-\newcommand{\vtglobal}{\vt_{\rm global}}
-\newcommand{\vtorder}[1]{\vt_{{\rm order}_{#1}}}
-\newcommand{\vtorders}{\vt_{\rm orders}}
-\newcommand{\vtline}[1]{\vt_{{\rm line}_{#1}}}
-\newcommand{\vtlines}{\vt_{\rm lines}}
-\newcommand{\vtcov}{\vt_{\rm cov}}
 \newcommand{\vM}{\mathsf{M}}
 \newcommand{\vD}{\mathsf{D}}
 \newcommand{\vR}{\mathsf{R}}
@@ -89,15 +73,6 @@ grid}}
 
 \newcommand{\todo}[1]{ \textcolor{blue}{\\TODO: #1}}
 \newcommand{\comm}[1]{ \textcolor{red}{SA: #1}}
-
-
-\newcommand{\vtcheb}{\vt_{\rm Cheb}}
-\newcommand{\vtglobal}{\vt_{\rm global}}
-\newcommand{\vtorder}[1]{\vt_{{\rm order}_{#1}}}
-\newcommand{\vtorders}{\vt_{\rm orders}}
-\newcommand{\vtline}[1]{\vt_{{\rm line}_{#1}}}
-\newcommand{\vtlines}{\vt_{\rm lines}}
-\newcommand{\vtcov}{\vt_{\rm cov}}
 
 \shorttitle{Spectroscopic inference}
 \shortauthors{Czekala et al.}
@@ -606,9 +581,6 @@ If the spectrum contains multiple spectral orders, then the total log-likelihood
 
 \subsection{Exploring the Posterior} \label{subsec:MCMC}
 
-\subsection{Exploring the Posterior }
-\label{subsec:MCMC}
-
 Using Bayes' rule, we write down the posterior probability distribution as proportional to the likelihood times the prior
 \begin{equation}
   p(\allParameters | \vD) =  p(\stellarParameters, \Cheb, \Cov | \vD ) \propto p(\vD | \allParameters) p(\allParameters).
@@ -618,16 +590,11 @@ Given the logical hierarchical structure of the collection of stellar and nuisan
 \begin{figure*}[!htb]
 \begin{center}
   \includegraphics[width=5in]{figs/stellar_triangle_Kurucz.png}
-  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\vT_{\rm cheb}$) and noise parameters ($\vT_{\rm cov}$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
+  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\Cheb$) and noise parameters ($\Cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
 }
 \label{fig:stellar_posterior}
 \end{center}
 \end{figure*}
-
-To explore the posterior probability distribution and make inferences on the parameters of 
-interest, we employ a hierarchical Monte Carlo Markov Chain (MCMC) approach that nests the standard 
-Metropolis-Hastings algorithm (for sampling the parameters $\vt$) inside the Gibbs sampler (which 
-rotates through subsets of the hyper-parameters $\vT$).  
 
 The following procedure illustrates how the Gibbs sampler rotates among subsets of the parameters when sampling a multi-order echelle spectrum. We use superscripts to denote iterations of the MCMC algorithm, where $j$ denotes the parameters from the current iteration and $j - 1$ denotes the previous iteration.
 
@@ -761,7 +728,6 @@ distribution of spectral modelling errors.
   \colhead{Symbol} & \colhead{Description}
 }
 \startdata
-$i$ & index specifying a pixel\\
 $\lambda_i$ & wavelength corresponding to a given pixel $i$\\
 $\fundamentalParameters$ & fundamental stellar parameters, $T_{\rm eff}, \log(g), \Z, \A$\\
 $\gridParameters$ & stellar parameters that specify a spectrum from a synthetic library\\
