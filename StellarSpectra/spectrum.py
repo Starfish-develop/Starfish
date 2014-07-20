@@ -1437,7 +1437,6 @@ class ChebyshevSpectrum:
         '''
         Given a dictionary of coefs, create a k array to multiply against model fls
         '''
-        print("params are ", params)
 
         #Fix the last order c0 to 1.
         if self.fix_c0:

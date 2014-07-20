@@ -154,11 +154,11 @@ for i in range(len(config['orders'])):
     samplerList.append(CovGlobalSampler(myModel, cov_MH_cov, cov_Starting, order_index=i, outdir=outdir))
     samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'],
                     default_param_dict=region_Starting, order_index=i, outdir=outdir))
-    cadenceList += [6, 6, 2]
+    cadenceList += [1, 1, 1]
     # cadenceList += [6, 2]
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
-                        burnInCadence=[10] + cadenceList, cadence=[10] + cadenceList)
+                        burnInCadence=[1] + cadenceList, cadence=[1] + cadenceList)
 
 def main():
     mySampler.burn_in(config["burn_in"])
@@ -166,6 +166,7 @@ def main():
 
     mySampler.run(config["samples"])
     mySampler.acceptance_fraction()
+    mySampler.acor()
     myModel.to_json("model_final.json")
     mySampler.write()
     mySampler.plot()
