@@ -198,16 +198,10 @@ This will tell us what the residuals actually look like, which is important for 
 
 In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, since that looks more ragged.
 
-# Priors on the parameters
-
-* Chebyshev's in particular
-
 ## Regions
 
-Mask WASP14 order 23 by hand and see what PHOENIX gives.
-
-Where do we put these priors? Can each region have a value, log_prior, that it carries around with it,
-and is summed during the CovarianceMatrix.evaluate() step?
+Run Masked order 23
+Run order 23 with regions, and plot their locations
 
 order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
  ~ 5800.
@@ -232,6 +226,8 @@ simple Gaussian envelope (high + low) superimposed where line is? (Filled areas 
 
 add logic to be destroyed when current value of amplitude goes below the global kernel
 
+What if, instead of creating/destroying regions, we keep the number fixed after the burn in period?
+
 Good figure for paper will be a figure similar to fig 3 (correlations panel) for the regions. It will show the
 envelope (random draws) of the spectral line kernel around the strong residual.
 
@@ -242,7 +238,6 @@ Masks do not play well when instantiating regions. It's probably because of a le
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 
-
 #Alternate sampling stratagies
 
 * In theory, if this step is slow, we could sample all of the parameters, for all of the regions (and all of the
@@ -252,14 +247,7 @@ Masks do not play well when instantiating regions. It's probably because of a le
 * alternatively, for each region, it might be possible to actually isolate the exact chunk that we are sub-sampling.
 Although I have a feeling this won't be all that much faster anyway.
 
-After converging the global and stellar parameters, we could switch entirely to sampling the hyperparameters. Or
-sample them less frequently. I suppose the point is simply to track how they evolve.
-This is why reading in a couple different model.json files to visualize the current state of things might be helpful.
-
-
 ## text in paper
-
-* redo the FFT/convolve section to include references to FFT and overlap-add, overlap-save. Note that these are actually corrections to the convolved spectra.
 
 * text for section 3, testing
 
@@ -289,10 +277,6 @@ Using `flot`,
 
 # Covariance kernels and line logic
 
-* convert covariance function to work on delta velocity instead of wavelength difference
-
-* convert kernel to run without `h`, or `h` fixed to zero. Maybe `george` has a smart way of encoding kernels with an arbitrary amount of parameters.
-
 * Is it a problem when the sigma's overlap? Can we do the tapering better?
 
 Cleanup logic: make some assertion that the amplitude of the region can't be less than the global covariance height? If it ever makes it to this part of parameter space, remove the region?
@@ -319,9 +303,6 @@ Or, should we actually be sampling in log of c0, and ensure that the mean of c0 
 Right now we are setting the last order to have logc0 = 0.0
 
 * If a function requires a parameter and it's not in the parameter list, it looks up the default value.
-
-* There should be a way to output all of the parameters into one global chain (thinned), but respecting the covariance
-  between parameters and hyperparameters, if there are any.
 
 * Introduce PSF width as a parameter that we can sample in. This would be a *correction* to the Gaussian pre-convoved
 grid, which is done at something smaller that we would ever go to, for example 6.0 km/s for TRES.

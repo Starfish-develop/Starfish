@@ -23,6 +23,8 @@ parser.add_argument("--clobber", action="store_true", help="Overwrite existing o
 parser.add_argument("-t", "--triangle", action="store_true", help="Make a triangle (staircase) plot of the parameters.")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
 
+parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this factor. E.g., --thin 100 will take "
+                                                        "every 100th sample.")
 parser.add_argument("--stellar_params", nargs="*", default="all", help="A list of which stellar parameters to plot, "
                                                                     "separated by WHITESPACE. Default is to plot all.")
 args = parser.parse_args()
@@ -47,12 +49,16 @@ hdf5 = h5py.File(args.HDF5file, "r")
 
 #Load stellar samples and parameters
 stellar = hdf5.get("stellar")
+
 if stellar is None:
     sys.exit("HDF5 file contains no stellar samples.")
 
 #Determine which parameters we want to plot from --stellar-params
 stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
+
+print("Thinning by ", args.thin)
+stellar = stellar[::args.thin]
 
 if args.stellar_params == "all":
     stellar_params = stellar_tuple

@@ -468,18 +468,18 @@ class Sampler:
     def run(self, iterations):
         if iterations == 0:
             return
-        print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations))
+        #print("Sampling {} for {} iterations: ".format(self.param_tuple, iterations))
         t = time.time()
 
         if self.pos_trio is None:
             self.pos_trio = self.sampler.run_mcmc(self.p0, iterations)
 
         else:
-            print("running for {} iterations".format(iterations))
+            #print("running for {} iteration(s)".format(iterations))
             pos, prob, state = self.pos_trio
             self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
 
-        print("completed in {:.2f} seconds".format(time.time() - t))
+        #print("completed in {:.2f} seconds".format(time.time() - t))
 
     def burn_in(self, iterations):
         '''
@@ -520,6 +520,7 @@ class Sampler:
         dset[:] = samples
         dset.attrs["parameters"] = "{}".format(self.param_tuple)
         dset.attrs["acceptance"] = "{}".format(self.sampler.acceptance_fraction)
+        dset.attrs["acor"] = "{}".format(self.sampler.acor)
 
         hdf5.close()
 
@@ -538,10 +539,11 @@ class Sampler:
         plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
         plt.close(figure)
 
-
-
     def acceptance_fraction(self):
         return self.sampler.acceptance_fraction
+
+    def acor(self):
+        return self.sampler.acor
 
 class StellarSampler(Sampler):
     '''
@@ -592,7 +594,7 @@ class ChebSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
-        print("params are", params)
+        print("Cheb params are", params)
         self.order_model.update_Cheb(params)
         return self.order_model.evaluate()
 
@@ -613,6 +615,7 @@ class CovGlobalSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
+        print("Cov params are", params)
         # if params["l"] > 1:
         #     return -np.inf
         try:
@@ -742,6 +745,10 @@ class RegionsSampler:
         for j in range(len(self.samplers)):
             print(self.samplers[j].acceptance_fraction())
 
+    def acor(self):
+        for j in range(len(self.samplers)):
+            print(self.samplers[j].acor())
+
 class MegaSampler:
     '''
     One Sampler to rule them all
@@ -796,6 +803,10 @@ class MegaSampler:
     def acceptance_fraction(self):
         for j in range(self.nsamplers):
             print(self.samplers[j].acceptance_fraction())
+
+    def acor(self):
+        for j in range(self.nsamplers):
+            print(self.samplers[j].acor())
 
 
 def main():
