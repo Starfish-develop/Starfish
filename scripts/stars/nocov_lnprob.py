@@ -48,6 +48,10 @@ def perturb(startingDict, jumpDict, factor=3.):
 
 
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
+#Load mask and add it to DataSpectrum
+#mask = np.load("data/WASP14/WASP14_23.mask.npy")
+#myDataSpectrum.add_mask(np.atleast_2d(mask))
+
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
@@ -56,25 +60,6 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 #go for each item in stellar_tuple, and assign the appropriate covariance to it
 stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
                  * np.identity(len(stellar_Starting))
-
-#Tuning the correlations should depend on how the models were normalized, right?
-
-#Attempt at updating specific correlations
-# #Temp/Logg correlation
-# temp_logg = 0.2 * np.sqrt(0.01 * 0.001)
-# stellar_MH_cov[0, 1] = temp_logg
-# stellar_MH_cov[1, 0] = temp_logg
-#
-# #Temp/logOmega correlation
-# temp_logOmega = - 0.9 * np.sqrt(stellar_MH_cov[0,0] * stellar_MH_cov[5,5])
-# stellar_MH_cov[0, 5] = temp_logOmega
-# stellar_MH_cov[5, 0] = temp_logOmega
-
-#We could make a function which takes the two positions of the parameters (0, 5) and then updates the covariance
-#based upon a rho we feed it.
-
-#We could test to see if these jumps are being executed in the right direction by checking to see what the 2D pairwise
-# chain positions look like
 
 cheb_degree = config['cheb_degree']
 cheb_MH_cov = float(config["cheb_jump"])**2 * np.identity(cheb_degree)
@@ -134,16 +119,15 @@ except KeyError:
 myStellarSampler = StellarSampler(myModel, stellar_MH_cov, stellar_Starting, fix_logg=fix_logg,
                                   outdir=outdir)
 
-#Create the three subsamplers for each order
+#Create the subsamplers for each order
 samplerList = []
 cadenceList = []
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(myModel, cheb_MH_cov, cheb_Starting, order_index=i, outdir=outdir))
-    cadenceList += [6]
-    # cadenceList += [6, 2]
+    cadenceList += [1]
 
 mySampler = MegaSampler(myModel, samplers=[myStellarSampler] + samplerList,
-                        burnInCadence=[10] + cadenceList, cadence=[10] + cadenceList)
+                        burnInCadence=[1] + cadenceList, cadence=[1] + cadenceList)
 
 def main():
     mySampler.burn_in(config["burn_in"])
@@ -151,6 +135,7 @@ def main():
 
     mySampler.run(config["samples"])
     mySampler.acceptance_fraction()
+    mySampler.acor()
     myModel.to_json("model_final.json")
     mySampler.write()
     mySampler.plot()
