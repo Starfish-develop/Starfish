@@ -521,6 +521,7 @@ class Sampler:
         dset.attrs["parameters"] = "{}".format(self.param_tuple)
         dset.attrs["acceptance"] = "{}".format(self.sampler.acceptance_fraction)
         dset.attrs["acor"] = "{}".format(self.sampler.acor)
+        dset.attrs["commit"] = "{}".format(C.get_git_commit())
 
         hdf5.close()
 

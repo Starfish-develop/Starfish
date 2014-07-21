@@ -141,3 +141,19 @@ class RegionError(Exception):
     '''
     def __init__(self, msg):
         self.msg = msg
+
+
+def get_git_commit():
+    '''
+    Return the git branch and commit as a string
+    '''
+
+    #Figure out what the relative path is to base
+    import StellarSpectra, subprocess
+    base = StellarSpectra.__file__[:-26]
+    gitbase = base + "/.git"
+
+    proc = subprocess.Popen(["git", "--git-dir={}".format(gitbase), "--work-tree={}".format(base), "log", "-1",
+                            "--date=short", "--oneline"], stdout=subprocess.PIPE)
+    out, err = proc.communicate()
+    return out.decode('UTF-8')

@@ -2,8 +2,8 @@
 
 name: WASP14/PHOENIX/22/nocov/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -13,8 +13,8 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6030
-    logg : 3.8
+    temp : 6028
+    logg : 3.82
     Z : -0.5
     vsini : 5.4
     #vz : 15.4
@@ -24,7 +24,7 @@ stellar_params :
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 0.02
+    temp : 0.5
     logg : 0.002
     Z : 0.002
     vsini : 0.01
@@ -42,5 +42,5 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 30000
-samples : 300000
+burn_in : 300
+samples : 300
