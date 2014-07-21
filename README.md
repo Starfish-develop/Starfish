@@ -186,6 +186,10 @@ From the testing, it seems like using the Matern kernel really doesn't do much. 
 it frees up some extra space, but it doesn't really free you from *bias*, which is what is important. Instead,
 it is the line identifications and downweighting that should be used.
 
+Something weird is really going on with the acceptance of the no-covariance sampler at the moment. I have runs on
+Odyssey that seem to point to large error bars. Now, when I do this here it seems like it isn't working. What's the
+deal? Is it that I am using a homebrew emcee? Am I switching parameters in the wrong way?
+
 # Gl51
 
 * logg fixed to 5.0, low polynomial
@@ -202,6 +206,9 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 Run Masked order 23
 Run order 23 with regions, and plot their locations
+
+I think I am coming to the conclusion that the former, larger error result might have been just because the chain was
+ not burned in. Also, that this current, new chain with the rotating sampler is not burned in either.
 
 order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
  ~ 5800.
