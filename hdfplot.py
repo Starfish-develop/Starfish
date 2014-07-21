@@ -22,6 +22,8 @@ parser.add_argument("--clobber", action="store_true", help="Overwrite existing o
 
 parser.add_argument("-t", "--triangle", action="store_true", help="Make a triangle (staircase) plot of the parameters.")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
+parser.add_argument("--acor", action="store_true", help="Calculate the autocorrelation of the chain")
+parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
 parser.add_argument("--burn", type=int, default=0, help="How many samples to discard from the beginning of the chain "
                                                         "for burn in.")
@@ -31,7 +33,7 @@ parser.add_argument("--stellar_params", nargs="*", default="all", help="A list o
                                                                     "separated by WHITESPACE. Default is to plot all.")
 args = parser.parse_args()
 
-#Check for c1, c2, ...
+
 
 #Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
 if os.path.exists(args.outdir):
@@ -90,17 +92,20 @@ if args.triangle:
 # plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
 # plt.close(figure)
 
-
-orderList = [int(key) for key in hdf5.keys() if key != "stellar"] #The remaining folders in the HDF5 file are order nums
-
-
-
-
-
-
 #Determine how many orders there are
 
-    #Determine how many regions there are
+#Determine how many regions there are
+orderList = [int(key) for key in hdf5.keys() if key != "stellar"] #The remaining folders in the HDF5 file are order nums
+print("orders remaining", orderList)
+
+if args.acor:
+    from emcee import autocorr
+    print("Stellar Autocorrelation")
+    acors = autocorr.integrated_time(stellar, axis=0, window=args.acor_window)
+    for param,acor in zip(stellar_tuple, acors):
+        print("{} : {}".format(param, acor))
+
+
 
 
 
