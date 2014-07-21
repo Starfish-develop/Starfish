@@ -176,9 +176,22 @@ Then, the install command is
 * Extend HDF5cat to chebyshev and global cov
 * Later extend to sorting regions?
 
-* use ACOR to find autocorrelation time (or MH.acor)
 * do Gelman-Rubin statistic of many chains?
 
+
+# Procedure for doing a run on Odyssey
+
+1.) Fill out input.yaml file. Include COMMENTS about why you are doing this run, which lnprob you are using.
+2.) Modify or create a run.sh file on Odyssey
+
+After the run is done:
+If you are not going to save the run, DELETE the output directories from Odyssey to keep things less confusing.
+
+If you are going to save the run:
+3.) mv the output directory to a more memorable name, preferably with the date in the folder
+ eg., WASP14/PHOENIX/22/2014-07-22/
+4.) COPY the run.sh script that you used to launch the SLURM job to this folder
+5.) ADD an entry to the google doc with the parameter values and location of the output.
 
 # List of tests
 
@@ -192,7 +205,26 @@ it is the line identifications and downweighting that should be used.
 
 ## working test with IRTF spex M dwarf
 
-* What regions of the spectrum did Rojas-Ayala actually use? We should be limiting ourselves to just these regions.
+# Rojas-Ayala regions
+
+Section 3, table 2:
+Equivalent widths, spanning the range:
+Na I 2.2020 - 2.2120 micron
+Ca I 2.2580 - 2.2690 micron
+
+H20-K index
+  <F(2.070 - 2.090)>/<F(2.235 - 2.255)>
+= -------------------------------------
+  <F(2.235 - 2.255)>/<F(2.360 - 2.380)>
+
+So, if we want to use all of the wavelengths, we should only include
+2.070 - 2.090
+2.235 - 2.255
+2.360 - 2.380
+
+So, let's try two things.
+1) fit 2.202 - 2.380, one continuous polynomial
+2) fit 2.202 - 2.380, mask to only include the lines
 
 This will tell us what the residuals actually look like, which is important for developing a kernel to track them.
 
@@ -202,6 +234,9 @@ In this case, I think it's worthwhile to use a Gaussian-tapered Matern kernel, s
 
 Run Masked order 23
 Run order 23 with regions, and plot their locations
+
+I think I am coming to the conclusion that the former, larger error result might have been just because the chain was
+ not burned in. Also, that this current, new chain with the rotating sampler is not burned in either.
 
 order 24 is just ridiculous. When you mask these regions you get a very low answer (Z ~ 0.93) and logg ~ 2.7 and temp
  ~ 5800.
@@ -246,6 +281,15 @@ Masks do not play well when instantiating regions. It's probably because of a le
 
 * alternatively, for each region, it might be possible to actually isolate the exact chunk that we are sub-sampling.
 Although I have a feeling this won't be all that much faster anyway.
+
+* When doing alternate Gibbs sampling, we have to be careful about storing the lnprob from the previous iteration.
+Since if you change the cheb parameters, then on the next iteration the previous lnprob will be stale. Why, then,
+did the old emcee give such a low acceptance rate when using the same jump sizes as before? We'll have to rethink the
+ sampler orders. Can we just pass the new probability (lnprob0) to run_mcmc? What is actually changing in each step? Be
+ more explicit.
+
+ So, we can either go back to the vanilla version of emcee, or, we can think about exactly in which order the
+ parameters are being updated and then we can stick to that order of iteration.
 
 ## text in paper
 

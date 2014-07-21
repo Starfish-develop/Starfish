@@ -521,6 +521,7 @@ class Sampler:
         dset.attrs["parameters"] = "{}".format(self.param_tuple)
         dset.attrs["acceptance"] = "{}".format(self.sampler.acceptance_fraction)
         dset.attrs["acor"] = "{}".format(self.sampler.acor)
+        dset.attrs["commit"] = "{}".format(C.get_git_commit())
 
         hdf5.close()
 
@@ -567,7 +568,9 @@ class StellarSampler(Sampler):
         try:
             self.model.update_Model(params) #This also updates downsampled_fls
             #For order in myModel, do evaluate, and sum the results.
-            return self.model.evaluate()
+            lnp = self.model.evaluate()
+            print("Stellar lnp is ", lnp)
+            return lnp
         except C.ModelError:
             #print("Stellar returning -np.inf")
             return -np.inf
@@ -596,7 +599,9 @@ class ChebSampler(Sampler):
         params = self.model.zip_Cheb_p(p)
         print("Cheb params are", params)
         self.order_model.update_Cheb(params)
-        return self.order_model.evaluate()
+        lnp = self.order_model.evaluate()
+        print("Cheb lnp is ", lnp)
+        return lnp
 
 class CovGlobalSampler(Sampler):
     '''
