@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import emcee
+from emcee import GibbsSampler, GibbsController
 from . import constants as C
 from .grid_tools import Interpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
@@ -55,7 +56,6 @@ class ModelEncoder(json.JSONEncoder):
             return mydict
         # Let the base class default method raise the TypeError, if there is one
         return json.JSONEncoder.default(self, o)
-
 
 class Model:
     '''
@@ -126,13 +126,15 @@ class Model:
 
         return model
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple, outdir=""):
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple,
+                 outdir="", debug=False):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
         self.cheb_tuple = cheb_tuple
         self.cov_tuple = cov_tuple
         self.region_tuple = region_tuple
         self.outdir = outdir
+        self.debug = debug
         self.orders = self.DataSpectrum.orders
         self.norders = self.DataSpectrum.shape[0]
         #Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.
@@ -143,9 +145,11 @@ class Model:
         myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
         self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
         self.stellar_params = None
+        self.stellar_params_last = None
 
         #Now create a a list which contains an OrderModel for each order
-        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple))
+        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple),
+                                       debug=self.debug)
                             for index in range(self.norders)]
 
     def zip_stellar_p(self, p):
@@ -161,8 +165,22 @@ class Model:
         return dict(zip(self.region_tuple, p))
 
     def update_Model(self, params):
+        '''
+        Update the model to reflect the stellar parameters
+        '''
+        self.stellar_params_last = self.stellar_params
         self.ModelSpectrum.update_all(params)
         self.stellar_params = params
+
+    def revert_Model(self):
+        '''
+        Undo the most recent change to the stellar parameters
+        '''
+        #Reset stellar_params
+        self.stellar_params = self.stellar_params_last
+        #Reset downsampled flux
+        self.ModelSpectrum.revert_flux()
+
 
     def get_data(self):
         '''
@@ -175,16 +193,10 @@ class Model:
         '''
         Compare the different data and models.
         '''
-        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
-
         lnps = np.empty((self.norders,))
 
         for i in range(self.norders):
-            #Correct the warp of the model using the ChebyshevSpectrum
-            # model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]
-
             #Evaluate using the current CovarianceMatrix
-            # lnps[i] = self.OrderModels[i].evaluate(model_fl)
             lnps[i] = self.OrderModels[i].evaluate()
 
         return np.sum(lnps)
@@ -343,10 +355,11 @@ class ModelHA:
         f.close()
 
 class OrderModel:
-    def __init__(self, ModelSpectrum, DataSpectrum, index, npoly=4):
+    def __init__(self, ModelSpectrum, DataSpectrum, index, npoly=4, debug=False):
         print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
+        self.debug = debug
         self.wl = self.DataSpectrum.wls[self.index]
         self.fl = self.DataSpectrum.fls[self.index]
         self.sigma = self.DataSpectrum.sigmas[self.index]
@@ -354,9 +367,10 @@ class OrderModel:
         self.order = self.DataSpectrum.orders[self.index]
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index, npoly=npoly)
-        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index)
+        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index, debug=self.debug)
         self.global_cov_params = None
         self.cheb_params = None
+        self.cheb_params_last = None
 
         #We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added
         self.region_list = []
@@ -365,8 +379,16 @@ class OrderModel:
         return (self.wl, self.fl, self.sigma, self.mask)
 
     def update_Cheb(self, params):
+        self.cheb_params_last = self.cheb_params
         self.ChebyshevSpectrum.update(params)
         self.cheb_params = params
+
+    def revert_Cheb(self):
+        '''
+        Revert the Chebyshev polynomial to a previous state.
+        '''
+        self.cheb_params = self.cheb_params_last
+        self.ChebyshevSpectrum.revert()
 
     def get_Cheb(self):
         return self.ChebyshevSpectrum.k
@@ -374,6 +396,15 @@ class OrderModel:
     def update_Cov(self, params):
         self.CovarianceMatrix.update_global(params)
         self.global_cov_params = params
+
+    def revert_Cov(self):
+        '''
+        Since it is too hard to revert the individual parameter changes, instead we just reset the Covariance Matrix
+        to it's previous factored state.
+        '''
+        #Reverts logdet, L, and logPrior
+        self.CovarianceMatrix.revert_global()
+        self.CovarianceMatrix.revert()
 
     def get_Cov(self):
         return self.CovarianceMatrix.cholmod_to_scipy_sparse()
@@ -432,7 +463,234 @@ class OrderModel:
         lnp = self.CovarianceMatrix.evaluate(model_fl)
         return lnp
 
-class Sampler:
+class Sampler(GibbsSampler):
+    '''
+    Subclasses the GibbsSampler in emcee
+
+    :param model: the :obj:`Model`
+    :param starting_param_dict: the dictionary of starting parameters
+    :param cov: the MH proposal
+
+
+        Optional, specify by kwargs
+        order_index
+        args = []
+
+    '''
+
+    def __init__(self, **kwargs):
+        self.dim = len(self.param_tuple)
+        p0 = np.empty((self.dim,))
+        starting_param_dict = kwargs.get("starting_param_dict")
+        for i,param in enumerate(self.param_tuple):
+            p0[i] = starting_param_dict[param]
+
+        kwargs.update({"p0":p0, "dim":self.dim})
+
+        super(Sampler, self).__init__(**kwargs)
+
+        #Each subclass will have to overwrite how it parses the param_dict into the correct order
+        #and sets the param_tuple
+
+        #SUBCLASS here and define self.param_tuple
+        #SUBCLASS here and define self.lnprob
+        #SUBCLASS here and do self.revertfn
+        #then do super().__init__() to call the following code
+
+
+        self.model = kwargs.get("model")
+
+        self.outdir = kwargs.get("outdir", "")
+        self.fname = kwargs.get("fname", "")
+
+    def lnprob(self):
+        raise NotImplementedError("To be implemented by a subclass!")
+
+    def revertfn(self):
+        raise NotImplementedError("To be implemented by a subclass!")
+
+    def write(self):
+        '''
+        Write all of the relevant output to an HDF file.
+
+        flatchain
+        acceptance fraction
+        tuple parameters as an attribute in the header from self.param_tuple
+
+        The actual HDF5 file is structured as follows
+
+        /
+        stellar parameters.flatchain
+        00/
+        ...
+        22/
+        23/
+            global_cov.flatchain
+            regions/
+                region1.flatchain
+
+        Everything can be saved in the dataset self.fname
+
+        '''
+
+        filename = self.outdir + "flatchains.hdf5"
+        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        samples = self.flatchain
+
+        dset = hdf5.create_dataset(self.fname, samples.shape, compression='gzip', compression_opts=9)
+        dset[:] = samples
+        dset.attrs["parameters"] = "{}".format(self.param_tuple)
+        dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
+        dset.attrs["acor"] = "{}".format(self.acor)
+        dset.attrs["commit"] = "{}".format(C.get_git_commit())
+
+        hdf5.close()
+
+    def plot(self):
+        '''
+        Generate the relevant plots once the sampling is done.
+        '''
+
+        import triangle
+
+        samples = self.flatchain
+        figure = triangle.corner(samples, labels=self.param_tuple, quantiles=[0.16, 0.5, 0.84],
+                                 show_titles=True, title_args={"fontsize": 12})
+        figure.savefig(self.outdir + self.fname + "_triangle.png")
+
+        plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
+        plt.close(figure)
+
+class StellarSampler(Sampler):
+    """
+    Subclasses the Sampler specifically for stellar parameters
+
+    :param model:
+        the :obj:`Model`
+
+    :param starting_param_dict:
+        the dictionary of starting parameters
+
+    :param cov:
+        the MH proposal
+
+    :param fix_logg:
+        fix logg? If so, to what value?
+
+    :param order_index: order index
+
+    :param args: []
+
+    """
+    def __init__(self, **kwargs):
+        self.fix_logg = kwargs.get("fix_logg", False)
+
+        starting_param_dict = kwargs.get("starting_param_dict")
+        self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
+
+        kwargs.update({"fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        super(StellarSampler, self).__init__(**kwargs)
+
+    def revertfn(self):
+        '''
+        Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
+        '''
+        if self.debug:
+            print("reverting stellar parameters")
+        self.model.revert_Model()
+
+    def lnprob(self, p):
+        params = self.model.zip_stellar_p(p)
+        #If we have decided to fix logg, sneak update it here.
+        if self.fix_logg:
+            params.update({"logg": self.fix_logg})
+        if self.debug:
+            print("{}".format(params))
+        try:
+            self.model.update_Model(params) #This also updates downsampled_fls
+            #For order in myModel, do evaluate, and sum the results.
+            lnp = self.model.evaluate()
+            if self.debug:
+                print("Stellar lnp is ", lnp)
+            return lnp
+        except C.ModelError:
+            if self.debug:
+                print("Stellar lnprob returning -np.inf")
+            # return -np.inf
+
+class ChebSampler(Sampler):
+    def __init__(self, **kwargs):
+
+        starting_param_dict = kwargs.get("starting_param_dict")
+        nparams = len(starting_param_dict)
+        self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
+
+        model = kwargs.get("model")
+        self.order_index = kwargs.get("order_index")
+        fname = "{}/{}".format(model.orders[self.order_index], "cheb")
+
+        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        super(ChebSampler, self).__init__(**kwargs)
+
+        self.order_model = self.model.OrderModels[self.order_index]
+
+    def revertfn(self):
+        if self.debug:
+            print("Reverting Cheb parameters")
+        self.order_model.revert_Cheb()
+
+
+    def lnprob(self, p):
+        params = self.model.zip_Cheb_p(p)
+        if self.debug:
+            print("Cheb params are", params)
+        self.order_model.update_Cheb(params)
+        lnp = self.order_model.evaluate()
+        if self.debug:
+            print("Cheb lnp is ", lnp)
+        return lnp
+
+class CovGlobalSampler(Sampler):
+
+    def __init__(self, **kwargs):
+        starting_param_dict = kwargs.get("starting_param_dict")
+        self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
+
+        model = kwargs.get("model")
+        self.order_index = kwargs.get("order_index")
+
+        fname = "{}/{}".format(model.orders[self.order_index], "cov")
+        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        super(CovGlobalSampler, self).__init__(**kwargs)
+
+        self.order_model = self.model.OrderModels[self.order_index]
+
+    def revertfn(self):
+        if self.debug:
+            print("Reverting GlobalCovariance parameters")
+        self.order_model.revert_Cov()
+
+    def lnprob(self, p):
+        params = self.model.zip_Cov_p(p)
+        if self.debug:
+            print("Cov params are", params)
+        try:
+            self.order_model.update_Cov(params)
+            return self.order_model.evaluate()
+        except C.ModelError:
+            return -np.inf
+
+class MegaSampler(GibbsController):
+    def write(self):
+        for sampler in self.samplers:
+            sampler.write()
+
+    def plot(self):
+        for sampler in self.samplers:
+            sampler.plot()
+
+
+class OldSampler:
     '''
     Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C
 
@@ -479,7 +737,7 @@ class Sampler:
             pos, prob, state = self.pos_trio
             self.pos_trio = self.sampler.run_mcmc(pos, iterations, rstate0=state)
 
-        #print("completed in {:.2f} seconds".format(time.time() - t))
+            #print("completed in {:.2f} seconds".format(time.time() - t))
 
     def burn_in(self, iterations):
         '''
@@ -546,7 +804,7 @@ class Sampler:
     def acor(self):
         return self.sampler.acor
 
-class StellarSampler(Sampler):
+class OldStellarSampler(OldSampler):
     '''
     Subclass of Sampler for evaluating stellar parameters.
     '''
@@ -575,7 +833,7 @@ class StellarSampler(Sampler):
             #print("Stellar returning -np.inf")
             return -np.inf
 
-class ChebSampler(Sampler):
+class OldChebSampler(OldSampler):
     '''
     Subclass of Sampler for evaluating Chebyshev parameters.
     '''
@@ -603,7 +861,7 @@ class ChebSampler(Sampler):
         print("Cheb lnp is ", lnp)
         return lnp
 
-class CovGlobalSampler(Sampler):
+class OldCovGlobalSampler(OldSampler):
     '''
     Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
     '''
@@ -629,7 +887,7 @@ class CovGlobalSampler(Sampler):
         except C.ModelError:
             return -np.inf
 
-class CovRegionSampler(Sampler):
+class OldCovRegionSampler(OldSampler):
     '''
     Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.
     '''
@@ -656,7 +914,7 @@ class CovRegionSampler(Sampler):
         except (C.ModelError, C.RegionError):
              return -np.inf
 
-class RegionsSampler:
+class OldRegionsSampler:
     '''
     The point of this sampler is to do all the region sampling for a specific order.
 
@@ -754,7 +1012,7 @@ class RegionsSampler:
         for j in range(len(self.samplers)):
             print(self.samplers[j].acor())
 
-class MegaSampler:
+class OldMegaSampler:
     '''
     One Sampler to rule them all
 

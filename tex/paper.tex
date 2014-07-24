@@ -1,5 +1,5 @@
-\documentclass[preprint]{aastex} 
-%\documentclass[iop,floatfix]{emulateapj} 
+%\documentclass[preprint]{aastex} 
+\documentclass[iop,floatfix]{emulateapj} 
 
 \usepackage[breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
 \usepackage{graphicx}
@@ -34,6 +34,7 @@
 \newcommand{\Z}{[{\rm Fe}/{\rm H}]}
 \newcommand{\A}{[\alpha/{\rm Fe}]}
 \newcommand{\matern}{Mat\'{e}rn}
+\newcommand{\HK}{$\textrm{H}_2$O-K2}
 
 %flux
 \newcommand{\flam}{f_\lambda}
@@ -45,14 +46,6 @@
 %\vp stands for ``vector phi''
 \newcommand{\vp}{ {\bm \phi}}
 \newcommand{\vP}{ {\bm \Phi}}
-
-% Ian, this was ridiculous...don't type out giant words that are longer than the required tex.  It 
-% actually takes a lot more time and is a huge pain.  
-%\newcommand{\fundamentalParameters}{\vt_{\ast}}
-%\newcommand{\gridParameters}{\{\fundamentalParameters\}^{\rm 
-%grid}}
-%\newcommand{\observationalParameters}{\vt_{\textrm{obs}}}
-%\newcommand{\stellarParameters}{\vt}
 
 %\phi and \Phi are used for nuisance parameters
 \newcommand{\cheb}{ \vp_{\mathsf{P}}}
@@ -739,7 +732,11 @@ The SPC analysis within \citet{torres12} focused on a region of spectrum from $5
 
 When we fit this spectrum using the same assumptions, (amounting to a $\delta$-function prior on $\log g$. global noise amplitude is so low, almost non-existent. This demonstrates sensitivity to a prior as well as the fact that surface gravity estimates from spectroscopy may be biased against fits derived from planetary transits.
 
-The second object is Gl 51, an M5 star. The spectrum was obtained with the \emph{SPEX} instrument at IRTF. The spectrum is at moderate resolution ($R \sim $ 2,000), mid-infrared spectrum from $0.7 - 5.5\mu$m. Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. \citep{rojas-ayala12} use the H20 -K index (defined over what wl range?). 
+The second object is Gl 51, an M5 star. The spectrum was obtained with the \emph{SPEX} instrument at IRTF. The spectrum is at moderate resolution ($R \sim $ 2,000), mid-infrared spectrum from $0.7 - 5.5\mu$m. Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. \citep{rojas-ayala12} use the 2.205~$\mu$m \ion{Na}{1} doublet and 2.263~$\mu$m \ion{Ca}{1} triplet and Na doublet lines (their table 2), and their \HK\ index, defined using three passbands: 2.070~$\mu$m-2.090~$\mu$m, 2.235~$\mu$m-2.255~$\mu$m, and 2.360~$\mu$m - 2.380~$\mu$m. The index is designed to probe the curvature of the spectrum pseudo-continuum, which varies to due absorption from water. For a useful visualization of which spectral features these indices track, see their figure 2. The \HK\ index is a monotonic function of temperature, showing more curvature in the spectrum towards cooler $T_{\rm eff}$ and the index is independent of $\Z$ in the range $3000\,{\rm K} \leq T_{\rm eff} \leq 4000\,{\rm K}$. Below $3000~{\rm K}$, the index may appear to be metallicity dependent, although they caution that this may be a computational artifact. They find that the \HK\ index has a negligible dependence on $\log g$. They find that the index correlates with spectral type.
+
+\citet{rojas-ayala12} use a custom grid of PHOENIX BT-Settl models run from the PHOENIX web simulator at. The note that the models fit the spectrum match the overall spectral shape well, although the models consistently underpredict the strength of the \ion{Na}{1} and \ion{Ca}{1} lines, even when using the highest metallicity models. \citet{rajpurohit10} note that the oscillator strengths and opacities of the \ion{Na}{1} and \ion{Ca}{1} lines may be incorrect. In the range of stellar parameters for M dwarfs, \citet{rojas-ayala12} note that the strength of the \ion{Na}{1} doublet increases as $T_{\rm eff}$ decreases. The strength of the \ion{Ca}{1} triplet increases as $T_{\rm eff}$ and $\Z$ increase.
+
+Because the PHOENIX grid by \citet{husser13} has more range/uniformity of parameters, we use this to fit Gl51.
 
 A Bayesian approach allows you to explore sensitivity to prior assumptions.
 
