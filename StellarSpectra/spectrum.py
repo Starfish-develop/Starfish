@@ -753,6 +753,7 @@ class ModelSpectrum:
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
 
         self.downsampled_fls = np.empty(self.DataSpectrum.shape)
+        self.downsampled_fls_last = self.downsampled_fls
         self.grid_params = {}
         self.vz = 0
         self.Av = 0
@@ -965,10 +966,17 @@ class ModelSpectrum:
 
         interp = InterpolatedUnivariateSpline(self.wl, self.fl, k=5)
 
+        self.downsampled_fls_last = self.downsampled_fls
         self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
 
         del interp
         gc.collect()
+
+    def revert_flux(self):
+        '''
+        If a MH proposal was rejected, revert the downsampled flux to it's last value.
+        '''
+        self.downsampled_fls = self.downsampled_fls_last
 
 class ModelSpectrumHA:
     '''
@@ -1423,6 +1431,7 @@ class ChebyshevSpectrum:
 
         #Dummy holders
         self.k = np.ones(len_wl)
+        self.k_last = self.k
         #self.c0s = np.ones(self.norders)
         #self.cns = np.zeros((self.norders, self.npoly - 1))
         #self.TT = np.einsum("in,jn->ijn", T, T)
@@ -1460,8 +1469,11 @@ class ChebyshevSpectrum:
         Tc = np.dot(self.T.T, cns) #self.T.T is the transpose of self.T
         #print("Tc shape", Tc.shape)
         k = c0 * (1 + Tc)
+        self.k_last = self.k
         self.k = k
 
+    def revert(self):
+        self.k = self.k_last
 
 class CovarianceMatrix:
     '''
