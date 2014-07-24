@@ -13,26 +13,26 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6100
+    temp : 6000
     logg : 3.8
     Z : -0.5
-    vsini : 4
+    vsini : 5
     #vz : 15.4
     vz : -5.
     #logOmega: -12.7 #Kurucz
-    logOmega: -19.665 #PHOENIX
+    logOmega: -19.667 #PHOENIX
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 5
-    logg : 0.01
-    Z : 0.01
+    temp : 8
+    logg : 0.015
+    Z : 0.015
     vsini : 0.05
     vz : 0.02
     logOmega: 2e-3
 
 cheb_degree: 4
-cheb_jump : 1e-3
+cheb_jump : 3e-3
 
 cov_params :
     sigAmp : 1
@@ -42,7 +42,7 @@ cov_params :
 cov_jump :
     sigAmp : 0.01
     logAmp : 0.01
-    l : 0.03
+    l : 0.2
 
 region_params:
     loga: -12.
@@ -60,5 +60,5 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 30000
-samples : 30000
+burn_in : 1000
+samples : 5000

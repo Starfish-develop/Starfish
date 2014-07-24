@@ -174,9 +174,10 @@ Then, the install command is
 # Running many jobs in parallel
 
 * Extend HDF5cat to chebyshev and global cov
+
 * Later extend to sorting regions?
 
-* do Gelman-Rubin statistic of many chains?
+* do Gelman-Rubin statistic of many chains? implement as hdfmultiple.py. plot all chains sim
 
 
 # Procedure for doing a run on Odyssey
@@ -191,7 +192,8 @@ If you are going to save the run:
 3.) mv the output directory to a more memorable name, preferably with the date in the folder
  eg., WASP14/PHOENIX/22/2014-07-22/
 4.) COPY the run.sh script that you used to launch the SLURM job to this folder
-5.) ADD an entry to the google doc with the parameter values and location of the output.
+5.) ADD an entry to the google doc with the parameter values and location of the output. Log the jump proposals and
+the acceptance rates for parameters.
 
 # List of tests
 
@@ -273,7 +275,7 @@ Masks do not play well when instantiating regions. It's probably because of a le
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 
-#Alternate sampling stratagies
+#Alternate sampling strategies
 
 * In theory, if this step is slow, we could sample all of the parameters, for all of the regions (and all of the
  global parameters) at the same time (perhaps using a HMC algorithm). That way we get around the largest time cost of
@@ -282,14 +284,16 @@ Masks do not play well when instantiating regions. It's probably because of a le
 * alternatively, for each region, it might be possible to actually isolate the exact chunk that we are sub-sampling.
 Although I have a feeling this won't be all that much faster anyway.
 
-* When doing alternate Gibbs sampling, we have to be careful about storing the lnprob from the previous iteration.
-Since if you change the cheb parameters, then on the next iteration the previous lnprob will be stale. Why, then,
-did the old emcee give such a low acceptance rate when using the same jump sizes as before? We'll have to rethink the
- sampler orders. Can we just pass the new probability (lnprob0) to run_mcmc? What is actually changing in each step? Be
- more explicit.
+Still left to do:
 
- So, we can either go back to the vanilla version of emcee, or, we can think about exactly in which order the
- parameters are being updated and then we can stick to that order of iteration.
+CovarianceMatrix reverts L and L.last. Need to think how to use C pointers appropriately. We actually want to
+allocate two pieces of memory, and they can be copied to and fro.
+
+CovGlobalSampler set reset method
+
+For more than one order, how is global_lnprob calculated?
+
+Region samplers
 
 ## text in paper
 
