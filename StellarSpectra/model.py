@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import emcee
-from emcee import GibbsSampler, GibbsController
+from emcee import GibbsSampler, GibbsSubController, GibbsController
 from . import constants as C
 from .grid_tools import Interpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
@@ -404,7 +404,7 @@ class OrderModel:
         '''
         #Reverts logdet, L, and logPrior
         self.CovarianceMatrix.revert_global()
-        self.CovarianceMatrix.revert()
+        #self.CovarianceMatrix.revert()
 
     def get_Cov(self):
         return self.CovarianceMatrix.cholmod_to_scipy_sparse()
@@ -616,7 +616,7 @@ class StellarSampler(Sampler):
         except C.ModelError:
             if self.debug:
                 print("Stellar lnprob returning -np.inf")
-            # return -np.inf
+            return -np.inf
 
 class ChebSampler(Sampler):
     def __init__(self, **kwargs):
@@ -721,7 +721,7 @@ class CovRegionSampler(Sampler):
         except (C.ModelError, C.RegionError):
             return -np.inf
 
-class RegionsSampler(MegaSampler):
+class RegionsSampler(GibbsSubController):
     def __init__(self, **kwargs):
         self.max_regions = kwargs.get("max_regions", 0)
         self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
@@ -747,9 +747,25 @@ class RegionsSampler(MegaSampler):
         region_index = len(self.samplers) #region_index is one more than the current amount of regions
 
         newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
-                                      order_index=self.order_index, region_index=region_index, outdir=self.outdir)
+                                      order_index=self.order_index, region_index=region_index, outdir=self.outdir,
+                                      debug=self.debug)
         self.samplers.append(newSampler)
 
+    def run_mcmc(self, *args, **kwargs):
+        if (len(self.samplers) < self.max_regions):
+            mu = self.evaluate_region_logic()
+            if mu is not None:
+                self.create_region_sampler(mu)
+        result = super(RegionsSampler, self).run_mcmc(*args, **kwargs)
+        return result
+
+    def write(self):
+        for sampler in self.samplers:
+            sampler.write()
+
+    def plot(self):
+        for sampler in self.samplers:
+            sampler.plot()
 
 class OldRegionsSampler:
     '''
@@ -764,7 +780,6 @@ class OldRegionsSampler:
 
 
     '''
-    #TODO: subclass RegionsSampler from MegaSampler
 
     def __init__(self, model, MH_cov, default_param_dict={"loga":-14.2, "sigma":10.}, max_regions = 3,
                  order_index=None,  outdir="", fname="cov_region"):

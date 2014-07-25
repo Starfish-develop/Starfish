@@ -144,10 +144,9 @@ cdef class CovarianceMatrix:
     cdef logPrior_last
     cdef debug
 
-    #Both sum_regions and partial_sum_regions are initially NULL pointers, and will be until
-    #any elements in the RegionList have been declared.
+    # initially a NULL pointer, and will be until any elements in the RegionList have been declared.
     cdef cholmod_sparse *sum_regions #Holds a sparse matrix that is the sum of all regions
-    cdef cholmod_sparse *partial_sum_regions #Holds a sparse matrix that is the sum of all regions but the one currently sampling (N -1)
+    cdef cholmod_sparse *sum_regions_last
 
     def __init__(self, DataSpectrum, order_index, debug=False):
         self.common = Common()
@@ -181,12 +180,15 @@ cdef class CovarianceMatrix:
         #The GlobalCovarianceMatrix and all matrices in the RegionList will be cleared automatically?
         print("Deallocating Covariance Matrix")
 
-        #We need to check that all of these exist otherwise we'll get an error by 
-        #deleting empty regions.
-        if self.sum_regions != NULL:
-            cholmod_free_sparse(&self.sum_regions, self.c)
-        if self.partial_sum_regions != NULL:
-            cholmod_free_sparse(&self.partial_sum_regions, self.c)
+        if self.sum_regions != self.sum_regions_last:
+            if self.sum_regions != NULL:
+                cholmod_free_sparse(&self.sum_regions, self.c)
+            if self.sum_regions_last != NULL:
+                cholmod_free_sparse(&self.sum_regions_last, self.c)
+        else:
+            if self.sum_regions != NULL:
+                cholmod_free_sparse(&self.sum_regions, self.c)
+
         if self.A != NULL:
             cholmod_free_sparse(&self.A, self.c)
 
@@ -200,6 +202,8 @@ cdef class CovarianceMatrix:
         else:
             if self.L != NULL:
                 cholmod_free_factor(&self.L, self.c)
+
+
 
     def update_global(self, params):
         '''
@@ -219,7 +223,8 @@ cdef class CovarianceMatrix:
         #Check to make sure that mu is within bounds, if not, raise a C.RegionError
         mu = params["mu"]
         if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
-            self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common))
+            self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common,
+            debug=self.debug))
             print("Added region to self.RegionList")
             ##Do update on partial_sum_regions and sum_regions
             self.update_region(region_index=(len(self.RegionList)-1), params=params)
@@ -236,32 +241,12 @@ cdef class CovarianceMatrix:
         and update the factorization.
         '''
 
-        if region_index != self.current_region:
-            #We have switched sampling regions, time to update the partial sum
-            if len(self.RegionList) > 1:
-                #print("Switched sampling regions, updating partial sums")
-                self.update_partial_sum_regions(region_index)
-                #if len == 1, then we are the first region initialized and there is no partial sum.
-            self.current_region = region_index
-
         region = self.RegionList[region_index]
+        if self.debug:
+            print("updating region {} with params {}".format(region_index, params))
         region.update(params)
-        print("updating region {} with params {}".format(region_index, params))
 
-        if self.sum_regions != NULL:
-            #clear the previously allocated sum_regions, because we are about to make it point to a new sum
-            cholmod_free_sparse(&self.sum_regions, self.c)
-
-        if self.partial_sum_regions != NULL:
-            #Other regions exist, update the total sum using this region and the other partial
-            #regions
-            self.sum_regions = cholmod_add(get_A(region), self.partial_sum_regions, self.one, self.one, True, True, self.c)
-        else:
-            #There is only one region, so set sum_regions equal to this region
-            assert len(self.RegionList) == 1,"ERROR: partial_sum_regions is NULL but RegionList contains more than one region."
-
-            #Because we are creating an extra, COPY the matrix
-            self.sum_regions = cholmod_copy_sparse(get_A(region), self.c)
+        self.update_sum_regions()
         self.update_factorization()
         self.update_logPrior()
 
@@ -281,12 +266,24 @@ cdef class CovarianceMatrix:
             mydict[str(i)] = self.RegionList[i].get_params()
         return mydict
 
-
     def update_sum_regions(self):
         '''
         Update the sparse matrix that is the sum of all region matrices. Used before starting global
         covariance sampling.
         '''
+        #Move self.sum_regions_last to point to self.sum_regions
+        if self.sum_regions_last != NULL and (self.sum_regions_last != self.sum_regions):
+          #free the old memory before having it to something new
+          #as long as they don't point to the same piece of memory
+          if self.debug:
+              print("freeing self.sum_regions_last inside of update_factorization")
+          cholmod_free_sparse(&self.sum_regions_last, self.c)
+
+        #Shift the self.sum_regions_last pointer to self.sum_regions
+        if self.debug:
+          print("shifting self.sum_regions_last to point to self.sum_regions")
+        self.sum_regions_last = self.sum_regions
+
         cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), self.c)
         cdef cholmod_sparse *temp
 
@@ -295,29 +292,7 @@ cdef class CovarianceMatrix:
             R = cholmod_add(temp, get_A(region), self.one, self.one, True, True, self.c) 
             cholmod_free_sparse(&temp, self.c)
 
-        if self.sum_regions != NULL:
-            cholmod_free_sparse(&self.sum_regions, self.c)
-
         self.sum_regions = R 
-
-    def update_partial_sum_regions(self, region_index):
-        '''
-        Update the partial sparse matrix that is the partial sum of all region matrices except the one
-        specified by index. Used before starting the sampling for an individual region.
-        '''
-        partialRegionList = self.RegionList[:region_index] + self.RegionList[region_index + 1:]
-        cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(partialRegionList[0]), self.c)
-        cdef cholmod_sparse *temp
-
-        for region in partialRegionList[1:]:
-            temp = R
-            R = cholmod_add(temp, get_A(region), self.one, self.one, True, True, self.c) 
-            cholmod_free_sparse(&temp, self.c)
-
-        if self.partial_sum_regions != NULL:
-            cholmod_free_sparse(&self.partial_sum_regions, self.c)
-
-        self.partial_sum_regions = R 
 
     def get_region_coverage(self):
         '''
@@ -362,7 +337,6 @@ cdef class CovarianceMatrix:
         if self.A != NULL:
             cholmod_free_sparse(&self.A, self.c)
 
-
         if self.sum_regions != NULL:
             self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
         else:
@@ -383,11 +357,7 @@ cdef class CovarianceMatrix:
             print("shifting self.L_last to point to self.L")
         self.L_last = self.L
 
-        #if self.L != NULL:
-            #Free the previous memory before allocating it to something new
-            #cholmod_free_factor(&self.L, self.c)
-
-        self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization 
+        self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization
         cholmod_factorize(self.A, self.L, self.c)
         #print("rcond is ", cholmod_rcond(self.L, self.c))
 
@@ -396,18 +366,17 @@ cdef class CovarianceMatrix:
         self.logdet_last = self.logdet
         self.logdet = get_logdet(self.L)
 
-
-
     def revert(self):
         if self.debug:
             print("reverting covariance matrix")
         self.logdet = self.logdet_last
         self.logPrior = self.logPrior_last
 
-        #Free self.L
-        if self.debug:
-            print("freeing self.L inside of revert")
-        cholmod_free_factor(&self.L, self.c)
+        #As long as L and L_last don't point to the same thing, clear L
+        if self.L != NULL and (self.L != self.L_last):
+            if self.debug:
+                print("freeing self.L inside of revert")
+            cholmod_free_factor(&self.L, self.c)
 
         #Move self.L to point to self.L_last
         if self.debug:
@@ -416,9 +385,26 @@ cdef class CovarianceMatrix:
 
     def revert_global(self):
         self.GCM.revert()
+        self.revert()
 
     def revert_region(self, region_index):
+        region = self.RegionList[region_index]
+        if self.debug:
+            print("reverting region {}".format(region_index))
+        region.revert()
 
+        #move sum_regions to point to the sum_regions_last
+        if self.debug:
+            print("shifting self.sum_regions to point to self.sum_regions_last")
+        #as long as sum_regions and sum_regions_last don't point to the same thing, clear sum_regions
+        if self.sum_regions != NULL and (self.sum_regions_last != self.sum_regions):
+            if self.debug:
+                print("freeing self.sum_regions inside of revert_region")
+            cholmod_free_sparse(&self.sum_regions, self.c)
+
+        self.sum_regions = self.sum_regions_last
+
+        self.revert()
 
     def get_amp(self):
         return self.GCM.amp
@@ -609,19 +595,20 @@ cdef class GlobalCovarianceMatrix:
             print("shifting self.A_last to point to self.A")
         self.A_last = self.A
 
-        #if self.A != NULL:
-        #    cholmod_free_sparse(&self.A, self.c)
-        
         cdef cholmod_sparse *temp = create_sparse(self.wl, self.npoints, self.min_sep, amp, l, self.c)
         
         self.A = cholmod_add(temp, self.sigma, alpha, beta, True, True, self.c)
         cholmod_free_sparse(&temp, self.c)
 
     def revert(self):
+        #move A to point to A_last
         if self.debug:
             print("reverting global covariance matrix")
-            print("freeing self.A inside of revert")
-        cholmod_free_sparse(&self.A, self.c)
+        #as long as A and A_last don't point to the same thing, clear A
+        if self.A != NULL and (self.A_last != self.A):
+            if self.debug:
+                print("freeing self.A inside of revert")
+            cholmod_free_sparse(&self.A, self.c)
 
         #move self.A to point to self.A_last
         if self.debug:
@@ -632,6 +619,7 @@ cdef class GlobalCovarianceMatrix:
 cdef class RegionCovarianceMatrix:
 
     cdef cholmod_sparse *A
+    cdef cholmod_sparse *A_last
     cdef Common common
     cdef cholmod_common *c
     cdef double *wl
@@ -640,8 +628,10 @@ cdef class RegionCovarianceMatrix:
     cdef sigma0
     cdef params
     cdef logPrior #This is carried around with each CovarianceMatrix
+    cdef logPrior_last
+    cdef debug
 
-    def __init__(self, DataSpectrum, order_index, params, Common common):
+    def __init__(self, DataSpectrum, order_index, params, Common common, debug=False):
         self.common = common 
         self.c = <cholmod_common *>&self.common.c
 
@@ -658,15 +648,24 @@ cdef class RegionCovarianceMatrix:
         self.mu = params["mu"] #take the anchor point for reference?
         self.sigma0 = 1.
         self.logPrior = 0.0 #neutral prior
+        self.logPrior_last = self.logPrior
         print("Created Region and logPrior is ", self.logPrior)
         self.update(params) #do the first initialization
         self.params = None
+        self.debug = debug
 
     def __dealloc__(self):
         print("Deallocating RegionCovarianceMatrix")
         PyMem_Free(self.wl)
-        if self.A != NULL:
-            cholmod_free_sparse(&self.A, self.c)
+
+        if self.A != self.A_last:
+            if self.A != NULL:
+                cholmod_free_sparse(&self.A, self.c)
+            if self.A_last != NULL:
+                cholmod_free_sparse(&self.A_last, self.c)
+        else:
+            if self.A != NULL:
+                cholmod_free_sparse(&self.A, self.c)
     
     def __str__(self):
         return "mu = {}, sigma0 = {}".format(self.mu, self.sigma0)
@@ -685,7 +684,8 @@ cdef class RegionCovarianceMatrix:
         sigma = params['sigma']
 
         lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
-        
+
+        self.logPrior_last = self.logPrior
         self.logPrior = lnLogistic
 
     def get_prior(self):
@@ -713,25 +713,40 @@ cdef class RegionCovarianceMatrix:
         if temp == NULL:
             raise C.RegionError("region is too small to contain any nonzero elements.")
 
-        
-        if self.A != NULL:
-            cholmod_free_sparse(&self.A, self.c)
+        #Copy the old self.A to self.A_last
+        if self.A_last != NULL and (self.A_last != self.A):
+            #as long as A_last and A don't point to the same piece of memory,
+            #free the old memory before having it point to something new
+
+            if self.debug:
+                print("freeing self.A inside of RegionCovarianceMatrix.update")
+            cholmod_free_sparse(&self.A_last, self.c)
+
+        #Shift the self.A_last pointer to self.A
+        if self.debug:
+            print("shifting self.A_last to point to self.A")
+        self.A_last = self.A
 
         self.A = temp
         self.params = params
         self.eval_prior(params)
 
-        
+    def revert(self):
+        self.logPrior = self.logPrior_last
 
-#Run some profiling code to see what our bottlenecks might be.
-#With stock format
-#Update takes 0.138 seconds, evaluate takes 0.001s
+        if self.debug:
+            print("reverting region covariance matrix")
 
-#When doing just the region sampling, the sampler keys into the update_region method attached to the CovarianceMatrix
+        #as long as A and A_last don't point to the same thing, clear A
+        if self.A != NULL and (self.A_last != self.A):
+            if self.debug:
+                print("freeing RegionMatrix.A inside of revert")
+            cholmod_free_sparse(&self.A, self.c)
+
+        #move self.A to point to self.A_last
+        if self.debug:
+            print("shifting self.A to point to self.A_last")
+        self.A = self.A_last
+
 
 #How long does the add operation actually take? About 0.02s to add together two large covariance regions. I think it might be OK to leave in the extra add operation at this point.
-
-
-#Method to convert a cholmod_sparse matrix to a scipy.sparse matrix. That way we
-#can better examine the output.
-

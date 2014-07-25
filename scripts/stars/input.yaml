@@ -23,16 +23,38 @@ stellar_params :
     logOmega: -19.667 #PHOENIX
 
 #Average jump size in each parameter
+#Using covariance
+#stellar_jump:
+#    temp : 8
+#    logg : 0.015
+#    Z : 0.015
+#    vsini : 0.05
+#    vz : 0.02
+#    logOmega: 2e-3
+
+#no covariance
 stellar_jump:
-    temp : 8
-    logg : 0.015
-    Z : 0.015
+    temp : 0.02
+    logg : 0.005
+    Z : 0.005
     vsini : 0.05
     vz : 0.02
-    logOmega: 2e-3
+    logOmega: 1e-4
+
+use_cov: False
+stellar_cov:
+    temp_logg : 8.74e-2
+    temp_Z : 1.22e-1
+    logg_Z : 9.86e-5
+    temp_logOmega : -9.648e-3
 
 cheb_degree: 4
-cheb_jump : 3e-3
+#using covariance
+#cheb_jump : 3e-3
+#no covariance
+cheb_jump : 2e-4
+
+no_cov : True
 
 cov_params :
     sigAmp : 1
@@ -60,5 +82,6 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 1000
-samples : 5000
+burn_in : 500
+samples : 4000
+#will probably need 100000 for a good looking posterior

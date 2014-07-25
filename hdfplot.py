@@ -25,6 +25,8 @@ parser.add_argument("--chain", action="store_true", help="Make a plot of the pos
 parser.add_argument("--acor", action="store_true", help="Calculate the autocorrelation of the chain")
 parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
+parser.add_argument("--cov", action="store_true", help="Estimate the covariance between two parameters.")
+
 parser.add_argument("--burn", type=int, default=0, help="How many samples to discard from the beginning of the chain "
                                                         "for burn in.")
 parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this factor. E.g., --thin 100 will take "
@@ -32,8 +34,6 @@ parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this 
 parser.add_argument("--stellar_params", nargs="*", default="all", help="A list of which stellar parameters to plot, "
                                                                     "separated by WHITESPACE. Default is to plot all.")
 args = parser.parse_args()
-
-
 
 #Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
 if os.path.exists(args.outdir):
@@ -87,7 +87,25 @@ if args.triangle:
                              show_titles=True, title_args={"fontsize": 12})
     figure.savefig(args.outdir + "stellar_triangle.png")
 
+if args.cov:
+    '''
+    Estimate the covariance of the remaining samples.
+    '''
+    print("Estimating covariances")
+    print(stellar_params)
 
+    cov = np.cov(stellar, rowvar=0)
+
+    print("Standard deviation")
+    print(np.sqrt(np.diag(cov)))
+
+    print("Covariance")
+    print(cov)
+
+    #Now try correlation coefficient
+    cor = np.corrcoef(stellar, rowvar=0)
+    print("Correlation coefficient")
+    print(cor)
 
 # plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
 # plt.close(figure)
