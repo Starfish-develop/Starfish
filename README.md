@@ -275,26 +275,6 @@ Masks do not play well when instantiating regions. It's probably because of a le
 
 * use Julia to do the spline interpolation to a finer spaced grid, at high resolution.
 
-#Alternate sampling strategies
-
-* In theory, if this step is slow, we could sample all of the parameters, for all of the regions (and all of the
- global parameters) at the same time (perhaps using a HMC algorithm). That way we get around the largest time cost of
-  the update_cov step, which for ~17 orders becomes a sizeable amount of time.
-
-* alternatively, for each region, it might be possible to actually isolate the exact chunk that we are sub-sampling.
-Although I have a feeling this won't be all that much faster anyway.
-
-Still left to do:
-
-CovarianceMatrix reverts L and L.last. Need to think how to use C pointers appropriately. We actually want to
-allocate two pieces of memory, and they can be copied to and fro.
-
-CovGlobalSampler set reset method
-
-For more than one order, how is global_lnprob calculated?
-
-Region samplers
-
 ## text in paper
 
 * text for section 3, testing

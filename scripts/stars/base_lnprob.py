@@ -1,5 +1,4 @@
-from StellarSpectra.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler#, RegionsSampler,
-# MegaSampler
+from StellarSpectra.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
 from StellarSpectra.spectrum import DataSpectrum
 from StellarSpectra.grid_tools import TRES, HDF5Interface
 import StellarSpectra.constants as C
@@ -49,6 +48,9 @@ def perturb(startingDict, jumpDict, factor=3.):
 
 
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
+#Load mask and add it to DataSpectrum
+#mask = np.load("data/WASP14/WASP14_23.mask.npy")
+#myDataSpectrum.add_mask(np.atleast_2d(mask))
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
@@ -58,24 +60,23 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
                  * np.identity(len(stellar_Starting))
 
-#Tuning the correlations should depend on how the models were normalized, right?
+try:
+    fix_logg = config['fix_logg']
+except KeyError:
+    fix_logg = None
 
-#Attempt at updating specific correlations
-# #Temp/Logg correlation
-# temp_logg = 0.2 * np.sqrt(0.01 * 0.001)
-# stellar_MH_cov[0, 1] = temp_logg
-# stellar_MH_cov[1, 0] = temp_logg
-#
-# #Temp/logOmega correlation
-# temp_logOmega = - 0.9 * np.sqrt(stellar_MH_cov[0,0] * stellar_MH_cov[5,5])
-# stellar_MH_cov[0, 5] = temp_logOmega
-# stellar_MH_cov[5, 0] = temp_logOmega
+#Updating specific correlations to speed mixing
+if config["use_cov"]:
+    stellar_cov = config["stellar_cov"]
 
-#We could make a function which takes the two positions of the parameters (0, 5) and then updates the covariance
-#based upon a rho we feed it.
+    stellar_MH_cov[0, 1] = stellar_MH_cov[1, 0] = stellar_cov['temp_logg']
+    stellar_MH_cov[0, 2] = stellar_MH_cov[2, 0] = stellar_cov['temp_Z']
+    stellar_MH_cov[1, 2] = stellar_MH_cov[2, 1] = stellar_cov['logg_Z']
+    if fix_logg is None:
+        stellar_MH_cov[0, 5] = stellar_MH_cov[5, 0] = stellar_cov['temp_logOmega']
+    else:
+        stellar_MH_cov[0, 4] = stellar_MH_cov[4, 0] = stellar_cov['temp_logOmega']
 
-#We could test to see if these jumps are being executed in the right direction by checking to see what the 2D pairwise
-# chain positions look like
 
 cheb_degree = config['cheb_degree']
 cheb_MH_cov = float(config["cheb_jump"])**2 * np.identity(cheb_degree)
@@ -139,10 +140,7 @@ shutil.copy(yaml_file, outdir + "/input.yaml")
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
 
-try:
-    fix_logg = config['fix_logg']
-except KeyError:
-    fix_logg = None
+
 
 myStellarSampler = StellarSampler(model=myModel, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
                                   fix_logg=fix_logg, outdir=outdir, debug=False)
@@ -153,12 +151,11 @@ samplerList = []
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(model=myModel, cov=cheb_MH_cov, starting_param_dict=cheb_Starting, order_index=i,
                                    outdir=outdir, debug=False))
-    samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
-                                   outdir=outdir, debug=False))
-    #samplerList.append(RegionsSampler(myModel, region_MH_cov, max_regions=config['max_regions'],
-    #                default_param_dict=region_Starting, order_index=i, outdir=outdir))
-    #cadenceList += [1, 1, 1]
-    # cadenceList += [6, 2]
+    if not config['no_cov']:
+        samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
+                                       outdir=outdir, debug=False))
+        samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
+                        default_param_dict=region_Starting, order_index=i, outdir=outdir, debug=False))
 
 mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=True)
 
@@ -167,8 +164,8 @@ def main():
     mySampler.reset()
 
     mySampler.run(config["samples"])
-    print(mySampler.acceptance_fraction())
-    print(mySampler.acor())
+    print(mySampler.acceptance_fraction)
+    print(mySampler.acor)
     myModel.to_json("model_final.json")
     mySampler.write()
     mySampler.plot()
