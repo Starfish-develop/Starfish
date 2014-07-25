@@ -396,8 +396,7 @@ cdef class CovarianceMatrix:
         self.logdet_last = self.logdet
         self.logdet = get_logdet(self.L)
 
-    def revert_global(self):
-        self.GCM.revert()
+
 
     def revert(self):
         if self.debug:
@@ -414,6 +413,11 @@ cdef class CovarianceMatrix:
         if self.debug:
             print("shifting self.L to point to self.L_last inside of revert")
         self.L = self.L_last
+
+    def revert_global(self):
+        self.GCM.revert()
+
+    def revert_region(self, region_index):
 
 
     def get_amp(self):
