@@ -689,6 +689,165 @@ class MegaSampler(GibbsController):
         for sampler in self.samplers:
             sampler.plot()
 
+class CovRegionSampler(Sampler):
+    def __init__(self, **kwargs):
+        starting_param_dict = kwargs.get("starting_param_dict")
+        self.param_tuple = ("loga", "mu", "sigma")
+
+        model = kwargs.get("model")
+        self.order_index = kwargs.get("order_index")
+        self.region_index = kwargs.get("region_index")
+
+        fname = "{}/{}{:0>2}".format(model.orders[self.order_index], "cov_region", self.region_index)
+        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        super(CovRegionSampler, self).__init__(**kwargs)
+
+        self.order_model = self.model.OrderModels[self.order_index]
+        self.CovMatrix = self.order_model.CovarianceMatrix
+        self.CovMatrix.create_region(starting_param_dict)
+        if self.debug:
+            print("Created new Region sampler with region_index {}".format(self.region_index))
+
+    def revertfn(self):
+        if self.debug:
+            print("Reverting GlobalCovariance parameters")
+        self.CovMatrix.revert_region(self.region_index)
+
+    def lnprob(self, p):
+        params = self.model.zip_Region_p(p)
+        try:
+            self.CovMatrix.update_region(self.region_index, params)
+            return self.order_model.evaluate()
+        except (C.ModelError, C.RegionError):
+            return -np.inf
+
+class RegionsSampler(MegaSampler):
+    def __init__(self, **kwargs):
+        self.max_regions = kwargs.get("max_regions", 0)
+        self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
+        self.order_index = kwargs.get("order_index")
+        self.model = kwargs.get("model")
+        self.order_model = self.model.OrderModels[self.order_index]
+        self.MH_cov = kwargs.get("cov")
+        self.outdir = kwargs.get("outdir")
+
+        kwargs.update({"samplers":[]}) #start empty and update later
+        super(RegionsSampler, self).__init__(**kwargs)
+
+    def evaluate_region_logic(self):
+        return self.order_model.evaluate_region_logic()
+
+    def create_region_sampler(self, mu):
+        #mu is the location just returned by evaluate_region_logic().
+        #Create a new region in the model at this location, create a new CovRegionSampler to sample it.
+
+        #copy and update default_param_dict to include the new value of mu
+        starting_param_dict = self.default_param_dict.copy()
+        starting_param_dict.update({"mu":mu})
+        region_index = len(self.samplers) #region_index is one more than the current amount of regions
+
+        newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
+                                      order_index=self.order_index, region_index=region_index, outdir=self.outdir)
+        self.samplers.append(newSampler)
+
+
+class OldRegionsSampler:
+    '''
+    The point of this sampler is to do all the region sampling for a specific order.
+
+    It must also be able to create new samplers.
+
+    There will be a list of RegionSamplers, one for each region. This keys into the specific region properly.
+
+    There will also be some logic that at the beginning of each iteration of the OrderSampler decides
+    how to manage the RegionSamplerList.
+
+
+    '''
+    #TODO: subclass RegionsSampler from MegaSampler
+
+    def __init__(self, model, MH_cov, default_param_dict={"loga":-14.2, "sigma":10.}, max_regions = 3,
+                 order_index=None,  outdir="", fname="cov_region"):
+
+        self.model = model
+        self.MH_cov = MH_cov
+        self.default_param_dict = default_param_dict #this is everything but mu
+        self.order_index = order_index
+        self.order_model = self.model.OrderModels[self.order_index]
+
+        self.cadence = 4 #samples to devote to each region before moving on to the next
+        self.logic_counter = 0
+        self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
+        self.max_regions = max_regions
+        #to decide if more or fewer RegionSampler's are needed?
+
+        self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
+        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
+        self.outdir = outdir
+        fname = "{}/{}".format(model.orders[self.order_index], fname)
+        self.fname = fname
+
+    def evaluate_region_logic(self):
+        return self.order_model.evaluate_region_logic()
+
+    def create_region_sampler(self, mu):
+        #mu is the location just returned by evaluate_region_logic(). Therefore we wish to instantiate a new RegionSampler
+        #Create a new region in the model at this location, create a new sampler to sample it.
+
+        #copy and update default_param_dict to include the new value of mu
+        starting_param_dict = self.default_param_dict.copy()
+        starting_param_dict.update({"mu":mu})
+        region_index = len(self.samplers) #region_index is one more than the current amount of regions
+
+        newSampler = CovRegionSampler(self.model, self.MH_cov, starting_param_dict, order_index=self.order_index,
+                                      region_index=region_index, outdir=self.outdir, fname=self.fname)
+        self.samplers.append(newSampler)
+
+    def reset(self):
+        for sampler in self.samplers:
+            sampler.reset()
+            print("Reset RegionsSampler for order {}".format(self.order_index))
+
+
+    def burn_in(self, iterations):
+        '''
+        For consistencies's sake w/ MegaSampler
+        '''
+        self.run(iterations)
+
+
+    def run(self, iterations):
+        if iterations == 0:
+            return
+
+        self.logic_counter += 1
+        if (self.logic_counter >= self.logic_overflow) and (len(self.samplers) < self.max_regions):
+            mu = self.evaluate_region_logic()
+            if mu is not None:
+                self.create_region_sampler(mu)
+
+        for i in range(iterations):
+            for sampler in self.samplers:
+                print("Sampling region {} for {} iterations: ".format(sampler.region_index, iterations), end="")
+                t = time.time()
+                sampler.run(self.cadence)
+                print("completed in {:.2f} seconds".format(time.time() - t))
+
+    def write(self):
+        for sampler in self.samplers:
+            sampler.write()
+
+    def plot(self):
+        for sampler in self.samplers:
+            sampler.plot()
+
+    def acceptance_fraction(self):
+        for j in range(len(self.samplers)):
+            print(self.samplers[j].acceptance_fraction())
+
+    def acor(self):
+        for j in range(len(self.samplers)):
+            print(self.samplers[j].acor())
 
 class OldSampler:
     '''
@@ -804,89 +963,6 @@ class OldSampler:
     def acor(self):
         return self.sampler.acor
 
-class OldStellarSampler(OldSampler):
-    '''
-    Subclass of Sampler for evaluating stellar parameters.
-    '''
-    def __init__(self, model, MH_cov, starting_param_dict, fix_logg=None, outdir="", fname="stellar"):
-        #Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple
-
-        self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
-        self.fix_logg = fix_logg if fix_logg is not None else False
-
-        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
-
-
-    def lnprob(self, p):
-        params = self.model.zip_stellar_p(p)
-        #If we have decided to fix logg, sneak update it here.
-        if self.fix_logg:
-            params.update({"logg": self.fix_logg})
-        print("{}".format(params))
-        try:
-            self.model.update_Model(params) #This also updates downsampled_fls
-            #For order in myModel, do evaluate, and sum the results.
-            lnp = self.model.evaluate()
-            print("Stellar lnp is ", lnp)
-            return lnp
-        except C.ModelError:
-            #print("Stellar returning -np.inf")
-            return -np.inf
-
-class OldChebSampler(OldSampler):
-    '''
-    Subclass of Sampler for evaluating Chebyshev parameters.
-    '''
-    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, outdir="", fname="cheb"):
-        #Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.
-        #From a simple param dict, create a more complex param_dict
-
-        #Then set param_tuple
-        nparams = len(starting_param_dict)
-        self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
-        self.order_index = order_index
-
-        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
-        fname = "{}/{}".format(model.orders[self.order_index], fname)
-
-        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
-
-        self.order_model = self.model.OrderModels[self.order_index]
-
-    def lnprob(self, p):
-        params = self.model.zip_Cheb_p(p)
-        print("Cheb params are", params)
-        self.order_model.update_Cheb(params)
-        lnp = self.order_model.evaluate()
-        print("Cheb lnp is ", lnp)
-        return lnp
-
-class OldCovGlobalSampler(OldSampler):
-    '''
-    Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.
-    '''
-    def __init__(self, model, MH_cov, starting_param_dict, order_index=None, outdir="", fname="cov"):
-        #Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple
-        self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
-
-        self.order_index = order_index
-        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
-        fname = "{}/{}".format(model.orders[self.order_index], fname)
-        super().__init__(model, MH_cov, starting_param_dict, outdir=outdir, fname=fname)
-
-        self.order_model = self.model.OrderModels[self.order_index]
-
-    def lnprob(self, p):
-        params = self.model.zip_Cov_p(p)
-        print("Cov params are", params)
-        # if params["l"] > 1:
-        #     return -np.inf
-        try:
-            self.order_model.update_Cov(params)
-            return self.order_model.evaluate()
-        except C.ModelError:
-            return -np.inf
-
 class OldCovRegionSampler(OldSampler):
     '''
     Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.
@@ -909,108 +985,10 @@ class OldCovRegionSampler(OldSampler):
     def lnprob(self, p):
         params = self.model.zip_Region_p(p)
         try:
-             self.CovMatrix.update_region(self.region_index, params)
-             return self.order_model.evaluate()
+            self.CovMatrix.update_region(self.region_index, params)
+            return self.order_model.evaluate()
         except (C.ModelError, C.RegionError):
-             return -np.inf
-
-class OldRegionsSampler:
-    '''
-    The point of this sampler is to do all the region sampling for a specific order.
-
-    It must also be able to create new samplers.
-
-    There will be a list of RegionSamplers, one for each region. This keys into the specific region properly.
-
-    There will also be some logic that at the beginning of each iteration of the OrderSampler decides
-    how to manage the RegionSamplerList.
-
-
-    '''
-    #TODO: subclass RegionsSampler from MegaSampler
-
-    def __init__(self, model, MH_cov, default_param_dict={"loga":-14.2, "sigma":10.}, max_regions = 3,
-                 order_index=None,  outdir="", fname="cov_region"):
-
-        self.model = model
-        self.MH_cov = MH_cov
-        self.default_param_dict = default_param_dict #this is everything but mu
-        self.order_index = order_index
-        self.order_model = self.model.OrderModels[self.order_index]
-
-        self.cadence = 4 #samples to devote to each region before moving on to the next
-        self.logic_counter = 0
-        self.logic_overflow = 5 #how many times must RegionsSampler come up in the rotation before we evaluate some logic
-        self.max_regions = max_regions
-        #to decide if more or fewer RegionSampler's are needed?
-
-        self.samplers = [] #we will add to this list as we instantiate more RegionSampler's
-        # outdir = "{}{}/".format(outdir, model.orders[self.order_index])
-        self.outdir = outdir
-        fname = "{}/{}".format(model.orders[self.order_index], fname)
-        self.fname = fname
-
-    def evaluate_region_logic(self):
-        return self.order_model.evaluate_region_logic()
-
-    def create_region_sampler(self, mu):
-        #mu is the location just returned by evaluate_region_logic(). Therefore we wish to instantiate a new RegionSampler
-        #Create a new region in the model at this location, create a new sampler to sample it.
-
-        #copy and update default_param_dict to include the new value of mu
-        starting_param_dict = self.default_param_dict.copy()
-        starting_param_dict.update({"mu":mu})
-        region_index = len(self.samplers) #region_index is one more than the current amount of regions
-
-        newSampler = CovRegionSampler(self.model, self.MH_cov, starting_param_dict, order_index=self.order_index,
-                                      region_index=region_index, outdir=self.outdir, fname=self.fname)
-        self.samplers.append(newSampler)
-
-    def reset(self):
-        for sampler in self.samplers:
-            sampler.reset()
-            print("Reset RegionsSampler for order {}".format(self.order_index))
-
-
-    def burn_in(self, iterations):
-        '''
-        For consistencies's sake w/ MegaSampler
-        '''
-        self.run(iterations)
-
-
-    def run(self, iterations):
-        if iterations == 0:
-            return
-
-        self.logic_counter += 1
-        if (self.logic_counter >= self.logic_overflow) and (len(self.samplers) < self.max_regions):
-            mu = self.evaluate_region_logic()
-            if mu is not None:
-                self.create_region_sampler(mu)
-
-        for i in range(iterations):
-            for sampler in self.samplers:
-                print("Sampling region {} for {} iterations: ".format(sampler.region_index, iterations), end="")
-                t = time.time()
-                sampler.run(self.cadence)
-                print("completed in {:.2f} seconds".format(time.time() - t))
-
-    def write(self):
-        for sampler in self.samplers:
-            sampler.write()
-
-    def plot(self):
-        for sampler in self.samplers:
-            sampler.plot()
-
-    def acceptance_fraction(self):
-        for j in range(len(self.samplers)):
-            print(self.samplers[j].acceptance_fraction())
-
-    def acor(self):
-        for j in range(len(self.samplers)):
-            print(self.samplers[j].acor())
+            return -np.inf
 
 class OldMegaSampler:
     '''
