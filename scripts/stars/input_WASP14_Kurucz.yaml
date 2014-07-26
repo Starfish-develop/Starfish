@@ -9,7 +9,8 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  First Kurucz run. Using base_lnprob.py. No Matern or regions. How precise is the inference with only Poisson errors?
+  Second Kurucz run using multiple chains. Using base_lnprob.py. No Matern or regions. How precise is the inference
+  with only Poisson errors?
 
 #Nested data structures are allowed
 stellar_params :
@@ -83,6 +84,6 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 1000
-samples : 100000
+burn_in : 1
+samples : 200000
 #will probably need 100000 for a good looking posterior
