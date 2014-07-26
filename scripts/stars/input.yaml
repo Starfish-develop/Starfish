@@ -1,8 +1,9 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/
+name: WASP14/Kurucz/22/
 
 HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/Kurucz_TRES.hdf5
 #HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
@@ -19,8 +20,8 @@ stellar_params :
     vsini : 5
     #vz : 15.4
     vz : -5.
-    #logOmega: -12.7 #Kurucz
-    logOmega: -19.667 #PHOENIX
+    logOmega: -12.7 #Kurucz
+    #logOmega: -19.667 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
@@ -34,10 +35,10 @@ stellar_params :
 
 #no covariance
 stellar_jump:
-    temp : 0.02
-    logg : 0.005
-    Z : 0.005
-    vsini : 0.05
+    temp : 1
+    logg : 0.002
+    Z : 0.001
+    vsini : 0.02
     vz : 0.02
     logOmega: 1e-4
 
@@ -52,7 +53,7 @@ cheb_degree: 4
 #using covariance
 #cheb_jump : 3e-3
 #no covariance
-cheb_jump : 2e-4
+cheb_jump : 5e-4
 
 no_cov : True
 
