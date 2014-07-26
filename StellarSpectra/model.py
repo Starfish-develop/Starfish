@@ -550,15 +550,15 @@ class Sampler(GibbsSampler):
         '''
         Generate the relevant plots once the sampling is done.
         '''
+        samples = self.flatchain
+
+        plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
 
         import triangle
-
-        samples = self.flatchain
         figure = triangle.corner(samples, labels=self.param_tuple, quantiles=[0.16, 0.5, 0.84],
                                  show_titles=True, title_args={"fontsize": 12})
         figure.savefig(self.outdir + self.fname + "_triangle.png")
 
-        plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
         plt.close(figure)
 
 class StellarSampler(Sampler):

@@ -48,6 +48,7 @@ stellar_cov:
     temp_Z : 1.22e-1
     logg_Z : 9.86e-5
     temp_logOmega : -9.648e-3
+    factor : 0.1
 
 cheb_degree: 4
 #using covariance
