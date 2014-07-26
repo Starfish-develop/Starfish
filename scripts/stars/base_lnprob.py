@@ -151,10 +151,10 @@ samplerList = []
 
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(model=myModel, cov=cheb_MH_cov, starting_param_dict=cheb_Starting, order_index=i,
-                                   outdir=outdir, debug=False))
+                                   outdir=outdir, debug=True))
     if not config['no_cov']:
         samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
-                                       outdir=outdir, debug=False))
+                                       outdir=outdir, debug=True))
         samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
                         default_param_dict=region_Starting, order_index=i, outdir=outdir, debug=False))
 
