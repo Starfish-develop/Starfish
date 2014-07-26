@@ -139,7 +139,7 @@ for order in config['orders']:
 shutil.copy(yaml_file, outdir + "/input.yaml")
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
-                cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
+                cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=True)
 
 
 
