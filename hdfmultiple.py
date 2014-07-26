@@ -105,15 +105,15 @@ if args.gelman:
     # i = index of iteration in chain
     # m = number of split chains
     # j = index of which chain
-    n = full_iterations/2
+    n = full_iterations//2
     m = 2 * len(stellarlist)
     nparams = len(stellar_params)
 
     #Block the chains up into a 3D array
     chains = np.empty((n, m, nparams))
-    for k in range(m/2):
-        chains[:,k,:] = stellar[:n]  #first half of chain
-        chains[:,k+1,:] = stellar[n:] #second half of chain
+    for k, stellar in enumerate(stellarlist):
+        chains[:,2*k,:] = stellar[:n]  #first half of chain
+        chains[:,2*k + 1,:] = stellar[n:] #second half of chain
 
     #Now compute statistics
     #average value of each chain
@@ -132,8 +132,14 @@ if args.gelman:
     R_hat = np.sqrt(var_hat/W) #still a (nparams,) array
 
     print("Parameters: {}".format(stellar_params))
+    print("Between-sequence variance B: {}".format(B))
+    print("Within-sequence variance W: {}".format(W))
     print("var_hat: {}".format(var_hat))
+    print("std_hat: {}".format(np.sqrt(var_hat)))
     print("R_hat: {}".format(R_hat))
+
+    if np.any(R_hat >= 1.1):
+        print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
 
 
 
