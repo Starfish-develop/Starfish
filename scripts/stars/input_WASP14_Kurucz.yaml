@@ -9,7 +9,7 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Kurucz run using multiple chains and no covariance and no regions. Using base_lnprob.py.
+  Kurucz run using multiple chains. Including no covariance and no regions. Using base_lnprob.py.
 
 #Nested data structures are allowed
 stellar_params :
