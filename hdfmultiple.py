@@ -100,7 +100,7 @@ def get_flatchains(key):
     return [hdf5.get(key)[:] for hdf5 in hdf5list]
 
 #Order list will always be a 2D list, with the items being flatchains
-orderList = []
+ordersList = []
 for order in orders:
 
     temp = [get_flatchains("{}/cheb".format(order))]
@@ -110,7 +110,7 @@ for order in orders:
     #TODO: do something about regions here
 
     #accumulate all of the orders
-    orderList += [temp]
+    ordersList += [temp]
 
 # order22list = [order22cheblist, order22covlist]
 # order23list = [order23cheblist, order23covlist]
@@ -120,6 +120,9 @@ for order in orders:
 print("Thinning by ", args.thin)
 print("Burning out first {} samples".format(args.burn))
 stellarlist = [stellar[args.burn::args.thin] for stellar in stellarlist]
+#this is bad for readability, but I am ON FIRE
+ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
+              ordersList]
 
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
@@ -192,10 +195,10 @@ if args.gelman:
     #Compute the Gelman-Rubin statistics BDA 3, pg 284
     print("Stellar parameters")
     gelman_rubin(stellarlist)
-    for i, order in enumerate(orderList):
+    for i, orderList in enumerate(ordersList):
         print("\nOrder {}".format(orders[i]))
-        for sub in order:
-            gelman_rubin(sub)
+        for subList in orderList:
+            gelman_rubin(subList)
 
 
 
