@@ -645,7 +645,7 @@ class ChebSampler(Sampler):
         if self.debug:
             print("Cheb params are", params)
         self.order_model.update_Cheb(params)
-        lnp = self.order_model.evaluate()
+        lnp = self.model.evaluate()
         if self.debug:
             print("Cheb lnp is ", lnp)
         return lnp
@@ -676,7 +676,7 @@ class CovGlobalSampler(Sampler):
             print("Cov params are", params)
         try:
             self.order_model.update_Cov(params)
-            return self.order_model.evaluate()
+            return self.model.evaluate()
         except C.ModelError:
             return -np.inf
 
@@ -717,7 +717,7 @@ class CovRegionSampler(Sampler):
         params = self.model.zip_Region_p(p)
         try:
             self.CovMatrix.update_region(self.region_index, params)
-            return self.order_model.evaluate()
+            return self.model.evaluate()
         except (C.ModelError, C.RegionError):
             return -np.inf
 
