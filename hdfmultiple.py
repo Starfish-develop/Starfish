@@ -112,15 +112,9 @@ for order in orders:
     #accumulate all of the orders
     orderList += [temp]
 
-print(orderList)
-
-# order nums
-
-#For Inference on multiple orders, what we want to do is take in and sort the lists
 # order22list = [order22cheblist, order22covlist]
 # order23list = [order23cheblist, order23covlist]
 # orderlist = [order22list, order23list]
-#
 # That way, we can do something like gelman_rubin(order22cheblist)
 
 print("Thinning by ", args.thin)
@@ -196,9 +190,10 @@ def gelman_rubin(samplelist):
 
 if args.gelman:
     #Compute the Gelman-Rubin statistics BDA 3, pg 284
+    print("Stellar parameters")
     gelman_rubin(stellarlist)
     for i, order in enumerate(orderList):
-        print("Order {}".format(i))
+        print("\nOrder {}".format(orders[i]))
         for sub in order:
             gelman_rubin(sub)
 
