@@ -10,6 +10,7 @@ Script designed to plot the HDF5 output from MCMC runs.
 #Plot kw
 label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}/{\rm H}]$", "alpha":r"$[\alpha/{\rm Fe}]$",
     "vsini":r"$v \sin i$", "vz":r"$v_z$", "logOmega":r"$\log_{10} \Omega$", "logc0":r"$\log_{10} c_0$",
+    "c1":r"$c_0$", "c2":r"$c_1$", "c3":r"$c_3$",
     "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}", "l":r"$l$",
     "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
@@ -98,10 +99,12 @@ yes_cov = hdf5.visit(find_cov)
 yes_region = hdf5.visit(find_region)
 #Order list will always be a 2D list, with the items being flatchains
 cheb_parameters = hdf5.get("{}/cheb".format(orders[0])).attrs["parameters"]
-cheb_labels = [label_dict[key] for key in cheb_parameters]
+cheb_tuple = tuple([param.strip("'() ") for param in cheb_parameters.split(",")])
+cheb_labels = [label_dict[key] for key in cheb_tuple]
 if yes_cov:
     cov_parameters = hdf5.get("{}/cov".format(orders[0])).attrs["parameters"]
-    cov_labels = [label_dict[key] for key in cov_parameters]
+    cov_tuple = tuple([param.strip("'() ") for param in cov_parameters.split(",")])
+    cov_labels = [label_dict[key] for key in cov_tuple]
 
 ordersList = []
 for order in orders:
