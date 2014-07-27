@@ -48,6 +48,7 @@ for stellar in stellarlist:
     assert stellar.attrs["parameters"] == stellarlist[0].attrs["parameters"], "Parameter lists do not match."
     assert stellar.shape[1] == stellarlist[0].shape[1], "Different number of parameters."
 
+stellar_parameters = stellarlist[0].attrs["parameters"]
 
 def find_cov(name):
     if name == "cov":
@@ -71,6 +72,10 @@ yes_region = hdf5.visit(find_region)
 # give this a key relative from the top, and it will return a list of all flatchains
 def get_flatchains(key):
     return [hdf5.get(key)[:] for hdf5 in hdf5list]
+
+cheb_parameters = hdf5list[0].get("{}/cheb".format(orders[0])).attrs["parameters"]
+if yes_cov:
+    cov_parameters = hdf5list[0].get("{}/cov".format(orders[0])).attrs["parameters"]
 
 #Order list will always be a 2D list, with the items being flatchains
 ordersList = []
@@ -102,14 +107,16 @@ cat_orders = [[np.concatenate(subList, axis=0) for subList in orderList] for ord
 hdf5 = h5py.File(args.output, "w")
 dset = hdf5.create_dataset("stellar", cat_stellar.shape, compression='gzip', compression_opts=9)
 dset[:] = cat_stellar
-dset.attrs["parameters"] = stellarlist[0].attrs["parameters"]
+dset.attrs["parameters"] = stellar_parameters
 for i, order in enumerate(orders):
     orderList = cat_orders[i]
     dset = hdf5.create_dataset("{}/cheb".format(order), orderList[0].shape, compression='gzip', compression_opts=9)
     dset[:] = orderList[0]
+    dset.attrs["parameters"] = cheb_parameters
     if yes_cov:
         dset = hdf5.create_dataset("{}/cov".format(order), orderList[1].shape, compression='gzip', compression_opts=9)
         dset[:] = orderList[1]
+        dset.attrs["parameters"] = cov_parameters
 
 #close the new file
 hdf5.close()
