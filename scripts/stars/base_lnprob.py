@@ -49,8 +49,8 @@ def perturb(startingDict, jumpDict, factor=3.):
 
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
 #Load mask and add it to DataSpectrum
-#mask = np.load("data/WASP14/WASP14_23.mask.npy")
-#myDataSpectrum.add_mask(np.atleast_2d(mask))
+mask = np.load("data/WASP14/WASP14_23.mask.npy")
+myDataSpectrum.add_mask(np.atleast_2d(mask))
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
 
