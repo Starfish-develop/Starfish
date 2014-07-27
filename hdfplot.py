@@ -79,6 +79,41 @@ else:
 
 stellar_labels = [label_dict[key] for key in stellar_params]
 
+def find_cov(name):
+    if name == "cov":
+        return True
+    return None
+
+def find_region(name):
+    if "cov_region" in name:
+        return True
+    return None
+
+#Determine how many orders, if there is global covariance, or regions
+#choose the first chain
+orders = [int(key) for key in hdf5.keys() if key != "stellar"]
+orders.sort()
+
+yes_cov = hdf5.visit(find_cov)
+yes_region = hdf5.visit(find_region)
+#Order list will always be a 2D list, with the items being flatchains
+cheb_parameters = hdf5.get("{}/cheb".format(orders[0])).attrs["parameters"]
+cheb_labels = [label_dict[key] for key in cheb_parameters]
+if yes_cov:
+    cov_parameters = hdf5.get("{}/cov".format(orders[0])).attrs["parameters"]
+    cov_labels = [label_dict[key] for key in cov_parameters]
+
+ordersList = []
+for order in orders:
+
+    temp = [hdf5.get("{}/cheb".format(order))]
+    if yes_cov:
+        temp += [hdf5.get("{}/cov".format(order))]
+
+    #TODO: do something about regions here
+    #accumulate all of the orders
+    ordersList += [temp]
+
 if args.triangle:
     import matplotlib
     matplotlib.rc("axes", labelsize="large")
@@ -86,6 +121,21 @@ if args.triangle:
     figure = triangle.corner(stellar, labels=stellar_labels, quantiles=[0.16, 0.5, 0.84],
                              show_titles=True, title_args={"fontsize": 12})
     figure.savefig(args.outdir + "stellar_triangle.png")
+
+    #Now plot all the other parameters
+    for i, order in enumerate(orders):
+        orderList = ordersList[i]
+        cheb = orderList[0]
+        figure = triangle.corner(cheb, labels=cheb_labels, quantiles=[0.16, 0.5, 0.84],
+                                 show_titles=True, title_args={"fontsize": 12})
+        figure.savefig(args.outdir + "{}_cheb_triangle.png".format(order))
+
+        if yes_cov:
+            cov = orderList[1]
+            figure = triangle.corner(cov, labels=cov_labels, quantiles=[0.16, 0.5, 0.84],
+                                     show_titles=True, title_args={"fontsize": 12})
+            figure.savefig(args.outdir + "{}_cov_triangle.png".format(order))
+
 
 if args.cov:
     '''
@@ -109,12 +159,6 @@ if args.cov:
 
 # plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
 # plt.close(figure)
-
-#Determine how many orders there are
-
-#Determine how many regions there are
-orderList = [int(key) for key in hdf5.keys() if key != "stellar"] #The remaining folders in the HDF5 file are order nums
-print("orders remaining", orderList)
 
 if args.acor:
     from emcee import autocorr
