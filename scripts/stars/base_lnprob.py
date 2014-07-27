@@ -96,8 +96,8 @@ cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in cov_tuple])**2 
 
 if args.perturb:
     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
-    cheb_jump = {key: config["cheb_jump"] for key in cheb_tuple}
-    perturb(cheb_Starting, cheb_jump, factor=args.perturb)
+    #cheb_jump = {key: config["cheb_jump"] for key in cheb_tuple}
+    #perturb(cheb_Starting, cheb_jump, factor=args.perturb)
     perturb(cov_Starting, config['cov_jump'], factor=args.perturb)
 
 
