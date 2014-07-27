@@ -646,7 +646,7 @@ maximum in the posterior probability distribution is being sampled.
 \end{enumerate}
 The number of Metropolis-Hastings iterations in each step is somewhat arbitrary, and can be tuned 
 for optimization purposes; we typically set $N_{MH} \approx 10$.  The number of Gibbs sampler 
-iterations, $N_G$, are determined empirically with a convergence criterion .... \comm{how exactly?}
+iterations, $N_G$, are determined empirically with the Gelman-Rubin convergence diagnostic ensuring it is below $1.1$, which compares inter-chain and intra-chain variance \citep[Eqn 11.4]{gelman13} and represents the scale by which the distribution might be reduced by continuing the simulation for infinity. Splitting chains and assessing mixing.
 
 This procedure can be a computational challenge.  A typical spectrum might have $N_{\rm 
 pix}$$>$1000, and therefore the many repeated evaluations of the matrix product $\vR^{\trans} 
