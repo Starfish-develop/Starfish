@@ -197,6 +197,10 @@ def gelman_rubin(samplelist):
 if args.gelman:
     #Compute the Gelman-Rubin statistics BDA 3, pg 284
     gelman_rubin(stellarlist)
+    for i, order in enumerate(orderList):
+        print("Order {}".format(i))
+        for sub in order:
+            gelman_rubin(sub)
 
 
 
