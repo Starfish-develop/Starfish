@@ -324,6 +324,9 @@ We probably don't need to bother with the parallelization stuff.
 
 # Speedups and improvements
 
+* each of the order samplers now does the evaluate() step for all other orders, even if they haven't changed. This is
+ the simple thing to try right now. Since the evaluate() step was known to be quick before (look how quickly the
+ chebyshevs went), repeating some of these calculations for the pre-factored matrices should be ok.
 
 * Fix the mean of c0's to 1?
 That way c0 is just a perturbation to the mean?
