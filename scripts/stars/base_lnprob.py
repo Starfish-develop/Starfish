@@ -139,7 +139,7 @@ for order in config['orders']:
 shutil.copy(yaml_file, outdir + "/input.yaml")
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
-                cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=True)
+                cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
 
 
 
@@ -151,10 +151,10 @@ samplerList = []
 
 for i in range(len(config['orders'])):
     samplerList.append(ChebSampler(model=myModel, cov=cheb_MH_cov, starting_param_dict=cheb_Starting, order_index=i,
-                                   outdir=outdir, debug=True))
+                                   outdir=outdir, debug=False))
     if not config['no_cov']:
         samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
-                                       outdir=outdir, debug=True))
+                                       outdir=outdir, debug=False))
         samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
                         default_param_dict=region_Starting, order_index=i, outdir=outdir, debug=False))
 

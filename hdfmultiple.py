@@ -71,11 +71,6 @@ for stellar in stellarlist:
 stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
 
-#Assert that all of the files we wish to measure have the same substructure
-
-def checkEqual(L1, L2):
-    return len(L1) == len(L2) and sorted(L1) == sorted(L2)
-
 def find_cov(name):
     if name == "cov":
         return True
@@ -120,7 +115,7 @@ for order in orders:
 print("Thinning by ", args.thin)
 print("Burning out first {} samples".format(args.burn))
 stellarlist = [stellar[args.burn::args.thin] for stellar in stellarlist]
-#this is bad for readability, but I am ON FIRE
+#a triple list comprehension is bad for readability, but I can't think of something better
 ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
               ordersList]
 
@@ -149,6 +144,10 @@ def gelman_rubin(samplelist):
     full_iterations = len(samplelist[0])
     assert full_iterations % 2 == 0, "Number of iterations must be even. Try cutting off a different number of burn " \
                                      "in samples."
+    #make sure all the chains have the same number of iterations
+    for flatchain in samplelist:
+        assert len(flatchain) == full_iterations, "Not all chains have the same number of iterations!"
+
     #Following Gelman,
     # n = length of split chains
     # i = index of iteration in chain
@@ -188,7 +187,6 @@ def gelman_rubin(samplelist):
 
     if np.any(R_hat >= 1.1):
         print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
-
 
 
 if args.gelman:
