@@ -1,15 +1,17 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/no_cov/
+name: WASP14/PHOENIX/21_22_23/no_cov/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  PHOENIX WASP14, order 23. No masking, no covariance. Just ran Kurucz on a very large distributed run and it looks
+  PHOENIX WASP14, several orders, no masking, no covariance. Just ran Kurucz on a very large distributed run and
+  it
+  looks
   decent.
 
 #Nested data structures are allowed
@@ -77,12 +79,12 @@ region_jump:
     sigma : 0.2
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [22]
+orders: [21, 22, 23]
 
 #Maximum number of sub-regions allowed per order
 max_regions : 0
 
 #Burn in time
-burn_in : 0
-samples : 200000
+burn_in : 1000
+samples : 1000
 #will probably need 100000 for a good looking posterior
