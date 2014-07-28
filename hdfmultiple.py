@@ -72,7 +72,6 @@ stellar_tuple = stellar.attrs["parameters"]
 stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")])
 
 def find_cov(name):
-    print("visiting", name)
     if "cov" in name:
         return True
 
