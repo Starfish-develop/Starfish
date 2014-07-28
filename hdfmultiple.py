@@ -98,8 +98,10 @@ def get_flatchains(key):
 ordersList = []
 for order in orders:
 
+    print("Adding cheb for order {}".format(order))
     temp = [get_flatchains("{}/cheb".format(order))]
     if yes_cov:
+        print("Adding cov for order {}".format(order))
         temp += [get_flatchains("{}/cov".format(order))]
 
     #TODO: do something about regions here
