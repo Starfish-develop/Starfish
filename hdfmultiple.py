@@ -74,12 +74,10 @@ stellar_tuple = tuple([param.strip("'() ") for param in stellar_tuple.split(",")
 def find_cov(name):
     if name == "cov":
         return True
-    return None
 
 def find_region(name):
     if "cov_region" in name:
         return True
-    return None
 
 #Determine how many orders, if there is global covariance, or regions
 #choose the first chain
