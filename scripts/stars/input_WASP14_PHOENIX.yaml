@@ -83,5 +83,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 0
-samples : 200000
+samples : 500000
 #will probably need 100000 for a good looking posterior
