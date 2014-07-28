@@ -88,6 +88,7 @@ orders = [int(key) for key in hdf5.keys() if key != "stellar"]
 orders.sort()
 
 yes_cov = hdf5.visit(find_cov)
+print("Is there covariance: {}".format(yes_cov))
 yes_region = hdf5.visit(find_region)
 
 # give this a key relative from the top, and it will return a list of all flatchains
