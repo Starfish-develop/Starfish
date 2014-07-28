@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/22/no_cov/
+name: WASP14/Kurucz/22/cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -25,8 +25,8 @@ stellar_params :
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 2
-    logg : 0.005
+    temp : 4
+    logg : 0.008
     Z : 0.005
     vsini : 0.02
     vz : 0.02
@@ -50,9 +50,9 @@ stellar_cov:
     factor : 0.1
 
 cheb_degree: 4
-cheb_jump : 5e-4
+cheb_jump : 8e-4
 
-no_cov : True
+no_cov : False
 
 cov_params :
     sigAmp : 1
