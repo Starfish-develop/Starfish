@@ -81,7 +81,7 @@ else:
 stellar_labels = [label_dict[key] for key in stellar_params]
 
 def find_cov(name):
-    if name == "cov":
+    if "cov" in name:
         return True
     return None
 
