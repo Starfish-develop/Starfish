@@ -51,7 +51,7 @@ for stellar in stellarlist:
 stellar_parameters = stellarlist[0].attrs["parameters"]
 
 def find_cov(name):
-    if name == "cov":
+    if "cov" in name:
         return True
     return None
 
