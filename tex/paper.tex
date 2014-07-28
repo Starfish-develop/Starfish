@@ -529,13 +529,11 @@ opposed to manual or threshold-based clipping or masking).
 \end{center}
 \end{figure*}
 
-\comm{These local kernels can be further modified to account for more complex residual structures.  For 
+These local kernels can be further modified to account for more complex residual structures.  For 
 example, late-type stars with imperfectly modeled molecular bandheads may produce a complicated 
 pattern of positive and negative residuals or a pronounced mismatch over a relatively large 
 spectral scale.  This phenomenologically different local covariance behavior can still be treated 
-in this framework, if we design an appropriate covariance kernel. Given the behavior of molecular bandheads, a \matern\ kernel tapered by the Gaussian kernel in Eq.~\ref{eqn:klocal} works well.}
-\todo{We'll need to round out the Gl 51 example in Sect 3.2 before this text is finished.}
-
+in this framework, if we design an appropriate covariance kernel. Given the behavior of molecular bandheads, a \matern\ kernel tapered by the Gaussian kernel in Eq.~\ref{eqn:klocal} works well.
 
 \subsubsection{Composite Covariance Matrix}
 
@@ -569,9 +567,7 @@ $\cov$.
 
 
 \subsection{Priors} \label{subsec:priors}
-
-\comm{We need a subsection describing what you assume for your priors.}
-
+The final posterior probability distribution of the model parameters is defined by Bayes rule as proportional to the product of the likelihood function (Eqn~\ref{eqn:likelihood}) and the prior probabilities on the model parameters. Because a high quality spectrum provides so much information about $\vT$, in general the inference of the stellar parameters is not very sensitive to specific choices of priors.  We generally assume uniform priors on the stellar parameters, which are flat for any $\vt_{\ast}$ within the range of $\{\vt_{\ast}\}^{\rm grid}$ and otherwise practically $0$. For stars with a well-defined continuum, it is generally acceptable to use flat priors on the polynomial parameters $\cheb$. However, if there is information about the systematic accuracy of flux calibration, for example from multiple observations of spectrophotometric standards, it is possible to encode this information with a Gaussian prior on the coefficients of $\cheb$, with a mean of $0$ and a width of the typical systematic variation of the flux calibration (e.g., $5\%$). For stars with a poorly defined continuum or pseudo-continuum, judicious choice of these priors will ensure that broad spectroscopic features are not destroyed by the polynomial fit. For the parameters of local covariance kernels, $\vp_{{\mathsf C},l}$, we assume a prior on the width of the local kernel that is flat below the scale of the instrumental PSF and rapidly Gaussian tapers to zero for widths larger than the PSF. This prior is designed to prevent the local kernels from diffusing to large widths and low amplitudes, effectively duplicating the role of the global kernels.
 
 \subsection{Exploring the Posterior} \label{subsec:MCMC}
 
@@ -595,108 +591,66 @@ and assume only the trivial noise spectrum contributes to the covariance matrix 
 $\cov^0$ are zero).  
 
 \item Start a new ($i^{\rm th}$; where $i \in [1,N_G]$) iteration of the Gibbs sampler.  For 
-$N_{MH}$ iterations of the Metropolis-Hastings algorithm, sample in $\vT$ to evaluate the posterior 
-probability 
-\begin{equation}
-p(\vT,\vP|\vD) \propto p(\vD | \vT, \vP = \vP^{i-1}) \,\, p(\vT,\vP)
-\end{equation}
-following the framework laid out in Sections \ref{subsec:likelihood} and \ref{subsec:priors}, 
+one iteration of the Metropolis-Hastings algorithm, sample in $\vT$ to evaluate the posterior 
+probability following the framework laid out in Sections \ref{subsec:likelihood} and \ref{subsec:priors}, 
 representing a slice through the posterior space conditioned on the hyperparameters being fixed to 
 their $(i-1)^{\rm th}$ iteration values.  Now update the parameters $\vT^{i-1} \rightarrow \vT^i$.
 
 \item Cycle through and update the hyperparameters, $\vP^{i-1} \rightarrow \vP^i$:  
 
 \begin{enumerate}
-\item For each spectral order, sample in the polynomial hyperparameters $\cheb$ using $N_{MH}$ 
-iterations of the Metropolis-Hastings algorithm, computing posterior probabilities
-\begin{equation}
-p(\vT,\vP|\vD) \propto p(\vD | \cheb, \cov = \cov^{i-1}, \vT = \vT^i) \,\, p(\vT, \cheb, \cov)
-\end{equation}
-along a subset of the posterior space where $\vT^i$ and $\cov^{i-1}$ are fixed.  Now update the 
+\item For each spectral order, sample in the polynomial hyperparameters $\cheb$ using one 
+iteration of the Metropolis-Hastings algorithm, computing posterior probabilities along a subset of the posterior space where $\vT^i$ and $\cov^{i-1}$ are fixed.  Now update the 
 polynomial hyperparameters $\cheb^{i-1} \rightarrow \cheb^i$.  
 
 \item Sample in the global (stationary) covariance kernel hyperparameters, $\vp_{{\mathsf C},g} = 
-[a_g, \ell]$, using $N_{MH}$ iterations of the Metropolis-Hastings algorithm to compute posteriors
-\begin{equation}
-p(\vT,\vP|\vD) \propto p(\vD | \vp_{{\mathsf C}, g}, \vp_{{\mathsf C}, k} = \vp_{{\mathsf C, k}}^{i-1}, \cheb = \cheb^i, \vT = \vT^i) \,\, p(\vT, \cheb, \cov)
-\end{equation}
+[a_g, \ell]$, using one iteration of the Metropolis-Hastings algorithm to compute posteriors
 with $\vT^i$ and the local covariance kernel parameters, $\vp_{{\mathsf C}, k}^{i-1}$, fixed.  
 Update the global covariance hyperparameters $\vp_{{\mathsf C}, g}^{i-1} \rightarrow \vp_{{\mathsf 
 C}, g}^i$.
 
-\item Decide whether to instantiate or delete any local (non-stationary) covariance kernels.  Here 
+\item Decide whether to instantiate any additional local (non-stationary) covariance kernels.  Here 
 we adopt an iterative thresholding criterion: if a local patch of the residual signal is at least 
 $3\times$ the amplitude of the global covariance kernel (i.e., where $\vR \ge 3 \, a_g^i$), this 
-will trigger the addition of a local kernel; if that same criterion is not met at the location of a 
-previously-instantiated kernel, that kernel is then deleted.  
+will trigger the addition of a local kernel.  
 
-\item Now sample in the local covariance hyperparameters $\vp_{{\mathsf C},k}$ using $N_{MH}$ 
-iterations of the Metropolis-Hastings algorithm to compute the posterior probabilities
-\begin{equation}
-p(\vT,\vP|\vD) \propto p(\vD | \vp_{{\mathsf C}, k}, \vp_{{\mathsf C}, g} = \vp_{{\mathsf C, g}}^i, \cheb = \cheb^i, \vT = \vT^i) \,\, p(\vT, \cheb, \cov)
-\end{equation}
+\item Now sample in the local covariance hyperparameters $\vp_{{\mathsf C},k}$ using one 
+iteration of the Metropolis-Hastings algorithm to compute the posterior probabilities
 with $\vT^i$, $\cheb^i$, and $\vp_{{\mathsf C}, g}^i$ fixed.  Update the local covariance 
-hyperparameters $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$.
+hyperparameters $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$. If the stellar parameters have moved to a region of parameter space where the local kernel is no longer required, then the amplitude of the kernel will be driven towards $0$ and the kernel would have a negligible contribution to the covariance matrix $\vC$. 
 \end{enumerate}
 
-\item Return to Step 2 and iterate until a convergence criterion is met.
+\item Return to Step 2 and iterate for $N_G$ iterations.
 
-\item Repeat this procedure with different initializations (Step 1), to ensure that a global 
-maximum in the posterior probability distribution is being sampled.
+\item Repeat this procedure with different initializations (Step 1) and compute convergence diagnostics of the multiple chains, to ensure that all of the chains have converged to the same global 
+maximum in the posterior probability distribution and that each chain has converged.
 \end{enumerate}
-The number of Metropolis-Hastings iterations in each step is somewhat arbitrary, and can be tuned 
-for optimization purposes; we typically set $N_{MH} \approx 10$.  The number of Gibbs sampler 
-iterations, $N_G$, are determined empirically with the Gelman-Rubin convergence diagnostic ensuring it is below $1.1$, which compares inter-chain and intra-chain variance \citep[Eqn 11.4]{gelman13} and represents the scale by which the distribution might be reduced by continuing the simulation for infinity. Splitting chains and assessing mixing.
+How many iterations to run the Gibbs sampler, $N_G$, is empirically determined through visual inspection of the Markov chains and with the Gelman-Rubin convergence diagnostic $\hat{R}$ \citep[Eqn 11.4]{gelman13}, which compares intra-chain and inter-chain variance to assess convergence. After a running a series of multiple chains, we compute the diagnostic, which summarizes how the inference of the posterior probability function would be improved if we were to run the Markov chain for an infinite number of iterations. If $\hat{R}$$>$1.1, then there is evidence that the chains have not fully converged and so we increase $N_G$ and repeat the simulations until we are confident of convergence.
 
-This procedure can be a computational challenge.  A typical spectrum might have $N_{\rm 
-pix}$$>$1000, and therefore the many repeated evaluations of the matrix product $\vR^{\trans} 
-\vC^{-1} \vR$ in the likelihood function calculation can be numerically expensive; prohibitively so 
-in the brute force sense, since $\vC$ is non-trivial by design.  However, there are two aspects of 
-these calculations that enable us to take advantage of clever, efficient algorithms designed for 
-specifically these kinds of issues.  First, since we are interested in the matrix product 
-$\vR^{\trans} \vC^{-1} \vR$ and not $\vC^{-1}$ itself, we can exploit efficient routines for 
-solving linear systems that bypass the computational expense of matrix inversion.\footnote{\comm{(This seems vague.)}}  And second, because $\vC$ is a positive self-definite 
-matrix, we can employ Cholesky factorization to optimize the evaluation of the matrix product.  The 
-makes Step 2 and Steps 3a and 3b in the procedure outlined above extremely rapid.  Although this 
-factorization must be re-done for each update of the covariance hyperparameters, such operations 
-are still modestly efficient because the covariance kernels were specifically designed to deliver a 
-sparse matrix (via the Hann windows).  We use the high-performance \texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}} library to implement the sparse 
-matrix and Cholesky factorization operations \citep{chen08,davis09}, and employ the 
-Metropolis-Hastings sampler included in the {\tt emcee} package \citep{foreman-mackey13}.
+Gibbs sampling from the posterior with this procedure can be a computational
+challenge.  A typical spectrum might have $N_{\rm pix}$$>$1000, and therefore
+the many repeated evaluations of the matrix product $\vR^{\trans} \vC^{-1} \vR$
+in the likelihood function calculation can be numerically expensive;
+prohibitively so in the brute force sense, since $\vC$ is non-trivial by
+design.  However, there are two aspects of these calculations that enable us to
+take advantage of clever, efficient algorithms designed for specifically these
+kinds of issues.  First, since we are interested in the matrix product
+$\vR^{\trans} \vC^{-1} \vR$ and not $\vC^{-1}$ itself, we can directly solve for the product using efficient algorithms and avoid the computational expense of
+matrix inversion. And second, because
+$\vC$ is a symmetric, positive semi-definite matrix, we can employ Cholesky factorization
+to optimize the evaluation of the matrix product.  The makes Step 2 and Steps
+3a and 3b in the procedure outlined above extremely rapid.  Although this
+factorization must be re-done for each update of the covariance
+hyperparameters, such operations are still modestly efficient because the
+covariance kernels were specifically designed to deliver a sparse matrix (via
+the Hann windows).  We use the high-performance
+\texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}}
+library to implement the sparse matrix and Cholesky factorization operations
+\citep{chen08,davis09}, and extend the Metropolis-Hastings sampler included in
+the {\tt emcee} package \citep{foreman-mackey13} to function within a Gibbs sampler\footnote{\url{https://github.com/iancze/emcee}}.
 
-
-%Using Bayes' rule, we write down the posterior probability distribution as proportional to the likelihood times the prior
-%\begin{equation}
-%  p(\vT | \vD) =  p(\vt_{\ast}, \cheb, \cov | \vD ) \propto p(\vD | \vT) p(\vT).
-%\end{equation}
-%Given the logical hierarchical structure of the collection of stellar and nuisance parameters, $\allParameters$, it is convenient to use a blocked Gibbs sampler with the Metropolis-Hastings algorithm to explore this posterior distribution. The sampler works by using the Metropolis-Hastings algorithm to sample a sub-collection of the parameters conditional on the current values of all the other parameters. After each iteration, the Gibbs sampler updates the values of the sub-collection, and then moves to a new sub-collection of parameters. By rotating through all of the sub-collections of parameters, the Gibbs sampler ensures that it samples the full posterior probability distribution. For more on MCMC and Gibbs samplers see \citet[Ch. 11]{gelman13} and the references therein. 
-
-%\begin{figure*}[!htb]
-%\begin{center}
-%  \includegraphics[width=5in]{figs/stellar_triangle_Kurucz.png}
-%  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\Cheb$) and noise parameters ($\Cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
-%}
-%\label{fig:stellar_posterior}
-%\end{center}
-%\end{figure*}
-
-%The following procedure illustrates how the Gibbs sampler rotates among subsets of the parameters when sampling a multi-order echelle spectrum. We use superscripts to denote iterations of the MCMC algorithm, where $j$ denotes the parameters from the current iteration and $j - 1$ denotes the previous iteration.
-
-%\begin{enumerate}
-%  \item Choose starting parameters for $\allParameters^0$. Generally, these will be $\stellarParameters^0$ drawn from the literature, flat Chebyshev polynomials ($\Cheb^0$), and only Poisson noise ($\Cov^0$). 
-%  \item Start a new iteration of the Gibbs sampler with the parameters of the current proposal denoted with the superscript $j$ and the previous iteration denoted by $j-1$. If this is the first iteration of the Gibbs sampler, then $j - 1 = 0$.
-%  \item Sample the stellar parameters $p(\stellarParameters^j | \Cheb^{j-1}, \Cov^{j-1})$. 
-%  \item For each order of the echelle spectrum, $i$
-%    \begin{enumerate}
-%      \item Sample the Chebyshev polynomial parameters $p(\chebi{i}^j | \stellarParameters^j, \covi{i}^{j-1} )$
-%      \item Check to see whether the algorithm should instantiate/delete new/old local kernels
-%      \item Sample the covariance parameters $p(\covi{i}^j | \stellarParameters^j, \chebi{i}^{j})$ 
-%    \end{enumerate}
-%  after step 4 is completed, all Chebyshev and covariance parameters have been updated: $\Cheb^{j-1} \rightarrow \Cheb^j$ and $\Cov^{j-1} \rightarrow \Cov^j$
-%    \item return to step 2 until Markov Chain is converged
-%\end{enumerate}
-
-%We run the MCMC Gibbs sampler for many iterations until the estimate of the posterior distribution has converged. To check that the chain is not stuck in a local maximum of the posterior, we redo the MCMC run many times with different starting parameters, to ensure that the algorithm converges to the same global maximum. A major advantage of using the MCMC algorithm to explore the multidimensional probability space is that it provides numerical samples in each dimension. Therefore, marginalizing out a parameter (i.e., numerically integrating over a dimension in probability space) is as simple as combining all of the samples in this dimension. This enables us to present a posterior of the stellar parameters $\vT$ (Figure~\ref{fig:stellar_posterior}) which has been marginalized over all of the nuisance hyperparameters. This posterior is the final estimate of the stellar parameters which \emph{incorporates} any inherent uncertainty due to model mismatch (via the covariance hyperparameters) and flux-calibration (via the Chebyshev polynomials).
+\todo{What should we do with the commented-out sections?}
+%A major advantage of using the MCMC algorithm to explore the multidimensional probability space is that it provides numerical samples in each dimension. Therefore, marginalizing out a parameter (i.e., numerically integrating over a dimension in probability space) is as simple as combining all of the samples in this dimension. This enables us to present a posterior of the stellar parameters $\vT$ (Figure~\ref{fig:stellar_posterior}) which has been marginalized over all of the nuisance hyperparameters. This posterior is the final estimate of the stellar parameters which \emph{incorporates} any inherent uncertainty due to model mismatch (via the covariance hyperparameters) and flux-calibration (via the Chebyshev polynomials).
 
 %The benefit of including nuisance parameters and then marginalizing over them is that we can self-consistently model the uncertainty inherent to any spectrum while naturally capturing any degeneracy between the model parameters. If stellar parameters are estimated using a method which ignores these nuisance parameters (e.g., by-eye fitting) and the astronomer arbitrarily inflates the parameter uncertainties to reflect intuition, the degeneracy between parameters is artificially destroyed. 
 
@@ -724,25 +678,34 @@ Metropolis-Hastings sampler included in the {\tt emcee} package \citep{foreman-m
 \section{Examples}
 \label{sec:examples}
 
-\subsection{Fitting data}
+\subsection{Datasets and historical analysis}
+% Paragraphs as follows:
+% Introduction to the two types of stars, in order to demonstrate the flexibility.
+To demonstrate the flexibility of our probabilistic framework, we model spectra of two different stars acquired with different instruments. The first data set is a high resolution optical spectrum of WASP-14, an F5 star \citep{joshi09}. The second data set is a moderate resolution mid-infrared spectrum of Gl~51, a M5 star \citep{rojas-ayala12}. 
 
-To demonstrate our technique, we fit spectra of two different stars with varying stellar properties and acquired with different instruments. The first object is WASP-14, an F5 star \citep{joshi09}. The spectrum was obtained with the Tillinghast Reflector Echelle Spectrograph (\emph{TRES}) \citep{mink11} on the FLWO 1.5m telescope on June 14th, 2009. \emph{TRES} delivers a 51 echelle spectrum spanning the full optical wavelength spectrum $3860 - 9100$ \AA\ at a resolution of $R \sim$ 44,000. \citet{torres12} acquired the spectrum of WASP-14 to study the stellar properties of transiting exoplanet hosts. The raw spectrum was reduced using the well-tested \emph{TRES} pipeline written by L. Buchhave. In the \ion{Mg}{0}b order ($\sim 5100$ \AA), the spectrum has a signal to noise of 150 per resolution element.
+% Data description of WASP-14
+Our spectrum of WASP-14 was obtained with the Tillinghast Reflector Echelle Spectrograph (\emph{TRES}, \citealt{mink11}) on the Fred Laurence Whipple Observatory 1.5m telescope on June 14th, 2009. \emph{TRES} delivers a 51 echelle spectrum spanning the full optical spectrum (3860--9100\AA) at a resolution of $R \sim$44,000. \citet{torres12} originally acquired the spectrum of WASP-14 to study the stellar properties of transiting exoplanet hosts. The raw spectrum was reduced using the well-tested \emph{TRES} pipeline written by L.~Buchhave. In the \ion{Mg}{0}b echelle order ($\sim$5100\AA), the spectrum has a signal to noise of 150 per resolution element.
 
-The SPC analysis within \citet{torres12} focused on a region of spectrum from $5000 5300$ \AA and used many methods. The other methods are not directly comparable because they use different underlying assumptions. Additionally, there are systematics introduced by metallicity assumptions and radiative transfer. Using this same spectral library as SPC, we recover the same parameters.
+% What other people get when they fit this star. How does our inference compare?
+\citet{torres12} measured the stellar properties of WASP-14 using several different methods including MOOG, SME, and SPC. The MOOG and SME methods are not directly comparable to our technique because they measure individual line strengths. However, because SPC utilizes a large swath of the spectrum and a model spectrum, we can use the same spectral library and make the same assumptions. The SPC analysis within \citet{torres12} focused on a region of spectrum from 5050--5360\AA\ and used many methods. Additionally, there are systematics introduced by metallicity assumptions and radiative transfer. Using this same spectral library as SPC, we recover the same parameters. When we fit this spectrum using the same assumptions, (amounting to a $\delta$-function prior on $\log g$). This demonstrates sensitivity to a prior as well as the fact that surface gravity estimates from spectroscopy may be biased against fits derived from planetary transits. A Bayesian approach allows you to explore sensitivity to prior assumptions. Letting the covariance float, we achieve comparable estimates. See Table~\ref{table:tests} for our results.
 
-When we fit this spectrum using the same assumptions, (amounting to a $\delta$-function prior on $\log g$. global noise amplitude is so low, almost non-existent. This demonstrates sensitivity to a prior as well as the fact that surface gravity estimates from spectroscopy may be biased against fits derived from planetary transits.
+% Data description of Gl 51
+The spectrum of Gl~51 was obtained with the \emph{SPEX} instrument \citep{rayner03} on the IRTF. The spectrum is a moderate resolution (R $\sim$ 2,000), mid-infrared spectrum from 0.7--5.5$\mu$m at signal to noise $\gt 200$. Gl~51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09}.
 
-The second object is Gl 51, an M5 star. The spectrum was obtained with the \emph{SPEX} instrument at IRTF. The spectrum is at moderate resolution ($R \sim $ 2,000), mid-infrared spectrum from $0.7 - 5.5\mu$m. Gl 51 is a M5 star from the IRTF spectral library \citep{cushing05, rayner09} taken with the SPEX instrument \citep{rayner03}. \citep{rojas-ayala12} use the 2.205~$\mu$m \ion{Na}{1} doublet and 2.263~$\mu$m \ion{Ca}{1} triplet and Na doublet lines (their table 2), and their \HK\ index, defined using three passbands: 2.070~$\mu$m-2.090~$\mu$m, 2.235~$\mu$m-2.255~$\mu$m, and 2.360~$\mu$m - 2.380~$\mu$m. The index is designed to probe the curvature of the spectrum pseudo-continuum, which varies to due absorption from water. For a useful visualization of which spectral features these indices track, see their figure 2. The \HK\ index is a monotonic function of temperature, showing more curvature in the spectrum towards cooler $T_{\rm eff}$ and the index is independent of $\Z$ in the range $3000\,{\rm K} \leq T_{\rm eff} \leq 4000\,{\rm K}$. Below $3000~{\rm K}$, the index may appear to be metallicity dependent, although they caution that this may be a computational artifact. They find that the \HK\ index has a negligible dependence on $\log g$. They find that the index correlates with spectral type.
-
-\citet{rojas-ayala12} use a custom grid of PHOENIX BT-Settl models run from the PHOENIX web simulator at. The note that the models fit the spectrum match the overall spectral shape well, although the models consistently underpredict the strength of the \ion{Na}{1} and \ion{Ca}{1} lines, even when using the highest metallicity models. \citet{rajpurohit10} note that the oscillator strengths and opacities of the \ion{Na}{1} and \ion{Ca}{1} lines may be incorrect. In the range of stellar parameters for M dwarfs, \citet{rojas-ayala12} note that the strength of the \ion{Na}{1} doublet increases as $T_{\rm eff}$ decreases. The strength of the \ion{Ca}{1} triplet increases as $T_{\rm eff}$ and $\Z$ increase.
-
-Because the PHOENIX grid by \citet{husser13} has more range/uniformity of parameters, we use this to fit Gl51.
-
-A Bayesian approach allows you to explore sensitivity to prior assumptions.
+% What other people get when they fit this star. How does our inference compare?
+To determine the stellar parameters of Gl~51, \citep{rojas-ayala12} use the 2.205$\mu$m \ion{Na}{1} doublet and 2.263$\mu$m \ion{Ca}{1} triplet and their \HK\ index, defined using three passbands: 2.070--2.090$\mu$m, 2.235--2.255$\mu$m, and 2.360--2.380$\mu$m. The index is designed to probe the curvature of the spectrum pseudo-continuum, which varies to due absorption from water. For a useful visualization of which spectral features these indices track, see their figure 2. The \HK\ index is a monotonic function of temperature, showing more curvature in the spectrum towards cooler $T_{\rm eff}$ and the index is independent of $\Z$ in the range $3000\,{\rm K} \leq T_{\rm eff} \leq 4000\,{\rm K}$. Below $3000~{\rm K}$, the index may appear to be metallicity dependent, although they caution that this may be a computational artifact. They find that the \HK\ index has a negligible dependence on $\log g$. They find that the index correlates with spectral type. \citet{rojas-ayala12} use a custom grid of PHOENIX BT-Settl models run from the PHOENIX web simulator at. The note that the models fit the spectrum match the overall spectral shape well, although the models consistently underpredict the strength of the \ion{Na}{1} and \ion{Ca}{1} lines, even when using the highest metallicity models. \citet{rajpurohit10} note that the oscillator strengths and opacities of the \ion{Na}{1} and \ion{Ca}{1} lines may be incorrect. In the range of stellar parameters for M dwarfs, \citet{rojas-ayala12} note that the strength of the \ion{Na}{1} doublet increases as $T_{\rm eff}$ decreases. The strength of the \ion{Ca}{1} triplet increases as $T_{\rm eff}$ and $\Z$ increase. \todo{What does our analysis yield?} Because the PHOENIX grid by \citet{husser13} has more range/uniformity of parameters, we use this to fit Gl 51.
 
 \subsection{Generic Tests}
-
 Designed to show off what the model framework can actually do. 
+
+\begin{figure*}[!htb]
+\begin{center}
+  \includegraphics[draft, width=2.5in]{figs/stellar_triangle_Kurucz.png}
+  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\Cheb$) and noise parameters ($\Cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
+}
+\label{fig:stellar_posterior}
+\end{center}
+\end{figure*}
 
 \begin{figure*}[!htb]
 \begin{center}
@@ -753,7 +716,7 @@ Designed to show off what the model framework can actually do.
 \end{figure*}
 
 Talk about giving more reasonable errors using regions, in the biased case.
-Show a figure of the regions determined, plotted with the increased variance envelope over the residuals.
+Show a (Figure~\ref{fig:regions}) of the regions determined, plotted with the increased variance envelope over the residuals.
 
 \begin{itemize}
   \item Spectral parameters can vary by a large margin depending on which spectral library you use ($200~K$ or more).
