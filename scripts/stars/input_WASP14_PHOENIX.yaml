@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/no_cov/mask/
+name: WASP14/PHOENIX/22/cov/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
@@ -23,24 +23,24 @@ stellar_params :
 
 #Average jump size in each parameter
 #Using covariance
-#stellar_jump:
-#    temp : 8
-#    logg : 0.015
-#    Z : 0.015
-#    vsini : 0.05
-#    vz : 0.02
-#    logOmega: 2e-3
+stellar_jump:
+    temp : 5
+    logg : 0.01
+    Z : 0.01
+    vsini : 0.05
+    vz : 0.02
+    logOmega: 2e-3
 
 #no covariance
-stellar_jump:
-    temp : 1
-    logg : 0.002
-    Z : 0.001
-    vsini : 0.02
-    vz : 0.02
-    logOmega: 1e-4
+#stellar_jump:
+#    temp : 1
+#    logg : 0.002
+#    Z : 0.001
+#    vsini : 0.02
+#    vz : 0.02
+#    logOmega: 1e-4
 
-use_cov: False
+use_cov: True
 stellar_cov:
     temp_logg : 8.74e-1
     temp_Z : 1.22
@@ -50,11 +50,11 @@ stellar_cov:
 
 cheb_degree: 4
 #using covariance
-#cheb_jump : 3e-3
+cheb_jump : 3e-3
 #no covariance
-cheb_jump : 5e-4
+#cheb_jump : 1e-4
 
-no_cov : True
+no_cov : False
 
 cov_params :
     sigAmp : 1
