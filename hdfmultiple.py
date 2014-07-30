@@ -169,6 +169,7 @@ def gelman_rubin(samplelist):
     avg_phi_j = np.average(chains, axis=0) #average over iterations, now a (m, nparams) array
     #average value of all chains
     avg_phi = np.average(chains, axis=(0,1)) #average over iterations and chains, now a (nparams,) array
+    print("Average parameter value: {}".format(avg_phi))
 
     B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0) #now a (nparams,) array
 
@@ -182,7 +183,6 @@ def gelman_rubin(samplelist):
 
     print("Between-sequence variance B: {}".format(B))
     print("Within-sequence variance W: {}".format(W))
-    print("var_hat: {}".format(var_hat))
     print("std_hat: {}".format(np.sqrt(var_hat)))
     print("R_hat: {}".format(R_hat))
 
