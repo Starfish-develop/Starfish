@@ -64,13 +64,19 @@ import h5py
 #Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
 # directories that do not have a flatchains.hdf5 file
 hdf5list = []
+filelist = []
 for file in files:
     try:
         hdf5list += [h5py.File(file, "r")]
+        filelist += [file]
     except OSError:
         print("{} does not exist, skipping.".format(file))
 #hdf5list = [h5py.File(file, "r") for file in files]
 stellarlist = [hdf5.get("stellar") for hdf5 in hdf5list]
+
+#assert everything is the same length
+for i, stellar in enumerate(stellarlist):
+    assert len(stellar) == len(stellarlist[0]), "stellar chain length mismatch {}".format(filelist[i])
 
 for stellar in stellarlist:
     assert stellar.attrs["parameters"] == stellarlist[0].attrs["parameters"], "Parameter lists do not match."
@@ -111,7 +117,7 @@ for order in orders:
         print("Adding cov for order {}".format(order))
         temp += [get_flatchains("{}/cov".format(order))]
 
-    #TODO: do something about regions here
+    #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
 
     #accumulate all of the orders
     ordersList += [temp]
