@@ -678,7 +678,7 @@ To demonstrate the flexibility of our probabilistic framework, we model spectra 
 Our spectrum of WASP-14 was obtained with the Tillinghast Reflector Echelle Spectrograph (\emph{TRES}, \citealt{mink11}) on the Fred Laurence Whipple Observatory 1.5m telescope on June 14th, 2009. \emph{TRES} delivers a 51 echelle spectrum spanning the full optical range (3860--9100\AA) at a resolution of $R$$\sim$44,000. \citet{torres12} originally acquired the spectrum of WASP-14 to study the stellar properties of transiting exoplanet hosts. The raw spectrum was reduced using the well-tested \emph{TRES} pipeline written by L.~Buchhave and in the \ion{Mg}{0}b echelle order ($\sim$5100\AA), the spectrum has a signal to noise of 150 per resolution element.
 
 % What other people get when they fit this star. How does our inference compare?
-\citet{torres12} determined the stellar properties of WASP-14 using several different methods including {\tt MOOG}, {\tt SME}, and {\tt SPC}. While the {\tt MOOG} and {\tt SME} methods are not directly comparable to our technique because they measure individual line strengths, {\tt SPC} utilizes a moderately-sized region of spectrum and a pre-computed synthetic library that enables a direct comparison with our technique. When we make the same assumptions in \citet{torres12}, such as using the same region of spectrum (5050--5360\AA), the same spectral library, and fixing $\log g$ to the value inferred from the exoplanet transit analysis by \citet{joshi09} (amounting to a $\delta$-function prior on $\log g$$=$4.29), our inference of stellar parameters agrees to within 1$\sigma$ (see Table~\ref{table:tests}). Interestingly, when we allow $\log g$ to float, we infer a lower $T_{\rm eff}$ and $\Z$. These results demonstrate the sensitivity to assumptions about $\log g$ as well as the fact that there may exist biases in surface gravity estimates from either spectroscopy, exoplanetary transits, or both.  
+\citet{torres12} determined the stellar properties of WASP-14 using several different methods including {\tt MOOG}, {\tt SME}, and {\tt SPC}. While the {\tt MOOG} and {\tt SME} methods are not directly comparable to our technique because they measure individual line strengths, {\tt SPC} utilizes a moderately-sized region of spectrum and a pre-computed synthetic library that enables a direct comparison with our technique. When we make the same assumptions in \citet{torres12}, such as using the same region of spectrum (5050--5360\AA), the same spectral library, and fixing $\log g$ to the value inferred from the exoplanet transit analysis by \citet{joshi09} (amounting to a $\delta$-function prior on $\log g$$=$4.29), our inference of stellar parameters agrees to within 1$\sigma$ (see Table~\ref{table:tests}). Interestingly, when we allow $\log g$ to float, we infer a lower $T_{\rm eff}$ and $\Z$. These results demonstrate the sensitivity to assumptions about $\log g$ as well as the fact that there may exist biases in surface gravity estimates from either spectroscopy, exoplanetary transits, or both. 
 
 % Data description of Gl 51
 The spectrum of Gl~51, an M5 star, was downloaded from \emph{IRTF} spectral library \citep{cushing05, rayner09}. The data was obtained with the \emph{SPEX} instrument \citep{rayner03} on the NASA \emph{IRTF}. The spectrum is a moderate resolution (R$\sim$2,000), mid-infrared spectrum from 0.7--5.5$\mu$m at signal to noise $>$400 at 2.1$\mu$m.
@@ -686,39 +686,17 @@ The spectrum of Gl~51, an M5 star, was downloaded from \emph{IRTF} spectral libr
 % What other people get when they fit this star. How does our inference compare?
 To determine the stellar parameters of Gl~51, \citep{rojas-ayala12} use the equivalent widths of the 2.205$\mu$m \ion{Na}{1} doublet and 2.263$\mu$m \ion{Ca}{1} triplet along with their \HK\ index, which is defined using three passbands: 2.070--2.090$\mu$m, 2.235--2.255$\mu$m, and 2.360--2.380$\mu$m (see their Figure 2 for a useful visualization). This index is designed to probe the curvature of the spectrum pseudo-continuum, which varies to due absorption from water molecules. In order to calibrate these indices to stellar parameters, \citet{rojas-ayala12} determine these indices on a custom grid of PHOENIX BT-Settl models obtained from the PHOENIX web simulator\footnote{\url{http://phoenix.ens-lyon.fr/simulator/index.faces}}. They note that the BT-Settl models manage to fit the overall spectral shape well, but consistently under-predict the strength of the \ion{Na}{1} and \ion{Ca}{1} lines, even when using the highest metallicity models. \citet{rajpurohit10} speculate that this discrepancy may result from inaccuracies in the oscillator strengths and opacities for the \ion{Na}{1} and \ion{Ca}{1} lines. When modelling the same region of spectrum as \citet{rojas-ayala12} (2.070--2.380$\mu$m) using an updated set of PHOENIX models \citep{husser13}, we find that \todo{The results of our analysis will be in Table~\ref{table:tests}.} 
 
-\subsection{Generic Tests}
-
-In addition to running tests under the same assumptions as historical analyses, we also allow the region kernels to play a role.
-
-%\begin{rant about why this method rocks}
-There are many advantages to placing spectroscopic inference within a Bayesian framework. Our technique uses as much as possible of the spectrum. You go to a telescope to take a spectrum, you should use the whole spectrum, not just subsets of the spectrum that are certain well chosen lines. True, these lines have been identified by the accumulated knowledge of experts to show high discriminatory power against the stellar parameters of interest, but there is a disparate gap between these indices and the core fundamental physics knowledge, since calibrations must still be derived against synthetic models. These are coming up with ``fit metrics'' that are similar to distance functions or figures of merit that would be used in approximate Bayesian computing.
-
-These figures of merit make a lot of sense, true. But given that the raw data product from synthetic models from stars is \emph{actually a spectrum} that has been synthesized from a complicated but \emph{physical} model of a star, wouldn't it be better to relate the two through an actual \emph{likelihood function}, a physical description of the process that generates the data? In this case we use a Gaussian process to absorb the computational artifacts/inaccuracy that is a result from a \emph{imperfect} (but still extraordinarily good) stellar model. This allows us to couch the question of what parameters does the star have in a truly \emph{probabilistic} framework, meaning, we can calculate a posterior probability function of the parameters that is grounded in our physical understanding of what a star looks like. This is one of the great things about a \emph{forward-model}.
-
-Ultimately, with the current state of physical models, generating a spectrum from a limited grid, or only being able to tweak certain parameters, the posterior that one can derive is ultimately limited by the accuracy of the spectral synthesis, including any systematic biases that may exist (and they do, given the current spread of performance of stellar libraries). 
-
-The main advantage of using a more sophisticated hierarchical likelihood function (Eqn~\ref{eqn:likelihood}) than $\chi^2$, allows the model-data mismatch to become a parameter in the model. That way there is shrinkage between estimates.
-
-%\end{rant}
-
-Note that using global covariance actually lets the parameters float a bit more, and provides some cushion against the tyranny of too many lines. Only so many parameters, can't infinitely tweak the model spectrum for any large region of spectrum. This parameterizes the badness of fit, better models will have a lower covariance, as evidenced by the Kurucz (-14.6) v. PHOENIX (-14.2) global cov amplitudes.
+\subsection{WASP-14} \label{subsec:wasp}
+To evaluate the performance of our methodology, we perform a series of tests using WASP-14 and Gl~51. We use the PHOENIX grid (made with version XX PHOENIX, \citealt{husser13}), which spans wavelengths from XX to XX. The grid is very high quality and has been hand-calibrated against the Sun and Vega, therefore it performs very well for solar like stars. Because WASP-14 is an optical spectrum, we can use the high-quality CfA Kurucz grid, synthesized by Laird and Morse and used by {\tt SPC}. Because the spectrum of Gl~51 is the mid-infrared, we are unable to use the CfA grid for these comparisons. 
 
 A major advantage of using the MCMC algorithm to explore the multidimensional probability space is that it provides numerical samples in each dimension. Therefore, marginalizing out a parameter (i.e., numerically integrating over a dimension in probability space) is as simple as combining all of the samples in this dimension. This enables us to present a posterior of the stellar parameters $\vT$ (Figure~\ref{fig:stellar_posterior}) which has been marginalized over all of the nuisance hyperparameters. This posterior is the final estimate of the stellar parameters which \emph{incorporates} any inherent uncertainty due to model mismatch (via the covariance hyperparameters) and flux-calibration (via the Chebyshev polynomials).
 
 The benefit of including nuisance parameters and then marginalizing over them is that we can self-consistently model the uncertainty inherent to any spectrum while naturally capturing any degeneracy between the model parameters. If stellar parameters are estimated using a method which ignores these nuisance parameters (e.g., by-eye fitting) and the astronomer arbitrarily inflates the parameter uncertainties to reflect intuition, the degeneracy between parameters is artificially destroyed. 
 
-When iteratively fitting a spectrum, we continue to add line covariance kernels until we have covered all of the high amplitude residuals. Typically, we will add line kernels until all residuals greater than three times the amplitude of the global covariance kernel are covered.  As demonstrated by the Gibbs sampler routine, we explicitly fit for the
-hyperparameters of the covariance kernels in parallel with the
-stellar parameters. While including these extra parameters does increase the
-dimensionality and complexity of our model, they do provide several advantages.
-\emph{A priori} we do not know which regions of the spectrum are improperly
-modeled. The covariance hyperparameters provide a framework to identify these
-regions iteratively and in a self-consistent manner. 
+For demonstrative purposes, the first fits we perform is using only the Poisson variances from the original spectrum (WK1 and WP1), ignoring any correlations that might arise in the residual spectrum. This is equivalent to setting $b=1$ and all other amplitudes of $\cov$ to 0, and allows our likelihood to simplify to the familiar form of $\chi^2$. While the uncertainty estimate returned from these fits is remarkable, it also leads to the situation of overconfidence. Such a small uncertainty arises because such a likelihood function assumes that the data set is generated from the model, meaning that the only way in which the data set might differ from the model is through the addition of white Poisson noise. Unfortunately, this is incorrect. While the synthetic stellar model is \emph{incredibly good}, it is not a perfect representation of the star, nor could it be given that a synthetic spectrum from a grid has only 3 $\vt_\ast$ to tweak. This means that some line strengths might be different, whether due to slight inaccuracies in the atomic constants or metallicity compositions that differ in a few elements different from what the Sun might be. Thus, the data set differs from the model not just from added Poisson uncertainties, but also \emph{systematically} because the model cannot be a perfect representation of reality. This is equivalent to fitting a straight line to a series of data points whose variance is drastically underestimated. A linear least squares fit $\chi^2$ routine might return a small uncertainty estimate, however the slope and intercept of the line might be drastically biased. Therefore, it is clear that they model requires a way to account for this additional source of ``noise.'' Make the distinction that the Kurucz model fits \emph{very} well, but still requires some global covariance simply because of the three parameter problem.
 
-The traditional manner of dealing with spectral mismatch is to simply mask out the regions of the spectrum which do not agree to within a certain tolerance.  Rather than arbitrarily excluding regions of the spectrum from the fit, these regions should instead be incorporated into in the fit with the appropriate weight. A model that includes covariance is far more likely than forcing the synthetic spectrum to fit perfectly, and far more flexible than arbitrarily masking regions which do not fit. The fitting procedure allows these weights to be determined self-consistently, such that lines which are slightly wrong can still bring information to bear on the stellar parameters. In fact, for some types of stars with difficult-to-model spectra, it may be possible that the lines that are incorrect by a small amount actually provide the \emph{most information} about the stellar parameters, precisely because these lines are the most sensitive to stellar structure and consequentially are the most difficult to model correctly.
 
-Another powerful benefit of including the covariance hyperparameters is the result of their ability to quantify and account for model-data mismatch. When a data spectrum is fit with a high-quality spectral library, the pixel residuals are less likely to be correlated, and the covariance structure will have a smaller amplitude and correlation length. This means that the inference on the stellar parameters will be more precise, in the same way that high quality data allows a more precise result. However, if the systematic mismatch between the data and model is large, then the hyperparameters will be larger and the precision of the stellar parameters will naturally inflate to respect the quality of model-data fit. The benefits of using covariance hyperparameters also extend beyond the use case of fitting a single stellar spectrum. If we fit many stars with the same set of synthetic models, we can use the structure of the covariance matrix to improve the models themselves (see \S\ref{subsec:learning}).
-
+Spectral parameters can vary by a large margin depending on which spectral library you use ($200~K$ or more). And which technique, which may be a result of choosing certain indices, certain models, or both. Therefore it is in our interest to use as wide a region of spectrum as possible. Both spectral libraries have stars that they perform better and worse on. This will be reflected in the increased level of global noise, and number of ``bad'' regions that have been instantiated. Eg, WASP 14 v. Gl~51.
 
 \begin{figure*}[!htb]
 \begin{center}
@@ -729,6 +707,14 @@ Another powerful benefit of including the covariance hyperparameters is the resu
 \end{center}
 \end{figure*}
 
+Because the PHOENIX spectrum is computed over a wide range, there are often some egregious ``outlier'' lines that appear in the spectrum. To compare our approach with the common approach of ``sigma-clipping,'' for the next test (WP2), we manually mask any region of spectrum which has a more than 3 sigma residual near the best fit parameters. As you can see, this has the effect of actually changing the final stellar estimate significantly, while also reducing the uncertainty in the stellar parameters. Sigma-clipping like this is a procedural approach and is not justified in a probabilistic framework \citep{hogg10}.
+
+For the next tests, (WK2 and WP3), we introduce the global covariance kernel to the fit. This allow the model-data mismatch, and we can see that the uncertainty estimate naturally inflates to capture the discrepancy. 
+Note that using global covariance actually lets the parameters float a bit more, and provides some cushion against the tyranny of too many lines. Only so many parameters, can't infinitely tweak the model spectrum for any large region of spectrum. This parameterizes the badness of fit, better models will have a lower covariance, as evidenced by the Kurucz (-14.6) v. PHOENIX (-14.2) global cov amplitudes.
+I would like to point out that this came about \emph{self-consistently} through the model, not something that was added in post-facto as is commonly done (cough, \citep{torres12, buchhave12}). Because our uncertainty is derived through the model itself, it \emph{preserves correlations} between parameter estimates. Here we see that $\vt_\ast$ are highly correlated. If you just slapped on 50K errorbars to everything, you would be destroying this information.
+
+For the next tests, (), we introduce the local covariance kernels to track outlier lines. These kernels can map out the regions of the spectrum which are outliers. The glory of these local kernels are that the parameters allow to play a role in data driven spectra. See figure XX for a cool visualization of what it looks like.
+
 \begin{figure*}[!htb]
 \begin{center}
   \includegraphics[draft,width=0.9\textwidth,height=4in]{figs/spectrum_region.pdf}
@@ -737,16 +723,11 @@ Another powerful benefit of including the covariance hyperparameters is the resu
 \end{center}
 \end{figure*}
 
+\subsection{Gl~51}
+Gl~51 tests. Using no covariance, covariance, just the lines, just same region of spectrum. Adding local covariance kernels to Na and Ca lines that are underpredicted.
+
 Talk about giving more reasonable errors using regions, in the biased case.
 Show a (Figure~\ref{fig:regions}) of the regions determined, plotted with the increased variance envelope over the residuals.
-
-\begin{itemize}
-  \item Spectral parameters can vary by a large margin depending on which spectral library you use ($200~K$ or more). And which technique, which may be a result of choosing certain indices, certain models, or both. Therefore it is in our interest to use as wide a region of spectrum as possible.
-  \item Both spectral libraries have stars that they perform better and worse on.
-  \item This will be reflected in the increased level of global noise, and number of ``bad'' regions that have been instantiated.
-\end{itemize}
-
-Summary end of this section is that we are
 
 1) validating other techniques (WASP14, Kurucz, etc)
 2) and two different synthetic libraries give different answers
@@ -779,6 +760,32 @@ this can feed into a discussion about tweaking models.
 \label{sec:discussion}
 
 Why is it a good idea to use our likelihood function for spectroscopic inference?
+
+%\begin{rant about why this method rocks}
+There are many advantages to placing spectroscopic inference within a Bayesian framework. Our technique uses as much as possible of the spectrum. You go to a telescope to take a spectrum, you should use the whole spectrum, not just subsets of the spectrum that are certain well chosen lines. True, these lines have been identified by the accumulated knowledge of experts to show high discriminatory power against the stellar parameters of interest, but there is a disparate gap between these indices and the core fundamental physics knowledge, since calibrations must still be derived against synthetic models. These are coming up with ``fit metrics'' that are similar to distance functions or figures of merit that would be used in approximate Bayesian computing.
+
+These figures of merit make a lot of sense, true. But given that the raw data product from synthetic models from stars is \emph{actually a spectrum} that has been synthesized from a complicated but \emph{physical} model of a star, wouldn't it be better to relate the two through an actual \emph{likelihood function}, a physical description of the process that generates the data? In this case we use a Gaussian process to absorb the computational artifacts/inaccuracy that is a result from a \emph{imperfect} (but still extraordinarily good) stellar model. This allows us to couch the question of what parameters does the star have in a truly \emph{probabilistic} framework, meaning, we can calculate a posterior probability function of the parameters that is grounded in our physical understanding of what a star looks like. This is one of the great things about a \emph{forward-model}.
+
+Ultimately, with the current state of physical models, generating a spectrum from a limited grid, or only being able to tweak certain parameters, the posterior that one can derive is ultimately limited by the accuracy of the spectral synthesis, including any systematic biases that may exist (and they do, given the current spread of performance of stellar libraries). 
+
+The main advantage of using a more sophisticated hierarchical likelihood function (Eqn~\ref{eqn:likelihood}) than $\chi^2$, allows the model-data mismatch to become a parameter in the model. That way there is shrinkage between estimates.
+
+Adding in additional orders to the spectrum allows the posterior to broaden (if each order has disparate predictions about the stellar parameters) or to contract, since we are also fitting for the model-data mismatch. If all orders match well (case of Kurucz), then the global kernels will have low amplitude. However, if certain orders predict different stellar parameters, then for the one set of stellar parameters that is shared by the dataset, the global kernels will inflate for the other orders to absorb the model-data mismatch.
+
+%\end{rant}
+
+When iteratively fitting a spectrum, we continue to add line covariance kernels until we have covered all of the high amplitude residuals. Typically, we will add line kernels until all residuals greater than three times the amplitude of the global covariance kernel are covered.  As demonstrated by the Gibbs sampler routine, we explicitly fit for the
+hyperparameters of the covariance kernels in parallel with the
+stellar parameters. While including these extra parameters does increase the
+dimensionality and complexity of our model, they do provide several advantages.
+\emph{A priori} we do not know which regions of the spectrum are improperly
+modeled. The covariance hyperparameters provide a framework to identify these
+regions iteratively and in a self-consistent manner. 
+
+The traditional manner of dealing with spectral mismatch is to simply mask out the regions of the spectrum which do not agree to within a certain tolerance.  Rather than arbitrarily excluding regions of the spectrum from the fit, these regions should instead be incorporated into in the fit with the appropriate weight. A model that includes covariance is far more likely than forcing the synthetic spectrum to fit perfectly, and far more flexible than arbitrarily masking regions which do not fit. The fitting procedure allows these weights to be determined self-consistently, such that lines which are slightly wrong can still bring information to bear on the stellar parameters. In fact, for some types of stars with difficult-to-model spectra, it may be possible that the lines that are incorrect by a small amount actually provide the \emph{most information} about the stellar parameters, precisely because these lines are the most sensitive to stellar structure and consequentially are the most difficult to model correctly.
+
+Another powerful benefit of including the covariance hyperparameters is the result of their ability to quantify and account for model-data mismatch. When a data spectrum is fit with a high-quality spectral library, the pixel residuals are less likely to be correlated, and the covariance structure will have a smaller amplitude and correlation length. This means that the inference on the stellar parameters will be more precise, in the same way that high quality data allows a more precise result. However, if the systematic mismatch between the data and model is large, then the hyperparameters will be larger and the precision of the stellar parameters will naturally inflate to respect the quality of model-data fit. The benefits of using covariance hyperparameters also extend beyond the use case of fitting a single stellar spectrum. If we fit many stars with the same set of synthetic models, we can use the structure of the covariance matrix to improve the models themselves (see \S\ref{subsec:learning}).
+
 
 By cataloguing the covariance structure of the residuals, especially those generated from strong spectral line mismatch, we collect valuable information about the quality of the synthetic spectra. After fitting many stars, the accumulated knowledge of the data-model mismatch can be used when fitting a new star. The previous structure of the covariance matrix allows us to set priors on what the covariance in certain regions of the spectrum should be, which will speed convergence for this new star. Additionally, after fitting several stars, the average value of the covariance matrix will inform us about the quality of specific spectral lines in the synthetic models. 
 
@@ -841,28 +848,29 @@ $w$ & Hanning taper for kernels \\
 \enddata
 \end{deluxetable}
 
-\begin{deluxetable}{llrlr@{$\pm$}lr@{$\pm$}lr@{$\pm$}ll} 
+\begin{deluxetable}{lllrlr@{$\pm$}lr@{$\pm$}lr@{$\pm$}ll} 
 \tablecaption{\label{table:tests} Results}
 \tablehead{
-  \colhead{Object} & \colhead{Orders} & \colhead{$\lambda$ range [\AA]} & \colhead{library} &
+  \colhead{Test ID} & \colhead{Object} & \colhead{Orders} & \colhead{$\lambda$ range [\AA]} & \colhead{library} &
   \multicolumn{2}{c}{$T_{\rm eff} \pm \sigma$} & \multicolumn{2}{c}{$\log g \pm \sigma$} &
   \multicolumn{2}{c}{$\Z \pm \sigma$} & \colhead{comments}
 }
 \startdata
-WASP-14 & 23 & & Kurucz & 6241 & 15 & 3.88 & 0.02 & -0.43 & 0.01 & Poisson\\
-WASP-14 & 23 & & Kurucz & 6264 & 31 & 3.92 & 0.04 & -0.42 & 0.02 & Global\\
-WASP-14 & 23 & & Kurucz & & & \multicolumn{2}{c}{\nodata} & & & Matern; fixed $\log g = 4.29$\\
-WASP-14 & 23 & & PHOENIX & 6023.3 & 4.3 & 3.84 & 0.01 & -0.50 & 7.7e-4 & Poisson\\
-WASP-14 & 23 & & PHOENIX & 6000.72 & 3 & 3.94 & 0.01 & -0.50 & 2.6e-3 & Poisson, masked \\
-WASP-14 & 23 & & PHOENIX & 5984.9 & 74 & 3.80 & 0.09 & -0.66 & 0.07 & Global, no mask \\
-WASP-14 & 23 & & PHOENIX & & & & & & & Global and local \\
-WASP-14 & 22-24 & 5060-5315 & Kurucz & & & & & & & Poisson\\
-WASP-14 & 22-24 & 5060-5315& Kurucz & & & & & & & Global\\
-WASP-14 & 22-24 & 5060-5315& Kurucz & & & \multicolumn{2}{c}{\nodata} & & & \tablenotemark{a}Global; fixed $\log g = 4.29$\\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Poisson\\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global; low because of 24\\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Global; fixed $\log g = 4.29$ \\
-WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global and local\\
+WK1 & WASP-14 & 23 & 5135-5235 & Kurucz & 6241 & 15 & 3.88 & 0.02 & -0.43 & 0.01 & Poisson\\
+WK2 & WASP-14 & 23 & 5135-5235 & Kurucz & 6264 & 31 & 3.92 & 0.04 & -0.42 & 0.02 & Global\\
+WK3 & WASP-14 & 23 & 5135-5235 & Kurucz & & & \multicolumn{2}{c}{\nodata} & & & Matern; fixed $\log g = 4.29$\\
+WP1 & WASP-14 & 23 & 5135-5235 & PHOENIX & 6023.3 & 4.3 & 3.84 & 0.01 & -0.50 & 7.7e-4 & Poisson\\
+WP2 & WASP-14 & 23 & 5135-5235 & PHOENIX & 6000.72 & 3 & 3.94 & 0.01 & -0.50 & 2.6e-3 & Poisson, masked \\
+WP3 & WASP-14 & 23 & 5135-5235 & PHOENIX & 5984.9 & 74 & 3.80 & 0.09 & -0.66 & 0.07 & Global, no mask \\
+WP4 & WASP-14 & 23 & 5135-5235 & PHOENIX & & & & & & & Global and local \\
+&WASP-14 & 22-24 & 5060-5315 & Kurucz & & & & & & & Poisson\\
+&WASP-14 & 22-24 & 5060-5315& Kurucz & & & & & & & Global\\
+&WASP-14 & 22-24 & 5060-5315& Kurucz & & & \multicolumn{2}{c}{\nodata} & & & \tablenotemark{a}Global; fixed $\log g = 4.29$\\
+&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Poisson\\
+&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global; low because of 24\\
+&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Global; fixed $\log g = 4.29$ \\
+&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global and local\\
+GP1 &Gl~51 & \nodata & IR & PHOENIX & & & & & & & Poisson\\
 \enddata
 \tablenotetext{a}{Using the same assumptions in the \citet{torres12} {\tt SPC} analysis: same region of spectrum, same spectral library, and fixing $\log g$=$4.29$, the value determined by \citet{joshi09} from the exoplanet transit. For the WASP-14 spectrum acquired by \emph{TRES}, \citet{torres12} use {\tt SPC} to determine $T_{\rm eff}$=6507$\pm$50K and $\Z$=-0.15$\pm$0.08. With {\tt MOOG}, they determine $T_{\rm eff}$=6150$\pm$75K and $\Z$=-0.34$\pm$0.10. Because {\tt SPC} uses a cross-correlation technique which only accounts for the white noise and we model residual spectrum as correlated noise, there may be differences in the uncertainty estimate.}
 \end{deluxetable}
