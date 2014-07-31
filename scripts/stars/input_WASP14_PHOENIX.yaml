@@ -15,18 +15,18 @@ Comments: >
 stellar_params :
     temp : 6000
     logg : 3.8
-    Z : -0.5
-    vsini : 4.6
-    vz : -4.6
+    Z : -0.6
+    vsini : 5.0
+    vz : -4.85
     #logOmega: -12.7 #Kurucz
     logOmega: -19.667 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 4
+    temp : 10
     logg : 0.01
-    Z : 0.01
+    Z : 0.005
     vsini : 0.05
     vz : 0.015
     logOmega: 2e-3
@@ -42,11 +42,11 @@ stellar_jump:
 
 use_cov: True
 stellar_cov:
-    temp_logg : 8.74e-1
-    temp_Z : 1.22
-    logg_Z : 9.86e-4
-    temp_logOmega : -9.648e-2
-    factor : 0.1
+    temp_logg : 2.2
+    temp_Z : 1.45
+    logg_Z : 1.8e-3
+    temp_logOmega : -1.48e-1
+    factor : 0.02
 
 cheb_degree: 4
 #using covariance
@@ -83,5 +83,5 @@ max_regions : 8
 
 #Burn in time
 burn_in : 0
-samples : 200000
+samples : 300000
 #will probably need 100000 for a good looking posterior
