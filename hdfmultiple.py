@@ -61,7 +61,15 @@ else:
     sys.exit("Must specify either --dir or --files")
 
 import h5py
-hdf5list = [h5py.File(file, "r") for file in files]
+#Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
+# directories that do not have a flatchains.hdf5 file
+hdf5list = []
+for file in files:
+    try:
+        hdf5list += [h5py.File(file, "r")]
+    except OSError:
+        print("{} does not exist, skipping.".format(file))
+#hdf5list = [h5py.File(file, "r") for file in files]
 stellarlist = [hdf5.get("stellar") for hdf5 in hdf5list]
 
 for stellar in stellarlist:
