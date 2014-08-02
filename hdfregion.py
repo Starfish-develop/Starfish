@@ -17,8 +17,8 @@ parser.add_argument("-o", "--outdir", default="mcmcplot", help="Output directory
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
-parser.add_argument("--burn", type=int, default=0, help="How many samples to discard from the beginning of the chain "
-                                                        "for burn in.")
+parser.add_argument("--keep", type=int, default=0, help="How many samples to keep from the end of the chain, "
+                                                        "the beginning of the chain will be for burn in.")
 parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this factor. E.g., --thin 100 will take "
                                                         "every 100th sample.")
 parser.add_argument("--stellar_params", nargs="*", default="all", help="A list of which stellar parameters to plot, "
@@ -141,6 +141,75 @@ class Region:
         else:
             return False
 
+    def keep(self, N=None, thin=1):
+        '''
+        Keep the last N samples from each chain, also thin.
+        '''
+        #First, find the shortest flatchain.
+        shortest = np.min(len(flatchain) for flatchain in self.flatchains)
+        if N is not None:
+            assert N <= shortest, "Cannot keep more samples than the shortest flatchain."
+        else:
+            N = shortest
+        print("Keeping last {} samples and thinning by {}".format(N, thin))
+        self.flatchains = [flatchain[-N::thin] for flatchain in self.flatchains]
+
+    def gelman_rubin(self):
+        '''
+        Given a list of flatchains from separate runs (that already have burn in cut and have been trimmed, if desired),
+        compute the Gelman-Rubin statistics in Bayesian Data Analysis 3, pg 284.
+
+        If you want to compute this for fewer parameters, then truncate the list before feeding it in.
+        '''
+
+        samplelist = self.flatchains
+        full_iterations = len(samplelist[0])
+        assert full_iterations % 2 == 0, "Number of iterations must be even. Try cutting off a different number of burn " \
+                                         "in samples."
+        #make sure all the chains have the same number of iterations
+        for flatchain in samplelist:
+            assert len(flatchain) == full_iterations, "Not all chains have the same number of iterations!"
+
+        #Following Gelman,
+        # n = length of split chains
+        # i = index of iteration in chain
+        # m = number of split chains
+        # j = index of which chain
+        n = full_iterations//2
+        m = 2 * len(samplelist)
+        nparams = samplelist[0].shape[-1] #the trailing dimension of a flatchain
+
+        #Block the chains up into a 3D array
+        chains = np.empty((n, m, nparams))
+        for k, flatchain in enumerate(samplelist):
+            chains[:,2*k,:] = flatchain[:n]  #first half of chain
+            chains[:,2*k + 1,:] = flatchain[n:] #second half of chain
+
+        #Now compute statistics
+        #average value of each chain
+        avg_phi_j = np.mean(chains, axis=0, dtype="f8") #average over iterations, now a (m, nparams) array
+        #average value of all chains
+        avg_phi = np.mean(chains, axis=(0,1), dtype="f8") #average over iterations and chains, now a (nparams,) array
+        print("Average parameter value: {}".format(avg_phi))
+
+        B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0, dtype="f8") #now a (nparams,) array
+
+        s2j = 1./(n - 1.) * np.sum((chains - avg_phi_j)**2, axis=0, dtype="f8") #now a (m, nparams) array
+
+        W = 1./m * np.sum(s2j, axis=0, dtype="f8") #now a (nparams,) arary
+
+        var_hat = (n - 1.)/n * W + B/n #still a (nparams,) array
+
+        R_hat = np.sqrt(var_hat/W) #still a (nparams,) array
+
+        print("Between-sequence variance B: {}".format(B))
+        print("Within-sequence variance W: {}".format(W))
+        print("std_hat: {}".format(np.sqrt(var_hat)))
+        print("R_hat: {}".format(R_hat))
+
+        if np.any(R_hat >= 1.1):
+            print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
+
 ordersRegions = [[] for order in orders] #2D list
 for i,flatchain_deque in enumerate(ordersList):
     #Choose an order
@@ -165,18 +234,15 @@ for orderRegions in ordersRegions:
     for region in orderRegions:
         print("{} +/- {}".format(region.mu, region.std))
 
-#Now, choose a single Region and do all the cleaning and summary statistics on it.
-#But we have to keep a few things in mind. First, not all flatchains will be the same length
-#So if we want to burn in, it may be better to specify how many samples from the end of the chain you wish to save.
+        #Burn in/thin region from end
+        region.keep(args.keep, args.thin)
 
-#thin
-
-#compute GR statistic
+        #compute GR statistic
+        region.gelman_rubin()
 
 #concatenate samples into a combined.hdf5 that contains all of the sampled regions.
 
-#make triangle plot
-
+#make triangle plot for that region
 
 #Specify an amplitude cut. i.e., if the mean amplitude (after some specified period of front-burn in) is below,
 # then it is treated as though this region did not exist.
