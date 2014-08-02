@@ -180,16 +180,16 @@ def gelman_rubin(samplelist):
 
     #Now compute statistics
     #average value of each chain
-    avg_phi_j = np.average(chains, axis=0) #average over iterations, now a (m, nparams) array
+    avg_phi_j = np.mean(chains, axis=0, dtype="f8") #average over iterations, now a (m, nparams) array
     #average value of all chains
-    avg_phi = np.average(chains, axis=(0,1)) #average over iterations and chains, now a (nparams,) array
+    avg_phi = np.mean(chains, axis=(0,1), dtype="f8") #average over iterations and chains, now a (nparams,) array
     print("Average parameter value: {}".format(avg_phi))
 
-    B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0) #now a (nparams,) array
+    B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0, dtype="f8") #now a (nparams,) array
 
-    s2j = 1./(n - 1.) * np.sum((chains - avg_phi_j)**2, axis=0) #now a (m, nparams) array
+    s2j = 1./(n - 1.) * np.sum((chains - avg_phi_j)**2, axis=0, dtype="f8") #now a (m, nparams) array
 
-    W = 1./m * np.sum(s2j, axis=0) #now a (nparams,) arary
+    W = 1./m * np.sum(s2j, axis=0, dtype="f8") #now a (nparams,) arary
 
     var_hat = (n - 1.)/n * W + B/n #still a (nparams,) array
 
