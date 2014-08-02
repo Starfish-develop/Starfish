@@ -83,12 +83,17 @@ for hdf5 in hdf5list:
 
 print("loaded flatchains")
 
+#To keep track of what's being added to what
+ID = 0
+
 class Region:
     def __init__(self, flatchain=None):
         self.flatchains = [flatchain] if flatchain is not None else []
         #Assume that these flatchains are shape (Niterations, 3)
         self.params = ("loga", "mu", "sigma")
-        print("Created region with mu={} +/- {}".format(self.mu, self.std))
+        self.id = ID
+        ID += 1
+        print("Created region {} with mu={} +/- {}".format(self.id, self.mu, self.std))
 
     @property
     def mu(self):
@@ -111,8 +116,10 @@ class Region:
         '''
         #Compute mu of flatchain under consideration
         mu = np.average(flatchain[:,1])
+        std = np.std(flatchain[:,1])
         if np.abs(mu - self.mu) < 1.0:
-            print("Current Region: mu={}+/-{}. Adding new flatchain with mu={}".format(self.mu, self.std, mu))
+            print("Current Region {}: mu={}+/-{}. Adding new flatchain with mu={}+/-{}".format(self.id, self.mu,
+                                                                                self.std, mu, std))
             self.flatchains.append(flatchain)
             return True
         else:
