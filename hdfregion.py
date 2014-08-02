@@ -82,7 +82,6 @@ for hdf5 in hdf5list:
             deq.append(hdf5.get("{}/{}".format(order, key))[:])
 
 print("loaded flatchains")
-print(ordersList)
 
 #Maybe before we try grouping all of the regions together, it would be better to simply plot the mean and variance of
 #each region, that way we can see where everything lands?
@@ -100,11 +99,6 @@ for flatchain in ordersList[0]:
 import matplotlib.pyplot as plt
 plt.errorbar(mus, np.arange(len(mus)), xerr=sigmas, fmt="o")
 plt.savefig("regions.png")
-plt.show()
-
-
-import sys
-sys.exit()
 
 #To keep track of what's being added to what
 ID = 0
@@ -141,7 +135,7 @@ class Region:
         #Compute mu of flatchain under consideration
         mu = np.mean(flatchain[:,1], dtype="f8")
         std = np.std(flatchain[:,1], dtype="f8")
-        if np.abs(mu - self.mu) < 1.0:
+        if np.abs(mu - self.mu) <= (3 * self.std):
             print("Current Region {}: mu={}+/-{}. Adding new flatchain with mu={}+/-{}".format(self.id, self.mu,
                                                                                 self.std, mu, std))
             self.flatchains.append(flatchain)
