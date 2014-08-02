@@ -111,7 +111,7 @@ class Region:
         '''
         #Compute mu of flatchain under consideration
         mu = np.average(flatchain[:,1])
-        if np.abs(mu - self.mu) < 3 * self.std:
+        if np.abs(mu - self.mu) < 1.0:
             print("Std is {}. Adding new flatchain with mu={} to Region with mu={}".format(self.std, mu, self.mu))
             self.flatchains.append(flatchain)
             return True
@@ -137,6 +137,7 @@ for i,flatchain_deque in enumerate(ordersList):
 
 #At this point, we should have a length norders 2D list, each with a list of Region objects.
 #Check to see what are the total mu's we've acquired.
+#Sort the mu's?
 print("Classified mu's")
 for orderRegions in ordersRegions:
     for region in orderRegions:
