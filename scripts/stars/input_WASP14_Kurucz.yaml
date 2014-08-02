@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/22/cov/
+name: WASP14/Kurucz/21_22_23/no_cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -13,24 +13,24 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6250
+    temp : 6300
     logg : 3.89
     Z : -0.42
-    vsini : 4.63
+    vsini : 4.80
     #vz : 15.4
     vz : -4.60
-    logOmega: -12.715 #Kurucz
+    logOmega: -12.76 #Kurucz
     #logOmega: -19.667 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 4
-    logg : 0.008
-    Z : 0.005
-    vsini : 0.02
-    vz : 0.02
-    logOmega: 3e-4
+    temp : 2
+    logg : 0.004
+    Z : 0.001
+    vsini : 0.01
+    vz : 0.001
+    logOmega: 2e-4
 
 #no covariance
 #stellar_jump:
@@ -41,7 +41,7 @@ stellar_jump:
 #    vz : 0.02
 #    logOmega: 1e-4
 
-use_cov: True
+use_cov: False
 stellar_cov:
     temp_logg : 4.148e-2
     temp_Z : 2.959e-2
@@ -50,9 +50,9 @@ stellar_cov:
     factor : 0.1
 
 cheb_degree: 4
-cheb_jump : 8e-4
+cheb_jump : 3e-4
 
-no_cov : False
+no_cov : True
 
 cov_params :
     sigAmp : 1
@@ -74,7 +74,7 @@ region_jump:
     sigma : 0.2
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [22]
+orders: [21, 22, 23]
 
 #Maximum number of sub-regions allowed per order
 max_regions : 0
