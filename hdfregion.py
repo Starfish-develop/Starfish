@@ -146,7 +146,9 @@ class Region:
         Keep the last N samples from each chain, also thin.
         '''
         #First, find the shortest flatchain.
+        print(N)
         shortest = np.min(len(flatchain) for flatchain in self.flatchains)
+        print(shortest)
         if N > 0:
             assert N <= shortest, "Cannot keep more samples than the shortest flatchain."
         else:
