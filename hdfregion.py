@@ -112,7 +112,7 @@ class Region:
         #Compute mu of flatchain under consideration
         mu = np.average(flatchain[:,1])
         if np.abs(mu - self.mu) < 1.0:
-            print("Std is {}. Adding new flatchain with mu={} to Region with mu={}".format(self.std, mu, self.mu))
+            print("Current Region: mu={}+/-{}. Adding new flatchain with mu={}".format(self.mu, self.std, mu))
             self.flatchains.append(flatchain)
             return True
         else:
