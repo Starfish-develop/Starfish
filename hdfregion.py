@@ -141,13 +141,13 @@ class Region:
         else:
             return False
 
-    def keep(self, N=None, thin=1):
+    def keep(self, N=0, thin=1):
         '''
         Keep the last N samples from each chain, also thin.
         '''
         #First, find the shortest flatchain.
         shortest = np.min(len(flatchain) for flatchain in self.flatchains)
-        if N is not None:
+        if N > 0:
             assert N <= shortest, "Cannot keep more samples than the shortest flatchain."
         else:
             N = shortest
