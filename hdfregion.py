@@ -81,8 +81,6 @@ for hdf5 in hdf5list:
         for key in regionKeys:
             deq.append(hdf5.get("{}/{}".format(order, key))[:])
 
-print("loaded flatchains")
-
 #Maybe before we try grouping all of the regions together, it would be better to simply plot the mean and variance of
 #each region, that way we can see where everything lands?
 
@@ -162,7 +160,6 @@ for i,flatchain_deque in enumerate(ordersList):
 
 #At this point, we should have a length norders 2D list, each with a list of Region objects.
 #Check to see what are the total mu's we've acquired.
-#Sort the mu's?
 print("Classified mu's")
 for orderRegions in ordersRegions:
     for region in orderRegions:
