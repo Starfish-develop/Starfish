@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Combine the inference of many HDF5 regions.
 
@@ -6,6 +7,7 @@ Works by matching regions within some degree of variance.
 
 import os
 import numpy as np
+from collections import deque
 
 import argparse
 parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
@@ -35,17 +37,6 @@ else:
 
 args.outdir += "/"
 
-
-#Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
-if os.path.exists(args.outdir):
-    if not args.clobber:
-        import sys
-        sys.exit("Error: --outdir already exists and --clobber is not set. Exiting.")
-else:
-    os.makedirs(args.outdir)
-
-args.outdir += "/"
-
 if args.dir:
     #assemble all of the flatchains.hdf5 files from the run* subdirectories.
     import glob
@@ -59,40 +50,110 @@ else:
     sys.exit("Must specify either --dir or --files")
 
 import h5py
-hdf5list = [h5py.File(file, "r") for file in files]
+#Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
+# directories that do not have a flatchains.hdf5 file
+hdf5list = []
+filelist = []
+for file in files:
+    try:
+        hdf5list += [h5py.File(file, "r")]
+        filelist += [file]
+    except OSError:
+        print("{} does not exist, skipping.".format(file))
 
+#I think we should separate this by order
 
-#For each order within each flatchains.hdf5, come up with a list of region means
+#Load all of the samples from the a given order into one giant deque
+allRegions = deque()
 
-#How should we pair regions?
+hdf5 = hdf5list[0]
+orders = [int(key) for key in hdf5.keys() if key != "stellar"]
+orders.sort()
 
-#First, we need to come up with a list of all regions, perhaps a {key:(run23/flatchains.hdf/22/cov_region02),
-# mu: 5129, range: 2}, where range is the number of angstroms that we believe could possibly overlap with this region
-# . Range could be determined either by a fixed number, the variance of the mean, or the width of the region itself.
+#ordersList is a list of deques that contain the flatchains
+ordersList = [deque() for order in orders]
 
-#Next, given this list of dictionaries, sort it into sets of keys that are mutually consistent with each other.
-# Does this mean that we should be choosing a unified range based upon all regions, and finding those which fall into
-#  it? Or should we choose one region and then see what else matches it?
+for hdf5 in hdf5list:
+    for i, order in enumerate(orders):
+        deq = ordersList[i]
+        #figure out list of which regions are in this order
+        regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
+        for key in regionKeys:
+            deq.append(hdf5.get("{}/{}".format(order, key))[:])
 
-# This seems like a tricky job for a classifier
+print("loaded flatchains")
+
+class Region:
+    def __init__(self, flatchain=None):
+        self.flatchains = [flatchain] if flatchain is not None else []
+        #Assume that these flatchains are shape (Niterations, 3)
+        self.params = ("loga", "mu", "sigma")
+        print("Created region with mu={} +/- {}".format(self.mu, self.std))
+
+    @property
+    def mu(self):
+        '''
+        Compute the mean mu of all of the samples.
+        '''
+        return np.average(np.concatenate([chain[:, 1] for chain in self.flatchains]))
+
+    @property
+    def std(self):
+        '''
+        Compute the standard deviation of mu of all of the samples.
+        '''
+        return np.std(np.concatenate([chain[:, 1] for chain in self.flatchains]))
+
+    def check_and_append(self, flatchain):
+        '''
+        Given the current status of the region (namely, mu and var), should we add this flatchain? If so,
+        add and return True to break out of a logic loop.
+        '''
+        #Compute mu of flatchain under consideration
+        mu = np.average(flatchain[:,1])
+        if np.abs(mu - self.mu) < 3 * self.std:
+            print("Std is {}. Adding new flatchain with mu={} to Region with mu={}".format(self.std, mu, self.mu))
+            self.flatchains.append(flatchain)
+            return True
+        else:
+            return False
+
+ordersRegions = [[] for order in orders] #2D list
+for i,flatchain_deque in enumerate(ordersList):
+    #Choose an order
+    orderRegions = ordersRegions[i]
+    #cycle through the deque and either add to current regions or create new ones
+    while flatchain_deque:
+        flatchain = flatchain_deque.pop()
+        #See if this can be added to any of the existing regions
+        added = False
+        for region in orderRegions:
+            added = region.check_and_append(flatchain)
+            if added:
+                break
+        #was unable to add to any pre-existing chains, create new region object
+        if added == False:
+            orderRegions.append(Region(flatchain))
+
+#At this point, we should have a length norders 2D list, each with a list of Region objects.
+#Check to see what are the total mu's we've acquired.
+print("Classified mu's")
+for orderRegions in ordersRegions:
+    for region in orderRegions:
+        print("{} +/- {}".format(region.mu, region.std))
+
+#Now, choose a single Region and do all the cleaning and summary statistics on it.
+#But we have to keep a few things in mind. First, not all flatchains will be the same length
+#So if we want to burn in, it may be better to specify how many samples from the end of the chain you wish to save.
+
+#thin
+
+#compute GR statistic
+
+#concatenate samples into a combined.hdf5 that contains all of the sampled regions.
+
+#make triangle plot
+
 
 #Specify an amplitude cut. i.e., if the mean amplitude (after some specified period of front-burn in) is below,
 # then it is treated as though this region did not exist.
-
-#Try this
-#1) start with the first flatchain in the list
-#2) Create N_region dictionaries, each one {mu: XX, var: XX, keylist: [], mu_list: [], var_list: []}
-#3) for the 2nd flatchain, loop through the regions. See if they fit into anything by checking if abs(mu1 - mu0) is
-# less than var. If so, add it to the list and then recompute mu, var.
-#4) if the region does not fit into any of the previously existing lists of regions, then create a new list of
-# regions (print that you are doing this)
-#5) standardize the lengths of chains by specifying complement of burn in, i.e., counting from the back of the chain
-# how many samples do we want to keep.
-#6) Thin the chains if desired
-#6) At the end, compute the GR diagnostic for all of these lists of chains.
-#7) Then create a combined.hdf5 that contains all of the sampled regions.
-
-
-# This might be a great opportunity to create a Flatchains() Python object. which automatically has add capability.
-# For example, hdfcat could just be flatchains + flatchains. Also there could be burn-in methods, plot methods,
-# etc. But I don't know if it's really worth it.
