@@ -91,7 +91,9 @@ mus = deque()
 sigmas = deque()
 for flatchain in ordersList[0]:
     samples = flatchain[:, 1]
-    mu, sigma = np.average(samples), np.std(samples)
+    print(samples)
+    mu, sigma = np.mean(samples, dtype="f8"), np.std(samples, dtype="f8")
+    print(mu, sigma)
     mus.append(mu)
     sigmas.append(sigma)
 
@@ -122,14 +124,14 @@ class Region:
         '''
         Compute the mean mu of all of the samples.
         '''
-        return np.average(np.concatenate([chain[:, 1] for chain in self.flatchains]))
+        return np.mean(np.concatenate([chain[:, 1] for chain in self.flatchains]), dtype="f8")
 
     @property
     def std(self):
         '''
         Compute the standard deviation of mu of all of the samples.
         '''
-        return np.std(np.concatenate([chain[:, 1] for chain in self.flatchains]))
+        return np.std(np.concatenate([chain[:, 1] for chain in self.flatchains]), dtype="f8")
 
     def check_and_append(self, flatchain):
         '''
@@ -137,8 +139,8 @@ class Region:
         add and return True to break out of a logic loop.
         '''
         #Compute mu of flatchain under consideration
-        mu = np.average(flatchain[:,1])
-        std = np.std(flatchain[:,1])
+        mu = np.mean(flatchain[:,1], dtype="f8")
+        std = np.std(flatchain[:,1], dtype="f8")
         if np.abs(mu - self.mu) < 1.0:
             print("Current Region {}: mu={}+/-{}. Adding new flatchain with mu={}+/-{}".format(self.id, self.mu,
                                                                                 self.std, mu, std))
