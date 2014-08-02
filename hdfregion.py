@@ -91,6 +91,7 @@ class Region:
         self.flatchains = [flatchain] if flatchain is not None else []
         #Assume that these flatchains are shape (Niterations, 3)
         self.params = ("loga", "mu", "sigma")
+        global ID
         self.id = ID
         ID += 1
         print("Created region {} with mu={} +/- {}".format(self.id, self.mu, self.std))
