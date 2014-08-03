@@ -88,9 +88,7 @@ mus = deque()
 sigmas = deque()
 for flatchain in ordersList[0]:
     samples = flatchain[:, 1]
-    print(samples)
     mu, sigma = np.mean(samples, dtype="f8"), np.std(samples, dtype="f8")
-    print(mu, sigma)
     mus.append(mu)
     sigmas.append(sigma)
 
@@ -232,7 +230,7 @@ for i,flatchain_deque in enumerate(ordersList):
 print("Classified mu's")
 for orderRegions in ordersRegions:
     for region in orderRegions:
-        print("{} +/- {}".format(region.mu, region.std))
+        print("\n{} +/- {}".format(region.mu, region.std))
 
         #Burn in/thin region from end
         region.keep(args.keep, args.thin)
