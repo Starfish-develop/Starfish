@@ -298,7 +298,6 @@ if args.acor:
     for param,acor in zip(stellar_tuple, acors):
         print("{} : {}".format(param, acor))
 
-
-
 hdf5.close()
-hdf5lnprob.close()
+if args.lnprob:
+    hdf5lnprob.close()
