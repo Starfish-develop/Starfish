@@ -2,8 +2,8 @@
 
 name: WASP14/PHOENIX/22/region/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -83,5 +83,5 @@ max_regions : 8
 
 #Burn in time
 burn_in : 0
-samples : 300000
+samples : 100
 #will probably need 100000 for a good looking posterior
