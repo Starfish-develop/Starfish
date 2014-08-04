@@ -18,11 +18,13 @@ label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}
 import argparse
 parser = argparse.ArgumentParser(description="Plot the MCMC output. Default is to plot everything possible.")
 parser.add_argument("HDF5file", help="The HDF5 file containing the MCMC samples.")
+parser.add_argument("--lnprob", help="The HDF5 file containing the lnprobability chains.")
 parser.add_argument("-o", "--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing output directory?")
 
 parser.add_argument("-t", "--triangle", action="store_true", help="Make a triangle (staircase) plot of the parameters.")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
+parser.add_argument("--range", nargs=2, help="start and end ranges for chain plot, separated by WHITESPACE")
 parser.add_argument("--acor", action="store_true", help="Calculate the autocorrelation of the chain")
 parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
@@ -51,12 +53,14 @@ args.outdir += "/"
 import h5py
 
 hdf5 = h5py.File(args.HDF5file, "r")
-
-#Load stellar samples and parameters
 stellar = hdf5.get("stellar")
-
 if stellar is None:
     sys.exit("HDF5 file contains no stellar samples.")
+
+if args.lnprob:
+    hdf5lnprob = h5py.File(args.lnprob, "r")
+    stellarLnprob = hdf5lnprob.get("stellar")
+    stellarLnprob = stellarLnprob[args.burn::args.thin]
 
 #Determine which parameters we want to plot from --stellar-params
 stellar_tuple = stellar.attrs["parameters"]
@@ -106,16 +110,53 @@ if yes_cov:
     cov_tuple = tuple([param.strip("'() ") for param in cov_parameters.split(",")])
     cov_labels = [label_dict[key] for key in cov_tuple]
 
-ordersList = []
+#                            order22,     order23
+ordersList = [] #2D list of [[cheb, cov], [cheb, cov],     []]
+#                                   order22                              order23
+ordersListRegions = [] #2D list of [[region00, region01, region02,...], [region00,] ]
 for order in orders:
 
     temp = [hdf5.get("{}/cheb".format(order))]
     if yes_cov:
         temp += [hdf5.get("{}/cov".format(order))]
 
-    #TODO: do something about regions here
     #accumulate all of the orders
     ordersList += [temp]
+
+    if yes_region:
+        #Determine how many regions we have, if any
+        temp = []
+        #figure out list of which regions are in this order
+        regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
+
+        for key in regionKeys:
+            temp += [hdf5.get("{}/{}".format(order, key))[:]]
+        ordersListRegions += [temp]
+
+ordersList = [[flatchain[args.burn::args.thin] for flatchain in subList] for subList in ordersList]
+
+if args.lnprob:
+    ordersListLnprob = []
+    ordersListRegionsLnprob = []
+    for order in orders:
+        temp = [hdf5lnprob.get("{}/cheb".format(order))]
+        if yes_cov:
+            temp += [hdf5lnprob.get("{}/cov".format(order))]
+
+        #accumulate all of the orders
+        ordersListLnprob += [temp]
+
+        if yes_region:
+            #Determine how many regions we have, if any
+            temp = []
+            #figure out list of which regions are in this order
+            regionKeys = [key for key in hdf5lnprob["{}".format(order)].keys() if "cov_region" in key]
+
+            for key in regionKeys:
+                temp += [hdf5lnprob.get("{}/{}".format(order, key))[:]]
+            ordersListRegionsLnprob += [temp]
+
+    ordersListLnprob = [[lnchain[args.burn::args.thin] for lnchain in subList] for subList in ordersListLnprob]
 
 if args.triangle:
     import matplotlib
@@ -139,6 +180,93 @@ if args.triangle:
                                      show_titles=True, title_args={"fontsize": 12})
             figure.savefig(args.outdir + "{}_cov_triangle.png".format(order))
 
+def plot_walkers(filename, samples, lnprobs=None, start=0, end=-1, labels=None):
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+    # majorLocator = MaxNLocator(nbins=4)
+    ndim = len(samples[0, :])
+    sample_num = np.arange(len(samples[:,0]))
+    sample_num = sample_num[start:end]
+    samples = samples[start:end]
+    plt.rc("ytick", labelsize="x-small")
+
+    if lnprobs is not None:
+        fig, ax = plt.subplots(nrows=ndim + 1, sharex=True)
+        ax[0].plot(sample_num, lnprobs[start:end])
+        ax[0].set_ylabel("lnprob")
+        for i in range(0, ndim):
+            ax[i+1].plot(sample_num, samples[:,i])
+            ax[i+1].yaxis.set_major_locator(MaxNLocator(nbins=6, prune="both"))
+            if labels is not None:
+                ax[i+1].set_ylabel(labels[i])
+
+    else:
+        fig, ax = plt.subplots(nrows=ndim, sharex=True)
+        for i in range(0, ndim):
+            ax[i].plot(sample_num, samples[:,i])
+            ax[i].yaxis.set_major_locator(MaxNLocator(nbins=6, prune="both"))
+            if labels is not None:
+                ax[i].set_ylabel(labels[i])
+
+    ax[-1].set_xlabel("Sample number")
+    fig.subplots_adjust(hspace=0)
+    fig.savefig(filename)
+    plt.close(fig)
+
+if args.chain:
+    if args.range is not None:
+        start, end = [int(el) for el in args.range]
+    else:
+        start=0
+        end=-1
+
+    if args.lnprob:
+        plot_walkers(args.outdir + "stellar_chain_pos.png", stellar, stellarLnprob, start=start, end=end)
+    else:
+        plot_walkers(args.outdir + "stellar_chain_pos.png", stellar, start=start, end=end)
+
+    #Now plot the orders
+    for i, order in enumerate(orders):
+        orderList = ordersList[i]
+        cheb = orderList[0]
+
+        if args.lnprob:
+            orderListLnprob = ordersListLnprob[i]
+            chebLnprob = orderListLnprob[0]
+            plot_walkers(args.outdir + "{}_cheb_chain_pos.png".format(order), cheb, chebLnprob, start=start, end=end)
+
+        else:
+            plot_walkers(args.outdir + "{}_cheb_chain_pos.png".format(order), cheb, start=start, end=end)
+
+        if yes_cov:
+            cov = orderList[1]
+            plot_walkers(args.outdir + "{}_cov_chain_pos.png".format(order), cov, start=start, end=end)
+
+            if args.lnprob:
+                covLnprob = orderListLnprob[1]
+                plot_walkers(args.outdir + "{}_cov_chain_pos.png".format(order), cov, covLnprob, start=start,
+                             end=end)
+            else:
+                plot_walkers(args.outdir + "{}_cov_chain_pos.png".format(order), cov, start=start, end=end)
+
+    if yes_region:
+        #Now plot the regions
+        for i, order in enumerate(orders):
+            orderList = ordersListRegions[i]
+
+            if args.lnprob:
+                orderListLnprob = ordersListRegionsLnprob[i]
+
+                #Now cycle through all regions in this list?
+                for j, (samples, lnprob) in enumerate(zip(orderList, orderListLnprob)):
+                    plot_walkers(args.outdir + "{}_cov_region{:0>2}_chain_pos.png".format(order, j), samples,
+                                 lnprobs=lnprob, start=start, end=end)
+
+            else:
+                #Now cycle through all regions in this list?
+                for j, samples in enumerate(orderList):
+                    plot_walkers(args.outdir + "{}_cov_region{:0>2}_chain_pos.png".format(order, j), samples,
+                                 start=start, end=end)
 
 if args.cov:
     '''
@@ -172,7 +300,5 @@ if args.acor:
 
 
 
-
-
-
 hdf5.close()
+hdf5lnprob.close()

@@ -511,7 +511,9 @@ class Sampler(GibbsSampler):
 
     def write(self):
         '''
-        Write all of the relevant output to an HDF file.
+        Write all of the relevant sample output to an HDF file.
+
+        Write the lnprobability to an HDF file.
 
         flatchain
         acceptance fraction
@@ -543,8 +545,19 @@ class Sampler(GibbsSampler):
         dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
         dset.attrs["acor"] = "{}".format(self.acor)
         dset.attrs["commit"] = "{}".format(C.get_git_commit())
-
         hdf5.close()
+
+        #lnprobability is the lnprob at each sample
+        filename = self.outdir + "lnprobs.hdf5"
+        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        lnprobs = self.lnprobability
+
+        dset = hdf5.create_dataset(self.fname, samples.shape[:1], compression='gzip', compression_opts=9)
+        dset[:] = lnprobs
+        dset.attrs["commit"] = "{}".format(C.get_git_commit())
+        hdf5.close()
+
+
 
     def plot(self):
         '''
