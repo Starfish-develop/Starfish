@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/21_22_23/no_cov/
+name: WASP14/Kurucz/21_22_23/cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -9,13 +9,13 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Kurucz run using multiple chains. Including no covariance and no regions. Using base_lnprob.py.
+  Kurucz run using multiple chains. Including global covariance and no regions. Using base_lnprob.py.
 
 #Nested data structures are allowed
 stellar_params :
     temp : 6300
-    logg : 3.89
-    Z : -0.42
+    logg : 3.90
+    Z : -0.39
     vsini : 4.80
     #vz : 15.4
     vz : -4.60
@@ -25,12 +25,12 @@ stellar_params :
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 2
-    logg : 0.004
-    Z : 0.001
+    temp : 4
+    logg : 0.008
+    Z : 0.005
     vsini : 0.01
     vz : 0.001
-    logOmega: 2e-4
+    logOmega: 3e-4
 
 #no covariance
 #stellar_jump:
@@ -50,9 +50,9 @@ stellar_cov:
     factor : 0.1
 
 cheb_degree: 4
-cheb_jump : 3e-4
+cheb_jump : 6e-4
 
-no_cov : True
+no_cov : False
 
 cov_params :
     sigAmp : 1
@@ -62,7 +62,7 @@ cov_params :
 cov_jump :
     sigAmp : 0.01
     logAmp : 0.01
-    l : 0.2
+    l : 0.25
 
 region_params:
     loga: -12.
@@ -81,5 +81,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 0
-samples : 200000
+samples : 300000
 #will probably need at least 100000 burned in samples for a good looking posterior
