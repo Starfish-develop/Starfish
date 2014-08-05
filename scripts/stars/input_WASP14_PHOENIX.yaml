@@ -2,14 +2,14 @@
 
 name: WASP14/PHOENIX/22/region/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  PHOENIX WASP14, order 22 including regions. No masking. Going with 8 regions for now.
+  PHOENIX WASP14, order 22 including regions. No masking. Going with 13 regions for now.
 
 #Nested data structures are allowed
 stellar_params :
@@ -72,16 +72,16 @@ region_params:
 
 region_jump:
     loga : 0.1
-    mu : 0.02
+    mu : 0.01
     sigma : 0.4
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 8
+max_regions : 13
 
 #Burn in time
 burn_in : 0
-samples : 100
+samples : 200000
 #will probably need 100000 for a good looking posterior
