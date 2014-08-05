@@ -646,7 +646,7 @@ cdef class RegionCovarianceMatrix:
             self.wl[i] = wl[i]
 
         self.mu = params["mu"] #take the anchor point for reference?
-        self.sigma0 = 1.
+        self.sigma0 = 0.5 #how far can the region stray?
         self.logPrior = 0.0 #neutral prior
         self.logPrior_last = self.logPrior
         print("Created Region and logPrior is ", self.logPrior)
@@ -685,8 +685,15 @@ cdef class RegionCovarianceMatrix:
 
         lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
 
+        #Use a Gaussian prior on mu, that it keeps the region within the original setting.
+        # 1/(sqrt(2pi) * sigma) exp(-0.5 (mu-x)^2/sigma^2)
+        #-ln(sigma * sqrt(2 pi)) - 0.5 (mu - x)^2 / sigma^2
+        width = 0.05
+        mu = params['mu']
+        lnGauss = -0.5 * np.abs(mu - self.mu)**2/width**2 - np.log(width * np.sqrt(2. * np.pi))
+
         self.logPrior_last = self.logPrior
-        self.logPrior = lnLogistic
+        self.logPrior = lnLogistic + lnGauss
 
     def get_prior(self):
         return self.logPrior
