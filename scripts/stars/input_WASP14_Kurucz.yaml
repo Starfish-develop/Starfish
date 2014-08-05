@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/21_22_23/cov/
+name: WASP14/Kurucz/21_22_23/logg/no_cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -9,37 +9,39 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Kurucz run using multiple chains. Including global covariance and no regions. Using base_lnprob.py.
+  Kurucz run using multiple chains. No covariance but fixing logg=4.29.
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6300
-    logg : 3.90
-    Z : -0.39
-    vsini : 4.80
+    temp : 6550
+    #logg : 3.90
+    Z : -0.25
+    vsini : 4.40
     #vz : 15.4
-    vz : -4.60
-    logOmega: -12.76 #Kurucz
+    vz : -4.57
+    logOmega: -12.72 #Kurucz
     #logOmega: -19.667 #PHOENIX
+
+fix_logg : 4.29
 
 #Average jump size in each parameter
 #Using covariance
-stellar_jump:
-    temp : 4
-    logg : 0.008
-    Z : 0.005
-    vsini : 0.01
-    vz : 0.001
-    logOmega: 3e-4
+#stellar_jump:
+#    temp : 4
+#    logg : 0.008
+#    Z : 0.005
+#    vsini : 0.01
+#    vz : 0.001
+#    logOmega: 3e-4
 
 #no covariance
-#stellar_jump:
-#    temp : 2
-#    logg : 0.005
-#    Z : 0.005
-#    vsini : 0.02
-#    vz : 0.02
-#    logOmega: 1e-4
+stellar_jump:
+    temp : 2
+    logg : 0.005
+    Z : 0.003
+    vsini : 0.01
+    vz : 0.005
+    logOmega: 1e-4
 
 use_cov: False
 stellar_cov:
@@ -50,9 +52,9 @@ stellar_cov:
     factor : 0.1
 
 cheb_degree: 4
-cheb_jump : 6e-4
+cheb_jump : 3e-4
 
-no_cov : False
+no_cov : True
 
 cov_params :
     sigAmp : 1
