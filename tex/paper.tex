@@ -291,7 +291,7 @@ post-processing steps.
 \begin{center}
   \includegraphics{figs/kernels.pdf}
   \includegraphics{figs/high2low.pdf}
-  \caption{Panel 1: the instrumental (${\rm FWHM} =6.8\;\kms$) and rotational ($v \sin i = 5\;\kms$) broadening kernels, and their composite. Panel 2: A section of the raw, high resolution synthetic model at $R=$500,000. Panel 3: The spectrum after applying the composite broadening kernel, $\varphi_v$. Panel 4: The broadened spectrum downsampled to the pixels of the detector.}
+  \caption{Panel 1: the instrumental (${\rm FWHM} =6.8\;\kms$), rotational ($v \sin i = 5\;\kms$), and Doppler ($v_z = 7\;\kms$) kernels, and their composite. Panel 2: A section of the raw, high resolution synthetic model at $R=$500,000. Panel 3: The spectrum after applying the composite broadening kernel, $\varphi_v$. Panel 4: The broadened spectrum downsampled to the pixels of the detector.}
 \label{fig:broadening}
 \end{center}
 \end{figure}
@@ -766,6 +766,7 @@ Linking the covariance matrices of stars could be done serially, where the aggre
 Once determined, this average covariance matrix could be delivered to the communities that created the synthetic libraries, which would enable them to rapidly pinpoint and correct non-physical lines in the synthetic models. Alternatively, we could correct the models ourselves by using the chain of logic and mathematical post-processing that we used to created the synthetic model spectrum to reverse-engineer what the behavior of the raw synthetic spectrum \emph{should} be, at the raw $R \gtrsim$~100,000 resolution. This fundamental application of machine learning would enable us to create our own library of data driven, semi-empirical stellar models. Rather than simply assembling an empirical spectral library using only real stellar spectra, this combined approach is more powerful because the synthetic stellar atmospheres provide an actual anchor point of fundamental stellar parameters tied down by the laws of stellar physics.
 
 \todo{We can (should?) add an additional level to the hierarchy of hyperparameters and add parameters to describe the \emph{population characteristics} of poorly modeled spectral lines (mostly the typical width, amplitude of these lines).  This will tell us about the frequency and distribution of spectral modelling errors. Or we could just speculate about it.}
+
 
 \section{Conclusion}
 \label{sec:conclusion}
