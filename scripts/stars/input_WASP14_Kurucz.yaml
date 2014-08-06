@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/Kurucz/21_22_23/logg/no_cov/
+name: WASP14/Kurucz/21_22_23/logg/cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
@@ -9,7 +9,7 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Kurucz run using multiple chains. No covariance but fixing logg=4.29.
+  Kurucz run using multiple chains. Global covariance and fixing logg=4.29.
 
 #Nested data structures are allowed
 stellar_params :
@@ -26,22 +26,22 @@ fix_logg : 4.29
 
 #Average jump size in each parameter
 #Using covariance
-#stellar_jump:
-#    temp : 4
-#    logg : 0.008
-#    Z : 0.005
-#    vsini : 0.01
-#    vz : 0.001
-#    logOmega: 3e-4
+stellar_jump:
+    temp : 4
+    logg : 0.008
+    Z : 0.005
+    vsini : 0.01
+    vz : 0.001
+    logOmega: 3e-4
 
 #no covariance
-stellar_jump:
-    temp : 2
-    logg : 0.005
-    Z : 0.003
-    vsini : 0.01
-    vz : 0.005
-    logOmega: 1e-4
+#stellar_jump:
+#    temp : 2
+#    logg : 0.005
+#    Z : 0.003
+#    vsini : 0.01
+#    vz : 0.005
+#    logOmega: 1e-4
 
 use_cov: False
 stellar_cov:
@@ -52,9 +52,9 @@ stellar_cov:
     factor : 0.1
 
 cheb_degree: 4
-cheb_jump : 3e-4
+cheb_jump : 6e-4
 
-no_cov : True
+no_cov : False
 
 cov_params :
     sigAmp : 1
