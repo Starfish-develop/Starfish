@@ -680,17 +680,21 @@ cdef class RegionCovarianceMatrix:
         '''
         Define and evaluate the prior for a given set of parameters.
         '''
-        #Use a ln(logistic) function on sigma, that is flat before 10km/s and dies off for anything greater
+        #a = 10**params['loga']
+        mu = params['mu']
         sigma = params['sigma']
 
-        lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
+        #Use a hard prior that the amplitude cannot go less than 0.1 times the global covariance amplitude.
+        #However, implement this in the RegionSamplerLnprob, because this is otherwise hard to implement in cython.
 
         #Use a Gaussian prior on mu, that it keeps the region within the original setting.
         # 1/(sqrt(2pi) * sigma) exp(-0.5 (mu-x)^2/sigma^2)
         #-ln(sigma * sqrt(2 pi)) - 0.5 (mu - x)^2 / sigma^2
-        width = 0.05
-        mu = params['mu']
+        width = 0.04
         lnGauss = -0.5 * np.abs(mu - self.mu)**2/width**2 - np.log(width * np.sqrt(2. * np.pi))
+
+        #Use a ln(logistic) function on sigma, that is flat before 10km/s and dies off for anything greater
+        lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
 
         self.logPrior_last = self.logPrior
         self.logPrior = lnLogistic + lnGauss
@@ -715,6 +719,9 @@ cdef class RegionCovarianceMatrix:
             raise C.RegionError("mu {} has strayed too far from the \
                     original specification {}".format(mu, self.mu))
 
+        #This can also raise a RegionError
+        self.eval_prior(params)
+
         cdef cholmod_sparse *temp = create_sparse_region(self.wl, self.npoints, a, mu, sigma, self.c)
 
         if temp == NULL:
@@ -736,7 +743,6 @@ cdef class RegionCovarianceMatrix:
 
         self.A = temp
         self.params = params
-        self.eval_prior(params)
 
     def revert(self):
         self.logPrior = self.logPrior_last
