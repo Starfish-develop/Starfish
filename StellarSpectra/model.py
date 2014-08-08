@@ -728,9 +728,20 @@ class CovRegionSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Region_p(p)
+
+        #We need to do things like this and not immediately exit because we shouldn't do two reverts in a row without
+        #  at least trying to fill the matrix.
+        a_global = self.order_model.CovarianceMatrix.get_amp()
+        a = 10**params["loga"]
+
         try:
             self.CovMatrix.update_region(self.region_index, params)
-            return self.model.evaluate()
+            lnp = self.model.evaluate()
+            #Institute the hard prior that the amplitude can't be less than the Global Covariance
+            if a < (0.1 * a_global):
+                return -np.inf
+            else:
+                return lnp
         except (C.ModelError, C.RegionError):
             return -np.inf
 
