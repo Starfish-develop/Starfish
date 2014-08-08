@@ -67,7 +67,7 @@ cov_jump :
     l : 0.2
 
 region_params:
-    loga: -12.
+    loga: -13.6
     sigma: 7.
 
 region_jump:
@@ -79,9 +79,9 @@ region_jump:
 orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 13
+max_regions : 15
 
 #Burn in time
 burn_in : 0
-samples : 200000
+samples : 300000
 #will probably need 100000 for a good looking posterior
