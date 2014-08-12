@@ -1,20 +1,20 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/
+name: WASP14/PHOENIX/22/region/4sig/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/Kurucz_TRES.hdf5
-#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Messing around with trimming regions.
+  Now implements the /n/regal system
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 5985
+    temp : 6000
     logg : 3.8
     Z : -0.66
     vsini : 5.05
@@ -24,36 +24,36 @@ stellar_params :
 
 #Average jump size in each parameter
 #Using covariance
-#stellar_jump:
-#    temp : 8
-#    logg : 0.015
-#    Z : 0.015
-#    vsini : 0.05
-#    vz : 0.02
-#    logOmega: 2e-3
+stellar_jump:
+    temp : 10
+    logg : 0.01
+    Z : 0.005
+    vsini : 0.05
+    vz : 0.015
+    logOmega: 2e-3
 
 #no covariance
-stellar_jump:
-    temp : 1
-    logg : 0.002
-    Z : 0.001
-    vsini : 0.02
-    vz : 0.02
-    logOmega: 1e-4
+#stellar_jump:
+#    temp : 1
+#    logg : 0.002
+#    Z : 0.001
+#    vsini : 0.02
+#    vz : 0.02
+#    logOmega: 1e-4
 
-use_cov: False
+use_cov: True
 stellar_cov:
-    temp_logg : 8.74e-2
-    temp_Z : 1.22e-1
-    logg_Z : 9.86e-5
-    temp_logOmega : -9.648e-3
-    factor : 0.1
+    temp_logg : 2.2
+    temp_Z : 1.45
+    logg_Z : 1.8e-3
+    temp_logOmega : -1.48e-1
+    factor : 0.02
 
 cheb_degree: 4
 #using covariance
-#cheb_jump : 3e-3
+cheb_jump : 3e-3
 #no covariance
-cheb_jump : 5e-4
+#cheb_jump : 5e-4
 
 no_cov : False
 
@@ -74,15 +74,17 @@ region_params:
 region_jump:
     loga : 0.1
     mu : 0.01
-    sigma : 0.2
+    sigma : 0.4
+
+sigma_clip : 4.
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 50
+max_regions : 0
 
 #Burn in time
-burn_in : 70
-samples : 70
+burn_in : 10000
+samples : 100000
 #will probably need 100000 for a good looking posterior

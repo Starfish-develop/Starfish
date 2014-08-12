@@ -10,6 +10,7 @@ cimport numpy as np
 import scipy
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import StellarSpectra.constants as C
+import logging
 
 cdef extern from "cholmod.h":
 
@@ -144,6 +145,7 @@ cdef class CovarianceMatrix:
     cdef logPrior
     cdef logPrior_last
     cdef debug
+    cdef logger
 
     # initially a NULL pointer, and will be until any elements in the RegionList have been declared.
     cdef cholmod_sparse *sum_regions #Holds a sparse matrix that is the sum of all regions
@@ -169,7 +171,12 @@ cdef class CovarianceMatrix:
         self.logdet_last = self.logdet
         self.logPrior = 0.0 #neutral prior, reflects the sum of GlobalCovariance.logPrior and all region.logPrior's
         self.logPrior_last = self.logPrior
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.debug = debug
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
 
         self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index,self.common, debug=self.debug)
         self.RegionList = {}
@@ -212,8 +219,7 @@ cdef class CovarianceMatrix:
         Update the global covariance matrix by passing the parameters to the 
         GlobalCovarianceMatrix. Then update the factorization.
         '''
-        if self.debug:
-            print("updating global")
+        self.logger.debug("updating global")
         self.GCM.update(params)
         self.update_factorization()
         self.update_logPrior()
@@ -227,7 +233,7 @@ cdef class CovarianceMatrix:
         if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
             region_index = self.region_count
             self.RegionList[region_index] = RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common, debug=self.debug)
-            print("Added region {} to self.RegionList".format(region_index))
+            self.logger.info("Added region {} to self.RegionList".format(region_index))
             ##Do update on partial_sum_regions and sum_regions
             self.update_region(region_index=region_index, params=params)
             self.region_count += 1 #increment for next region
@@ -246,8 +252,7 @@ cdef class CovarianceMatrix:
         '''
 
         region = self.RegionList[region_index]
-        if self.debug:
-            print("updating region {} with params {}".format(region_index, params))
+        self.logger.debug("updating region {} with params {}".format(region_index, params))
         region.update(params)
 
         self.update_sum_regions()
@@ -279,13 +284,11 @@ cdef class CovarianceMatrix:
         if self.sum_regions_last != NULL and (self.sum_regions_last != self.sum_regions):
           #free the old memory before having it to something new
           #as long as they don't point to the same piece of memory
-          if self.debug:
-              print("freeing self.sum_regions_last inside of update_factorization")
+          self.logger.debug("freeing self.sum_regions_last inside of update_factorization")
           cholmod_free_sparse(&self.sum_regions_last, self.c)
 
         #Shift the self.sum_regions_last pointer to self.sum_regions
-        if self.debug:
-          print("shifting self.sum_regions_last to point to self.sum_regions")
+        self.logger.debug("shifting self.sum_regions_last to point to self.sum_regions")
         self.sum_regions_last = self.sum_regions
 
         regions = list(self.RegionList.values())
@@ -336,8 +339,7 @@ cdef class CovarianceMatrix:
         I think here we must free the memory previously afforded to A.
 
         '''
-        if self.debug:
-            print("updating factorization")
+        self.logger.debug("updating factorization")
 
         if self.A != NULL:
             cholmod_free_sparse(&self.A, self.c)
@@ -353,39 +355,33 @@ cdef class CovarianceMatrix:
         if self.L_last != NULL and (self.L_last != self.L):
             #free the old memory before having it to something new
             #as long as they don't point to the same piece of memory
-            if self.debug:
-                print("freeing self.L_last inside of update_factorization")
+            self.logger.debug("freeing self.L_last inside of update_factorization")
             cholmod_free_factor(&self.L_last, self.c)
 
         #Shift the self.L_last pointer to self.L
-        if self.debug:
-            print("shifting self.L_last to point to self.L")
+        self.logger.debug("shifting self.L_last to point to self.L")
         self.L_last = self.L
 
         self.L = cholmod_analyze(self.A, self.c) #do Cholesky factorization
         cholmod_factorize(self.A, self.L, self.c)
         #print("rcond is ", cholmod_rcond(self.L, self.c))
 
-        if self.debug:
-            print("updating logdet")
+        self.logger.debug("updating logdet")
         self.logdet_last = self.logdet
         self.logdet = get_logdet(self.L)
 
     def revert(self):
-        if self.debug:
-            print("reverting covariance matrix")
+        self.logger.debug("reverting covariance matrix")
         self.logdet = self.logdet_last
         self.logPrior = self.logPrior_last
 
         #As long as L and L_last don't point to the same thing, clear L
         if self.L != NULL and (self.L != self.L_last):
-            if self.debug:
-                print("freeing self.L inside of revert")
+            self.logger.debug("freeing self.L inside of revert")
             cholmod_free_factor(&self.L, self.c)
 
         #Move self.L to point to self.L_last
-        if self.debug:
-            print("shifting self.L to point to self.L_last inside of revert")
+        self.logger.debug("shifting self.L to point to self.L_last inside of revert")
         self.L = self.L_last
 
     def revert_global(self):
@@ -394,17 +390,14 @@ cdef class CovarianceMatrix:
 
     def revert_region(self, region_index):
         region = self.RegionList[region_index]
-        if self.debug:
-            print("reverting region {}".format(region_index))
+        self.logger.debug("reverting region {}".format(region_index))
         region.revert()
 
         #move sum_regions to point to the sum_regions_last
-        if self.debug:
-            print("shifting self.sum_regions to point to self.sum_regions_last")
+        self.logger.debug("shifting self.sum_regions to point to self.sum_regions_last")
         #as long as sum_regions and sum_regions_last don't point to the same thing, clear sum_regions
         if self.sum_regions != NULL and (self.sum_regions_last != self.sum_regions):
-            if self.debug:
-                print("freeing self.sum_regions inside of revert_region")
+            self.logger.debug("freeing self.sum_regions inside of revert_region")
             cholmod_free_sparse(&self.sum_regions, self.c)
 
         self.sum_regions = self.sum_regions_last
@@ -417,16 +410,15 @@ cdef class CovarianceMatrix:
     def return_logdet(self):
         return self.logdet
 
-    def evaluate(self, fl):
+    def evaluate(self, residuals):
         '''
         Use the existing covariance matrix to evaluate the residuals.
 
         Input is model flux, calculate the residuals by subtracting from the dataflux, then convert to a dense_matrix.
         '''
-        if self.debug:
-            print("evaluating covariance matrix")
+        self.logger.debug("evaluating covariance matrix")
 
-        residuals = self.fl - fl
+        #residuals = self.fl - fl
 
         #convert the residuals to a cholmod_dense matrix
         cdef np.ndarray[np.double_t, ndim=1] rr = residuals
@@ -437,8 +429,7 @@ cdef class CovarianceMatrix:
 
         #logdet does not depend on the residuals, so it is pre-computed
         #evaluate lnprob with logdet and chi2
-        if self.debug:
-            print("evaluating chi2")
+        self.logger.debug("evaluating chi2")
         cdef double lnprob = -0.5 * (chi2(r, self.L, self.c) + self.logdet) + self.logPrior
 
         cholmod_free_dense(&r, self.c)
@@ -509,11 +500,17 @@ cdef class GlobalCovarianceMatrix:
     cdef amp
     cdef logPrior
     cdef debug
+    cdef logger
 
     def __init__(self, DataSpectrum, order_index, Common common, debug=False):
         self.common = common
         self.c = <cholmod_common *>&self.common.c
         self.debug = debug
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
         self.A = NULL
         self.A_last = self.A
         self.amp = 1.0
@@ -591,13 +588,11 @@ cdef class GlobalCovarianceMatrix:
         if self.A_last != NULL and (self.A_last != self.A):
             #Free the old memory before having it point to something new
             #as long as they don't point to the same piece of memory
-            if self.debug:
-                print("freeing self.A inside of GCM.update")
+            self.logger.debug("freeing self.A inside of GCM.update")
             cholmod_free_sparse(&self.A_last, self.c)
 
         #Shift the self.A_last pointer to self.A
-        if self.debug:
-            print("shifting self.A_last to point to self.A")
+        self.logger.debug("shifting self.A_last to point to self.A")
         self.A_last = self.A
 
         cdef cholmod_sparse *temp = create_sparse(self.wl, self.npoints, self.min_sep, amp, l, self.c)
@@ -607,17 +602,14 @@ cdef class GlobalCovarianceMatrix:
 
     def revert(self):
         #move A to point to A_last
-        if self.debug:
-            print("reverting global covariance matrix")
+        self.logger.debug("reverting global covariance matrix")
         #as long as A and A_last don't point to the same thing, clear A
         if self.A != NULL and (self.A_last != self.A):
-            if self.debug:
-                print("freeing self.A inside of revert")
+            self.logger.debug("freeing self.A inside of revert")
             cholmod_free_sparse(&self.A, self.c)
 
         #move self.A to point to self.A_last
-        if self.debug:
-            print("shifting self.A to point to self.A_last")
+        self.logger.debug("shifting self.A to point to self.A_last")
         self.A = self.A_last
 
 
@@ -635,10 +627,13 @@ cdef class RegionCovarianceMatrix:
     cdef logPrior #This is carried around with each CovarianceMatrix
     cdef logPrior_last
     cdef debug
+    cdef logger
 
     def __init__(self, DataSpectrum, order_index, params, Common common, debug=False):
         self.common = common 
         self.c = <cholmod_common *>&self.common.c
+
+
 
         #convert wl into an array
         cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index]
@@ -654,10 +649,17 @@ cdef class RegionCovarianceMatrix:
         self.sigma0 = 0.5 #how far can the region stray?
         self.logPrior = 0.0 #neutral prior
         self.logPrior_last = self.logPrior
-        print("Created Region and logPrior is ", self.logPrior)
+
+        self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.mu) )
+        self.debug = debug
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+        self.logger.info("Created region")
         self.update(params) #do the first initialization
         self.params = None
-        self.debug = debug
+
 
     def __dealloc__(self):
         print("Deallocating RegionCovarianceMatrix")
@@ -737,13 +739,11 @@ cdef class RegionCovarianceMatrix:
             #as long as A_last and A don't point to the same piece of memory,
             #free the old memory before having it point to something new
 
-            if self.debug:
-                print("freeing self.A inside of RegionCovarianceMatrix.update")
+            self.logger.debug("freeing self.A inside of RegionCovarianceMatrix.update")
             cholmod_free_sparse(&self.A_last, self.c)
 
         #Shift the self.A_last pointer to self.A
-        if self.debug:
-            print("shifting self.A_last to point to self.A")
+        self.logger.debug("shifting self.A_last to point to self.A")
         self.A_last = self.A
 
         self.A = temp
@@ -752,18 +752,15 @@ cdef class RegionCovarianceMatrix:
     def revert(self):
         self.logPrior = self.logPrior_last
 
-        if self.debug:
-            print("reverting region covariance matrix")
+        self.logger.debug("reverting region covariance matrix")
 
         #as long as A and A_last don't point to the same thing, clear A
         if self.A != NULL and (self.A_last != self.A):
-            if self.debug:
-                print("freeing RegionMatrix.A inside of revert")
+            self.logger.debug("freeing RegionMatrix.A inside of revert")
             cholmod_free_sparse(&self.A, self.c)
 
         #move self.A to point to self.A_last
-        if self.debug:
-            print("shifting self.A to point to self.A_last")
+        self.logger.debug("shifting self.A to point to self.A_last")
         self.A = self.A_last
 
 

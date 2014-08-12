@@ -6,6 +6,10 @@ import numpy as np
 import yaml
 import os
 import shutil
+import logging
+
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="example.log",
+                    level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
 import argparse
@@ -60,10 +64,7 @@ stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
                  * np.identity(len(stellar_Starting))
 
-try:
-    fix_logg = config['fix_logg']
-except KeyError:
-    fix_logg = None
+fix_logg = config.get("fix_logg", None)
 
 #Updating specific correlations to speed mixing
 if config["use_cov"]:
@@ -158,23 +159,26 @@ for i in range(len(config['orders'])):
         samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
                         default_param_dict=region_Starting, order_index=i, outdir=outdir, debug=False))
 
-mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=True)
+mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=False)
 
 def main():
-    mySampler.run(config["burn_in"])
+    mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
     mySampler.reset()
-    mySampler.trim_regions()
 
-    mySampler.run(config["burn_in"])
+    mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
+    mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
     mySampler.reset()
-    mySampler.trim_regions()
 
     mySampler.run(config["samples"])
+
     print(mySampler.acceptance_fraction)
     print(mySampler.acor)
     myModel.to_json("model_final.json")
     mySampler.write()
     mySampler.plot()
+
+    #resids = myModel.OrderModels[0].get_residual_array()
+    #np.save("residuals.npy", resids)
 
 
 if __name__=="__main__":
