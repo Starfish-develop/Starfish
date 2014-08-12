@@ -163,6 +163,11 @@ mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=True)
 def main():
     mySampler.run(config["burn_in"])
     mySampler.reset()
+    mySampler.trim_regions()
+
+    mySampler.run(config["burn_in"])
+    mySampler.reset()
+    mySampler.trim_regions()
 
     mySampler.run(config["samples"])
     print(mySampler.acceptance_fraction)

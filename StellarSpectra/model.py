@@ -420,31 +420,45 @@ class OrderModel:
         return self.fl - model_fl
 
     def evaluate_region_logic(self):
+        print("evaluating region logic")
         #calculate the current amplitude of the global_covariance noise
         global_amp = self.CovarianceMatrix.get_amp()
+        print("Global amplitude is {}".format(global_amp))
+        print("3 times is {}".format(3. * global_amp))
 
         #array that specifies whether any given pixel is covered by a region.
         covered = self.CovarianceMatrix.get_region_coverage()
+        print("There are {} pixels covered by regions.".format(np.sum(covered)))
 
         residuals = self.get_residuals()
-        median = np.median(residuals)
+        #median = np.median(residuals)
         #For each residual, calculate the abs_distance from the median
-        abs_distances = np.abs(residuals - median)
+        #from zero
+        #abs_distances = np.abs(residuals - median)
+        abs_distances = np.abs(residuals)
+
+        #Count how many pixels are above 3 * amplitude
+        print("There are {} pixels above 3 * global amp".format(np.sum(abs_distances > (3 * global_amp))))
 
         #Sort the list in decreasing order of abs_dist
         args = np.argsort(abs_distances)[::-1]
 
         for index in args:
             abs_dist = abs_distances[index]
-            if abs_dist < 3 * global_amp:
-            #we have reached below the 3 sigma limit, no new regions instantiated
+            if abs_dist < (3 * global_amp):
+                #we have reached below the 3 sigma limit, no new regions instantiated
+                #if self.debug:
+                print("Reached below 3 times limit, no new regions to instantiate.")
                 return None
 
             wl = self.wl[index]
+            #if self.debug:
             print("At wl={:.3f}, residual={}".format(wl, abs_dist))
             if covered[index]:
+                print("residual already covered")
                 continue
             else:
+                print("returning wl to instantiate")
                 return wl
 
         return None
@@ -702,6 +716,12 @@ class MegaSampler(GibbsController):
         for sampler in self.samplers:
             sampler.plot()
 
+    def trim_regions(self):
+        for sampler in self.samplers:
+            #if it is a Regions Sampler
+            if type(sampler) is RegionsSampler:
+                sampler.trim_regions()
+
 class CovRegionSampler(Sampler):
     def __init__(self, **kwargs):
         starting_param_dict = kwargs.get("starting_param_dict")
@@ -718,13 +738,22 @@ class CovRegionSampler(Sampler):
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
         self.CovMatrix.create_region(starting_param_dict)
+        self.a = 10**starting_param_dict['loga']
+        self.a_last = self.a
         if self.debug:
             print("Created new Region sampler with region_index {}".format(self.region_index))
+
+    def __del__(self):
+        '''
+        Delete this sampler from the list and the RegionCovarianceMatrix which it references.
+        '''
+        self.CovMatrix.delete_region(self.region_index)
 
     def revertfn(self):
         if self.debug:
             print("Reverting GlobalCovariance parameters")
         self.CovMatrix.revert_region(self.region_index)
+        self.a = self.a_last
 
     def lnprob(self, p):
         params = self.model.zip_Region_p(p)
@@ -732,20 +761,25 @@ class CovRegionSampler(Sampler):
         #We need to do things like this and not immediately exit because we shouldn't do two reverts in a row without
         #  at least trying to fill the matrix.
         a_global = self.order_model.CovarianceMatrix.get_amp()
-        a = 10**params["loga"]
+        self.a_last = self.a
+        self.a = 10**params["loga"]
 
         try:
             self.CovMatrix.update_region(self.region_index, params)
             lnp = self.model.evaluate()
             #Institute the hard prior that the amplitude can't be less than the Global Covariance
-            if a < (0.1 * a_global):
+            if self.a < (0.1 * a_global):
                 return -np.inf
             else:
                 return lnp
         except (C.ModelError, C.RegionError):
             return -np.inf
 
+
 class RegionsSampler(GibbsSubController):
+    '''
+    Designed to accumulate CovRegionSampler's in a list.
+    '''
     def __init__(self, **kwargs):
         self.max_regions = kwargs.get("max_regions", 0)
         self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
@@ -754,6 +788,7 @@ class RegionsSampler(GibbsSubController):
         self.order_model = self.model.OrderModels[self.order_index]
         self.MH_cov = kwargs.get("cov")
         self.outdir = kwargs.get("outdir")
+        self.region_index = 0
 
         kwargs.update({"samplers":[]}) #start empty and update later
         super(RegionsSampler, self).__init__(**kwargs)
@@ -768,14 +803,32 @@ class RegionsSampler(GibbsSubController):
         #copy and update default_param_dict to include the new value of mu
         starting_param_dict = self.default_param_dict.copy()
         starting_param_dict.update({"mu":mu})
-        region_index = len(self.samplers) #region_index is one more than the current amount of regions
 
         newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
-                                      order_index=self.order_index, region_index=region_index, outdir=self.outdir,
+                                      order_index=self.order_index, region_index=self.region_index, outdir=self.outdir,
                                       debug=self.debug)
         self.samplers.append(newSampler)
+        print("Now there are {} region samplers.".format(len(self.samplers)))
+        self.region_index += 1 #increment for next region to be instantiated.
+
+    def trim_regions(self):
+        print("Trimming Regions with amplitudes below 2.5 sigma.")
+        #Go through and find the amplitude of each region. If it's below 2*global amplitude, delete the sampler from
+        # the list, subsequently deleting the region matrix.
+        a_global = self.order_model.CovarianceMatrix.get_amp()
+        print("a_global is {}".format(a_global))
+        print("2.5 cutoff is {}".format(2.5 * a_global))
+        print("3 times is {}".format(3. * a_global))
+        for i, sampler in enumerate(self.samplers):
+            print("sampler.a is {}".format(sampler.a))
+            if sampler.a < 2.5 * a_global:
+                print("Deleting region sampler from list.")
+                del self.samplers[i] #Also triggers sampler.__del__()
+        print("Now there are only {} region samplers left.".format(len(self.samplers)))
+
 
     def run_mcmc(self, *args, **kwargs):
+
         if (len(self.samplers) < self.max_regions):
             mu = self.evaluate_region_logic()
             if mu is not None:
