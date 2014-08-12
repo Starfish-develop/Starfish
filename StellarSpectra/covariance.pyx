@@ -138,8 +138,9 @@ cdef class CovarianceMatrix:
     cdef order_index
     cdef DataSpectrum
     cdef GlobalCovarianceMatrix GCM
-    cdef RegionList
+    cdef RegionList #Dictionary with integers as keys
     cdef current_region
+    cdef region_count
     cdef logPrior
     cdef logPrior_last
     cdef debug
@@ -171,8 +172,9 @@ cdef class CovarianceMatrix:
         self.debug = debug
 
         self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index,self.common, debug=self.debug)
-        self.RegionList = []
+        self.RegionList = {}
         self.current_region = -1 #non physical value to force initialization
+        self.region_count = 0
 
         self.update_factorization()
 
@@ -223,17 +225,19 @@ cdef class CovarianceMatrix:
         #Check to make sure that mu is within bounds, if not, raise a C.RegionError
         mu = params["mu"]
         if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
-            self.RegionList.append(RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common,
-            debug=self.debug))
-            print("Added region to self.RegionList")
+            region_index = self.region_count
+            self.RegionList[region_index] = RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common, debug=self.debug)
+            print("Added region {} to self.RegionList".format(region_index))
             ##Do update on partial_sum_regions and sum_regions
-            self.update_region(region_index=(len(self.RegionList)-1), params=params)
+            self.update_region(region_index=region_index, params=params)
+            self.region_count += 1 #increment for next region
         else:
             raise C.RegionError("chosen mu {:.4f} for region is outside bounds ({:.4f}, {:.4f})".format(mu, np.min(self.wl), np.max(self.wl)))
 
 
     def delete_region(self, region_index):
-        self.RegionList.pop(region_index)
+        del self.RegionList[region_index]
+        #self.RegionList.pop(region_index)
 
     def update_region(self, region_index, params):
         '''
@@ -252,8 +256,8 @@ cdef class CovarianceMatrix:
 
     def print_all_regions(self):
         string = ""
-        for i in range(len(self.RegionList)):
-            string += "Region {}, ".format(i) + self.RegionList[i].__str__() + "\n"
+        for key,region in self.RegionList.items():
+            string += "Region {}, {} \n".format(key, region)
 
         return string
 
@@ -262,8 +266,8 @@ cdef class CovarianceMatrix:
         Return a JSON dictionary with all of the region parameters.
         '''
         mydict = {}
-        for i in range(len(self.RegionList)):
-            mydict[str(i)] = self.RegionList[i].get_params()
+        for key,region in self.RegionList.items():
+            mydict[str(key)] = region.get_params()
         return mydict
 
     def update_sum_regions(self):
@@ -284,10 +288,11 @@ cdef class CovarianceMatrix:
           print("shifting self.sum_regions_last to point to self.sum_regions")
         self.sum_regions_last = self.sum_regions
 
-        cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(self.RegionList[0]), self.c)
+        regions = list(self.RegionList.values())
+        cdef cholmod_sparse *R = cholmod_copy_sparse(get_A(regions[0]), self.c)
         cdef cholmod_sparse *temp
 
-        for region in self.RegionList[1:]:
+        for region in regions[1:]:
             temp = R
             R = cholmod_add(temp, get_A(region), self.one, self.one, True, True, self.c) 
             cholmod_free_sparse(&temp, self.c)
@@ -307,7 +312,7 @@ cdef class CovarianceMatrix:
 
         else:
             #go through all of the bounds contained in the region list and update the values
-            for region in self.RegionList:
+            for region in self.RegionList.values():
                 min, max = region.get_bounds()
                 temp_ind = (self.wl >= min) & (self.wl <= max)
                 #combine temp_ind with coverage
@@ -321,7 +326,7 @@ cdef class CovarianceMatrix:
         with the GlobalCovariance logPrior
         '''
         self.logPrior_last = self.logPrior
-        self.logPrior = self.GCM.logPrior + np.sum([region.get_prior() for region in self.RegionList])
+        self.logPrior = self.GCM.logPrior + np.sum([region.get_prior() for region in self.RegionList.values()])
 
     def update_factorization(self):
         '''
