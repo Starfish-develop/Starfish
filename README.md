@@ -338,6 +338,10 @@ Right now we are setting the last order to have logc0 = 0.0
 * Introduce PSF width as a parameter that we can sample in. This would be a *correction* to the Gaussian pre-convoved
 grid, which is done at something smaller that we would ever go to, for example 6.0 km/s for TRES.
 
+* Use Python's configParser, it allows interpolation.
+
+* implement model dumping on new mega sampler, for random indices
+
 #Grid Creator Code
 
 * it turns out that the grid sampling actually needed to be *increased* to about 0.08 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.

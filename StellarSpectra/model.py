@@ -9,7 +9,11 @@ from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import Co
 import time
 import json
 import h5py
+from astropy.stats.funcs import sigma_clip
+import logging
 import os
+from collections import deque
+from operator import itemgetter
 import matplotlib.pyplot as plt
 
 def plot_walkers(filename, samples, labels=None):
@@ -359,21 +363,25 @@ class OrderModel:
         print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
-        self.debug = debug
         self.wl = self.DataSpectrum.wls[self.index]
         self.fl = self.DataSpectrum.fls[self.index]
         self.sigma = self.DataSpectrum.sigmas[self.index]
         self.mask = self.DataSpectrum.masks[self.index]
         self.order = self.DataSpectrum.orders[self.index]
+        self.debug = debug
+        self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.order))
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index, npoly=npoly)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index, debug=self.debug)
         self.global_cov_params = None
         self.cheb_params = None
         self.cheb_params_last = None
-
-        #We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added
-        self.region_list = []
+        self.resid_deque = deque(maxlen=100) #Deque that stores the last residual spectra, for averaging
+        self.counter = 0
 
     def get_data(self):
         return (self.wl, self.fl, self.sigma, self.mask)
@@ -419,6 +427,15 @@ class OrderModel:
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
         return self.fl - model_fl
 
+    def get_residual_array(self):
+        if len(self.resid_deque) > 0:
+            return np.array(self.resid_deque)
+        else:
+            return None
+
+    def clear_resid_deque(self):
+        self.resid_deque.clear()
+
     def evaluate_region_logic(self):
         print("evaluating region logic")
         #calculate the current amplitude of the global_covariance noise
@@ -441,40 +458,42 @@ class OrderModel:
         print("There are {} pixels above 3 * global amp".format(np.sum(abs_distances > (3 * global_amp))))
 
         #Sort the list in decreasing order of abs_dist
-        args = np.argsort(abs_distances)[::-1]
+        args = reversed(np.argsort(abs_distances))
 
         for index in args:
             abs_dist = abs_distances[index]
             if abs_dist < (3 * global_amp):
                 #we have reached below the 3 sigma limit, no new regions instantiated
-                #if self.debug:
-                print("Reached below 3 times limit, no new regions to instantiate.")
+                self.logger.debug("Reached below 3 times limit, no new regions to instantiate.")
                 return None
 
             wl = self.wl[index]
-            #if self.debug:
-            print("At wl={:.3f}, residual={}".format(wl, abs_dist))
+            self.logger.debug("At wl={:.3f}, residual={}".format(wl, abs_dist))
             if covered[index]:
-                print("residual already covered")
+                self.logger.debug("residual already covered")
                 continue
             else:
-                print("returning wl to instantiate")
+                self.logger.debug("returning wl to instantiate")
                 return wl
-
-        return None
+        else:
+            self.logger.warning("Reached the end of the for loop, ie, iterated through all of the residuals.")
+            return None
 
     def evaluate(self):
         '''
         Compare the different data and models.
         '''
-        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
-
         model_fl = model_fl[self.mask]
 
-        #CovarianceMatrix will do the lnprob math without priors
-        lnp = self.CovarianceMatrix.evaluate(model_fl)
+        residuals = self.fl - model_fl
+        self.counter += 1
+        if self.counter == 100:
+            self.resid_deque.append(residuals)
+            self.counter = 0
+
+        lnp = self.CovarianceMatrix.evaluate(residuals)
         return lnp
 
 class Sampler(GibbsSampler):
@@ -500,6 +519,7 @@ class Sampler(GibbsSampler):
             p0[i] = starting_param_dict[param]
 
         kwargs.update({"p0":p0, "dim":self.dim})
+        self.model = kwargs.get("model")
 
         super(Sampler, self).__init__(**kwargs)
 
@@ -512,7 +532,7 @@ class Sampler(GibbsSampler):
         #then do super().__init__() to call the following code
 
 
-        self.model = kwargs.get("model")
+
 
         self.outdir = kwargs.get("outdir", "")
         self.fname = kwargs.get("fname", "")
@@ -618,12 +638,17 @@ class StellarSampler(Sampler):
         kwargs.update({"fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(StellarSampler, self).__init__(**kwargs)
 
+    def reset(self):
+        #Clear accumulated residuals in each order sampler
+        for order_model in self.model.OrderModels:
+            order_model.clear_resid_deque()
+        super(StellarSampler, self).reset()
+
     def revertfn(self):
         '''
         Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
         '''
-        if self.debug:
-            print("reverting stellar parameters")
+        self.logger.debug("reverting stellar parameters")
         self.model.revert_Model()
 
     def lnprob(self, p):
@@ -631,18 +656,15 @@ class StellarSampler(Sampler):
         #If we have decided to fix logg, sneak update it here.
         if self.fix_logg:
             params.update({"logg": self.fix_logg})
-        if self.debug:
-            print("{}".format(params))
+        self.logger.debug("lnprob params: {}".format(params))
         try:
             self.model.update_Model(params) #This also updates downsampled_fls
             #For order in myModel, do evaluate, and sum the results.
             lnp = self.model.evaluate()
-            if self.debug:
-                print("Stellar lnp is ", lnp)
+            self.logger.debug("lnp {}".format(lnp))
             return lnp
         except C.ModelError:
-            if self.debug:
-                print("Stellar lnprob returning -np.inf")
+            self.logger.debug("lnprob returning -np.inf")
             return -np.inf
 
 class ChebSampler(Sampler):
@@ -662,19 +684,15 @@ class ChebSampler(Sampler):
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting Cheb parameters")
+        self.logger.debug("reverting model")
         self.order_model.revert_Cheb()
-
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
-        if self.debug:
-            print("Cheb params are", params)
+        self.logger.debug("params are {}".format(params))
         self.order_model.update_Cheb(params)
         lnp = self.model.evaluate()
-        if self.debug:
-            print("Cheb lnp is ", lnp)
+        self.logger.debug("lnp {}".format(lnp))
         return lnp
 
 class CovGlobalSampler(Sampler):
@@ -693,14 +711,12 @@ class CovGlobalSampler(Sampler):
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting GlobalCovariance parameters")
+        self.logger.debug("reverting model")
         self.order_model.revert_Cov()
 
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
-        if self.debug:
-            print("Cov params are", params)
+        self.logger.debug("params {}".format(params))
         try:
             self.order_model.update_Cov(params)
             return self.model.evaluate()
@@ -715,6 +731,12 @@ class MegaSampler(GibbsController):
     def plot(self):
         for sampler in self.samplers:
             sampler.plot()
+
+    def instantiate_regions(self, sigma=3):
+        for sampler in self.samplers:
+        #if it is a Regions Sampler
+            if type(sampler) is RegionsSampler:
+                sampler.instantiate_regions(sigma)
 
     def trim_regions(self):
         for sampler in self.samplers:
@@ -740,8 +762,7 @@ class CovRegionSampler(Sampler):
         self.CovMatrix.create_region(starting_param_dict)
         self.a = 10**starting_param_dict['loga']
         self.a_last = self.a
-        if self.debug:
-            print("Created new Region sampler with region_index {}".format(self.region_index))
+        self.logger.info("Created new Region sampler with region_index {}".format(self.region_index))
 
     def __del__(self):
         '''
@@ -750,8 +771,7 @@ class CovRegionSampler(Sampler):
         self.CovMatrix.delete_region(self.region_index)
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting GlobalCovariance parameters")
+        self.logger.debug("reverting model")
         self.CovMatrix.revert_region(self.region_index)
         self.a = self.a_last
 
@@ -774,7 +794,6 @@ class CovRegionSampler(Sampler):
                 return lnp
         except (C.ModelError, C.RegionError):
             return -np.inf
-
 
 class RegionsSampler(GibbsSubController):
     '''
@@ -826,15 +845,39 @@ class RegionsSampler(GibbsSubController):
                 del self.samplers[i] #Also triggers sampler.__del__()
         print("Now there are only {} region samplers left.".format(len(self.samplers)))
 
+    def instantiate_regions(self, sigma=3.):
+        #array that specifies if a pixel is already covered. On the first call, it should be all False
+        covered = self.order_model.CovarianceMatrix.get_region_coverage()
 
-    def run_mcmc(self, *args, **kwargs):
+        #average all of the spectra in the deque together
+        residual_array = self.order_model.get_residual_array()
+        if residual_array is None:
+            residuals = self.order_model.get_residuals()
+        else:
+            residuals = np.average(residual_array, axis=0)
 
-        if (len(self.samplers) < self.max_regions):
-            mu = self.evaluate_region_logic()
-            if mu is not None:
-                self.create_region_sampler(mu)
-        result = super(RegionsSampler, self).run_mcmc(*args, **kwargs)
-        return result
+        #run the sigma_clip algorithm until converged, and we've identified the outliers
+        filtered_data = sigma_clip(residuals, sig=sigma, iters=None)
+        mask = filtered_data.mask
+        wl = self.order_model.wl
+
+        #Sort in decreasing strength of residual
+        for w,resid in sorted(zip(wl[mask], np.abs(residuals[mask])), key=itemgetter(1), reverse=True):
+            if w in wl[covered]:
+                continue
+            else:
+                #instantiate region and update coverage
+                self.create_region_sampler(w)
+                covered = self.order_model.CovarianceMatrix.get_region_coverage()
+
+    # def run_mcmc(self, *args, **kwargs):
+    #
+    #     if (len(self.samplers) < self.max_regions):
+    #         mu = self.evaluate_region_logic()
+    #         if mu is not None:
+    #             self.create_region_sampler(mu)
+    #     result = super(RegionsSampler, self).run_mcmc(*args, **kwargs)
+    #     return result
 
     def write(self):
         for sampler in self.samplers:
@@ -1141,12 +1184,10 @@ class OldMegaSampler:
         for j in range(self.nsamplers):
             print(self.samplers[j].acor())
 
-
 def main():
     print("Starting main of model")
 
     pass
-
 
 if __name__ == "__main__":
     main()
