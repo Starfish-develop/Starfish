@@ -485,9 +485,10 @@ class OrderModel:
         '''
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
-        model_fl = model_fl[self.mask]
-
         residuals = self.fl - model_fl
+        residuals = residuals[self.mask]
+
+
         self.counter += 1
         if self.counter == 100:
             self.resid_deque.append(residuals)
