@@ -8,10 +8,6 @@ import os
 import shutil
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="example.log",
-                    level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
-
-
 import argparse
 parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
 parser.add_argument("-i", "--input", help="*.yaml file specifying parameters.")
@@ -40,6 +36,43 @@ else:
     config = yaml.load(f)
     f.close()
 
+outdir = config['outdir']
+name = config['name']
+base = outdir + name + "run{:0>2}/"
+
+#This code is necessary for multiple simultaneous runs on odyssey, so that different runs do not write into the same
+#output directory
+if args.run_index == None:
+    run_index = 0
+    while os.path.exists(base.format(run_index)) and (run_index < 20):
+        print(base.format(run_index), "exists")
+        run_index += 1
+    outdir = base.format(run_index)
+
+else:
+    run_index = args.run_index
+    outdir = base.format(run_index)
+    #Delete this outdir, if it exists
+    if os.path.exists(outdir):
+        print("Deleting", outdir)
+        shutil.rmtree(outdir)
+
+print("Creating ", outdir)
+os.makedirs(outdir)
+
+for order in config['orders']:
+    order_dir = "{}{}".format(outdir, order)
+    print("Creating ", order_dir)
+    os.makedirs(order_dir)
+
+#Copy yaml file to outdir
+shutil.copy(yaml_file, outdir + "/input.yaml")
+
+#Set up the logger
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
+    outdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
+
+
 def perturb(startingDict, jumpDict, factor=3.):
     '''
     Given a starting parameter dictionary loaded from a config file, perturb the values as a multiple of the jump
@@ -54,6 +87,7 @@ def perturb(startingDict, jumpDict, factor=3.):
 myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
 #Load mask and add it to DataSpectrum
 # mask = np.load("data/WASP14/WASP14_23.mask.npy")
+# mask = np.load("data/Gl51/Gl51RA.mask.npy")
 # myDataSpectrum.add_mask(np.atleast_2d(mask))
 myInstrument = TRES()
 myHDF5Interface = HDF5Interface(config['HDF5_path'])
@@ -101,43 +135,10 @@ if args.perturb:
     #perturb(cheb_Starting, cheb_jump, factor=args.perturb)
     perturb(cov_Starting, config['cov_jump'], factor=args.perturb)
 
-
 region_Starting = config['region_params']
 region_tuple = ("loga", "mu", "sigma")
 region_MH_cov = np.array([float(config["region_jump"][key]) for key in region_tuple])**2 * np.identity(len(region_tuple))
 
-
-outdir = config['outdir']
-name = config['name']
-base = outdir + name + "run{:0>2}/"
-
-#This code is necessary for multiple simultaneous runs on odyssey, so that different runs do not write into the same
-#output directory
-if args.run_index == None:
-    run_index = 0
-    while os.path.exists(base.format(run_index)) and (run_index < 20):
-        print(base.format(run_index), "exists")
-        run_index += 1
-    outdir = base.format(run_index)
-
-else:
-    run_index = args.run_index
-    outdir = base.format(run_index)
-    #Delete this outdir, if it exists
-    if os.path.exists(outdir):
-        print("Deleting", outdir)
-        shutil.rmtree(outdir)
-
-print("Creating ", outdir)
-os.makedirs(outdir)
-
-for order in config['orders']:
-    order_dir = "{}{}".format(outdir, order)
-    print("Creating ", order_dir)
-    os.makedirs(order_dir)
-
-#Copy yaml file to outdir
-shutil.copy(yaml_file, outdir + "/input.yaml")
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
@@ -168,6 +169,9 @@ def main():
     mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
     mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
     mySampler.reset()
+
+    #mySampler.run(config['burn_in'])
+    #mySampler.reset()
 
     mySampler.run(config["samples"])
 
