@@ -1,14 +1,15 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/
+name: Gl51/PHOENIX/RA/mask/
 
-HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+#HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
 data : data/Gl51/Gl51RA.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  None so far.
+  Using range by RA and masking out Ca and Na lines.
 
 #Nested data structures are allowed
 stellar_params :
@@ -77,4 +78,4 @@ max_regions : 0
 
 #Burn in time
 burn_in : 0
-samples : 100000
+samples : 300000
