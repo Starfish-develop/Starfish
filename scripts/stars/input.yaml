@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/3.5sig/
+name: WASP14/PHOENIX/22/region/3sig/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/Kurucz_TRES.hdf5
@@ -10,7 +10,7 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Now implements the /n/regal system
+  Now implements the /n/regal system.
 
 #Nested data structures are allowed
 stellar_params :
@@ -76,7 +76,7 @@ region_jump:
     mu : 0.01
     sigma : 0.4
 
-sigma_clip : 3.5
+sigma_clip : 3.
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [22]
