@@ -1,25 +1,26 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/
+name: WASP14/PHOENIX/22/region/3sig/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  PHOENIX WASP14, order 22 including regions. No masking. Going with 13 regions for now.
+  Now implements the /n/regal system.
 
 #Nested data structures are allowed
 stellar_params :
     temp : 6000
     logg : 3.8
-    Z : -0.6
-    vsini : 5.0
-    vz : -4.85
+    Z : -0.66
+    vsini : 5.05
+    vz : -4.838
     #logOmega: -12.7 #Kurucz
-    logOmega: -19.667 #PHOENIX
+    logOmega: -19.659 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
@@ -52,14 +53,14 @@ cheb_degree: 4
 #using covariance
 cheb_jump : 3e-3
 #no covariance
-#cheb_jump : 1e-4
+#cheb_jump : 5e-4
 
 no_cov : False
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.2
-    l : 10.
+    logAmp : -14.17
+    l : 10.3
 
 cov_jump :
     sigAmp : 0.01
@@ -75,13 +76,15 @@ region_jump:
     mu : 0.01
     sigma : 0.4
 
+sigma_clip : 3.
+
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [22]
 
 #Maximum number of sub-regions allowed per order
-max_regions : 15
+max_regions : 0
 
 #Burn in time
-burn_in : 0
-samples : 300000
+burn_in : 10000
+samples : 100000
 #will probably need 100000 for a good looking posterior
