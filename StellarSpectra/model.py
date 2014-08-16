@@ -173,8 +173,8 @@ class Model:
         Update the model to reflect the stellar parameters
         '''
         self.stellar_params_last = self.stellar_params
-        self.ModelSpectrum.update_all(params)
         self.stellar_params = params
+        self.ModelSpectrum.update_all(params)
 
     def revert_Model(self):
         '''

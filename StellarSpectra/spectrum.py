@@ -841,7 +841,7 @@ class ModelSpectrum:
         :type vsini: float (km/s)
 
         '''
-        if vsini < 0:
+        if vsini < 0.2:
             raise C.ModelError("vsini must be positive")
 
         self.vsini = vsini
@@ -853,12 +853,12 @@ class ModelSpectrum:
         #Determine the stellar broadening kernel
         ub = 2. * np.pi * self.vsini * self.ss
 
-        if np.allclose(self.vsini, 0):
-            #If in fact, vsini=0, then just exit this subroutine and continue with the raw models.
-            return None
-            #sb = np.ones_like(ub)
-        else:
-            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        # if np.allclose(self.vsini, 0):
+        #     #If in fact, vsini=0, then just exit this subroutine and continue with the raw models.
+        #     return None
+        #     #sb = np.ones_like(ub)
+        # else:
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
 
         #set zeroth frequency to 1 separately (DC term)
         sb[0] = 1.
