@@ -385,6 +385,8 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 * ELOISE spectral library
 * GNIRS spectral library: http://www.gemini.edu/sciops/instruments/nearir-resources?q=node/11594
 * TAPAS transmission service. Username: iczekala@cfa.harvard.edu, hertzsprung
-* STScI Kurucz library
+* STScI Kurucz library: not high enough resolution!
+
+*
 
 Write a download script for all the libraries
