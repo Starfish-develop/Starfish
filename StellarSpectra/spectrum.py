@@ -854,7 +854,9 @@ class ModelSpectrum:
         ub = 2. * np.pi * self.vsini * self.ss
 
         if np.allclose(self.vsini, 0):
-            sb = np.ones_like(ub)
+            #If in fact, vsini=0, then just exit this subroutine and continue with the raw models.
+            return None
+            #sb = np.ones_like(ub)
         else:
             sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
 
