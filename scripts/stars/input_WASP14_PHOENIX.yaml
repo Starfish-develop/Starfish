@@ -85,6 +85,6 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 10000
-samples : 100000
+burn_in : 50000
+samples : 150000
 #will probably need 100000 for a good looking posterior
