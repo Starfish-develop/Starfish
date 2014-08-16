@@ -380,7 +380,7 @@ class OrderModel:
         self.global_cov_params = None
         self.cheb_params = None
         self.cheb_params_last = None
-        self.resid_deque = deque(maxlen=100) #Deque that stores the last residual spectra, for averaging
+        self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
     def get_data(self):
