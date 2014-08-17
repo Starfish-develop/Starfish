@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/mask/logg/
+name: Gl51/PHOENIX/RA/region/4sig/
 
 #HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
 HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
@@ -14,7 +14,7 @@ Comments: >
 #Nested data structures are allowed
 stellar_params :
     temp : 3100
-    #logg : 5.6
+    logg : 5.6
     Z : 0.3
     vsini : 10
     vz : 6.
@@ -23,7 +23,7 @@ stellar_params :
 #Average jump size in each parameter
 stellar_jump:
     temp : 2
-    #logg : 0.01
+    logg : 0.01
     Z : 0.005
     vsini : 0.4
     vz : 0.5
@@ -40,7 +40,7 @@ stellar_cov:
 
 
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
-fix_logg: 5.0
+#fix_logg: 5.0
 
 cheb_degree : 4 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
@@ -50,7 +50,7 @@ cheb_jump : 5e-4
 cov_params :
     sigAmp : 2.2
     logAmp : -16.0
-    l : 300.
+    l : 100.
 
 cov_jump :
     sigAmp : 0.05
@@ -61,13 +61,18 @@ no_cov : False
 
 #Dummy for now, must be a better way to control
 region_params:
-    loga: -13.6
-    sigma: 7.
+    loga: -15.0
+    sigma: 100. #km/s
 
 region_jump:
     loga : 0.1
-    mu : 0.01
-    sigma : 0.4
+    mu : 0.5
+    sigma : 10.
+
+region_priors:
+    sigma0: 10. #AA
+    mu_width : 7. #AA
+    sigma_knee : 200 #km/s
 
 sigma_clip : 4.
 
@@ -77,5 +82,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 0
-samples : 300000
+burn_in : 10000
+samples : 200000

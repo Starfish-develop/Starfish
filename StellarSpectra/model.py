@@ -748,6 +748,7 @@ class MegaSampler(GibbsController):
 class CovRegionSampler(Sampler):
     def __init__(self, **kwargs):
         starting_param_dict = kwargs.get("starting_param_dict")
+        priors = kwargs.get("priors")
         self.param_tuple = ("loga", "mu", "sigma")
 
         model = kwargs.get("model")
@@ -760,7 +761,7 @@ class CovRegionSampler(Sampler):
 
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
-        self.CovMatrix.create_region(starting_param_dict)
+        self.CovMatrix.create_region(starting_param_dict, priors)
         self.a = 10**starting_param_dict['loga']
         self.a_last = self.a
         self.logger.info("Created new Region sampler with region_index {}".format(self.region_index))
@@ -803,6 +804,7 @@ class RegionsSampler(GibbsSubController):
     def __init__(self, **kwargs):
         self.max_regions = kwargs.get("max_regions", 0)
         self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
+        self.priors = kwargs.get("priors")
         self.order_index = kwargs.get("order_index")
         self.model = kwargs.get("model")
         self.order_model = self.model.OrderModels[self.order_index]
@@ -825,7 +827,7 @@ class RegionsSampler(GibbsSubController):
         starting_param_dict.update({"mu":mu})
 
         newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
-                                      order_index=self.order_index, region_index=self.region_index, outdir=self.outdir,
+                priors=self.priors, order_index=self.order_index, region_index=self.region_index, outdir=self.outdir,
                                       debug=self.debug)
         self.samplers.append(newSampler)
         print("Now there are {} region samplers.".format(len(self.samplers)))

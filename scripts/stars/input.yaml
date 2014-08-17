@@ -1,10 +1,10 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/3sig/
+name: WASP14/PHOENIX/22/region/4sig/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/Kurucz_TRES.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -69,14 +69,19 @@ cov_jump :
 
 region_params:
     loga: -13.6
-    sigma: 7.
+    sigma: 7. #km/s
 
 region_jump:
     loga : 0.1
     mu : 0.01
-    sigma : 0.4
+    sigma : 0.4  #km/s
 
-sigma_clip : 3.
+region_priors:
+    sigma0: 0.5   #AA
+    mu_width : 0.04  #AA
+    sigma_knee : 10 #km/s
+
+sigma_clip : 4.
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [22]
@@ -85,6 +90,6 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 10000
-samples : 100000
+burn_in : 1000
+samples : 1000
 #will probably need 100000 for a good looking posterior
