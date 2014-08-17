@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/mask/nocov/
+name: Gl51/PHOENIX/RA/nocov/
 
 #HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
 HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
@@ -47,6 +47,8 @@ cheb_degree : 4 #actually how many coefficients to include, so c0 + c1 + c2 + c3
 #Average jump size in each coefficient
 cheb_jump : 3e-4
 
+no_cov : True
+
 cov_params :
     sigAmp : 2.2
     logAmp : -16.0
@@ -57,7 +59,7 @@ cov_jump :
     logAmp : 0.05
     l : 1.5
 
-no_cov : True
+
 
 #Dummy for now, must be a better way to control
 region_params:
@@ -77,5 +79,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 0
+burn_in : 2000
 samples : 300000
