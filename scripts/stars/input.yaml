@@ -1,16 +1,16 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/3sig/
+name: WASP14_multi/PHOENIX/22/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
-data : data/WASP14/WASP14-2009-06-14.hdf5
+data : [data/WASP14/WASP14-2009-06-14.hdf5, data/WASP14/WASP14-2010-03-29.hdf5]
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Now implements the /n/regal system.
+  How to fit two spectra at once.
 
 #Nested data structures are allowed
 stellar_params :
@@ -18,9 +18,9 @@ stellar_params :
     logg : 3.8
     Z : -0.66
     vsini : 5.05
-    vz : -4.838
+    vz : [-4.838, -5]
     #logOmega: -12.7 #Kurucz
-    logOmega: -19.659 #PHOENIX
+    logOmega: [-19.659, -19.6] #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
@@ -85,6 +85,6 @@ orders: [22]
 max_regions : 0
 
 #Burn in time
-burn_in : 10000
-samples : 100000
+burn_in : 100
+samples : 100
 #will probably need 100000 for a good looking posterior
