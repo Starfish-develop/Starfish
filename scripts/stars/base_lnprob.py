@@ -139,6 +139,8 @@ region_Starting = config['region_params']
 region_tuple = ("loga", "mu", "sigma")
 region_MH_cov = np.array([float(config["region_jump"][key]) for key in region_tuple])**2 * np.identity(len(region_tuple))
 
+region_priors = config['region_priors']
+
 
 myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
                 cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
@@ -158,7 +160,8 @@ for i in range(len(config['orders'])):
         samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
                                        outdir=outdir, debug=False))
         samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
-                        default_param_dict=region_Starting, order_index=i, outdir=outdir, debug=False))
+                        default_param_dict=region_Starting, priors=region_priors, order_index=i, outdir=outdir, \
+                                                                                                   debug=False))
 
 mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=False)
 
