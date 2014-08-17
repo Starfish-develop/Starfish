@@ -9,7 +9,7 @@ outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Using range by RA and masking out Ca and Na lines.
+  Using range by RA and keeping Ca and Na lines. Adding global cov and regions.
 
 #Nested data structures are allowed
 stellar_params :
