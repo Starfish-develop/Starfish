@@ -224,7 +224,7 @@ cdef class CovarianceMatrix:
         self.update_factorization()
         self.update_logPrior()
 
-    def create_region(self, params):
+    def create_region(self, params, priors):
         '''
         Called to instantiate a new region and add it to self.RegionList
         '''
@@ -232,7 +232,7 @@ cdef class CovarianceMatrix:
         mu = params["mu"]
         if (mu > np.min(self.wl)) and (mu < np.max(self.wl)):
             region_index = self.region_count
-            self.RegionList[region_index] = RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, self.common, debug=self.debug)
+            self.RegionList[region_index] = RegionCovarianceMatrix(self.DataSpectrum, self.order_index, params, priors, self.common, debug=self.debug)
             self.logger.info("Added region {} to self.RegionList".format(region_index))
             ##Do update on partial_sum_regions and sum_regions
             self.update_region(region_index=region_index, params=params)
@@ -623,13 +623,15 @@ cdef class RegionCovarianceMatrix:
     cdef npoints
     cdef mu
     cdef sigma0
+    cdef mu_width
+    cdef sigma_knee
     cdef params
     cdef logPrior #This is carried around with each CovarianceMatrix
     cdef logPrior_last
     cdef debug
     cdef logger
 
-    def __init__(self, DataSpectrum, order_index, params, Common common, debug=False):
+    def __init__(self, DataSpectrum, order_index, params, priors, Common common, debug=False):
         self.common = common 
         self.c = <cholmod_common *>&self.common.c
 
@@ -646,7 +648,9 @@ cdef class RegionCovarianceMatrix:
             self.wl[i] = wl[i]
 
         self.mu = params["mu"] #take the anchor point for reference?
-        self.sigma0 = 0.5 #how far can the region stray?
+        self.sigma0 = priors["sigma0"] #how far can the region stray? AA
+        self.mu_width = priors["mu_width"] #the "width" (sigma) AA of the Gaussian prior on mu.
+        self.sigma_knee = priors["sigma_knee"] #beyond this the prior tapers (km/s)
         self.logPrior = 0.0 #neutral prior
         self.logPrior_last = self.logPrior
 
@@ -697,11 +701,11 @@ cdef class RegionCovarianceMatrix:
         #Use a Gaussian prior on mu, that it keeps the region within the original setting.
         # 1/(sqrt(2pi) * sigma) exp(-0.5 (mu-x)^2/sigma^2)
         #-ln(sigma * sqrt(2 pi)) - 0.5 (mu - x)^2 / sigma^2
-        width = 0.04
-        lnGauss = -0.5 * np.abs(mu - self.mu)**2/width**2 - np.log(width * np.sqrt(2. * np.pi))
+        #width = 0.04
+        lnGauss = -0.5 * np.abs(mu - self.mu)**2/self.mu_width**2 - np.log(self.mu_width * np.sqrt(2. * np.pi))
 
         #Use a ln(logistic) function on sigma, that is flat before 10km/s and dies off for anything greater
-        lnLogistic = np.log(-1./(1. + np.exp(10. - sigma)) + 1.)
+        lnLogistic = np.log(-1./(1. + np.exp(self.sigma_knee - sigma)) + 1.)
 
         self.logPrior_last = self.logPrior
         self.logPrior = lnLogistic + lnGauss
