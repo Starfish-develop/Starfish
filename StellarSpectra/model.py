@@ -15,6 +15,14 @@ import os
 from collections import deque
 from operator import itemgetter
 import matplotlib.pyplot as plt
+from itertools import zip_longest
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    print("args", args)
+    return zip_longest(*args, fillvalue=fillvalue)
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
@@ -214,6 +222,37 @@ class Model:
         f = open(self.outdir + fname, 'w')
         json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
         f.close()
+
+class NthModel(Model):
+    '''
+    If you are fitting more than one spectrum at a time, all subsequent Models should be of this type.
+
+    It allows coupling of the parameters necessary for hierarchically fitting two or more spectra at once.
+
+    '''
+    def update_Model(self, params):
+        raise NotImplementedError
+
+        #The number of parameters will be the same.from
+
+        #Do the parameters really need to be relative to the model?
+
+        #sBasically, the only thing that should change is the sampler, which now has extra parameters for the model.
+
+        #get_model1_vz
+        #get_model1_logOmega
+
+        #params.update()
+        super(NthModel, self).update_Model()
+
+
+
+    def zip_stellar_p(self, p):
+        raise NotImplementedError
+        #Here, radial velocity will be *relative* to the base model.
+
+        #LogOmega will be *relative* to the base model
+
 
 class ModelHA:
     '''
@@ -636,13 +675,23 @@ class StellarSampler(Sampler):
         starting_param_dict = kwargs.get("starting_param_dict")
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
 
-        kwargs.update({"fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        #Get model and assert that it will be a list, even a list of 1
+        model = kwargs.get("model")
+        if type(self.model) == list:
+            model = [model]
+
+        self.nmodels = len(model)
+
+        kwargs.update({"model":model, "fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(StellarSampler, self).__init__(**kwargs)
+
+        #From now on, self.model will always be a list of models (or just a list with one model)
 
     def reset(self):
         #Clear accumulated residuals in each order sampler
-        for order_model in self.model.OrderModels:
-            order_model.clear_resid_deque()
+        for model in self.model:
+            for order_model in model.OrderModels:
+                order_model.clear_resid_deque()
         super(StellarSampler, self).reset()
 
     def revertfn(self):
@@ -650,13 +699,36 @@ class StellarSampler(Sampler):
         Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
         '''
         self.logger.debug("reverting stellar parameters")
-        self.model.revert_Model()
+        for model in self.model:
+            model.revert_Model()
 
     def lnprob(self, p):
-        params = self.model.zip_stellar_p(p)
-        #If we have decided to fix logg, sneak update it here.
+        # We want to send the same stellar parameters to each model, but also the different vz and logOmega parameters
+        # to the separate models.
+
+        #Extract only the temp, logg, Z, vsini parameters
+        if not self.fix_logg:
+            params = self.model.zip_stellar_p(p[:4])
+            others = p[4:]
+        else:
+            params = self.model.zip_stellar_p(p[:3])
+            others = p[3:]
+
+
+        #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
+
+
+
+
+
+        #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
+
+
+
+        #If we have decided to fix logg, sneak add/update it here.
         if self.fix_logg:
             params.update({"logg": self.fix_logg})
+
         self.logger.debug("lnprob params: {}".format(params))
         try:
             self.model.update_Model(params) #This also updates downsampled_fls
