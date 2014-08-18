@@ -726,6 +726,42 @@ class DataSpectrum:
     def __str__(self):
         return "DataSpectrum object {} with shape {}".format(self.name, self.shape)
 
+class Mask:
+    '''
+    Mask to apply to DataSpectrum
+    '''
+    def __init__(self, masks, orders='all'):
+        assert isinstance(masks, np.ndarray), "masks must be a numpy array"
+        self.masks = np.atleast_2d(masks)
+
+        if orders != 'all':
+            #can either be a numpy array or a list
+            orders = np.array(orders) #just to make sure
+            self.masks = self.masks[orders]
+            self.orders = orders
+        else:
+            self.orders = np.arange(self.shape[0])
+
+
+    @classmethod
+    def open(cls, file, orders='all'):
+        '''
+        Load a Mask from a directory link pointing to HDF5 file output from EchelleTools or Generate_mask.ipynb
+        processing.
+
+        :param file: HDF5 file containing files on disk.
+        :type file: string
+        :returns: DataSpectrum
+        :param orders: Which orders should we be fitting?
+        :type orders: np.array of indexes
+
+        '''
+        import h5py
+        with h5py.File(file, "r") as hdf5:
+            masks = np.array(hdf5["masks"][:], dtype="bool")
+
+        return cls(masks, orders)
+
 class ModelSpectrum:
     '''
     A 1D synthetic spectrum.
