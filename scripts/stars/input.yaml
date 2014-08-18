@@ -6,6 +6,7 @@ name: WASP14_multi/Kurucz/22/
 HDF5_path : /scratch/Kurucz_TRES.hdf5
 #HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : [data/WASP14/WASP14-2009-06-14.hdf5, data/WASP14/WASP14-2010-03-29.hdf5]
+#data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
@@ -72,7 +73,7 @@ cov_jump :
     logAmp : 0.01
     l : 0.2
 
-no_region: False
+no_region: True
 
 region_params:
     loga: -13.6
