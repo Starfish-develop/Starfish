@@ -1,12 +1,13 @@
 #YAML comments are written just like in Python
 
-name: WASP14_multi/Kurucz/22/
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+name: WASP14_multi/PHOENIX/22/
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/Kurucz_TRES.hdf5
-HDF5_path : /scratch/Kurucz_TRES.hdf5
+#HDF5_path : /scratch/Kurucz_TRES.hdf5
 #HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : [data/WASP14/WASP14-2009-06-14.hdf5, data/WASP14/WASP14-2010-03-29.hdf5]
 #data : data/WASP14/WASP14-2009-06-14.hdf5
+#mask: [data/WASP14/mask.hdf5]
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
@@ -21,8 +22,10 @@ stellar_params :
     vsini : 4.8
     vz : -4.60
     vz1 : -4.43
-    logOmega: -12.723 #Kurucz
-    logOmega1 : -12.962
+    #logOmega: -12.723 #Kurucz
+    logOmega: -19.659 #PHOENIX
+    #logOmega1 : -12.962
+    logOmega1: -19.659 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
@@ -57,7 +60,7 @@ stellar_cov:
 
 cheb_degree: 4
 #using covariance
-cheb_jump : 2e-3
+cheb_jump : 1e-3
 #no covariance
 #cheb_jump : 5e-4
 
@@ -65,7 +68,8 @@ no_cov : False
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.7
+    #logAmp : -14.7 #Kurucz
+    logAmp : -14.3 #PHOENIX
     l : 5
 
 cov_jump :
@@ -73,7 +77,7 @@ cov_jump :
     logAmp : 0.01
     l : 0.2
 
-no_region: True
+no_region: False
 
 region_params:
     loga: -13.6
@@ -88,6 +92,7 @@ region_priors:
     sigma0: 0.5   #AA
     mu_width : 0.04  #AA
     sigma_knee : 10 #km/s
+    frac_global : 0.1 #Fraction of the global amplitude lower bound
 
 sigma_clip : 4.
 
@@ -96,7 +101,7 @@ orders: [22]
 
 
 #Burn in time
-burn_in : 0
-samples : 100000
+burn_in : 300
+samples : 300
 
 #will probably need 100000 for a good looking posterior

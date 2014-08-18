@@ -804,7 +804,7 @@ class MegaSampler(GibbsController):
 class CovRegionSampler(Sampler):
     def __init__(self, **kwargs):
         starting_param_dict = kwargs.get("starting_param_dict")
-        priors = kwargs.get("priors")
+        self.priors = kwargs.get("priors")
         self.param_tuple = ("loga", "mu", "sigma")
 
         kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
@@ -816,7 +816,7 @@ class CovRegionSampler(Sampler):
                                              self.region_index)
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
-        self.CovMatrix.create_region(starting_param_dict, priors)
+        self.CovMatrix.create_region(starting_param_dict, self.priors)
         self.a = 10**starting_param_dict['loga']
         self.a_last = self.a
         self.logger.info("Created new Region sampler with region_index {}".format(self.region_index))
@@ -843,12 +843,16 @@ class CovRegionSampler(Sampler):
 
         try:
             self.CovMatrix.update_region(self.region_index, params)
-            lnp = self.model.evaluate()
+            lnps = np.empty((self.nmodels,))
+            for i, model in enumerate(self.model_list):
+                lnps[i] = model.evaluate()
+            s = np.sum(lnps)
+            self.logger.debug("lnp {}".format(s))
             #Institute the hard prior that the amplitude can't be less than the Global Covariance
-            if self.a < (0.1 * a_global):
+            if self.a < (self.priors['frac_global'] * a_global):
                 return -np.inf
             else:
-                return lnp
+                return s
         except (C.ModelError, C.RegionError):
             return -np.inf
 
@@ -861,7 +865,11 @@ class RegionsSampler(GibbsSubController):
         self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
         self.priors = kwargs.get("priors")
         self.order_index = kwargs.get("order_index")
-        self.model = kwargs.get("model")
+        self.model_list = kwargs.get("model_list")
+        self.nmodels = len(self.model_list)
+        if "model_index" in kwargs:
+            self.model_index = kwargs.get("model_index")
+            self.model = self.model_list[self.model_index]
         self.order_model = self.model.OrderModels[self.order_index]
         self.MH_cov = kwargs.get("cov")
         self.outdir = kwargs.get("outdir")
@@ -881,9 +889,9 @@ class RegionsSampler(GibbsSubController):
         starting_param_dict = self.default_param_dict.copy()
         starting_param_dict.update({"mu":mu})
 
-        newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
-                priors=self.priors, order_index=self.order_index, region_index=self.region_index, outdir=self.outdir,
-                                      debug=self.debug)
+        newSampler = CovRegionSampler(model_list=self.model_list, model_index=self.model_index, cov=self.MH_cov,
+                starting_param_dict=starting_param_dict, priors=self.priors, order_index=self.order_index,
+                region_index=self.region_index, outdir=self.outdir, debug=self.debug)
         self.samplers.append(newSampler)
         print("Now there are {} region samplers.".format(len(self.samplers)))
         self.region_index += 1 #increment for next region to be instantiated.

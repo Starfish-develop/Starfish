@@ -1,5 +1,5 @@
 from StellarSpectra.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
-from StellarSpectra.spectrum import DataSpectrum
+from StellarSpectra.spectrum import DataSpectrum, Mask
 from StellarSpectra.grid_tools import TRES, HDF5Interface
 import StellarSpectra.constants as C
 import numpy as np
@@ -60,19 +60,18 @@ else:
 print("Creating ", outdir)
 os.makedirs(outdir)
 
-
 #Determine how many filenames are in config['data']. Always load as a list, even len == 1.
 data = config["data"]
 if type(data) != list:
     data = [data]
 print("loading data spectra {}".format(data))
 myDataSpectra = [DataSpectrum.open(data_file, orders=config['orders']) for data_file in data]
-print(myDataSpectra)
 
-#Load mask and add it to DataSpectrum
-# mask = np.load("data/WASP14/WASP14_23.mask.npy")
-# mask = np.load("data/Gl51/Gl51RA.mask.npy")
-# myDataSpectrum.add_mask(np.atleast_2d(mask))
+masks = config.get("mask", None)
+if masks is not None:
+    for mask, dataSpec in zip(masks, myDataSpectra):
+        myMask = Mask(mask, orders=config['orders'])
+        dataSpec.add_mask(myMask.masks)
 
 for model_number in range(len(myDataSpectra)):
     for order in config['orders']:
@@ -182,15 +181,18 @@ for model_index in range(len(model_list)):
 mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=False)
 
 def main():
-    #mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-    #mySampler.reset()
 
-    #mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-    #mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
-    #mySampler.reset()
+    if not config['no_region']:
+        #In order to instantiate regions, we have to do a bit of burn-in first
+        mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
+        mySampler.reset()
 
-    #mySampler.run(config['burn_in'])
-    #mySampler.reset()
+        mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
+        mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
+        mySampler.reset()
+
+    mySampler.run(config['burn_in'])
+    mySampler.reset()
 
     mySampler.run(config["samples"])
 
