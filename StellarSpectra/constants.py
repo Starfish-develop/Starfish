@@ -30,7 +30,8 @@ F_sun = L_sun / (4 * np.pi * R_sun ** 2) #bolometric flux of the Sun measured at
 grid_parameters = ("temp", "logg", "Z", "alpha") #Allowed grid parameters
 grid_set = frozenset(grid_parameters)
 
-pp_parameters = ("vsini", "FWHM", "vz", "Av", "logOmega") #Allowed "post processing parameters"
+pp_parameters = ("vsini", "FWHM", "vz", "Av", "logOmega", "vz1", "Av1", "logOmega1") #Allowed "post processing
+# parameters"
 pp_set = frozenset(pp_parameters)
 
 stellar_parameters = grid_parameters + pp_parameters

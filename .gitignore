@@ -47,3 +47,4 @@ paper.pdf
 
 #IPython
 *.ipynb_checkpoints*
+*-checkpoint.ipynb

@@ -640,7 +640,7 @@ class DataSpectrum:
        For now, the DataSpectrum wls, fls, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.
 
     '''
-    def __init__(self, wls, fls, sigmas, masks=None, orders='all'):
+    def __init__(self, wls, fls, sigmas, masks=None, orders='all', name=None):
         self.wls = np.atleast_2d(wls)
         self.fls = np.atleast_2d(fls)
         self.sigmas = np.atleast_2d(sigmas)
@@ -662,6 +662,8 @@ class DataSpectrum:
             self.orders = orders
         else:
             self.orders = np.arange(self.shape[0])
+
+        self.name = name
 
     @classmethod
     def open(cls, file, orders='all'):
@@ -691,7 +693,7 @@ class DataSpectrum:
         #Although the actual fluxes and errors may be reasonably stored as float32, we need to do all of the calculations
         #in float64, and so we convert here.
         #The wls must be stored as float64, because of precise velocity issues.
-        return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders)
+        return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders, name=file)
 
     @classmethod
     def open_npy(cls, base_file, orders='all'):
@@ -722,7 +724,7 @@ class DataSpectrum:
         self.masks = self.masks & new_mask
 
     def __str__(self):
-        return "DataSpectrum object with shape {}".format(self.shape)
+        return "DataSpectrum object {} with shape {}".format(self.name, self.shape)
 
 class ModelSpectrum:
     '''
