@@ -67,6 +67,7 @@ if type(data) != list:
     data = [data]
 print("loading data spectra {}".format(data))
 myDataSpectra = [DataSpectrum.open(data_file, orders=config['orders']) for data_file in data]
+print(myDataSpectra)
 
 #Load mask and add it to DataSpectrum
 # mask = np.load("data/WASP14/WASP14_23.mask.npy")
