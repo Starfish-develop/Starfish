@@ -21,7 +21,6 @@ def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
-    print("args", args)
     return zip_longest(*args, fillvalue=fillvalue)
 
 def plot_walkers(filename, samples, labels=None):
@@ -159,10 +158,17 @@ class Model:
         self.stellar_params = None
         self.stellar_params_last = None
 
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+
         #Now create a a list which contains an OrderModel for each order
         self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple),
                                        debug=self.debug)
                             for index in range(self.norders)]
+
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
@@ -205,6 +211,7 @@ class Model:
         '''
         Compare the different data and models.
         '''
+        self.logger.debug("evaluating model {}".format(self))
         lnps = np.empty((self.norders,))
 
         for i in range(self.norders):
@@ -222,37 +229,6 @@ class Model:
         f = open(self.outdir + fname, 'w')
         json.dump(self, f, cls=ModelEncoder, indent=2, sort_keys=True)
         f.close()
-
-class NthModel(Model):
-    '''
-    If you are fitting more than one spectrum at a time, all subsequent Models should be of this type.
-
-    It allows coupling of the parameters necessary for hierarchically fitting two or more spectra at once.
-
-    '''
-    def update_Model(self, params):
-        raise NotImplementedError
-
-        #The number of parameters will be the same.from
-
-        #Do the parameters really need to be relative to the model?
-
-        #sBasically, the only thing that should change is the sampler, which now has extra parameters for the model.
-
-        #get_model1_vz
-        #get_model1_logOmega
-
-        #params.update()
-        super(NthModel, self).update_Model()
-
-
-
-    def zip_stellar_p(self, p):
-        raise NotImplementedError
-        #Here, radial velocity will be *relative* to the base model.
-
-        #LogOmega will be *relative* to the base model
-
 
 class ModelHA:
     '''
@@ -527,7 +503,6 @@ class OrderModel:
         residuals = self.fl - model_fl
         residuals = residuals[self.mask]
 
-
         self.counter += 1
         if self.counter == 100:
             self.resid_deque.append(residuals)
@@ -559,7 +534,11 @@ class Sampler(GibbsSampler):
             p0[i] = starting_param_dict[param]
 
         kwargs.update({"p0":p0, "dim":self.dim})
-        self.model = kwargs.get("model")
+        self.model_list = kwargs.get("model_list")
+        self.nmodels = len(self.model_list)
+        if "model_index" in kwargs:
+            self.model_index = kwargs.get("model_index")
+            self.model = self.model_list[self.model_index]
 
         super(Sampler, self).__init__(**kwargs)
 
@@ -571,11 +550,7 @@ class Sampler(GibbsSampler):
         #SUBCLASS here and do self.revertfn
         #then do super().__init__() to call the following code
 
-
-
-
         self.outdir = kwargs.get("outdir", "")
-        self.fname = kwargs.get("fname", "")
 
     def lnprob(self):
         raise NotImplementedError("To be implemented by a subclass!")
@@ -610,10 +585,13 @@ class Sampler(GibbsSampler):
         '''
 
         filename = self.outdir + "flatchains.hdf5"
+        self.logger.debug("Opening {} for writing HDF5 flatchains".format(filename))
         hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
         samples = self.flatchain
 
+        self.logger.debug("Creating dataset with fname:{}".format(self.fname))
         dset = hdf5.create_dataset(self.fname, samples.shape, compression='gzip', compression_opts=9)
+        self.logger.debug("Storing samples and header attributes.")
         dset[:] = samples
         dset.attrs["parameters"] = "{}".format(self.param_tuple)
         dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
@@ -623,6 +601,7 @@ class Sampler(GibbsSampler):
 
         #lnprobability is the lnprob at each sample
         filename = self.outdir + "lnprobs.hdf5"
+        self.logger.debug("Opening {} for writing HDF5 lnprobs".format(filename))
         hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
         lnprobs = self.lnprobability
 
@@ -630,8 +609,6 @@ class Sampler(GibbsSampler):
         dset[:] = lnprobs
         dset.attrs["commit"] = "{}".format(C.get_git_commit())
         hdf5.close()
-
-
 
     def plot(self):
         '''
@@ -674,22 +651,17 @@ class StellarSampler(Sampler):
 
         starting_param_dict = kwargs.get("starting_param_dict")
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
+        print("param_tuple is {}".format(self.param_tuple))
 
-        #Get model and assert that it will be a list, even a list of 1
-        model = kwargs.get("model")
-        if type(self.model) == list:
-            model = [model]
-
-        self.nmodels = len(model)
-
-        kwargs.update({"model":model, "fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(StellarSampler, self).__init__(**kwargs)
+        self.fname = "stellar"
 
         #From now on, self.model will always be a list of models (or just a list with one model)
 
     def reset(self):
         #Clear accumulated residuals in each order sampler
-        for model in self.model:
+        for model in self.model_list:
             for order_model in model.OrderModels:
                 order_model.clear_resid_deque()
         super(StellarSampler, self).reset()
@@ -699,43 +671,48 @@ class StellarSampler(Sampler):
         Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
         '''
         self.logger.debug("reverting stellar parameters")
-        for model in self.model:
+        for model in self.model_list:
             model.revert_Model()
 
     def lnprob(self, p):
         # We want to send the same stellar parameters to each model, but also the different vz and logOmega parameters
         # to the separate models.
+        self.logger.debug("lnprob p is {}".format(p))
 
         #Extract only the temp, logg, Z, vsini parameters
         if not self.fix_logg:
-            params = self.model.zip_stellar_p(p[:4])
+            params = self.model_list[0].zip_stellar_p(p[:4])
             others = p[4:]
         else:
-            params = self.model.zip_stellar_p(p[:3])
+            params = self.model_list[0].zip_stellar_p(p[:3])
             others = p[3:]
-
-
-        #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
-
-
-
-
-
-        #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
-
-
-
-        #If we have decided to fix logg, sneak add/update it here.
-        if self.fix_logg:
             params.update({"logg": self.fix_logg})
 
-        self.logger.debug("lnprob params: {}".format(params))
+        self.logger.debug("params in lnprob are {}".format(params))
+
+        #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
+        #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
+        #mparams is now a list of parameter dictionaries
+        mparams = deque()
+        for vz, logOmega in grouper(others, 2):
+            p = params.copy()
+            p.update({"vz":vz, "logOmega":logOmega})
+            mparams.append(p)
+
+        self.logger.debug("updated lnprob params: {}".format([params for params in mparams]))
         try:
-            self.model.update_Model(params) #This also updates downsampled_fls
-            #For order in myModel, do evaluate, and sum the results.
-            lnp = self.model.evaluate()
-            self.logger.debug("lnp {}".format(lnp))
-            return lnp
+            lnps = np.empty((self.nmodels,))
+            for i, (model, par) in enumerate(zip(self.model_list, mparams)):
+                self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
+                model.update_Model(par) #This also updates downsampled_fls
+                #For order in myModel, do evaluate, and sum the results.
+                lnp = model.evaluate()
+                self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
+                lnps[i] = lnp
+            self.logger.debug("lnps : {}".format(lnps))
+            s = np.sum(lnps)
+            self.logger.debug("sum lnps {}".format(s))
+            return s
         except C.ModelError:
             self.logger.debug("lnprob returning -np.inf")
             return -np.inf
@@ -747,13 +724,11 @@ class ChebSampler(Sampler):
         nparams = len(starting_param_dict)
         self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-        fname = "{}/{}".format(model.orders[self.order_index], "cheb")
-
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(ChebSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.fname = "{}/{}/{}".format(self.model_index, self.model.orders[self.order_index], "cheb")
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
@@ -762,11 +737,16 @@ class ChebSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
-        self.logger.debug("params are {}".format(params))
+        self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
+                                                                self.model, self.order_index, params))
         self.order_model.update_Cheb(params)
-        lnp = self.model.evaluate()
-        self.logger.debug("lnp {}".format(lnp))
-        return lnp
+
+        lnps = np.empty((self.nmodels,))
+        for i, model in enumerate(self.model_list):
+            lnps[i] = model.evaluate()
+        s = np.sum(lnps)
+        self.logger.debug("lnp {}".format(s))
+        return s
 
 class CovGlobalSampler(Sampler):
 
@@ -774,13 +754,11 @@ class CovGlobalSampler(Sampler):
         starting_param_dict = kwargs.get("starting_param_dict")
         self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-
-        fname = "{}/{}".format(model.orders[self.order_index], "cov")
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(CovGlobalSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.fname = "{}/{}/{}".format(self.model_index, self.model.orders[self.order_index], "cov")
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
@@ -789,10 +767,16 @@ class CovGlobalSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
-        self.logger.debug("params {}".format(params))
+        self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
+                                self.model, self.order_index, params))
         try:
             self.order_model.update_Cov(params)
-            return self.model.evaluate()
+            lnps = np.empty((self.nmodels,))
+            for i, model in enumerate(self.model_list):
+                lnps[i] = model.evaluate()
+            s = np.sum(lnps)
+            self.logger.debug("lnp {}".format(s))
+            return s
         except C.ModelError:
             return -np.inf
 
@@ -823,14 +807,13 @@ class CovRegionSampler(Sampler):
         priors = kwargs.get("priors")
         self.param_tuple = ("loga", "mu", "sigma")
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-        self.region_index = kwargs.get("region_index")
-
-        fname = "{}/{}{:0>2}".format(model.orders[self.order_index], "cov_region", self.region_index)
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(CovRegionSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.region_index = kwargs.get("region_index")
+        self.fname = "{}/{}/{}{:0>2}".format(self.model_index, self.model.orders[self.order_index], "cov_region",
+                                             self.region_index)
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
         self.CovMatrix.create_region(starting_param_dict, priors)

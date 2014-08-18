@@ -60,10 +60,24 @@ else:
 print("Creating ", outdir)
 os.makedirs(outdir)
 
-for order in config['orders']:
-    order_dir = "{}{}".format(outdir, order)
-    print("Creating ", order_dir)
-    os.makedirs(order_dir)
+
+#Determine how many filenames are in config['data']. Always load as a list, even len == 1.
+data = config["data"]
+if type(data) != list:
+    data = [data]
+print("loading data spectra {}".format(data))
+myDataSpectra = [DataSpectrum.open(data_file, orders=config['orders']) for data_file in data]
+
+#Load mask and add it to DataSpectrum
+# mask = np.load("data/WASP14/WASP14_23.mask.npy")
+# mask = np.load("data/Gl51/Gl51RA.mask.npy")
+# myDataSpectrum.add_mask(np.atleast_2d(mask))
+
+for model_number in range(len(myDataSpectra)):
+    for order in config['orders']:
+        order_dir = "{}{}/{}".format(outdir, model_number, order)
+        print("Creating ", order_dir)
+        os.makedirs(order_dir)
 
 #Copy yaml file to outdir
 shutil.copy(yaml_file, outdir + "/input.yaml")
@@ -84,13 +98,11 @@ def perturb(startingDict, jumpDict, factor=3.):
         startingDict[key] += factor * np.random.normal(loc=0, scale=jumpDict[key])
 
 
-myDataSpectrum = DataSpectrum.open(config['data'], orders=config['orders'])
-#Load mask and add it to DataSpectrum
-# mask = np.load("data/WASP14/WASP14_23.mask.npy")
-# mask = np.load("data/Gl51/Gl51RA.mask.npy")
-# myDataSpectrum.add_mask(np.atleast_2d(mask))
+
 myInstrument = TRES()
-myHDF5Interface = HDF5Interface(config['HDF5_path'])
+#myHDF5Interface = HDF5Interface(config['HDF5_path'])
+
+#Somehow parse the list parameters, vz and logOmega into secondary parameters.
 
 stellar_Starting = config['stellar_params']
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
@@ -141,37 +153,40 @@ region_MH_cov = np.array([float(config["region_jump"][key]) for key in region_tu
 
 region_priors = config['region_priors']
 
+#Create a separate model for each DataSpectrum. Note the new instance of HDF5 interface as well.
+model_list = [
+    Model(myDataSpectrum, myInstrument, HDF5Interface(config['HDF5_path']), stellar_tuple=("temp", "logg", "Z", "vsini",
+        "vz", "logOmega"), cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir,
+        debug=False)
+    for myDataSpectrum in myDataSpectra]
 
-myModel = Model(myDataSpectrum, myInstrument, myHDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
-                cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir, debug=False)
-
-
-
-myStellarSampler = StellarSampler(model=myModel, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
+myStellarSampler = StellarSampler(model_list=model_list, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
                                   fix_logg=fix_logg, outdir=outdir, debug=False)
 
-#Create the three subsamplers for each order
 samplerList = []
-
-for i in range(len(config['orders'])):
-    samplerList.append(ChebSampler(model=myModel, cov=cheb_MH_cov, starting_param_dict=cheb_Starting, order_index=i,
-                                   outdir=outdir, debug=False))
-    if not config['no_cov']:
-        samplerList.append(CovGlobalSampler(model=myModel, cov=cov_MH_cov, starting_param_dict=cov_Starting, order_index=i,
-                                       outdir=outdir, debug=False))
-        samplerList.append(RegionsSampler(model=myModel, cov=region_MH_cov, max_regions=config['max_regions'],
-                        default_param_dict=region_Starting, priors=region_priors, order_index=i, outdir=outdir, \
-                                                                                                   debug=False))
+#Create the samplers for each DataSpectrum
+for model_index in range(len(model_list)):
+    #Create the three subsamplers for each order
+    for order_index in range(len(config['orders'])):
+        samplerList.append(ChebSampler(model_list=model_list, model_index=model_index, cov=cheb_MH_cov,
+            starting_param_dict=cheb_Starting, order_index=order_index, outdir=outdir, debug=False))
+        if not config['no_cov']:
+            samplerList.append(CovGlobalSampler(model_list=model_list, model_index=model_index, cov=cov_MH_cov, \
+            starting_param_dict=cov_Starting, order_index=order_index, outdir=outdir, debug=False))
+            if not config['no_region']:
+                samplerList.append(RegionsSampler(model_list=model_list, model_index=model_index, cov=region_MH_cov,
+                default_param_dict=region_Starting, priors=region_priors, order_index=order_index, outdir=outdir,
+                                                                                                       debug=False))
 
 mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=False)
 
 def main():
-    mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-    mySampler.reset()
+    #mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
+    #mySampler.reset()
 
-    mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-    mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
-    mySampler.reset()
+    #mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
+    #mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
+    #mySampler.reset()
 
     #mySampler.run(config['burn_in'])
     #mySampler.reset()
@@ -180,12 +195,10 @@ def main():
 
     print(mySampler.acceptance_fraction)
     print(mySampler.acor)
-    myModel.to_json("model_final.json")
+    for i, model in enumerate(model_list):
+        model.to_json("model{}_final.json".format(i))
     mySampler.write()
     mySampler.plot()
-
-    #resids = myModel.OrderModels[0].get_residual_array()
-    #np.save("residuals.npy", resids)
 
 
 if __name__=="__main__":
