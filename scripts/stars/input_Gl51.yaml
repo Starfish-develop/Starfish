@@ -2,8 +2,8 @@
 
 name: Gl51/PHOENIX/RA/region/3.5sig/
 
-HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
-#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
+#HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
