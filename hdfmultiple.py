@@ -16,7 +16,8 @@ Main functionality:
 
 #Plot kw
 label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}/{\rm H}]$", "alpha":r"$[\alpha/{\rm Fe}]$",
-              "vsini":r"$v \sin i$", "vz":r"$v_z$", "logOmega":r"$\log_{10} \Omega$", "logc0":r"$\log_{10} c_0$",
+              "vsini":r"$v \sin i$", "vz":r"$v_z$", "vz1":r"$v_z1$", "logOmega":r"$\log_{10} \Omega$",
+              "logOmega1":r"$\log{10} \Omega 1$", "logc0":r"$\log_{10} c_0$",
               "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}", "l":r"$l$",
               "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
@@ -107,20 +108,21 @@ yes_region = hdf5.visit(find_region)
 def get_flatchains(key):
     return [hdf5.get(key)[:] for hdf5 in hdf5list]
 
-#Order list will always be a 2D list, with the items being flatchains
-ordersList = []
-for order in orders:
-
-    print("Adding cheb for order {}".format(order))
-    temp = [get_flatchains("{}/cheb".format(order))]
-    if yes_cov:
-        print("Adding cov for order {}".format(order))
-        temp += [get_flatchains("{}/cov".format(order))]
-
-    #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
-
-    #accumulate all of the orders
-    ordersList += [temp]
+#This was good
+# #Order list will always be a 2D list, with the items being flatchains
+# ordersList = []
+# for order in orders:
+#
+#     print("Adding cheb for order {}".format(order))
+#     temp = [get_flatchains("{}/cheb".format(order))]
+#     if yes_cov:
+#         print("Adding cov for order {}".format(order))
+#         temp += [get_flatchains("{}/cov".format(order))]
+#
+#     #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
+#
+#     #accumulate all of the orders
+#     ordersList += [temp]
 
 # order22list = [order22cheblist, order22covlist]
 # order23list = [order23cheblist, order23covlist]
@@ -131,8 +133,8 @@ print("Thinning by ", args.thin)
 print("Burning out first {} samples".format(args.burn))
 stellarlist = [stellar[args.burn::args.thin] for stellar in stellarlist]
 #a triple list comprehension is bad for readability, but I can't think of something better
-ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
-              ordersList]
+#ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
+#              ordersList]
 
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
@@ -180,16 +182,16 @@ def gelman_rubin(samplelist):
 
     #Now compute statistics
     #average value of each chain
-    avg_phi_j = np.average(chains, axis=0) #average over iterations, now a (m, nparams) array
+    avg_phi_j = np.mean(chains, axis=0, dtype="f8") #average over iterations, now a (m, nparams) array
     #average value of all chains
-    avg_phi = np.average(chains, axis=(0,1)) #average over iterations and chains, now a (nparams,) array
+    avg_phi = np.mean(chains, axis=(0,1), dtype="f8") #average over iterations and chains, now a (nparams,) array
     print("Average parameter value: {}".format(avg_phi))
 
-    B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0) #now a (nparams,) array
+    B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0, dtype="f8") #now a (nparams,) array
 
-    s2j = 1./(n - 1.) * np.sum((chains - avg_phi_j)**2, axis=0) #now a (m, nparams) array
+    s2j = 1./(n - 1.) * np.sum((chains - avg_phi_j)**2, axis=0, dtype="f8") #now a (m, nparams) array
 
-    W = 1./m * np.sum(s2j, axis=0) #now a (nparams,) arary
+    W = 1./m * np.sum(s2j, axis=0, dtype="f8") #now a (nparams,) arary
 
     var_hat = (n - 1.)/n * W + B/n #still a (nparams,) array
 
@@ -208,10 +210,10 @@ if args.gelman:
     #Compute the Gelman-Rubin statistics BDA 3, pg 284
     print("Stellar parameters")
     gelman_rubin(stellarlist)
-    for i, orderList in enumerate(ordersList):
-        print("\nOrder {}".format(orders[i]))
-        for subList in orderList:
-            gelman_rubin(subList)
+    # for i, orderList in enumerate(ordersList):
+    #     print("\nOrder {}".format(orders[i]))
+    #     for subList in orderList:
+    #         gelman_rubin(subList)
 
 
 

@@ -9,8 +9,19 @@ from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import Co
 import time
 import json
 import h5py
+from astropy.stats.funcs import sigma_clip
+import logging
 import os
+from collections import deque
+from operator import itemgetter
 import matplotlib.pyplot as plt
+from itertools import zip_longest
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
 def plot_walkers(filename, samples, labels=None):
     ndim = len(samples[0, :])
@@ -147,10 +158,17 @@ class Model:
         self.stellar_params = None
         self.stellar_params_last = None
 
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+
         #Now create a a list which contains an OrderModel for each order
         self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple),
                                        debug=self.debug)
                             for index in range(self.norders)]
+
 
     def zip_stellar_p(self, p):
         return dict(zip(self.stellar_tuple, p))
@@ -169,8 +187,8 @@ class Model:
         Update the model to reflect the stellar parameters
         '''
         self.stellar_params_last = self.stellar_params
-        self.ModelSpectrum.update_all(params)
         self.stellar_params = params
+        self.ModelSpectrum.update_all(params)
 
     def revert_Model(self):
         '''
@@ -193,6 +211,7 @@ class Model:
         '''
         Compare the different data and models.
         '''
+        self.logger.debug("evaluating model {}".format(self))
         lnps = np.empty((self.norders,))
 
         for i in range(self.norders):
@@ -359,21 +378,25 @@ class OrderModel:
         print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
-        self.debug = debug
         self.wl = self.DataSpectrum.wls[self.index]
         self.fl = self.DataSpectrum.fls[self.index]
         self.sigma = self.DataSpectrum.sigmas[self.index]
         self.mask = self.DataSpectrum.masks[self.index]
         self.order = self.DataSpectrum.orders[self.index]
+        self.debug = debug
+        self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.order))
+        if self.debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index, npoly=npoly)
         self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index, debug=self.debug)
         self.global_cov_params = None
         self.cheb_params = None
         self.cheb_params_last = None
-
-        #We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added
-        self.region_list = []
+        self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
+        self.counter = 0
 
     def get_data(self):
         return (self.wl, self.fl, self.sigma, self.mask)
@@ -419,48 +442,73 @@ class OrderModel:
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
         return self.fl - model_fl
 
+    def get_residual_array(self):
+        if len(self.resid_deque) > 0:
+            return np.array(self.resid_deque)
+        else:
+            return None
+
+    def clear_resid_deque(self):
+        self.resid_deque.clear()
+
     def evaluate_region_logic(self):
+        print("evaluating region logic")
         #calculate the current amplitude of the global_covariance noise
         global_amp = self.CovarianceMatrix.get_amp()
+        print("Global amplitude is {}".format(global_amp))
+        print("3 times is {}".format(3. * global_amp))
 
         #array that specifies whether any given pixel is covered by a region.
         covered = self.CovarianceMatrix.get_region_coverage()
+        print("There are {} pixels covered by regions.".format(np.sum(covered)))
 
         residuals = self.get_residuals()
-        median = np.median(residuals)
+        #median = np.median(residuals)
         #For each residual, calculate the abs_distance from the median
-        abs_distances = np.abs(residuals - median)
+        #from zero
+        #abs_distances = np.abs(residuals - median)
+        abs_distances = np.abs(residuals)
+
+        #Count how many pixels are above 3 * amplitude
+        print("There are {} pixels above 3 * global amp".format(np.sum(abs_distances > (3 * global_amp))))
 
         #Sort the list in decreasing order of abs_dist
-        args = np.argsort(abs_distances)[::-1]
+        args = reversed(np.argsort(abs_distances))
 
         for index in args:
             abs_dist = abs_distances[index]
-            if abs_dist < 3 * global_amp:
-            #we have reached below the 3 sigma limit, no new regions instantiated
+            if abs_dist < (3 * global_amp):
+                #we have reached below the 3 sigma limit, no new regions instantiated
+                self.logger.debug("Reached below 3 times limit, no new regions to instantiate.")
                 return None
 
             wl = self.wl[index]
-            print("At wl={:.3f}, residual={}".format(wl, abs_dist))
+            self.logger.debug("At wl={:.3f}, residual={}".format(wl, abs_dist))
             if covered[index]:
+                self.logger.debug("residual already covered")
                 continue
             else:
+                self.logger.debug("returning wl to instantiate")
                 return wl
-
-        return None
+        else:
+            self.logger.warning("Reached the end of the for loop, ie, iterated through all of the residuals.")
+            return None
 
     def evaluate(self):
         '''
         Compare the different data and models.
         '''
-        #Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+        residuals = self.fl - model_fl
+        residuals = residuals[self.mask]
 
-        model_fl = model_fl[self.mask]
+        self.counter += 1
+        if self.counter == 100:
+            self.resid_deque.append(residuals)
+            self.counter = 0
 
-        #CovarianceMatrix will do the lnprob math without priors
-        lnp = self.CovarianceMatrix.evaluate(model_fl)
+        lnp = self.CovarianceMatrix.evaluate(residuals)
         return lnp
 
 class Sampler(GibbsSampler):
@@ -486,6 +534,11 @@ class Sampler(GibbsSampler):
             p0[i] = starting_param_dict[param]
 
         kwargs.update({"p0":p0, "dim":self.dim})
+        self.model_list = kwargs.get("model_list")
+        self.nmodels = len(self.model_list)
+        if "model_index" in kwargs:
+            self.model_index = kwargs.get("model_index")
+            self.model = self.model_list[self.model_index]
 
         super(Sampler, self).__init__(**kwargs)
 
@@ -497,11 +550,7 @@ class Sampler(GibbsSampler):
         #SUBCLASS here and do self.revertfn
         #then do super().__init__() to call the following code
 
-
-        self.model = kwargs.get("model")
-
         self.outdir = kwargs.get("outdir", "")
-        self.fname = kwargs.get("fname", "")
 
     def lnprob(self):
         raise NotImplementedError("To be implemented by a subclass!")
@@ -511,7 +560,9 @@ class Sampler(GibbsSampler):
 
     def write(self):
         '''
-        Write all of the relevant output to an HDF file.
+        Write all of the relevant sample output to an HDF file.
+
+        Write the lnprobability to an HDF file.
 
         flatchain
         acceptance fraction
@@ -534,16 +585,29 @@ class Sampler(GibbsSampler):
         '''
 
         filename = self.outdir + "flatchains.hdf5"
+        self.logger.debug("Opening {} for writing HDF5 flatchains".format(filename))
         hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
         samples = self.flatchain
 
+        self.logger.debug("Creating dataset with fname:{}".format(self.fname))
         dset = hdf5.create_dataset(self.fname, samples.shape, compression='gzip', compression_opts=9)
+        self.logger.debug("Storing samples and header attributes.")
         dset[:] = samples
         dset.attrs["parameters"] = "{}".format(self.param_tuple)
         dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
         dset.attrs["acor"] = "{}".format(self.acor)
         dset.attrs["commit"] = "{}".format(C.get_git_commit())
+        hdf5.close()
 
+        #lnprobability is the lnprob at each sample
+        filename = self.outdir + "lnprobs.hdf5"
+        self.logger.debug("Opening {} for writing HDF5 lnprobs".format(filename))
+        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        lnprobs = self.lnprobability
+
+        dset = hdf5.create_dataset(self.fname, samples.shape[:1], compression='gzip', compression_opts=9)
+        dset[:] = lnprobs
+        dset.attrs["commit"] = "{}".format(C.get_git_commit())
         hdf5.close()
 
     def plot(self):
@@ -587,35 +651,70 @@ class StellarSampler(Sampler):
 
         starting_param_dict = kwargs.get("starting_param_dict")
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
+        print("param_tuple is {}".format(self.param_tuple))
 
-        kwargs.update({"fname":"stellar", "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(StellarSampler, self).__init__(**kwargs)
+        self.fname = "stellar"
+
+        #From now on, self.model will always be a list of models (or just a list with one model)
+
+    def reset(self):
+        #Clear accumulated residuals in each order sampler
+        for model in self.model_list:
+            for order_model in model.OrderModels:
+                order_model.clear_resid_deque()
+        super(StellarSampler, self).reset()
 
     def revertfn(self):
         '''
         Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
         '''
-        if self.debug:
-            print("reverting stellar parameters")
-        self.model.revert_Model()
+        self.logger.debug("reverting stellar parameters")
+        for model in self.model_list:
+            model.revert_Model()
 
     def lnprob(self, p):
-        params = self.model.zip_stellar_p(p)
-        #If we have decided to fix logg, sneak update it here.
-        if self.fix_logg:
+        # We want to send the same stellar parameters to each model, but also the different vz and logOmega parameters
+        # to the separate models.
+        self.logger.debug("lnprob p is {}".format(p))
+
+        #Extract only the temp, logg, Z, vsini parameters
+        if not self.fix_logg:
+            params = self.model_list[0].zip_stellar_p(p[:4])
+            others = p[4:]
+        else:
+            params = self.model_list[0].zip_stellar_p(p[:3])
+            others = p[3:]
             params.update({"logg": self.fix_logg})
-        if self.debug:
-            print("{}".format(params))
+
+        self.logger.debug("params in lnprob are {}".format(params))
+
+        #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
+        #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
+        #mparams is now a list of parameter dictionaries
+        mparams = deque()
+        for vz, logOmega in grouper(others, 2):
+            p = params.copy()
+            p.update({"vz":vz, "logOmega":logOmega})
+            mparams.append(p)
+
+        self.logger.debug("updated lnprob params: {}".format([params for params in mparams]))
         try:
-            self.model.update_Model(params) #This also updates downsampled_fls
-            #For order in myModel, do evaluate, and sum the results.
-            lnp = self.model.evaluate()
-            if self.debug:
-                print("Stellar lnp is ", lnp)
-            return lnp
+            lnps = np.empty((self.nmodels,))
+            for i, (model, par) in enumerate(zip(self.model_list, mparams)):
+                self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
+                model.update_Model(par) #This also updates downsampled_fls
+                #For order in myModel, do evaluate, and sum the results.
+                lnp = model.evaluate()
+                self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
+                lnps[i] = lnp
+            self.logger.debug("lnps : {}".format(lnps))
+            s = np.sum(lnps)
+            self.logger.debug("sum lnps {}".format(s))
+            return s
         except C.ModelError:
-            if self.debug:
-                print("Stellar lnprob returning -np.inf")
+            self.logger.debug("lnprob returning -np.inf")
             return -np.inf
 
 class ChebSampler(Sampler):
@@ -625,30 +724,29 @@ class ChebSampler(Sampler):
         nparams = len(starting_param_dict)
         self.param_tuple = ("logc0",) + tuple(["c{}".format(i) for i in range(1, nparams)])
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-        fname = "{}/{}".format(model.orders[self.order_index], "cheb")
-
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(ChebSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.fname = "{}/{}/{}".format(self.model_index, self.model.orders[self.order_index], "cheb")
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting Cheb parameters")
+        self.logger.debug("reverting model")
         self.order_model.revert_Cheb()
-
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
-        if self.debug:
-            print("Cheb params are", params)
+        self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
+                                                                self.model, self.order_index, params))
         self.order_model.update_Cheb(params)
-        lnp = self.model.evaluate()
-        if self.debug:
-            print("Cheb lnp is ", lnp)
-        return lnp
+
+        lnps = np.empty((self.nmodels,))
+        for i, model in enumerate(self.model_list):
+            lnps[i] = model.evaluate()
+        s = np.sum(lnps)
+        self.logger.debug("lnp {}".format(s))
+        return s
 
 class CovGlobalSampler(Sampler):
 
@@ -656,27 +754,29 @@ class CovGlobalSampler(Sampler):
         starting_param_dict = kwargs.get("starting_param_dict")
         self.param_tuple = C.dictkeys_to_cov_global_tuple(starting_param_dict)
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-
-        fname = "{}/{}".format(model.orders[self.order_index], "cov")
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(CovGlobalSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.fname = "{}/{}/{}".format(self.model_index, self.model.orders[self.order_index], "cov")
         self.order_model = self.model.OrderModels[self.order_index]
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting GlobalCovariance parameters")
+        self.logger.debug("reverting model")
         self.order_model.revert_Cov()
 
     def lnprob(self, p):
         params = self.model.zip_Cov_p(p)
-        if self.debug:
-            print("Cov params are", params)
+        self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
+                                self.model, self.order_index, params))
         try:
             self.order_model.update_Cov(params)
-            return self.model.evaluate()
+            lnps = np.empty((self.nmodels,))
+            for i, model in enumerate(self.model_list):
+                lnps[i] = model.evaluate()
+            s = np.sum(lnps)
+            self.logger.debug("lnp {}".format(s))
+            return s
         except C.ModelError:
             return -np.inf
 
@@ -689,47 +789,91 @@ class MegaSampler(GibbsController):
         for sampler in self.samplers:
             sampler.plot()
 
+    def instantiate_regions(self, sigma=3):
+        for sampler in self.samplers:
+        #if it is a Regions Sampler
+            if type(sampler) is RegionsSampler:
+                sampler.instantiate_regions(sigma)
+
+    def trim_regions(self):
+        for sampler in self.samplers:
+            #if it is a Regions Sampler
+            if type(sampler) is RegionsSampler:
+                sampler.trim_regions()
+
 class CovRegionSampler(Sampler):
     def __init__(self, **kwargs):
         starting_param_dict = kwargs.get("starting_param_dict")
+        self.priors = kwargs.get("priors")
         self.param_tuple = ("loga", "mu", "sigma")
 
-        model = kwargs.get("model")
-        self.order_index = kwargs.get("order_index")
-        self.region_index = kwargs.get("region_index")
-
-        fname = "{}/{}{:0>2}".format(model.orders[self.order_index], "cov_region", self.region_index)
-        kwargs.update({"fname":fname, "revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(CovRegionSampler, self).__init__(**kwargs)
 
+        self.order_index = kwargs.get("order_index")
+        self.region_index = kwargs.get("region_index")
+        self.fname = "{}/{}/{}{:0>2}".format(self.model_index, self.model.orders[self.order_index], "cov_region",
+                                             self.region_index)
         self.order_model = self.model.OrderModels[self.order_index]
         self.CovMatrix = self.order_model.CovarianceMatrix
-        self.CovMatrix.create_region(starting_param_dict)
-        if self.debug:
-            print("Created new Region sampler with region_index {}".format(self.region_index))
+        self.CovMatrix.create_region(starting_param_dict, self.priors)
+        self.a = 10**starting_param_dict['loga']
+        self.a_last = self.a
+        self.logger.info("Created new Region sampler with region_index {}".format(self.region_index))
+
+    def __del__(self):
+        '''
+        Delete this sampler from the list and the RegionCovarianceMatrix which it references.
+        '''
+        self.CovMatrix.delete_region(self.region_index)
 
     def revertfn(self):
-        if self.debug:
-            print("Reverting GlobalCovariance parameters")
+        self.logger.debug("reverting model")
         self.CovMatrix.revert_region(self.region_index)
+        self.a = self.a_last
 
     def lnprob(self, p):
         params = self.model.zip_Region_p(p)
+
+        #We need to do things like this and not immediately exit because we shouldn't do two reverts in a row without
+        #  at least trying to fill the matrix.
+        a_global = self.order_model.CovarianceMatrix.get_amp()
+        self.a_last = self.a
+        self.a = 10**params["loga"]
+
         try:
             self.CovMatrix.update_region(self.region_index, params)
-            return self.model.evaluate()
+            lnps = np.empty((self.nmodels,))
+            for i, model in enumerate(self.model_list):
+                lnps[i] = model.evaluate()
+            s = np.sum(lnps)
+            self.logger.debug("lnp {}".format(s))
+            #Institute the hard prior that the amplitude can't be less than the Global Covariance
+            if self.a < (self.priors['frac_global'] * a_global):
+                return -np.inf
+            else:
+                return s
         except (C.ModelError, C.RegionError):
             return -np.inf
 
 class RegionsSampler(GibbsSubController):
+    '''
+    Designed to accumulate CovRegionSampler's in a list.
+    '''
     def __init__(self, **kwargs):
         self.max_regions = kwargs.get("max_regions", 0)
         self.default_param_dict = kwargs.get("default_param_dict", {"loga":-14.2, "sigma":10.})
+        self.priors = kwargs.get("priors")
         self.order_index = kwargs.get("order_index")
-        self.model = kwargs.get("model")
+        self.model_list = kwargs.get("model_list")
+        self.nmodels = len(self.model_list)
+        if "model_index" in kwargs:
+            self.model_index = kwargs.get("model_index")
+            self.model = self.model_list[self.model_index]
         self.order_model = self.model.OrderModels[self.order_index]
         self.MH_cov = kwargs.get("cov")
         self.outdir = kwargs.get("outdir")
+        self.region_index = 0
 
         kwargs.update({"samplers":[]}) #start empty and update later
         super(RegionsSampler, self).__init__(**kwargs)
@@ -744,20 +888,62 @@ class RegionsSampler(GibbsSubController):
         #copy and update default_param_dict to include the new value of mu
         starting_param_dict = self.default_param_dict.copy()
         starting_param_dict.update({"mu":mu})
-        region_index = len(self.samplers) #region_index is one more than the current amount of regions
 
-        newSampler = CovRegionSampler(model=self.model, cov=self.MH_cov, starting_param_dict=starting_param_dict,
-                                      order_index=self.order_index, region_index=region_index, outdir=self.outdir,
-                                      debug=self.debug)
+        newSampler = CovRegionSampler(model_list=self.model_list, model_index=self.model_index, cov=self.MH_cov,
+                starting_param_dict=starting_param_dict, priors=self.priors, order_index=self.order_index,
+                region_index=self.region_index, outdir=self.outdir, debug=self.debug)
         self.samplers.append(newSampler)
+        print("Now there are {} region samplers.".format(len(self.samplers)))
+        self.region_index += 1 #increment for next region to be instantiated.
 
-    def run_mcmc(self, *args, **kwargs):
-        if (len(self.samplers) < self.max_regions):
-            mu = self.evaluate_region_logic()
-            if mu is not None:
-                self.create_region_sampler(mu)
-        result = super(RegionsSampler, self).run_mcmc(*args, **kwargs)
-        return result
+    def trim_regions(self):
+        print("Trimming Regions with amplitudes below 2.5 sigma.")
+        #Go through and find the amplitude of each region. If it's below 2*global amplitude, delete the sampler from
+        # the list, subsequently deleting the region matrix.
+        a_global = self.order_model.CovarianceMatrix.get_amp()
+        print("a_global is {}".format(a_global))
+        print("2.5 cutoff is {}".format(2.5 * a_global))
+        print("3 times is {}".format(3. * a_global))
+        for i, sampler in enumerate(self.samplers):
+            print("sampler.a is {}".format(sampler.a))
+            if sampler.a < 2.5 * a_global:
+                print("Deleting region sampler from list.")
+                del self.samplers[i] #Also triggers sampler.__del__()
+        print("Now there are only {} region samplers left.".format(len(self.samplers)))
+
+    def instantiate_regions(self, sigma=3.):
+        #array that specifies if a pixel is already covered. On the first call, it should be all False
+        covered = self.order_model.CovarianceMatrix.get_region_coverage()
+
+        #average all of the spectra in the deque together
+        residual_array = self.order_model.get_residual_array()
+        if residual_array is None:
+            residuals = self.order_model.get_residuals()
+        else:
+            residuals = np.average(residual_array, axis=0)
+
+        #run the sigma_clip algorithm until converged, and we've identified the outliers
+        filtered_data = sigma_clip(residuals, sig=sigma, iters=None)
+        mask = filtered_data.mask
+        wl = self.order_model.wl
+
+        #Sort in decreasing strength of residual
+        for w,resid in sorted(zip(wl[mask], np.abs(residuals[mask])), key=itemgetter(1), reverse=True):
+            if w in wl[covered]:
+                continue
+            else:
+                #instantiate region and update coverage
+                self.create_region_sampler(w)
+                covered = self.order_model.CovarianceMatrix.get_region_coverage()
+
+    # def run_mcmc(self, *args, **kwargs):
+    #
+    #     if (len(self.samplers) < self.max_regions):
+    #         mu = self.evaluate_region_logic()
+    #         if mu is not None:
+    #             self.create_region_sampler(mu)
+    #     result = super(RegionsSampler, self).run_mcmc(*args, **kwargs)
+    #     return result
 
     def write(self):
         for sampler in self.samplers:
@@ -1064,12 +1250,10 @@ class OldMegaSampler:
         for j in range(self.nsamplers):
             print(self.samplers[j].acor())
 
-
 def main():
     print("Starting main of model")
 
     pass
-
 
 if __name__ == "__main__":
     main()

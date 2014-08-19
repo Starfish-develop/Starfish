@@ -38,7 +38,7 @@ double k_region (double x0, double x1, double a, double mu, double sigma)
     assert(r_tap <= r0);
     double taper = (0.5 + 0.5 * cos(PI * r_tap/r0));
 
-    return  taper * a*a /(2. * PI * sigma * sigma) * exp(-0.5 *
+    return  taper * a*a * exp(-0.5 *
         (c_kms * c_kms) / (mu * mu) * ((x0 - mu)*(x0 - mu) + 
             (x1 - mu)*(x1 - mu))/(sigma * sigma)); 
 }

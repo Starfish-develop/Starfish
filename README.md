@@ -338,6 +338,10 @@ Right now we are setting the last order to have logc0 = 0.0
 * Introduce PSF width as a parameter that we can sample in. This would be a *correction* to the Gaussian pre-convoved
 grid, which is done at something smaller that we would ever go to, for example 6.0 km/s for TRES.
 
+* Use Python's configParser, it allows interpolation.
+
+* implement model dumping on new mega sampler, for random indices
+
 #Grid Creator Code
 
 * it turns out that the grid sampling actually needed to be *increased* to about 0.08 km/s to preserve all of the information in the raw spectrum, and InterpolatedUnivariateSpline needed to use k=5.
@@ -381,6 +385,8 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 * ELOISE spectral library
 * GNIRS spectral library: http://www.gemini.edu/sciops/instruments/nearir-resources?q=node/11594
 * TAPAS transmission service. Username: iczekala@cfa.harvard.edu, hertzsprung
-* STScI Kurucz library
+* STScI Kurucz library: not high enough resolution!
+
+*
 
 Write a download script for all the libraries
