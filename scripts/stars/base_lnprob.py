@@ -171,7 +171,7 @@ for model_index in range(len(model_list)):
         samplerList.append(ChebSampler(model_list=model_list, model_index=model_index, cov=cheb_MH_cov,
             starting_param_dict=cheb_Starting, order_index=order_index, outdir=outdir, debug=False))
         if not config['no_cov']:
-            samplerList.append(CovGlobalSampler(model_list=model_list, model_index=model_index, cov=cov_MH_cov, \
+            samplerList.append(CovGlobalSampler(model_list=model_list, model_index=model_index, cov=cov_MH_cov,
             starting_param_dict=cov_Starting, order_index=order_index, outdir=outdir, debug=False))
             if not config['no_region']:
                 samplerList.append(RegionsSampler(model_list=model_list, model_index=model_index, cov=region_MH_cov,
@@ -200,6 +200,9 @@ def main():
     print(mySampler.acor)
     for i, model in enumerate(model_list):
         model.to_json("model{}_final.json".format(i))
+        np.save("residuals.npy", model.OrderModels[0].get_residual_array())
+
+
     mySampler.write()
     mySampler.plot()
 

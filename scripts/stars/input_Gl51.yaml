@@ -1,15 +1,15 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/region/4sig/
+name: Gl51/PHOENIX/RA/region/3.5sig/
 
-#HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
-HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
-data : data/Gl51/Gl51RA.hdf5
+HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
+data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Using range by RA and keeping Ca and Na lines. Adding global cov and regions.
+  Using range by RA and keeping Ca and Na lines. No masking. Adding global cov and regions.
 
 #Nested data structures are allowed
 stellar_params :
@@ -59,7 +59,8 @@ cov_jump :
 
 no_cov : False
 
-#Dummy for now, must be a better way to control
+no_region: False
+
 region_params:
     loga: -15.0
     sigma: 100. #km/s
@@ -75,7 +76,7 @@ region_priors:
     sigma_knee : 200 #km/s
     frac_global : 0.5 #Fraction of the global amplitude lower bound
 
-sigma_clip : 4.
+sigma_clip : 3.5
 
 orders: [0]
 
@@ -84,4 +85,4 @@ max_regions : 0
 
 #Burn in time
 burn_in : 10000
-samples : 200000
+samples : 300000
