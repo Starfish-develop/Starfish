@@ -1,0 +1,50 @@
+*~
+*.swp
+
+*.pyc
+
+docs/_build/
+libraries
+output/
+plots/animation/
+
+#Cython build files
+build/
+dist/
+StellarSpectra/covariance.c
+StellarSpectra/covariance.cpython-34m.so
+
+#Python install files
+StellarSpectra.egg-info/
+
+#Profile output
+prof
+
+#HPC runs
+run
+
+#Coverage output
+.coverage*
+htmlcov/
+
+*.fits
+
+#LaTeX files
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.out
+*Notes.bib
+*.fdb_latexmk
+*.fls
+paper.pdf
+
+#Pycharm
+.idea*
+.directory
+
+#IPython
+*.ipynb_checkpoints*
+*-checkpoint.ipynb
