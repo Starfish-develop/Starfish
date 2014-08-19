@@ -684,6 +684,8 @@ class StellarSampler(Sampler):
             params = self.model_list[0].zip_stellar_p(p[:4])
             others = p[4:]
         else:
+            #Coming in as temp, Z, vsini, vz, logOmega...
+
             params = self.model_list[0].zip_stellar_p(p[:3])
             others = p[3:]
             params.update({"logg": self.fix_logg})
@@ -932,9 +934,13 @@ class RegionsSampler(GibbsSubController):
             if w in wl[covered]:
                 continue
             else:
-                #instantiate region and update coverage
-                self.create_region_sampler(w)
-                covered = self.order_model.CovarianceMatrix.get_region_coverage()
+                #check to make sure region is not *right* at the edge of the spectrum
+                if w <= np.min(wl) or w >= np.max(wl):
+                    continue
+                else:
+                    #instantiate region and update coverage
+                    self.create_region_sampler(w)
+                    covered = self.order_model.CovarianceMatrix.get_region_coverage()
 
     # def run_mcmc(self, *args, **kwargs):
     #

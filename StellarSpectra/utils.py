@@ -1,5 +1,6 @@
 import numpy as np
 import multiprocessing as mp
+import StellarSpectra.constants as C
 
 def random_draws(cov, num, nprocesses=mp.cpu_count()):
     '''
@@ -18,8 +19,43 @@ def random_draws(cov, num, nprocesses=mp.cpu_count()):
     return np.array(result.get())
 
 
-def k_3_2(r, l):
-    return (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r/l)
+
+#Set of kernels *exactly* as defined in extern/cov.h
+@np.vectorize
+def k_gloabl(r, a, l):
+    r0=6.*l
+    taper = (0.5 + 0.5 * np.cos(np.pi * r/r0))
+    if r >= taper:
+        return 0.
+    else:
+        return taper * a**2 * (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r/l)
+
+@np.vectorize
+def k_local(x0, x1, a, mu, sigma):
+    r0 = 4.0 * sigma #spot where kernel goes to 0
+    rx0 = C.c_kms / mu * np.abs(x0 - mu)
+    rx1 = C.c_kms / mu * np.abs(x1 - mu)
+    r_tap = rx0 if rx0 > rx1 else rx1 #choose the larger distance
+
+    if r_tap >= r0:
+        return 0.
+    else:
+        taper = (0.5 + 0.5 * np.cos(np.pi * r_tap/r0))
+        return taper * a**2 * np.exp(-0.5 * C.c_kms**2/mu**2 * ((x0 - mu)**2 + (x1 - mu)**2)/sigma**2)
+
+
+def k_global_func(x0i, x1i, x0v=None, x1v=None, a=None, l=None):
+    x0 = x0v[x0i]
+    x1 = x1v[x1i]
+    r = np.abs(x1 - x0)
+    pass
+
+def k_local_func(x0i, x1i, x0v=None, x1v=None, a=None, mu=None, sigma=None):
+    x0 = x0v[x0i]
+    x1 = x1v[x1i]
+    pass
+
+
 
 @np.vectorize
 def hann(r, r0):
@@ -91,49 +127,26 @@ def gauss_hann_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None)
     return hann(r, 4 * sigma) * amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
 
 
-class FlatchainTree:
-    '''
-    Object defined to wrap a Flatchain structure in order to facilitate combining, burning, etc.
-
-    The Tree will always follow the same structure.
-
-    flatchains.hdf5:
-
-    stellar samples:    stellar
-
-    folder for model:   0
-
-        folder for order: 22
-
-                        cheb
-                        cov
-                        cov_region00
-                        cov_region01
-                        cov_region02
-                        ....
+# How to generate a matrix from one of these functions
+#mat_3_2 = np.fromfunction(k_3_2_hann_func, (N,N), x0v=wl23, x1v=wl23, amp=0.028, l=0.14, dtype=np.int) #matrix from
+# Matern kernel
+#mat = mat_3_2 + sigma23n**2 * np.eye(N) #add in the per-pixel noise
 
 
-        folder for order: 23
+#All of these return *dense* covariance matrices as defined in the paper
+def Poisson_matrix(wl, sigma):
+    raise NotImplementedError
+    return matrix
 
-                        cheb
-                        cov
-                        cov_region00
-                        cov_region01
-                        cov_region02
-                        ....
+def k_global_matrix(wl, amp, l):
+    raise NotImplementedError
+    return matrix
 
-    folder for model:   1
-
-
-    '''
-    pass
+def k_local_matrix(wl, a, mu, sigma):
+    raise NotImplementedError
+    return matrix
 
 
-class OldFlatchainTree:
-    '''
-    The old structure which assumed only 1 DataSpectrum. For legacy's sake.
-    '''
-    pass
 
 
 
