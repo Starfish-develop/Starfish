@@ -91,6 +91,53 @@ def gauss_hann_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None)
     return hann(r, 4 * sigma) * amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
 
 
+class FlatchainTree:
+    '''
+    Object defined to wrap a Flatchain structure in order to facilitate combining, burning, etc.
+
+    The Tree will always follow the same structure.
+
+    flatchains.hdf5:
+
+    stellar samples:    stellar
+
+    folder for model:   0
+
+        folder for order: 22
+
+                        cheb
+                        cov
+                        cov_region00
+                        cov_region01
+                        cov_region02
+                        ....
+
+
+        folder for order: 23
+
+                        cheb
+                        cov
+                        cov_region00
+                        cov_region01
+                        cov_region02
+                        ....
+
+    folder for model:   1
+
+
+    '''
+    pass
+
+    def __add__
+
+class OldFlatchainTree:
+    '''
+    The old structure which assumed only 1 DataSpectrum. For legacy's sake.
+    '''
+    pass
+
+
+
 def main():
     cov = np.eye(20)
 
