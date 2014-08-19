@@ -84,79 +84,81 @@ else:
 
 stellar_labels = [label_dict[key] for key in stellar_params]
 
-def find_cov(name):
-    if "cov" in name:
-        return True
-    return None
-
-def find_region(name):
-    if "cov_region" in name:
-        return True
-    return None
-
-#Determine how many orders, if there is global covariance, or regions
-#choose the first chain
-orders = [int(key) for key in hdf5.keys() if key != "stellar"]
-orders.sort()
-
-yes_cov = hdf5.visit(find_cov)
-yes_region = hdf5.visit(find_region)
-#Order list will always be a 2D list, with the items being flatchains
-cheb_parameters = hdf5.get("{}/cheb".format(orders[0])).attrs["parameters"]
-cheb_tuple = tuple([param.strip("'() ") for param in cheb_parameters.split(",")])
-cheb_labels = [label_dict[key] for key in cheb_tuple]
-if yes_cov:
-    cov_parameters = hdf5.get("{}/cov".format(orders[0])).attrs["parameters"]
-    cov_tuple = tuple([param.strip("'() ") for param in cov_parameters.split(",")])
-    cov_labels = [label_dict[key] for key in cov_tuple]
-
-#                            order22,     order23
-ordersList = [] #2D list of [[cheb, cov], [cheb, cov],     []]
-#                                   order22                              order23
-ordersListRegions = [] #2D list of [[region00, region01, region02,...], [region00,] ]
-for order in orders:
-
-    temp = [hdf5.get("{}/cheb".format(order))]
-    if yes_cov:
-        temp += [hdf5.get("{}/cov".format(order))]
-
-    #accumulate all of the orders
-    ordersList += [temp]
-
-    if yes_region:
-        #Determine how many regions we have, if any
-        temp = []
-        #figure out list of which regions are in this order
-        regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
-
-        for key in regionKeys:
-            temp += [hdf5.get("{}/{}".format(order, key))[:]]
-        ordersListRegions += [temp]
-
-ordersList = [[flatchain[args.burn::args.thin] for flatchain in subList] for subList in ordersList]
-
-if args.lnprob:
-    ordersListLnprob = []
-    ordersListRegionsLnprob = []
-    for order in orders:
-        temp = [hdf5lnprob.get("{}/cheb".format(order))]
-        if yes_cov:
-            temp += [hdf5lnprob.get("{}/cov".format(order))]
-
-        #accumulate all of the orders
-        ordersListLnprob += [temp]
-
-        if yes_region:
-            #Determine how many regions we have, if any
-            temp = []
-            #figure out list of which regions are in this order
-            regionKeys = [key for key in hdf5lnprob["{}".format(order)].keys() if "cov_region" in key]
-
-            for key in regionKeys:
-                temp += [hdf5lnprob.get("{}/{}".format(order, key))[:]]
-            ordersListRegionsLnprob += [temp]
-
-    ordersListLnprob = [[lnchain[args.burn::args.thin] for lnchain in subList] for subList in ordersListLnprob]
+#Was good
+#
+# def find_cov(name):
+#     if "cov" in name:
+#         return True
+#     return None
+#
+# def find_region(name):
+#     if "cov_region" in name:
+#         return True
+#     return None
+#
+# #Determine how many orders, if there is global covariance, or regions
+# #choose the first chain
+# orders = [int(key) for key in hdf5.keys() if key != "stellar"]
+# orders.sort()
+#
+# yes_cov = hdf5.visit(find_cov)
+# yes_region = hdf5.visit(find_region)
+# #Order list will always be a 2D list, with the items being flatchains
+# cheb_parameters = hdf5.get("{}/cheb".format(orders[0])).attrs["parameters"]
+# cheb_tuple = tuple([param.strip("'() ") for param in cheb_parameters.split(",")])
+# cheb_labels = [label_dict[key] for key in cheb_tuple]
+# if yes_cov:
+#     cov_parameters = hdf5.get("{}/cov".format(orders[0])).attrs["parameters"]
+#     cov_tuple = tuple([param.strip("'() ") for param in cov_parameters.split(",")])
+#     cov_labels = [label_dict[key] for key in cov_tuple]
+#
+# #                            order22,     order23
+# ordersList = [] #2D list of [[cheb, cov], [cheb, cov],     []]
+# #                                   order22                              order23
+# ordersListRegions = [] #2D list of [[region00, region01, region02,...], [region00,] ]
+# for order in orders:
+#
+#     temp = [hdf5.get("{}/cheb".format(order))]
+#     if yes_cov:
+#         temp += [hdf5.get("{}/cov".format(order))]
+#
+#     #accumulate all of the orders
+#     ordersList += [temp]
+#
+#     if yes_region:
+#         #Determine how many regions we have, if any
+#         temp = []
+#         #figure out list of which regions are in this order
+#         regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
+#
+#         for key in regionKeys:
+#             temp += [hdf5.get("{}/{}".format(order, key))[:]]
+#         ordersListRegions += [temp]
+#
+# ordersList = [[flatchain[args.burn::args.thin] for flatchain in subList] for subList in ordersList]
+#
+# if args.lnprob:
+#     ordersListLnprob = []
+#     ordersListRegionsLnprob = []
+#     for order in orders:
+#         temp = [hdf5lnprob.get("{}/cheb".format(order))]
+#         if yes_cov:
+#             temp += [hdf5lnprob.get("{}/cov".format(order))]
+#
+#         #accumulate all of the orders
+#         ordersListLnprob += [temp]
+#
+#         if yes_region:
+#             #Determine how many regions we have, if any
+#             temp = []
+#             #figure out list of which regions are in this order
+#             regionKeys = [key for key in hdf5lnprob["{}".format(order)].keys() if "cov_region" in key]
+#
+#             for key in regionKeys:
+#                 temp += [hdf5lnprob.get("{}/{}".format(order, key))[:]]
+#             ordersListRegionsLnprob += [temp]
+#
+#     ordersListLnprob = [[lnchain[args.burn::args.thin] for lnchain in subList] for subList in ordersListLnprob]
 
 if args.triangle:
     import matplotlib
@@ -167,18 +169,18 @@ if args.triangle:
     figure.savefig(args.outdir + "stellar_triangle.png")
 
     #Now plot all the other parameters
-    for i, order in enumerate(orders):
-        orderList = ordersList[i]
-        cheb = orderList[0]
-        figure = triangle.corner(cheb, labels=cheb_labels, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 12})
-        figure.savefig(args.outdir + "{}_cheb_triangle.png".format(order))
-
-        if yes_cov:
-            cov = orderList[1]
-            figure = triangle.corner(cov, labels=cov_labels, quantiles=[0.16, 0.5, 0.84],
-                                     show_titles=True, title_args={"fontsize": 12})
-            figure.savefig(args.outdir + "{}_cov_triangle.png".format(order))
+    # for i, order in enumerate(orders):
+    #     orderList = ordersList[i]
+    #     cheb = orderList[0]
+    #     figure = triangle.corner(cheb, labels=cheb_labels, quantiles=[0.16, 0.5, 0.84],
+    #                              show_titles=True, title_args={"fontsize": 12})
+    #     figure.savefig(args.outdir + "{}_cheb_triangle.png".format(order))
+    #
+    #     if yes_cov:
+    #         cov = orderList[1]
+    #         figure = triangle.corner(cov, labels=cov_labels, quantiles=[0.16, 0.5, 0.84],
+    #                                  show_titles=True, title_args={"fontsize": 12})
+    #         figure.savefig(args.outdir + "{}_cov_triangle.png".format(order))
 
 def plot_walkers(filename, samples, lnprobs=None, start=0, end=-1, labels=None):
     import matplotlib.pyplot as plt
