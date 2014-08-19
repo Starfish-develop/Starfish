@@ -9,7 +9,7 @@ Script designed to plot the HDF5 output from MCMC runs.
 
 #Plot kw
 label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}/{\rm H}]$", "alpha":r"$[\alpha/{\rm Fe}]$",
-    "vsini":r"$v \sin i$", "vz":r"$v_z$", "logOmega":r"$\log_{10} \Omega$", "logc0":r"$\log_{10} c_0$",
+    "vsini":r"$v \sin i$", "vz":r"$v_z$",  "vz1":r"$v_z1$", "logOmega1":r"$\log{10} \Omega 1$", "logOmega":r"$\log_{10} \Omega$", "logc0":r"$\log_{10} c_0$",
     "c1":r"$c_0$", "c2":r"$c_1$", "c3":r"$c_3$",
     "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}$", "l":r"$l$",
     "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
