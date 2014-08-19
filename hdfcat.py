@@ -50,73 +50,75 @@ for stellar in stellarlist:
 
 stellar_parameters = stellarlist[0].attrs["parameters"]
 
-def find_cov(name):
-    if "cov" in name:
-        return True
-    return None
-
-def find_region(name):
-    if "cov_region" in name:
-        return True
-    return None
-
-#Determine how many orders, if there is global covariance, or regions
-#choose the first chain
-hdf5 = hdf5list[0]
-orders = [int(key) for key in hdf5.keys() if key != "stellar"]
-orders.sort()
-
-yes_cov = hdf5.visit(find_cov)
-yes_region = hdf5.visit(find_region)
-
-# give this a key relative from the top, and it will return a list of all flatchains
-def get_flatchains(key):
-    return [hdf5.get(key)[:] for hdf5 in hdf5list]
-
-cheb_parameters = hdf5list[0].get("{}/cheb".format(orders[0])).attrs["parameters"]
-if yes_cov:
-    cov_parameters = hdf5list[0].get("{}/cov".format(orders[0])).attrs["parameters"]
-
-#Order list will always be a 2D list, with the items being flatchains
-ordersList = []
-for order in orders:
-
-    temp = [get_flatchains("{}/cheb".format(order))]
-    if yes_cov:
-        temp += [get_flatchains("{}/cov".format(order))]
-
-    #TODO: do something about regions here
-
-    #accumulate all of the orders
-    ordersList += [temp]
+#was good
+# def find_cov(name):
+#     if "cov" in name:
+#         return True
+#     return None
+#
+# def find_region(name):
+#     if "cov_region" in name:
+#         return True
+#     return None
+#
+# #Determine how many orders, if there is global covariance, or regions
+# #choose the first chain
+# hdf5 = hdf5list[0]
+# orders = [int(key) for key in hdf5.keys() if key != "stellar"]
+# orders.sort()
+#
+# yes_cov = hdf5.visit(find_cov)
+# yes_region = hdf5.visit(find_region)
+#
+# # give this a key relative from the top, and it will return a list of all flatchains
+# def get_flatchains(key):
+#     return [hdf5.get(key)[:] for hdf5 in hdf5list]
+#
+# cheb_parameters = hdf5list[0].get("{}/cheb".format(orders[0])).attrs["parameters"]
+# if yes_cov:
+#     cov_parameters = hdf5list[0].get("{}/cov".format(orders[0])).attrs["parameters"]
+#
+# #Order list will always be a 2D list, with the items being flatchains
+# ordersList = []
+# for order in orders:
+#
+#     temp = [get_flatchains("{}/cheb".format(order))]
+#     if yes_cov:
+#         temp += [get_flatchains("{}/cov".format(order))]
+#
+#     #TODO: do something about regions here
+#
+#     #accumulate all of the orders
+#     ordersList += [temp]
 
 print("Thinning by ", args.thin)
 print("Burning out first {} samples".format(args.burn))
 stellarlist = [stellar[args.burn::args.thin] for stellar in stellarlist]
 #a triple list comprehension is bad for readability, but I can't think of something better
-ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
-              ordersList]
+#ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
+#              ordersList]
 
 #Concatenate all of the stellar samples
 cat_stellar = np.concatenate(stellarlist, axis=0)
 
 #Concatenate all of the order samples
-cat_orders = [[np.concatenate(subList, axis=0) for subList in orderList] for orderList in ordersList]
+#cat_orders = [[np.concatenate(subList, axis=0) for subList in orderList] for orderList in ordersList]
 
 #Write this out to the new file
 hdf5 = h5py.File(args.output, "w")
 dset = hdf5.create_dataset("stellar", cat_stellar.shape, compression='gzip', compression_opts=9)
 dset[:] = cat_stellar
 dset.attrs["parameters"] = stellar_parameters
-for i, order in enumerate(orders):
-    orderList = cat_orders[i]
-    dset = hdf5.create_dataset("{}/cheb".format(order), orderList[0].shape, compression='gzip', compression_opts=9)
-    dset[:] = orderList[0]
-    dset.attrs["parameters"] = cheb_parameters
-    if yes_cov:
-        dset = hdf5.create_dataset("{}/cov".format(order), orderList[1].shape, compression='gzip', compression_opts=9)
-        dset[:] = orderList[1]
-        dset.attrs["parameters"] = cov_parameters
+
+# for i, order in enumerate(orders):
+#     orderList = cat_orders[i]
+#     dset = hdf5.create_dataset("{}/cheb".format(order), orderList[0].shape, compression='gzip', compression_opts=9)
+#     dset[:] = orderList[0]
+#     dset.attrs["parameters"] = cheb_parameters
+#     if yes_cov:
+#         dset = hdf5.create_dataset("{}/cov".format(order), orderList[1].shape, compression='gzip', compression_opts=9)
+#         dset[:] = orderList[1]
+#         dset.attrs["parameters"] = cov_parameters
 
 #close the new file
 hdf5.close()
