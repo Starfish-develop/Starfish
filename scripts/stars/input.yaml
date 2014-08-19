@@ -2,8 +2,8 @@
 
 name: WASP14_multi/Kurucz/21_22_23/
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : libraries/Kurucz_TRES.hdf5
-#HDF5_path : /scratch/Kurucz_TRES.hdf5
+#HDF5_path : libraries/Kurucz_TRES.hdf5
+HDF5_path : /scratch/Kurucz_TRES.hdf5
 #HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : [data/WASP14/WASP14-2009-06-14.hdf5, data/WASP14/WASP14-2010-03-29.hdf5]
 #data : data/WASP14/WASP14-2009-06-14.hdf5
@@ -102,6 +102,6 @@ orders: [21, 22, 23]
 
 #Burn in time
 burn_in : 0
-samples : 1000
+samples : 150000
 
 #will probably need 100000 for a good looking posterior
