@@ -775,25 +775,25 @@ able to defend the seemingly small uncertainties you're finding, even with a non
 matrix.  Is it really true that a model with 0.03\,dex lower metallicity cannot describe the data 
 as well?  Why?  [This is not to say I don't believe it, but it {\it will} raise questions...]}
 
-%Given the apparent differences in the quoted precisions, it is beneficial to review what factors 
-%into the parameter uncertainties.  In our approach, we consider contributions from both trivial 
-%(Poisson) noise and a non-trivial Gaussian process covariance matrix.\footnote{It is worth noting 
-%that the {\sc CfA/Kurucz} library is so good for stars like WASP-14 over this limited spectral 
-%range that no local covariance kernels need to be instantiated; in this specific case we use only a 
-%global covariance kernel.}  To break down their respective contributions, we performed the 
-%same analysis with only a trivial covariance matrix ($b = 1$; $\cov = 0$), which simplifies the 
-%likelihood function to the familiar $\chi^2$ form.  Doing this, we identify little bias to the 
-%best-fit parameters, but find unrealistic precision (i.e., $T_{\rm eff}$ to $\pm$5\,K, 
-%$[{\rm Fe/H}]$ to $\pm0.004$\,dex, and $v \sin i$ to $\pm0.01$\,km s$^{-1}$).  Such small 
-%uncertainties are to be expected, since the prescribed likelihood function presumes that the data 
-%are generated from the model; in this paradigm, the only way to introduce deviation is through 
-%white noise.  Of course, that implicit assumption is invalid, since just a few simple parameters 
-%($\vT$) are generally insufficient to perfectly account for the thousands of pixels and hundreds of 
-%spectral features in a typical dataset.  In essence, the data and an imperfect model spectrum also 
-%have {\it systematic} differences that contribute to the uncertainties (in addition to the Poisson 
-%noise), which we forward-model using a non-trivial covariance matrix.  In this specific case, these 
-%systematic uncertainties and the Poisson uncertainties contribute roughly equally to the $\vT$
-%posteriors.  
+Given the apparent differences in the quoted precisions, it is beneficial to review what factors 
+into the parameter uncertainties.  In our approach, we consider contributions from both trivial 
+(Poisson) noise and a non-trivial Gaussian process covariance matrix.\footnote{It is worth noting 
+that the {\sc CfA/Kurucz} library is so good for stars like WASP-14 over this limited spectral 
+range that no local covariance kernels need to be instantiated; in this specific case we use only a 
+global covariance kernel.}  To break down their respective contributions, we performed the 
+same analysis with only a trivial covariance matrix ($b = 1$; $\cov = 0$), which simplifies the 
+likelihood function to the familiar $\chi^2$ form.  Doing this, we identify little bias to the 
+best-fit parameters, but find unrealistic precision (i.e., $T_{\rm eff}$ to $\pm$5\,K, 
+$[{\rm Fe/H}]$ to $\pm0.004$\,dex, and $v \sin i$ to $\pm0.01$\,km s$^{-1}$).  Such small 
+uncertainties are to be expected, since the prescribed likelihood function presumes that the data 
+are generated from the model; in this paradigm, the only way to introduce deviation is through 
+white noise.  Of course, that implicit assumption is invalid, since just a few simple parameters 
+($\vT$) are generally insufficient to perfectly account for the thousands of pixels and hundreds of 
+spectral features in a typical dataset.  In essence, the data and an imperfect model spectrum also 
+have {\it systematic} differences that contribute to the uncertainties (in addition to the Poisson 
+noise), which we forward-model using a non-trivial covariance matrix.  In this specific case, these 
+systematic uncertainties and the Poisson uncertainties contribute roughly equally to the $\vT$
+posteriors.  
 
 \comm{Next, you want to address the observational systematics issue.  Willie (and basically 
 everyone else) add empirically-estimated systematic terms in quadrature that make some pretty 

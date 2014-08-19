@@ -155,13 +155,13 @@ region_priors = config['region_priors']
 
 #Create a separate model for each DataSpectrum. Note the new instance of HDF5 interface as well.
 model_list = [
-    Model(myDataSpectrum, myInstrument, HDF5Interface(config['HDF5_path']), stellar_tuple=("temp", "logg", "Z", "vsini",
-        "vz", "logOmega"), cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir,
+    Model(myDataSpectrum, myInstrument, HDF5Interface(config['HDF5_path']), stellar_tuple=stellar_tuple,
+          cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir,
         debug=False)
     for myDataSpectrum in myDataSpectra]
 
 myStellarSampler = StellarSampler(model_list=model_list, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
-                                  fix_logg=fix_logg, outdir=outdir, debug=False)
+                                  fix_logg=fix_logg, outdir=outdir, debug=True)
 
 samplerList = []
 #Create the samplers for each DataSpectrum
