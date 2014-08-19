@@ -113,10 +113,10 @@ ordersList = []
 for order in orders:
 
     print("Adding cheb for order {}".format(order))
-    temp = [get_flatchains("{}/cheb".format(order))]
+    temp = [get_flatchains("0/{}/cheb".format(order))]
     if yes_cov:
         print("Adding cov for order {}".format(order))
-        temp += [get_flatchains("{}/cov".format(order))]
+        temp += [get_flatchains("0/{}/cov".format(order))]
 
     #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
 
