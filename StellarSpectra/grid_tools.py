@@ -357,6 +357,21 @@ class KuruczGridInterface(RawGridInterface):
         super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
         raise NotImplementedError("No load_file routine for Kurucz")
 
+class ATLASGridInterface(RawGridInterface):
+    def __init__(self):
+
+        #The files are laid out into metallicity directories
+
+        #Within the metallicity directory, each FITS file contains all the spectra of a specific Teff and Z. The logg
+        # range from g00 to g50. If a certain T, Z combination does not have low surface gravities, then the column
+        # is filled with zeros.
+
+
+        pass
+
+    def load_flux(self, parameters, norm=True):
+        pass
+
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the individual files of the BTSettl grid do not
     always have the same wavelength sampling. Therefore, each call of :method:`load_flux` will interpolate the flux
@@ -448,7 +463,6 @@ class BTSettlGridInterface(RawGridInterface):
         '''
         super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
         raise NotImplementedError("No load_file routine for BTSettl")
-
 
 class HDF5GridStuffer:
     '''Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.

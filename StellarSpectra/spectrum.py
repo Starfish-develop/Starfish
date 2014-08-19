@@ -640,7 +640,7 @@ class DataSpectrum:
        For now, the DataSpectrum wls, fls, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.
 
     '''
-    def __init__(self, wls, fls, sigmas, masks=None, orders='all'):
+    def __init__(self, wls, fls, sigmas, masks=None, orders='all', name=None):
         self.wls = np.atleast_2d(wls)
         self.fls = np.atleast_2d(fls)
         self.sigmas = np.atleast_2d(sigmas)
@@ -662,6 +662,8 @@ class DataSpectrum:
             self.orders = orders
         else:
             self.orders = np.arange(self.shape[0])
+
+        self.name = name
 
     @classmethod
     def open(cls, file, orders='all'):
@@ -691,7 +693,7 @@ class DataSpectrum:
         #Although the actual fluxes and errors may be reasonably stored as float32, we need to do all of the calculations
         #in float64, and so we convert here.
         #The wls must be stored as float64, because of precise velocity issues.
-        return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders)
+        return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders, name=file)
 
     @classmethod
     def open_npy(cls, base_file, orders='all'):
@@ -722,7 +724,43 @@ class DataSpectrum:
         self.masks = self.masks & new_mask
 
     def __str__(self):
-        return "DataSpectrum object with shape {}".format(self.shape)
+        return "DataSpectrum object {} with shape {}".format(self.name, self.shape)
+
+class Mask:
+    '''
+    Mask to apply to DataSpectrum
+    '''
+    def __init__(self, masks, orders='all'):
+        assert isinstance(masks, np.ndarray), "masks must be a numpy array"
+        self.masks = np.atleast_2d(masks)
+
+        if orders != 'all':
+            #can either be a numpy array or a list
+            orders = np.array(orders) #just to make sure
+            self.masks = self.masks[orders]
+            self.orders = orders
+        else:
+            self.orders = np.arange(self.shape[0])
+
+
+    @classmethod
+    def open(cls, file, orders='all'):
+        '''
+        Load a Mask from a directory link pointing to HDF5 file output from EchelleTools or Generate_mask.ipynb
+        processing.
+
+        :param file: HDF5 file containing files on disk.
+        :type file: string
+        :returns: DataSpectrum
+        :param orders: Which orders should we be fitting?
+        :type orders: np.array of indexes
+
+        '''
+        import h5py
+        with h5py.File(file, "r") as hdf5:
+            masks = np.array(hdf5["masks"][:], dtype="bool")
+
+        return cls(masks, orders)
 
 class ModelSpectrum:
     '''
@@ -841,7 +879,7 @@ class ModelSpectrum:
         :type vsini: float (km/s)
 
         '''
-        if vsini < 0:
+        if vsini < 0.2:
             raise C.ModelError("vsini must be positive")
 
         self.vsini = vsini
@@ -853,10 +891,12 @@ class ModelSpectrum:
         #Determine the stellar broadening kernel
         ub = 2. * np.pi * self.vsini * self.ss
 
-        if np.allclose(self.vsini, 0):
-            sb = np.ones_like(ub)
-        else:
-            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        # if np.allclose(self.vsini, 0):
+        #     #If in fact, vsini=0, then just exit this subroutine and continue with the raw models.
+        #     return None
+        #     #sb = np.ones_like(ub)
+        # else:
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
 
         #set zeroth frequency to 1 separately (DC term)
         sb[0] = 1.
