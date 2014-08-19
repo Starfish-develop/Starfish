@@ -128,7 +128,6 @@ class FlatchainTree:
     '''
     pass
 
-    def __add__
 
 class OldFlatchainTree:
     '''
