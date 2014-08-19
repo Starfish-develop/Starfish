@@ -16,7 +16,8 @@ Main functionality:
 
 #Plot kw
 label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}/{\rm H}]$", "alpha":r"$[\alpha/{\rm Fe}]$",
-              "vsini":r"$v \sin i$", "vz":r"$v_z$", "logOmega":r"$\log_{10} \Omega$", "logc0":r"$\log_{10} c_0$",
+              "vsini":r"$v \sin i$", "vz":r"$v_z$", "vz1":r"$v_z1$", "logOmega":r"$\log_{10} \Omega$",
+              "logOmega1":r"$\log{10} \Omega 1$", "logc0":r"$\log_{10} c_0$",
               "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}", "l":r"$l$",
               "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
