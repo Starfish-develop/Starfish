@@ -23,12 +23,12 @@ stellar_params :
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 8
-    logg : 0.01
-    Z : 0.005
+    temp : 4
+    logg : 0.005
+    Z : 0.003
     vsini : 0.05
     vz : 0.015
-    logOmega: 2e-3
+    logOmega: 1e-3
 
 #no covariance
 #stellar_jump:
