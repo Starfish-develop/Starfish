@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/region/5sig/
+name: WASP14/PHOENIX/22/region/5sig/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
