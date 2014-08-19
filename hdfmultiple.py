@@ -108,20 +108,21 @@ yes_region = hdf5.visit(find_region)
 def get_flatchains(key):
     return [hdf5.get(key)[:] for hdf5 in hdf5list]
 
-#Order list will always be a 2D list, with the items being flatchains
-ordersList = []
-for order in orders:
-
-    print("Adding cheb for order {}".format(order))
-    temp = [get_flatchains("0/{}/cheb".format(order))]
-    if yes_cov:
-        print("Adding cov for order {}".format(order))
-        temp += [get_flatchains("0/{}/cov".format(order))]
-
-    #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
-
-    #accumulate all of the orders
-    ordersList += [temp]
+#This was good
+# #Order list will always be a 2D list, with the items being flatchains
+# ordersList = []
+# for order in orders:
+#
+#     print("Adding cheb for order {}".format(order))
+#     temp = [get_flatchains("{}/cheb".format(order))]
+#     if yes_cov:
+#         print("Adding cov for order {}".format(order))
+#         temp += [get_flatchains("{}/cov".format(order))]
+#
+#     #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
+#
+#     #accumulate all of the orders
+#     ordersList += [temp]
 
 # order22list = [order22cheblist, order22covlist]
 # order23list = [order23cheblist, order23covlist]
@@ -132,8 +133,8 @@ print("Thinning by ", args.thin)
 print("Burning out first {} samples".format(args.burn))
 stellarlist = [stellar[args.burn::args.thin] for stellar in stellarlist]
 #a triple list comprehension is bad for readability, but I can't think of something better
-ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
-              ordersList]
+#ordersList = [[[flatchain[args.burn::args.thin] for flatchain in subList] for subList in orderList] for orderList in
+#              ordersList]
 
 if args.stellar_params == "all":
     stellar_params = stellar_tuple
@@ -209,10 +210,10 @@ if args.gelman:
     #Compute the Gelman-Rubin statistics BDA 3, pg 284
     print("Stellar parameters")
     gelman_rubin(stellarlist)
-    for i, orderList in enumerate(ordersList):
-        print("\nOrder {}".format(orders[i]))
-        for subList in orderList:
-            gelman_rubin(subList)
+    # for i, orderList in enumerate(ordersList):
+    #     print("\nOrder {}".format(orders[i]))
+    #     for subList in orderList:
+    #         gelman_rubin(subList)
 
 
 
