@@ -113,6 +113,7 @@ class Model:
         #print("orders_dict is", orders_dict)
         orders = [int(i) for i in orders_dict.keys()]
         orders.sort()
+        fake_priors = {"sigma0": 5., "mu_width": 2., "sigma_knee" : 150, "frac_global":0.5}
         for i, order in enumerate(orders):
             order_model = model.OrderModels[i]
             order_dict = orders_dict[str(order)]
@@ -130,7 +131,7 @@ class Model:
                 CovMatrix = order_model.CovarianceMatrix
                 for i, region in enumerate(regions):
                     print("creating region ", i, region, regions_dict[str(region)])
-                    CovMatrix.create_region(regions_dict[str(region)])
+                    CovMatrix.create_region(regions_dict[str(region)], fake_priors)
 
         #Now update the stellar model again so it accounts for the Chebyshevs when downsampling
         model.update_Model(read['stellar_params'])

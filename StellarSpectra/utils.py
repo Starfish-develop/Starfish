@@ -2,6 +2,11 @@ import numpy as np
 import multiprocessing as mp
 import StellarSpectra.constants as C
 
+def multivariate_normal(cov):
+    N = cov.shape[0]
+    mu = np.zeros((N,))
+    return np.random.multivariate_normal(mu, cov)
+
 def random_draws(cov, num, nprocesses=mp.cpu_count()):
     '''
     Return random multivariate Gaussian draws from the covariance matrix.
@@ -15,17 +20,31 @@ def random_draws(cov, num, nprocesses=mp.cpu_count()):
     N = cov.shape[0]
     pool = mp.Pool(nprocesses)
 
-    result = pool.starmap_async(np.random.multivariate_normal, zip([np.zeros((N,))] * num, [cov]*num))
-    return np.array(result.get())
+    result = pool.map(multivariate_normal, [cov]*num)
+    return np.array(result)
+
+def envelope(spectra):
+    '''
+    Given a 2D array of spectra, shape (Nspectra, Npix), return the minimum/maximum envelope of these as two spectra.
+    '''
+    return np.min(spectra, axis=0), np.max(spectra, axis=0)
+
+
+def saveall(fig, fname, formats=[".png", ".pdf", ".svg"]):
+    '''
+    Save a matplotlib figure instance to many different formats
+    '''
+    for format in formats:
+        fig.savefig(fname + format)
 
 
 
 #Set of kernels *exactly* as defined in extern/cov.h
 @np.vectorize
-def k_gloabl(r, a, l):
+def k_global(r, a, l):
     r0=6.*l
     taper = (0.5 + 0.5 * np.cos(np.pi * r/r0))
-    if r >= taper:
+    if r >= r0:
         return 0.
     else:
         return taper * a**2 * (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r/l)
@@ -47,106 +66,32 @@ def k_local(x0, x1, a, mu, sigma):
 def k_global_func(x0i, x1i, x0v=None, x1v=None, a=None, l=None):
     x0 = x0v[x0i]
     x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    pass
+    r = np.abs(x1 - x0) * C.c_kms/x0
+    return k_global(r=r, a=a, l=l)
 
 def k_local_func(x0i, x1i, x0v=None, x1v=None, a=None, mu=None, sigma=None):
     x0 = x0v[x0i]
     x1 = x1v[x1i]
-    pass
-
-
-
-@np.vectorize
-def hann(r, r0):
-    if np.abs(r) < r0:
-        return 0.5 + 0.5 * np.cos(np.pi * r/r0)
-    else:
-        return 0
-
-def k_3_2_hann(r, l):
-    return k_3_2(r, l) * hann(r, 6 * l)
-
-
-def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    return amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
-
-def k_3_2_func(x0i, x1i, x0v=None, x1v=None, amp=None, l=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    return amp**2 * k_3_2(r, l)
-
-def k_3_2_hann_func(x0i, x1i, x0v=None, x1v=None, amp=None, l=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    return amp**2 * k_3_2_hann(r, l)
-
-
-#mat_3_2 = np.fromfunction(k_3_2_hann_func, (N,N), x0v=wl23, x1v=wl23, amp=0.028, l=0.14, dtype=np.int) #matrix from Matern kernel
-#mat = mat_3_2 + sigma23n**2 * np.eye(N) #add in the per-pixel noise
-
-def k_3_2(r, l):
-    return (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r/l)
-
-@np.vectorize
-def hann(r, r0):
-    if np.abs(r) < r0:
-        return 0.5 + 0.5 * np.cos(np.pi * r/r0)
-    else:
-        return 0
-
-def k_3_2_hann(r, l):
-    return k_3_2(r, l) * hann(r, 6 * l)
-
-
-def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    return amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
-
-def k_3_2_func(x0i, x1i, x0v=None, x1v=None, amp=None, l=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    return amp**2 * k_3_2(r, l)
-
-def k_3_2_hann_func(x0i, x1i, x0v=None, x1v=None, amp=None, l=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    return amp**2 * k_3_2_hann(r, l)
-
-def gauss_hann_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
-    x0 = x0v[x0i]
-    x1 = x1v[x1i]
-    r = np.abs(x1 - x0)
-    return hann(r, 4 * sigma) * amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
-
-
-# How to generate a matrix from one of these functions
-#mat_3_2 = np.fromfunction(k_3_2_hann_func, (N,N), x0v=wl23, x1v=wl23, amp=0.028, l=0.14, dtype=np.int) #matrix from
-# Matern kernel
-#mat = mat_3_2 + sigma23n**2 * np.eye(N) #add in the per-pixel noise
-
+    return k_local(x0=x0, x1=x1, a=a, mu=mu, sigma=sigma)
 
 #All of these return *dense* covariance matrices as defined in the paper
 def Poisson_matrix(wl, sigma):
-    raise NotImplementedError
+    '''
+    Sigma can be an array or a single float.
+    '''
+    N = len(wl)
+    matrix = sigma**2 * np.eye(N)
     return matrix
 
-def k_global_matrix(wl, amp, l):
-    raise NotImplementedError
+def k_global_matrix(wl, a, l):
+    N = len(wl)
+    matrix = np.fromfunction(k_global_func, (N,N), x0v=wl, x1v=wl, a=a, l=l, dtype=np.int)
     return matrix
 
 def k_local_matrix(wl, a, mu, sigma):
-    raise NotImplementedError
+    N = len(wl)
+    matrix = np.fromfunction(k_local_func, (N, N), x0v=wl, x1v=wl, a=a, mu=mu, sigma=sigma, dtype=np.int)
     return matrix
-
-
 
 
 
