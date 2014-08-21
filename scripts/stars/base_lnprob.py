@@ -161,7 +161,7 @@ model_list = [
     for myDataSpectrum in myDataSpectra]
 
 myStellarSampler = StellarSampler(model_list=model_list, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
-                                  fix_logg=fix_logg, outdir=outdir, debug=True)
+                                  fix_logg=fix_logg, outdir=outdir, debug=False)
 
 samplerList = []
 #Create the samplers for each DataSpectrum
