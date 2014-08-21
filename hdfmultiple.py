@@ -109,24 +109,24 @@ def get_flatchains(key):
     return [hdf5.get(key)[:] for hdf5 in hdf5list]
 
 #This was good
-# #Order list will always be a 2D list, with the items being flatchains
-# ordersList = []
-# for order in orders:
-#
-#     print("Adding cheb for order {}".format(order))
-#     temp = [get_flatchains("{}/cheb".format(order))]
-#     if yes_cov:
-#         print("Adding cov for order {}".format(order))
-#         temp += [get_flatchains("{}/cov".format(order))]
-#
-#     #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
-#
-#     #accumulate all of the orders
-#     ordersList += [temp]
+#Order list will always be a 2D list, with the items being flatchains
+ordersList = []
+for order in orders:
 
-# order22list = [order22cheblist, order22covlist]
-# order23list = [order23cheblist, order23covlist]
-# orderlist = [order22list, order23list]
+    print("Adding cheb for order {}".format(order))
+    temp = [get_flatchains("{}/cheb".format(order))]
+    if yes_cov:
+        print("Adding cov for order {}".format(order))
+        temp += [get_flatchains("{}/cov".format(order))]
+
+    #do not read in anything about regions here, that is for hdfregions.py, since there needs to be matching logic
+
+    #accumulate all of the orders
+    ordersList += [temp]
+
+order22list = [order22cheblist, order22covlist]
+order23list = [order23cheblist, order23covlist]
+orderlist = [order22list, order23list]
 # That way, we can do something like gelman_rubin(order22cheblist)
 
 print("Thinning by ", args.thin)
