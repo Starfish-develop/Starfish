@@ -36,6 +36,9 @@
 \newcommand{\matern}{Mat\'{e}rn}
 \newcommand{\HK}{$\textrm{H}_2$O-K2}
 
+%Chebyshev coefficients RULE!
+\newcommand{\cc}[2]{c_{#2}^{(#1)}} %echelle order first, then degree coefficient
+
 %flux
 \newcommand{\flam}{f_\lambda}
 
@@ -153,7 +156,7 @@ used (particularly in the spectral dimension), thereby achieving higher precisio
 with comparatively low sensitivity; the disadvantage is that the model quality and parameter 
 inferences are assessed in an empirical, rather than probabilistic, framework.  A third approach 
 employs a direct, pixel-by-pixel comparison between model and data, and is usually associated with 
-a spectral synthesis front-end (e.g., {\tt MOOG}; \citealt{sneden73}; {\tt SME}; 
+a spectral synthesis back-end (e.g., {\tt MOOG}; \citealt{sneden73}; {\tt SME}; 
 \citealt{valenti96}).  This technique has the benefits of parametric flexibility (e.g., one can fit 
 for arbitrary abundances or structures) and a proper inference framework \citep[usually a 
 least-squares approach, although increasingly in a Bayesian format;][]{shkedy07,schoenrich13}, but 
@@ -232,7 +235,7 @@ interpolation might not accurately recover intrinsic parameter degeneracies.
 We opt for the computationally expedient approach that employs a library of model spectra, 
 $\flam(\{\vt_{\ast}\}^{\rm grid})$, where $\vt_{\ast} = [T_{\rm eff}, \,\, \log{g}, \,\, 
 [{\rm Fe/H}]]$.  However, it is worth noting that the techniques developed here are applicable to 
-{\it any} ``front-end" that generates a model spectrum.  In our adopted approach, the model 
+{\it any} ``back-end" that generates a model spectrum.  In our adopted approach, the model 
 spectrum for an arbitrary $\vt_{\ast}$ is interpolated from a spectral library, 
 \begin{equation} \label{eqn:interp}
 \flam(\{\vt_{\ast}\}^{\rm grid}) \leadsto \flam(\vt_{\ast}),
@@ -247,14 +250,14 @@ corresponding library spectrum.  After an extensive exploration of such calculat
 \citep[see also][]{husser12}, we concluded that the best combination of speed and accuracy can be 
 achieved by pre-computing a {\it refined} spectral library using a cubic spline interpolation with 
 a $\{\vt_{\ast}\}^{\rm grid}$ spacing of [20\,K, 0.1\,dex, 0.1\,dex], and then performing 
-tri-linear interpolation over that refined grid.  Overall, this interpolation technique is found to 
-be accurate within a few percent per full-resolution model pixel.  Ideally, this pre-interpolation 
-could be avoided if the spectral library was computed over a refined grid (with a substantial 
-up-front computational investment); but for the time being, we can empirically propagate these 
-interpolation uncertainties into the likelihood calculations (as will be described in 
+tri-linear interpolation over that refined grid.  Overall, this interpolation
+technique is found to be accurate within a few percent per full-resolution
+model pixel and $\lesssim 1$\% once the spectrum is downsampled to the pixels of the detector. Ideally,
+this pre-interpolation could be avoided if the spectral library was computed
+over a refined grid (with a substantial up-front computational investment); but
+for the time being, we can empirically propagate these interpolation
+uncertainties into the likelihood calculations (as will be described in 
 Section~\ref{subsec:likelihood}).  
-%% \todo{tests regarding interpolation accuracy}.
-
 
 \subsection{Post-Processing} \label{subsec:postprocess}
 
@@ -336,7 +339,7 @@ comparison with $\vM(\vT)$.  However, that is unlikely to be the case.  The key 
 imperfect calibration might produce mismatches in the underlying shapes of the data and model.  
 Although such mismatches presumably occur at a low-level over relatively broad wavelength scales, 
 they still might represent a non-trivial likelihood contribution, and thereby bias our estimates of 
-the physical parameters.  This concern is treated externally to any modeling procedure, most often 
+the physical parameters.  This concern is usually treated externally to any modeling procedure, most often 
 by dividing the observed spectrum (and model spectrum) by a polynomial in $\lambda$.  But that 
 ``normalization" implicitly assumes that there is no relevant information content in the spectral 
 shape; if $\vT$ also contributes on the mismatched scales, then adopting this approach will corrupt 
@@ -432,14 +435,19 @@ observed and modeled spectral feature will create a correlated residual that spa
 pixels.  This can be demonstrated practically through the autocorrelation of $\vR$: a slight model 
 mismatch will produce correlated residuals over a characteristic scale similar to the instrumental
 broadening kernel width ($\sigma_v$).  Figure \ref{fig:class0} highlights a specific example of 
-these correlated residuals in real data; a significant autocorrelation signal is found on a $\sim$4 
-pixel scale, corresponding to the 3\,km s$^{-1}$ width of $\mathcal{F}_v^{\rm inst}$.  
+these correlated residuals in real data; a significant autocorrelation signal is found on a $\sim$5 
+pixel scale, corresponding to the 6.8\,km s$^{-1}$ FWHM of $\mathcal{F}_v^{\rm inst}$.  
 
 \begin{figure*}[!htb]
 \begin{center}
   \includegraphics{correlation_panel.pdf}
-  \caption{\textbf{Top}: the big spectrum. \textbf{Left} The same low-amplitude, mildly covariant residuals from Figure~\ref{fig:badlines}, panel 0, but enlarged to show the mildly covariant structure produced by slight mismatch between the data and model spectra.   
-  \textbf{Right} The autocorrelation of the residual sequence shown at left. Notice that there is significant correlation for offsets of $\lesssim 4$ pixels.}
+  \caption{\textbf{Top}: A typical model fit to a data spectrum, with
+  parameters drawn from the posterior distribution, and the residuals that
+  result. \textbf{Left} The low-amplitude, mildly covariant residuals enlarged
+  to show the mildly covariant structure produced by slight mismatch between
+  the data and model spectra.   \textbf{Right} The autocorrelation of the
+residual sequence shown at left. Notice that there is significant correlation
+for offsets of $\lesssim 5$ pixels.}
 \label{fig:class0}
 \end{center}
 \end{figure*}
@@ -489,19 +497,16 @@ enables computational expendiency, we employ a Hann window function
   \label{eqn:Hann}
 \end{equation}
 to taper the kernel.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the 
-scale (we set $r_0 = 4\ell$).  Figure \ref{fig:matern} demonstrates that random draws from such a 
+scale (we set $r_0 = 4\ell$).  Figure \ref{fig:matrix} demonstrates that random draws from such a 
 kernel readily produce correlated structure similar to those seen in a typical residual spectrum.
 
 \begin{figure*}[!htb]
 \begin{center}
-\includegraphics[width=0.4\textwidth]{figs/matern_matrix.pdf}
-\includegraphics[width=0.4\textwidth]{figs/matern_draw.pdf}
-\caption{\textbf{Left} Inset zoomed to show a small region of a typical covariance matrix, generated using the kernel in Equation~\ref{eqn:global} and common values for the hyperparameters. There is a small degree of covariance in elements within a few pixels off the diagonal, which quickly tapers off so that the majority of the matrix remains sparse ($\sigma_{ij} = 0$). This matrix is used to model a spectrum which is correlated on a $\sim$few pixel scale.
-\textbf{Right} To demonstrate that this matrix properly models the correlated structure of the residuals, we compare the residuals to random residuals generated from a multivariate normal distribution with this covariance matrix. The top panel shows the same residuals shown in Figure~\ref{fig:class0}, and below are plotted three sets of simulated residuals. The amplitude and correlation length of the simulated residuals closely approximates the structure of the actual pixel residuals.}
-\label{fig:matern}
+\includegraphics{figs/matrix_compilation.pdf}
+\caption{\textbf{Top}: A typical model fit and residual spectrum with a demonstrative region shaded in grey, showing the scale and structure of the residuals. \textbf{Left column}: A small inset of the covariance matrix corresponding to the gray region. Note that the colorbar scale changes with each inset in order to best illustrate the structure of the matrix. \textbf{Right column}: Each panel shows three random draws (gray) from a multivariate normal distribution using the covariance matrix in the left column. At the bottom of each panel is the envelope formed by 50 random draws (blue) overlaid with the actual residuals from the gray region. \textbf{First row}: White, Poisson-only noise ($\delta_{ij}\sigma_i$) does a poor job of reproducing both the scale and structure of a typical residual spectrum. \textbf{Second row}: The addition of a global kernel ($\mathcal{K}^{\rm g}$) yields random draws that closely approximate the structure and amplitude of the residuals, but miss the strong outlier line at 5202.2 \AA. \textbf{Third row}: Finally, adding in a local kernel ($\mathcal{K}^l$) at the location of the outlier produces random draws that completely match the structure of the residuals. Interestingly, note that the covariance matrix can produce random draws that have negative, positive, and even flat residual lines. The point is that with a non-trivial covariance matrix, the likelihood function can now accommodate the residuals generated from a typical spectroscopic fit. Stated differently, random draws from the likelihood function can now produce behavior that looks like the residuals, whereas before with only white noise it could not. All parameters of the covariance kernels are determined self-consistently along with the stellar parameters. }
+\label{fig:matrix}
 \end{center}
 \end{figure*}
-
 
 \subsubsection{Local Covariance Structure} \label{subsec:local_covariance}
 
@@ -517,13 +522,13 @@ Assuming that these local residuals are produced primarily by pathological diffe
 spectral line strength (rather than shape or center), a simple Gaussian is a reasonable residual 
 model.  In that case, the $k^{\rm th}$ such local residual could be described as
 \begin{equation}
-\vR = \frac{a_k}{\sqrt{2\pi}{\sigma_k}} \exp \left[ - \frac{r^2(\lambda,\mu_k)}{2\sigma_k^2} \right],
+\vR = a_k \exp \left[ - \frac{r^2(\lambda,\mu_k)}{2\sigma_k^2} \right],
 \end{equation}
-with amplitude $a_k$, mean wavelength $\mu_k$, and width $\sigma_k$.  Following 
+with peak amplitude $a_k$, mean wavelength $\mu_k$, and width $\sigma_k$.  Following 
 Eq.~\ref{eqn:expectation}, the covariance of any two pixels related to the $k^{\rm th}$ local 
 residual regions can be written
 \begin{equation} \label{eqn:kregion}
-  \mathcal{K}^{l,k}_{ij} = \frac{a_k^2}{2\pi\sigma_k^2} \exp \left [ - \, \frac{r^2(\lambda_i, \mu_k) + r^2(\lambda_j, \mu_k)}{2 \sigma_k^2}\right ],
+  \mathcal{K}^{l,k}_{ij} = a_k^2 \exp \left [ - \, \frac{r^2(\lambda_i, \mu_k) + r^2(\lambda_j, \mu_k)}{2 \sigma_k^2}\right ],
 \end{equation}
 such that the full local covariance kernel composed of a sequence of residual regions is the linear 
 combination,
@@ -531,25 +536,15 @@ combination,
 \Klocal_{ij}(\vp_{{\mathsf C},l}) = \sum_k w^k_{ij} \, \mathcal{K}^{l,k}_{ij},
 \end{equation}
 with a set of (hyper-)parameters $\vp_{{\mathsf C},l} = [\{a_k, \mu_k, \sigma_k\}]$.  Note that we 
-again taper the kernels with Hann windows (Eq.~\ref{eqn:Hann}) to ensure that a sparse covariance 
+again taper the kernels with Hann windows (Eq.~\ref{eqn:Hann}) to ensure a sparse covariance 
 matrix; in this case, the truncation distance $r_0$ can be set to some multiple of the Gaussian 
-width (we use $r_0 = 4\sigma_k$).  Figure \ref{fig:region} shows how this non-stationary Gaussian 
+width (we use $r_0 = 4\sigma_k$).  Figure \ref{fig:matrix} shows how this non-stationary Gaussian 
 kernel generates a localized region of enhanced variance that successfully mimics the kind of 
 residuals produced by an inaccurate spectral line model.  In effect, these kernels down-weight the 
 influence of such strong residuals in the likelihood calculation, mitigating any potential bias 
 they might induce on inferences of the interesting parameters ($\vT$).  This acts like a robust, 
 flexible, and unbiased method for (correlated) outlier rejection that preserves the integrity of 
 the probabilistic framework (as opposed to manual or threshold-based clipping or masking).  
-
-\begin{figure*}[!t]
-\begin{center}
-\includegraphics[width=0.4\textwidth]{figs/gauss_matrix.pdf}
-\includegraphics[width=0.4\textwidth]{figs/gauss_draw.pdf}
-\caption{\textbf{Left} A typical covariance matrix including the Gaussian line kernel (Equation~\ref{eqn:klocal}). The same global covariance shown in Figure~\ref{fig:matern} is still present with the same hyperparameters, however now there is an additional patch of high covariance corresponding to the large, Gaussian-shaped residuals. These larger elements in the covariance matrix effectively down-weight the contribution of a poorly modeled synthetic spectral line.
-\textbf{Right} The same spectroscopic residuals shown in Figure~\ref{fig:badlines}, class I, shown with three random draws from the covariance matrix. The random draws can take on a range of amplitudes--positive, negative, or even flat--because they are simply random draws that are described by the covariance matrix. The wide range of possible residual amplitudes match the structure and amplitude of the pixel residuals.}
-\label{fig:region}
-\end{center}
-\end{figure*}
 
 These local kernels can be further modified to account for more complex residual structures.  For 
 example, late-type stars with imperfectly modeled molecular bandheads may produce a complicated 
@@ -575,16 +570,6 @@ spectra (see Section \ref{sec:examples} for examples).  If there are $N_{\rm loc
 patches (see Section \ref{subsec:MCMC} on how this is determined), then there are $4N_{\rm loc}+2$ 
 elements in the set of covariance (hyper-)parameters, $\cov$.  
 
-%\begin{figure*}[!t]
-%\begin{center}
-%\includegraphics[width=0.4\textwidth]{figs/gauss_matrix.pdf}
-%\includegraphics[width=0.4\textwidth]{figs/gauss_draw.pdf}
-%\caption{\textbf{Left} A typical covariance matrix including the Gaussian line kernel (Equation~\ref{eqn:klocal}). The same global covariance shown in Figure~\ref{fig:matern} is still present with the same hyperparameters, however now there is an additional patch of high covariance corresponding to the large, Gaussian-shaped residuals. These larger elements in the covariance matrix effectively down-weight the contribution of a poorly modeled synthetic spectral line.
-%\textbf{Right} The same spectroscopic residuals shown in Figure~\ref{fig:badlines}, class I, shown with three random draws from the covariance matrix. The random draws can take on a range of amplitudes--positive, negative, or even flat--because they are simply random draws that are described by the covariance matrix. The wide range of possible residual amplitudes match the structure and amplitude of the pixel residuals.}
-%\label{fig:region}
-%\end{center}
-%\end{figure*}
-
 
 \subsection{Priors} \label{subsec:priors}
 
@@ -605,12 +590,13 @@ some judicious tapering of the priors (such that high-$n$ coefficients are const
 may be required to ensure that broad spectroscopic features are not absorbed into the polynomial 
 (see Section~\ref{sec:examples}). 
 
-We assume uniform priors on the global covariance parameters.  For the local covariance kernels, we 
-adopt flat priors for the amplitudes and means, \{$a_k$, $\mu_k$\}, and construct a specialized 
-prior for the widths, \{$\sigma_k$\}, that is flat when $\sigma_k < \sigma_v$ and has a rapid 
-(Gaussian) taper to zero for larger widths.  This form is designed to prevent the local 
-kernels from diffusing to large $\sigma_k$ and low $a_k$, since such behavior is better treated by 
-the global kernel.  
+We assume uniform priors on the global covariance parameters.  For the local
+covariance kernels, we adopt flat priors for the amplitudes and means, \{$a_k$,
+$\mu_k$\}, and construct a specialized prior for the widths, \{$\sigma_k$\},
+that is flat below the instrumental width (when $\sigma_k < \sigma_v$) and has
+a rapid (logistic) taper to zero for larger widths.  This form is designed to
+prevent the local kernels from diffusing to large $\sigma_k$ and low $a_k$,
+since such behavior is better treated by the global kernel.  
 
 
 \subsection{Exploring the Posterior} \label{subsec:MCMC}
@@ -655,15 +641,7 @@ $\vT^i$ and $\cov^{i-1}$ are fixed.  Update the coefficients, $\cheb^{i-1} \righ
 $\vp_{{\mathsf C}, l}^{i-1}$, fixed.  Update $\vp_{{\mathsf C}, g}^{i-1} \rightarrow \vp_{{\mathsf 
 C}, g}^i$.
 
-\item Decide whether to instantiate any local (non-stationary) covariance kernels.  We adopt an 
-iterative thresholding criterion: if a local patch of the residual signal is at least $3\times$ the 
-amplitude of the global covariance kernel (i.e., where $\vR \ge 3 \, a_g^i$), this triggers the 
-addition of a local kernel.\footnote{There is no practical reason to delete local kernels.  If the 
-parameters have changed such that a given local kernel is no longer required, that kernel amplitude 
-will be driven towards zero and represent a negligible contribution to $\vC$; in effect, the model 
-will act as if the kernel were deleted automatically.}
-
-\item Now sample in the local covariance hyperparameters $\vp_{{\mathsf C},l}$ with $\vT^i$, 
+\item If any local (non-stationary) covariance kernels have been instantiated (see below), sample in their hyperparameters $\vp_{{\mathsf C},l}$ with $\vT^i$, 
 $\cheb^i$, and $\vp_{{\mathsf C}, g}^i$ fixed.  Update the local kernel parameters 
 $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$.  
 \end{enumerate}
@@ -674,7 +652,27 @@ $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$.
 convergence diagnostics to ensure that all of the chains have reached the same global maximum in 
 the posterior probability distribution. \\
 
-After burn-in, we periodically pause the Gibbs sampler and compute the Gelman-Rubin convergence 
+Local kernels are instantiated by the following procedure:  An ``average''
+residual spectrum is created by combining ~500 spectra residuals stored from a
+burn-in period using only global covariance kernels (thinned to account for
+autocorrelation of the Markov chain). Then, using an iterative thresholding
+criterion similar in procedure to
+``sigma clipping,''\footnote{Although the procedure of identifying outliers is
+  similar to sigma clipping, the inference on the stellar parameters is
+  emphatically \emph{not} the same as sigma clipping, since we now determine
+the weights of these spectral outliers inside of a probabilistic framework, rather than
+directly setting their weights to zero as in sigma clipping.} we identify the largest outlier
+pixel not already covered by a local kernel, instantiate a local kernel at its location, and repeat until there are no pixels above a certain
+threshold left.\footnote{There is no practical
+  reason to delete local kernels once instantiated.  If the parameters have
+  changed such that a given local kernel is no longer required, that kernel
+  amplitude will be driven towards zero and represent a negligible contribution
+  to $\vC$; in effect, the model will act as if the kernel were deleted
+automatically.} Alternative local kernel instantiation schemes,
+such as re-evaluating the location of kernels with each Gibbs sampler
+iteration, have yielded similar results to the thresholding approach. However, this approach most consistently converges and only has a modest computational overhead. We choose four times the standard deviation of the average residual spectrum as our threshold. Lower thresholds (e.g., 3$\sigma$ and 3.5$\sigma$) result in the instantiation of more kernels, which in turn slightly reduces the amplitude of the global kernel. Taken to the logical conclusion, if the threshold was set low enough then there would be a local kernel for each spectral line and no global kernel would be required. We find that the final stellar posterior is relatively insensitive to the choice of threshold level as long as it is set low enough to capture the most egregious spectral outliers (e.g., 4$\sigma$). Once all of the local kernels have been instantiated, the Gibbs sampler is run for another period of burn-in.
+
+After burn-in is complete, we periodically pause the Gibbs sampler and compute the Gelman-Rubin convergence 
 diagnostic  $\hat{R}$ \citep[][their Eq.~11.4]{gelman13}, which compares the intra-chain and 
 inter-chain variances to assess how the inference of the posterior would be improved if the chains 
 were to be run for an infinite number of iterations.  The Gibbs sampler is eventually stopped if 
@@ -761,6 +759,53 @@ reproducing the WASP-14 spectrum and, most significantly, the structure of the a
 residuals.  Figure~Z compares the inferred parameters with the various determinations made by 
 \citet{torres12}.  
 
+\begin{figure*}[!htb]
+\begin{center}
+\includegraphics{figs/residuals_Kurucz_logg.pdf}
+\caption{Kurucz WASP-14.}
+\label{fig:residuals_Kurucz}
+\end{center}
+\end{figure*}
+
+
+\begin{deluxetable}{lr@{$\pm$}l} 
+\tablecaption{\label{table:Kurucz}WASP-14 {\sc CfA/Kurucz} results}
+\tablehead{\colhead{Parameter} & \multicolumn{2}{c}{Value}}
+\startdata
+\cutinhead{Stellar parameters}
+$T_{\rm eff}$ & 6516.8 & 12.6 K \\
+$\log_{10} g$ & \multicolumn{2}{c}{4.29 dex} \\
+$\Z$ & -0.27 & 0.01 dex \\
+$v \sin i$ & 4.29 & 0.05 $\kms$\\
+$v_z$ & -4.62 & 0.02 $\kms$ \\
+$\log_{10} \Omega$ & -12.72 & 0.0004 \\
+\cutinhead{Order 22 nuisance parameters}
+$\cc{22}{0}$ & & \\
+$\cc{22}{1}$ & & \\
+$\cc{22}{2}$ & & \\
+$\cc{22}{3}$ & & \\
+$b_{22}$ & & \\
+$a_{{\rm g}, 22}$ & & \\
+$l_{22}$ & & \\
+\cutinhead{Order 23 nuisance parameters}
+$\cc{23}{0}$ & & \\
+$\cc{23}{1}$ & & \\
+$\cc{23}{2}$ & & \\
+$\cc{23}{3}$ & & \\
+$b_{23}$ & & \\
+$a_{{\rm g}, 23}$ & & \\
+$l_{23}$ & & \\
+\cutinhead{Order 24 nuisance parameters}
+$\cc{24}{0}$ & & \\
+$\cc{24}{1}$ & & \\
+$\cc{24}{2}$ & & \\
+$\cc{24}{3}$ & & \\
+$b_{24}$ & & \\
+$a_{{\rm g}, 24}$ & & \\
+$l_{24}$ & & \\
+\enddata
+\end{deluxetable}
+
 \comm{Ok, this is where you went off the rails a little bit in the core-dump.  I frankly do not 
 want to see Table 2 in this paper, or any reference to specific model or test identifications.  It 
 is too confusing, and it obscures the key points we want to make.  I appreciate your desire to 
@@ -810,6 +855,53 @@ modeling for Phoenix in orders 22-24 and demonstrate that you get much different
 will have to show the results, and then can take that opportunity to discuss the local covariance 
 kernels.  Just show the results and make these two points, don't belabor the details: I don't 
 know what to make of the weird Phoenix parameters.}
+
+\begin{figure*}[!htb]
+\begin{center}
+\includegraphics{figs/residuals_PHOENIX_logg.pdf}
+\caption{Kurucz WASP-14.}
+\label{fig:residuals_PHOENIX}
+\end{center}
+\end{figure*}
+
+
+\begin{deluxetable}{lr@{$\pm$}l} 
+\tablecaption{\label{table:PHOENIX}WASP-14 {\sc Phoenix} results}
+\tablehead{\colhead{Parameter} & \multicolumn{2}{c}{Value}}
+\startdata
+\cutinhead{Stellar parameters}
+$T_{\rm eff}$ & 6516.8 & 12.6 K \\
+$\log_{10} g$ & \multicolumn{2}{c}{4.29 dex} \\
+$\Z$ & -0.27 & 0.01 dex \\
+$v \sin i$ & 4.29 & 0.05 $\kms$\\
+$v_z$ & -4.62 & 0.02 $\kms$ \\
+$\log_{10} \Omega$ & -12.72 & 0.0004 \\
+\cutinhead{Order 22 nuisance parameters}
+$\cc{22}{0}$ & & \\
+$\cc{22}{1}$ & & \\
+$\cc{22}{2}$ & & \\
+$\cc{22}{3}$ & & \\
+$b_{22}$ & & \\
+$a_{{\rm g}, 22}$ & & \\
+$l_{22}$ & & \\
+\cutinhead{Order 23 nuisance parameters}
+$\cc{23}{0}$ & & \\
+$\cc{23}{1}$ & & \\
+$\cc{23}{2}$ & & \\
+$\cc{23}{3}$ & & \\
+$b_{23}$ & & \\
+$a_{{\rm g}, 23}$ & & \\
+$l_{23}$ & & \\
+\cutinhead{Order 24 nuisance parameters}
+$\cc{24}{0}$ & & \\
+$\cc{24}{1}$ & & \\
+$\cc{24}{2}$ & & \\
+$\cc{24}{3}$ & & \\
+$b_{24}$ & & \\
+$a_{{\rm g}, 24}$ & & \\
+$l_{24}$ & & \\
+\enddata
+\end{deluxetable}
 
 \comm{I am not sure how/if it will fit in, but I want to see the results of fitting many more 
 orders with Phoenix.}
@@ -970,35 +1062,7 @@ $w$ & Hanning taper for kernels \\
 \enddata
 \end{deluxetable}
 
-\begin{deluxetable}{lllrlr@{$\pm$}lr@{$\pm$}lr@{$\pm$}ll} 
-\tablecaption{\label{table:tests} Results}
-\tablehead{
-  \colhead{Test ID} & \colhead{Object} & \colhead{Orders} & \colhead{$\lambda$ range [\AA]} & \colhead{library} &
-  \multicolumn{2}{c}{$T_{\rm eff} \pm \sigma$} & \multicolumn{2}{c}{$\log g \pm \sigma$} &
-  \multicolumn{2}{c}{$\Z \pm \sigma$} & \colhead{comments}
-}
-\startdata
-WK1 & WASP-14 & 23 & 5135-5235 & Kurucz & 6241 & 15 & 3.88 & 0.02 & -0.43 & 0.01 & Poisson\\
-WK2 & WASP-14 & 23 & 5135-5235 & Kurucz & 6264 & 31 & 3.92 & 0.04 & -0.42 & 0.02 & Global\\
-WK3 & WASP-14 & 23 & 5135-5235 & Kurucz & & & \multicolumn{2}{c}{\nodata} & & & Matern; fixed $\log g = 4.29$\\
-WP1 & WASP-14 & 23 & 5135-5235 & PHOENIX & 6023.3 & 4.3 & 3.84 & 0.01 & -0.50 & 7.7e-4 & Poisson\\
-WP2 & WASP-14 & 23 & 5135-5235 & PHOENIX & 6000.72 & 3 & 3.94 & 0.01 & -0.50 & 2.6e-3 & Poisson, masked \\
-WP3 & WASP-14 & 23 & 5135-5235 & PHOENIX & 5984.9 & 74 & 3.80 & 0.09 & -0.66 & 0.07 & Global, no mask \\
-WP4 & WASP-14 & 23 & 5135-5235 & PHOENIX & & & & & & & Global and local \\
-&WASP-14 & 22-24 & 5060-5315 & Kurucz & & & & & & & Poisson\\
-&WASP-14 & 22-24 & 5060-5315& Kurucz & & & & & & & Global\\
-&WASP-14 & 22-24 & 5060-5315& Kurucz & & & \multicolumn{2}{c}{\nodata} & & & \tablenotemark{a}Global; fixed $\log g = 4.29$\\
-&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Poisson\\
-&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global; low because of 24\\
-&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & \multicolumn{2}{c}{\nodata} & & & Global; fixed $\log g = 4.29$ \\
-&WASP-14 & 22-24 & 5060-5315 & PHOENIX & & & & & & & Global and local\\
-GP1 &Gl~51 & \nodata & IR & PHOENIX & & & & & & & Poisson\\
-\enddata
-\tablenotetext{a}{Using the same assumptions in the \citet{torres12} {\tt SPC} analysis: same region of spectrum, same spectral library, and fixing $\log g$=$4.29$, the value determined by \citet{joshi09} from the exoplanet transit. For the WASP-14 spectrum acquired by \emph{TRES}, \citet{torres12} use {\tt SPC} to determine $T_{\rm eff}$=6507$\pm$50K and $\Z$=-0.15$\pm$0.08. With {\tt MOOG}, they determine $T_{\rm eff}$=6150$\pm$75K and $\Z$=-0.34$\pm$0.10. Because {\tt SPC} uses a cross-correlation technique which only accounts for the white noise and we model residual spectrum as correlated noise, there may be differences in the uncertainty estimate.}
-\end{deluxetable}
-
 \appendix
-
 
 This version of the paper was generated
  from a git repository available at \url{http://github.com/iancze/StellarSpectra/}

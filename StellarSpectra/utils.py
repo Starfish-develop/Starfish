@@ -3,9 +3,12 @@ import multiprocessing as mp
 import StellarSpectra.constants as C
 
 def multivariate_normal(cov):
+    np.random.seed()
     N = cov.shape[0]
     mu = np.zeros((N,))
-    return np.random.multivariate_normal(mu, cov)
+    result = np.random.multivariate_normal(mu, cov)
+    print("Generated residual")
+    return result
 
 def random_draws(cov, num, nprocesses=mp.cpu_count()):
     '''
@@ -28,6 +31,24 @@ def envelope(spectra):
     Given a 2D array of spectra, shape (Nspectra, Npix), return the minimum/maximum envelope of these as two spectra.
     '''
     return np.min(spectra, axis=0), np.max(spectra, axis=0)
+
+
+def visualize_draws(spectra, num=20):
+    '''
+    Given a 2D array of spectra, shape (Nspectra, Npix), visualize them to choose the most illustrative "random"
+    samples.
+    '''
+    import matplotlib.pyplot as plt
+    offset = 6 * np.std(spectra[0], axis=0)
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111)
+    for i, (spectrum, off) in enumerate(zip(spectra[:num], offset * np.arange(0, num))):
+        ax.axhline(off, ls=":", color="0.5")
+        ax.plot(spectrum + off, "k")
+        ax.annotate(i, (1, off))
+
+    plt.show()
+
 
 
 def saveall(fig, fname, formats=[".png", ".pdf", ".svg"]):
