@@ -68,7 +68,7 @@ label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}
               "logOmega2":r"$\log{10} \Omega 2$",
               "logOmega3":r"$\log{10} \Omega 3$",
               "logc0":r"$\log_{10} c_0$", "c1":r"$c_0$", "c2":r"$c_1$", "c3":r"$c_3$",
-              "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}", "l":r"$l$",
+              "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}$", "l":r"$l$",
               "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
 #Additionally, there should be an object for each flatchain, that stores param_tuple and samples
@@ -350,8 +350,10 @@ def GR_list(flatchainTreeList):
 
     for key in keys:
         print("\n", key)
-        #Accumulate one set of samples (from each FlatchainTree) corresponding to the key
-        gelman_rubin([fchain_dict[key].samples for fchain_dict in fchain_dicts])
+        #We can't do this for the region chains in this format, because they are not guaranteed to match.
+        if "region" not in key:
+            #Accumulate one set of samples (from each FlatchainTree) corresponding to the key
+            gelman_rubin([fchain_dict[key].samples for fchain_dict in fchain_dicts])
 
 
 def cat_list(file, flatchainTreeList):
@@ -386,6 +388,10 @@ def plot(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plo
     '''
     Make a bunch of plots to diagnose how the run went.
     '''
+
+    import matplotlib
+    matplotlib.rc("font", size=16)
+
     #Navigate the flatchain tree, and each time we encounter a flatchain, plot it.
     for flatchain in flatchainTree.flatchains:
 
@@ -397,7 +403,7 @@ def plot(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plo
         labels = [label_dict.get(key, "unknown") for key in params]
 
         figure = triangle.corner(samples, labels=labels, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 10})
+                                 show_titles=True, title_args={"fontsize": 16})
         figure.savefig(base + flatchain.id + format)
 
 
