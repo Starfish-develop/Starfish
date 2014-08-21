@@ -18,6 +18,7 @@ parser.add_argument("--dir", action="store_true", help="Concatenate all of the f
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
+parser.add_argument("--old", action="store_true", help="Old format flatchains.hdf5 files?")
 
 parser.add_argument("--lnprob", help="The HDF5 file containing the lnprobability chains.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
@@ -43,6 +44,17 @@ parser.add_argument("--acor-window", type=int, default=50, help="window to compu
 parser.add_argument("--cov", action="store_true", help="Estimate the covariance between two parameters.")
 
 args = parser.parse_args()
+
+#Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
+if os.path.exists(args.outdir):
+    if not args.clobber:
+        import sys
+        sys.exit("Error: --outdir already exists and --clobber is not set. Exiting.")
+else:
+    os.makedirs(args.outdir)
+
+args.outdir += "/"
+
 
 import h5py
 
@@ -192,7 +204,7 @@ class FlatchainTree:
 
 
     '''
-    def __init__(self, file):
+    def __init__(self, file, old=False):
         #Load everything from the HDF5File into a bunch of Flatchain objects
         #We will always have the stellar samples
 
@@ -201,9 +213,13 @@ class FlatchainTree:
         self.stellar = Flatchain.from_dset("stellar", hdf5.get("stellar"))
         self.shape = self.stellar.shape
 
-        #For each key that is a number, make a model.
-        self.modelTreeDict = {id:ModelTree.from_dset(id, dset) for (id, dset) in ((key, dset) for (key, dset) in hdf5
-                                .items() if key.isdigit())}
+        if old:
+            self.modelTreeDict = {"0":ModelTree.from_dset("0", hdf5)}
+
+        else:
+            #For each key that is a number, make a model.
+            self.modelTreeDict = {id:ModelTree.from_dset(id, dset) for (id, dset) in ((key, dset) for (key, dset) in hdf5
+                                    .items() if key.isdigit())}
 
         hdf5.close()
 
@@ -355,11 +371,12 @@ def cat_list(file, flatchainTreeList, burn=0, thin=1):
     for key in keys:
         dsetkey = key.replace("-", "/")
         print("\nWriting", dsetkey)
+        params = ftree0.flatchains_dict[key].param_tuple
         cat = np.concatenate([fchain_dict[key].samples[burn::thin] for fchain_dict in fchain_dicts], axis=0)
 
         dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
         dset[:] = cat
-        dset.attrs["parameters"] = "fun" #fchain_dicts[key][0].param_tuple
+        dset.attrs["parameters"] = "{}".format(params)
 
     hdf5.close()
 
@@ -504,24 +521,8 @@ if args.acor:
         print("{} : {}".format(param, acor))
 
 
-class OldFlatchainTree:
-    '''
-    The old structure which assumed only 1 DataSpectrum. For legacy's sake.
-    '''
-    pass
-
 
 #Now that all of the structures have been declared, do the initialization stuff.
-
-#Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
-if os.path.exists(args.outdir):
-    if not args.clobber:
-        import sys
-        sys.exit("Error: --outdir already exists and --clobber is not set. Exiting.")
-else:
-    os.makedirs(args.outdir)
-
-args.outdir += "/"
 
 if args.dir:
     #assemble all of the flatchains.hdf5 files from the run* subdirectories into FlatchainTree objects
@@ -539,7 +540,7 @@ else:
 flatchainTreeList = []
 for file in files:
     try:
-        flatchainTreeList.append(FlatchainTree(file))
+        flatchainTreeList.append(FlatchainTree(file, old=args.old))
     except OSError:
         print("{} does not exist, skipping.".format(file))
 

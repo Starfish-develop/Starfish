@@ -247,10 +247,7 @@ undesirable level of inaccuracy (particularly in the [Fe/H] dimension).  The int
 can be empirically estimated by performing the operation in Eq.~\ref{eqn:interp} across a 
 $\{\vt_{\ast}\}^{\rm grid}$ grid point, and then comparing the interpolated spectrum with the 
 corresponding library spectrum.  After an extensive exploration of such calculations 
-\citep[see also][]{husser12}, we concluded that the best combination of speed and accuracy can be 
-achieved by pre-computing a {\it refined} spectral library using a cubic spline interpolation with 
-a $\{\vt_{\ast}\}^{\rm grid}$ spacing of [20\,K, 0.1\,dex, 0.1\,dex], and then performing 
-tri-linear interpolation over that refined grid.  Overall, this interpolation
+\citep[see also][]{husser12}, we concluded that this interpolation
 technique is found to be accurate within a few percent per full-resolution
 model pixel and $\lesssim 1$\% once the spectrum is downsampled to the pixels of the detector. Ideally,
 this pre-interpolation could be avoided if the spectral library was computed
@@ -913,7 +910,7 @@ orders with Phoenix.}
 
 \begin{figure*}[!htb]
 \begin{center}
-  \includegraphics[draft, width=2.5in]{figs/stellar_triangle_Kurucz.png}
+  \includegraphics[width=0.5\textwidth]{figs/kurucz_triangle.pdf}
   \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\cheb$) and noise parameters ($\cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
 }
 \label{fig:stellar_posterior}

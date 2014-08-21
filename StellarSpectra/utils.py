@@ -33,6 +33,13 @@ def envelope(spectra):
     return np.min(spectra, axis=0), np.max(spectra, axis=0)
 
 
+def std_envelope(spectra):
+    '''
+    Given a 2D array of spectra, shape (Nspectra, Npix), return the std envelope of these as two spectra.
+    '''
+    std = np.std(spectra, axis=0)
+    return -std, std
+
 def visualize_draws(spectra, num=20):
     '''
     Given a 2D array of spectra, shape (Nspectra, Npix), visualize them to choose the most illustrative "random"
@@ -50,14 +57,12 @@ def visualize_draws(spectra, num=20):
     plt.show()
 
 
-
 def saveall(fig, fname, formats=[".png", ".pdf", ".svg"]):
     '''
     Save a matplotlib figure instance to many different formats
     '''
     for format in formats:
         fig.savefig(fname + format)
-
 
 
 #Set of kernels *exactly* as defined in extern/cov.h
