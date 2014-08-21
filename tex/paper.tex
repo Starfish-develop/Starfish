@@ -500,7 +500,7 @@ kernel readily produce correlated structure similar to those seen in a typical r
 \begin{figure*}[!htb]
 \begin{center}
 \includegraphics{figs/matrix_compilation.pdf}
-\caption{\textbf{Top}: A typical model fit and residual spectrum with a demonstrative region shaded in grey, showing the scale and structure of the residuals. \textbf{Left column}: A small inset of the covariance matrix corresponding to the gray region. Note that the colorbar scale changes with each inset in order to best illustrate the structure of the matrix. \textbf{Right column}: Each panel shows three random draws (gray) from a multivariate normal distribution using the covariance matrix in the left column. At the bottom of each panel is the envelope formed by 50 random draws (blue) overlaid with the actual residuals from the gray region. \textbf{First row}: White, Poisson-only noise ($\delta_{ij}\sigma_i$) does a poor job of reproducing both the scale and structure of a typical residual spectrum. \textbf{Second row}: The addition of a global kernel ($\mathcal{K}^{\rm g}$) yields random draws that closely approximate the structure and amplitude of the residuals, but miss the strong outlier line at 5202.2 \AA. \textbf{Third row}: Finally, adding in a local kernel ($\mathcal{K}^l$) at the location of the outlier produces random draws that completely match the structure of the residuals. Interestingly, note that the covariance matrix can produce random draws that have negative, positive, and even flat residual lines. The point is that with a non-trivial covariance matrix, the likelihood function can now accommodate the residuals generated from a typical spectroscopic fit. Stated differently, random draws from the likelihood function can now produce behavior that looks like the residuals, whereas before with only white noise it could not. All parameters of the covariance kernels are determined self-consistently along with the stellar parameters. }
+\caption{\textbf{Top}: A typical model fit and residual spectrum with a demonstrative region shaded in grey, showing the scale and structure of the residuals. \textbf{Left column}: A small inset of the covariance matrix corresponding to the gray region. Note that the colorbar scale changes with each inset in order to best illustrate the structure of the matrix. \textbf{Right column}: Each panel shows three random draws (gray) from a multivariate normal distribution using the covariance matrix in the left column. At the bottom of each panel are the one, two, and three sigma contours (orange) of 200 random draws overlaid with the actual residuals from the gray region. \textbf{First row}: White, Poisson-only noise ($\delta_{ij}\sigma_i$) does a poor job of reproducing both the scale and structure of a typical residual spectrum. \textbf{Second row}: The addition of a global kernel ($\mathcal{K}^{\rm g}$) yields random draws that closely approximate the structure and amplitude of the residuals, but miss the strong outlier line at 5202.2 \AA. \textbf{Third row}: Finally, adding in a local kernel ($\mathcal{K}^l$) at the location of the outlier produces random draws that completely match the structure of the residuals. Interestingly, note that the covariance matrix can produce random draws that have negative, positive, and even flat residual lines. The point is that with a non-trivial covariance matrix, the likelihood function can now accommodate the residuals generated from a typical spectroscopic fit. Stated differently, random draws from the likelihood function can now produce behavior that looks like the residuals, whereas before with only white noise it could not. All parameters of the covariance kernels are determined self-consistently along with the stellar parameters. }
 \label{fig:matrix}
 \end{center}
 \end{figure*}
@@ -759,49 +759,70 @@ residuals.  Figure~Z compares the inferred parameters with the various determina
 \begin{figure*}[!htb]
 \begin{center}
 \includegraphics{figs/residuals_Kurucz_logg.pdf}
-\caption{Kurucz WASP-14.}
+\caption{Kurucz WASP-14. One, two, and three sigma contours formed from 200 random draws from the covariance matrix.}
 \label{fig:residuals_Kurucz}
 \end{center}
 \end{figure*}
 
+\begin{figure}[!htb]
+\begin{center}
+  \includegraphics[width=0.5\textwidth]{figs/Kurucz_triangle.pdf}
+  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\cheb$) and noise parameters ($\cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
+}
+\label{fig:stellar_posterior}
+\end{center}
+\end{figure}
 
 \begin{deluxetable}{lr@{$\pm$}l} 
 \tablecaption{\label{table:Kurucz}WASP-14 {\sc CfA/Kurucz} results}
 \tablehead{\colhead{Parameter} & \multicolumn{2}{c}{Value}}
 \startdata
 \cutinhead{Stellar parameters}
-$T_{\rm eff}$ & 6516.8 & 12.6 K \\
+$T_{\rm eff}$ & 6517.1 & 12.5 K \\
 $\log_{10} g$ & \multicolumn{2}{c}{4.29 dex} \\
 $\Z$ & -0.27 & 0.01 dex \\
 $v \sin i$ & 4.29 & 0.05 $\kms$\\
-$v_z$ & -4.62 & 0.02 $\kms$ \\
-$\log_{10} \Omega$ & -12.72 & 0.0004 \\
+$v_z$ & -4.620 & 0.016 $\kms$ \\
+$\log_{10} \Omega$ & -12.7181 & 0.0004 \\
 \cutinhead{Order 22 nuisance parameters}
-$\cc{22}{0}$ & & \\
-$\cc{22}{1}$ & & \\
-$\cc{22}{2}$ & & \\
-$\cc{22}{3}$ & & \\
-$b_{22}$ & & \\
-$a_{{\rm g}, 22}$ & & \\
-$l_{22}$ & & \\
+$\log_{10} \cc{22}{0}$ &  0.0085 & 0.0005\\
+$\cc{22}{1}$ & -0.0142 & 0.0015\\
+$\cc{22}{2}$ & -0.0145 & 0.0017\\
+$\cc{22}{3}$ & -0.0031 & 0.0011\\
+\\
+$b_{22}$ & 1.04 & 0.02 \\
+$\log_{10} a_{{\rm g}, 22}$ & -14.63 & 0.020 $\textrm{erg}\;\textrm{cm}^{-2}\;\textrm{s}^{-1}\;\textrm{\AA}^{-1}$\\
+$l_{22}$ & 7.54 & 0.77 $\kms$ \\
+
 \cutinhead{Order 23 nuisance parameters}
-$\cc{23}{0}$ & & \\
-$\cc{23}{1}$ & & \\
-$\cc{23}{2}$ & & \\
-$\cc{23}{3}$ & & \\
-$b_{23}$ & & \\
-$a_{{\rm g}, 23}$ & & \\
-$l_{23}$ & & \\
+$\log_{10} \cc{23}{0}$ & 0.0030 & 0.0006 \\
+$\cc{23}{1}$ & -0.0133 & 0.0016 \\
+$\cc{23}{2}$ & -0.0247 & 0.0014 \\
+$\cc{23}{3}$ &  0.0012 &  0.0013\\
+\\
+$b_{23}$ & 1.01 & 0.02 \\
+$\log_{10} a_{{\rm g}, 23}$ & -14.55 & 0.015 $\textrm{erg}\;\textrm{cm}^{-2}\;\textrm{s}^{-1}\;\textrm{\AA}^{-1}$\\
+$l_{23}$ & 6.52 & 0.50 \\
+
 \cutinhead{Order 24 nuisance parameters}
-$\cc{24}{0}$ & & \\
-$\cc{24}{1}$ & & \\
-$\cc{24}{2}$ & & \\
-$\cc{24}{3}$ & & \\
-$b_{24}$ & & \\
-$a_{{\rm g}, 24}$ & & \\
-$l_{24}$ & & \\
+$\log_{10} \cc{24}{0}$ & \multicolumn{2}{c}{0.00} \\
+$\cc{24}{1}$ & -0.0103 & 0.0016 \\
+$\cc{24}{2}$ & -0.0112 & 0.0013\\
+$\cc{24}{3}$ &  0.0002 & 0.0012\\
+\\
+$b_{24}$ & 1.02 & 0.02 \\
+$\log_{10} a_{{\rm g}, 24}$ & -14.61 & 0.02 $\textrm{erg}\;\textrm{cm}^{-2}\;\textrm{s}^{-1}\;\textrm{\AA}^{-1}$\\
+$l_{24}$ & 7.33 & 0.59 $\kms$ \\
 \enddata
 \end{deluxetable}
+
+\begin{figure}[!htb]
+\begin{center}
+\includegraphics{figs/metacomparison.pdf}
+\caption{Comparing all the posteriors.}
+\label{fig:metacomparison}
+\end{center}
+\end{figure}
 
 \comm{Ok, this is where you went off the rails a little bit in the core-dump.  I frankly do not 
 want to see Table 2 in this paper, or any reference to specific model or test identifications.  It 
@@ -908,14 +929,6 @@ orders with Phoenix.}
 %These results motivate the development of a more sophisticated likelihood function which includes a mechanism to account for the systematic mismatch of data spectrum and model spectrum. For the next tests, (WK2 and WP3), we introduce the global covariance kernel (Eqn.~\ref{eqn:global}) to the fit. We can see that the amplitude and scale of the global covariance grows to capture the discrepancy between data spectrum and synthetic spectrum. Including this global covariance broadens the posteriors on the stellar parameters, providing cushion against the tyranny of too many lines, which cause the unreasonably low uncertainty of the previous tests. Therefore, including the global covariance acts as a way to parameterize the goodness or badness of a fit: better spectral models will have a lower covariance, as evidenced by the Kurucz ($10^{-14.6}$) v. PHOENIX ($10^{-14.2}$) global covariance amplitudes. \todo{Figure out a reasonable way to present nuisance parameter values}. It is important to note that this ability to parameterize the quality of fit \emph{self-consistently} is unique to a hierarchical Bayesian model, contrary to systematic error estimates that are added in post-facto (I probably don't want to name names, but e.g., \citealt{torres12, buchhave12}). Because the parameter uncertainty is derived through the model itself, it \emph{preserves correlations} between parameters, like the well known degeneracies between $T_{\rm eff}$, $\log g$, and $\Z$. Arbitrarily inflating the posterior estimates to reflect intuition would artificially destroy any natural degeneracy of parameters.  
 
 
-\begin{figure*}[!htb]
-\begin{center}
-  \includegraphics[width=0.5\textwidth]{figs/kurucz_triangle.pdf}
-  \caption{The posterior probability function of the stellar parameters for WASP-14, an F star, as explored by the MCMC Gibbs sampler. These stellar parameters are marginalized over the Chebyshev ($\cheb$) and noise parameters ($\cov$). Figure generated with \texttt{triangle.py} \citep{foreman-mackey14}.
-}
-\label{fig:stellar_posterior}
-\end{center}
-\end{figure*}
 
 %For the next tests, (WPX), we introduce the local covariance kernels to track outlier spectral lines. These kernels can map out the regions of the spectrum which are outliers. The glory of these local kernels are that the parameters allow to play a role in data driven spectra. \emph{A priori} we do not know which regions of the spectrum are improperly modeled. The covariance hyperparameters provide a framework to identify these regions iteratively and in a self-consistent manner.  See Figure~\ref{fig:regions} for a cool visualization of what it looks like. \todo{Runs are almost converged. This can feed into a discussion about tweaking models.}
 
