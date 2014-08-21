@@ -101,13 +101,13 @@ class Flatchain:
     def clip_range(self, start, end):
         self.samples = self.samples[start, end]
 
-    def burn(self, num):
+    def burn_thin(self, burn=0, thin=1):
         '''
         Burn this many samples from the start of the chain.
         '''
-        assert num < self.shape[0]
-        print("Burning {}".format(self.id))
-        self.samples = self.samples[num:]
+        assert burn < self.shape[0]
+        print("{} burning by {} and thinning by {}".format(self.id, burn, thin))
+        self.samples = self.samples[burn::thin]
 
     def keep(self, num):
         '''
@@ -542,3 +542,9 @@ for file in files:
         flatchainTreeList.append(FlatchainTree(file))
     except OSError:
         print("{} does not exist, skipping.".format(file))
+
+#Check to see if burn or thin were specified
+if args.burn and args.thin:
+    for ftree in flatchainTreeList:
+        for fchain in ftree.flatchains:
+            fchain.burn_thin(args.burn, args.thin)
