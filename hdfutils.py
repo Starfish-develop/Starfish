@@ -337,7 +337,7 @@ def gelman_rubin(samplelist):
         print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
 
 
-def GR_list(flatchainTreeList, burn=0, thin=1):
+def GR_list(flatchainTreeList):
     '''
     Given a list of FlatchainTrees, step through each key in turn (following the structure of the first
     FlatchainTree), and pull out the relevant chains to perform the GR diagnostic.
@@ -351,10 +351,10 @@ def GR_list(flatchainTreeList, burn=0, thin=1):
     for key in keys:
         print("\n", key)
         #Accumulate one set of samples (from each FlatchainTree) corresponding to the key
-        gelman_rubin([fchain_dict[key].samples[burn::thin] for fchain_dict in fchain_dicts])
+        gelman_rubin([fchain_dict[key].samples for fchain_dict in fchain_dicts])
 
 
-def cat_list(file, flatchainTreeList, burn=0, thin=1):
+def cat_list(file, flatchainTreeList):
     '''
     Given a list of FlatchainTrees, concatenate all of these and write them to a single HDF5 file,
     with optional burn in and thin.
@@ -372,7 +372,7 @@ def cat_list(file, flatchainTreeList, burn=0, thin=1):
         dsetkey = key.replace("-", "/")
         print("\nWriting", dsetkey)
         params = ftree0.flatchains_dict[key].param_tuple
-        cat = np.concatenate([fchain_dict[key].samples[burn::thin] for fchain_dict in fchain_dicts], axis=0)
+        cat = np.concatenate([fchain_dict[key].samples for fchain_dict in fchain_dicts], axis=0)
 
         dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
         dset[:] = cat
