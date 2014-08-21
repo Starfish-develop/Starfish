@@ -32,6 +32,6 @@ from StellarSpectra import utils
 # sys.exit()
 cov = np.load("kurucz_covariance_matrix.npy")
 
-draws = utils.random_draws(cov, num=200, nprocesses=50)
+draws = utils.random_draws(cov, num=200)
 
 np.save("krucuz_residual_draws.npy", draws)
