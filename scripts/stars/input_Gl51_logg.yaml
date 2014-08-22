@@ -1,9 +1,9 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/region/logg/5sig/
+name: Gl51/PHOENIX/RA/region/logg/4.8sig/
 
-HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
-#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
+#HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
@@ -76,7 +76,7 @@ region_priors:
     sigma_knee : 150 #km/s
     frac_global : 0.5 #Fraction of the global amplitude lower bound
 
-sigma_clip : 5.
+sigma_clip : 4.8
 
 orders: [0]
 
@@ -84,5 +84,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 2000
-samples : 2000
+burn_in : 10000
+samples : 200000

@@ -34,4 +34,4 @@ cov = np.load("kurucz_covariance_matrix.npy")
 
 draws = utils.random_draws(cov, num=200)
 
-np.save("krucuz_residual_draws.npy", draws)
+np.save("krucuz_residual_draws2.npy", draws)
