@@ -1,9 +1,9 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/region/4sig/
+name: WASP14/PHOENIX/21_22_23/region/4sig/logg/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -14,7 +14,7 @@ Comments: >
 #Nested data structures are allowed
 stellar_params :
     temp : 6000
-    logg : 3.8
+    #logg : 3.8
     Z : -0.66
     vsini : 5.05
     vz : -4.838
@@ -24,11 +24,13 @@ stellar_params :
 #Using covariance
 stellar_jump:
     temp : 3
-    logg : 0.002
+    #logg : 0.002
     Z : 0.001
     vsini : 0.02
     vz : 0.01
     logOmega: 5e-4
+
+fix_logg : 4.29
 
 #no covariance
 #stellar_jump:
@@ -88,6 +90,6 @@ sigma_clip : 4.
 orders: [21, 22, 23]
 
 #Burn in time
-burn_in : 10000
-samples : 100000
+burn_in : 1000
+samples : 2000
 #will probably need 100000 for a good looking posterior

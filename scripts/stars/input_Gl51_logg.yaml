@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/region/logg/4.8sig/
+name: Gl51/PHOENIX/RA/region/logg/4_8sig/
 
 #HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
 HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
