@@ -2,20 +2,20 @@
 
 name: WASP14/PHOENIX/21_22_23/region/4sig/logg/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Trying with regions and many orders.
+  Trying with regions and many orders, fixing logg.
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6000
+    temp : 6250
     #logg : 3.8
-    Z : -0.66
+    Z : -0.50
     vsini : 5.05
     vz : -4.838
     logOmega: -19.659 #PHOENIX
@@ -25,7 +25,7 @@ stellar_params :
 stellar_jump:
     temp : 3
     #logg : 0.002
-    Z : 0.001
+    Z : 0.0005
     vsini : 0.02
     vz : 0.01
     logOmega: 5e-4
@@ -80,7 +80,7 @@ region_jump:
 
 region_priors:
     sigma0: 0.5   #AA
-    mu_width : 0.04  #AA
+    mu_width : 0.03  #AA
     sigma_knee : 10 #km/s
     frac_global : 0.1 #Fraction of the global amplitude lower bound
 
@@ -90,6 +90,6 @@ sigma_clip : 4.
 orders: [21, 22, 23]
 
 #Burn in time
-burn_in : 1000
-samples : 2000
+burn_in : 10000
+samples : 800000
 #will probably need 100000 for a good looking posterior
