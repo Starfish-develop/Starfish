@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/region/5sig/
+name: WASP14/PHOENIX/21_22_23/region/4sig/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
@@ -82,7 +82,7 @@ region_priors:
     sigma_knee : 10 #km/s
     frac_global : 0.1 #Fraction of the global amplitude lower bound
 
-sigma_clip : 5.
+sigma_clip : 4.
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [21, 22, 23]

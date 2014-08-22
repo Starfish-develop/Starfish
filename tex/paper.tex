@@ -435,9 +435,11 @@ broadening kernel width ($\sigma_v$).  Figure \ref{fig:class0} highlights a spec
 these correlated residuals in real data; a significant autocorrelation signal is found on a $\sim$5 
 pixel scale, corresponding to the 6.8\,km s$^{-1}$ FWHM of $\mathcal{F}_v^{\rm inst}$.  
 
-\begin{figure*}[!htb]
+\begin{figure}[!htb]
 \begin{center}
-  \includegraphics{correlation_panel.pdf}
+  \includegraphics{residuals_23.pdf}
+  \includegraphics{class0_residuals.pdf}
+  \includegraphics{class0_autocorrelation.pdf}
   \caption{\textbf{Top}: A typical model fit to a data spectrum, with
   parameters drawn from the posterior distribution, and the residuals that
   result. \textbf{Left} The low-amplitude, mildly covariant residuals enlarged
@@ -447,7 +449,7 @@ residual sequence shown at left. Notice that there is significant correlation
 for offsets of $\lesssim 5$ pixels.}
 \label{fig:class0}
 \end{center}
-\end{figure*}
+\end{figure}
 
 It seems important to distinguish here between ``noise" and the fit residuals.  Noise introduced to 
 the spectrograph by astrophysical or instrumental effects is generally uncorrelated with 
@@ -932,14 +934,6 @@ orders with Phoenix.}
 
 %For the next tests, (WPX), we introduce the local covariance kernels to track outlier spectral lines. These kernels can map out the regions of the spectrum which are outliers. The glory of these local kernels are that the parameters allow to play a role in data driven spectra. \emph{A priori} we do not know which regions of the spectrum are improperly modeled. The covariance hyperparameters provide a framework to identify these regions iteratively and in a self-consistent manner.  See Figure~\ref{fig:regions} for a cool visualization of what it looks like. \todo{Runs are almost converged. This can feed into a discussion about tweaking models.}
 
-\begin{figure*}[!htb]
-\begin{center}
-  \includegraphics[draft,width=0.9\textwidth,height=4in]{figs/spectrum_region.pdf}
-  \caption{The spectrum residuals and many random draws from the final covariance matrix showing how the uncertainty in the ``outlier'' lines is identified by the local covariance kernels. Plotted with the increased variance envelope over the residuals.
-}
-\label{fig:regions}
-\end{center}
-\end{figure*}
 
 %In addition to the stark contrast of stellar posteriors derived using only white Poisson noise versus those with the covariance kernels, the results in Table~\ref{table:tests} also reflect the systematic bias that is a function of which spectral library is used as a backend. Depending on your assumptions, there may be systematic differences of 200K or more in $T_{\rm eff}$. 
 
@@ -977,31 +971,83 @@ lines are a pain.  It is also worth commenting on the potential for flexibly ext
 the kernel to mimic molecular bandheads, if one wanted to try and fit say the TiO bands.}
 %In order to calibrate these indices to stellar parameters, \citet{rojas-ayala12} determine these indices on a custom grid of PHOENIX BT-Settl models obtained from the PHOENIX web simulator\footnote{\url{http://phoenix.ens-lyon.fr/simulator/index.faces}}. They note that the BT-Settl models manage to fit the overall spectral shape well, but consistently under-predict the strength of the \ion{Na}{1} and \ion{Ca}{1} lines, even when using the highest metallicity models. \citet{rajpurohit10} speculate that this discrepancy may result from inaccuracies in the oscillator strengths and opacities for the \ion{Na}{1} and \ion{Ca}{1} lines. When modelling the same region of spectrum as \citet{rojas-ayala12} (2.070--2.380$\mu$m) using an updated set of PHOENIX models \citep{husser13}, we find that 
 
-\comm{A simple two-sentence (or so) wrap up on the future promise of this approach for late-type 
-stars and their complex spectra.}
-
 \begin{figure*}[!htb]
 \begin{center}
-  \includegraphics{figs/badlines.pdf}
-  \caption{A collection of spectral lines which have imperfect model fits.
-    From left to right: \textbf{Class 0} The majority of spectral lines
-    ($\gtrsim 60$\%) will have minor differences in strength between data and
-    model spectrum, which produce low-amplitude correlations in the residuals
-    on the length scale of the width of a typical spectral line.  \textbf{Class
-    I}: Sometimes ($\lesssim 5$\% of all lines), a missing opacity source in
-    the model (in this case a line-blended \ion{Ca}{2}) leaves a large, highly correlated
-    patch of negative residuals.  \textbf{Class II}: Sometimes ($\lesssim 5$\%
-    of all lines), an extraneous line in the model leaves a large, highly
-    correlated patch of positive residuals.  \textbf{Class III}: If the line strengths are
-    substantially discrepant ($\lesssim 10$\% of all lines), there will be many
-    correlated residuals of moderate amplitude.  The difficulty
-    with class III lines is that for any specific line, there might exist a
-    $\vT$ that will fit the line, but there does not exist a $\vT$ that
-    will properly fit \emph{all} the lines.}
-\label{fig:badlines}
+  \includegraphics[draft,width=0.9\textwidth,height=3in]{figs/Gl51_residuals.pdf}
+  \caption{The spectrum residuals and many random draws from the final covariance matrix showing how the uncertainty in the ``outlier'' lines is identified by the local covariance kernels. Plotted with the increased variance envelope over the residuals.}
+\label{fig:regions}
 \end{center}
 \end{figure*}
 
+\begin{figure}[!htb]
+\begin{center}
+  \includegraphics[draft,width=0.45\textwidth,height=3in]{figs/Gl51_posterior.pdf}
+  \caption{The spectrum residuals and many random draws from the final covariance matrix showing how the uncertainty in the ``outlier'' lines is identified by the local covariance kernels. Plotted with the increased variance envelope over the residuals.}
+\label{fig:gl_posterior}
+\end{center}
+\end{figure}
+
+\begin{deluxetable}{lr@{$\pm$}l} 
+\tablecaption{\label{table:PHOENIX}Gl51 {\sc Phoenix} results}
+\tablehead{\colhead{Parameter} & \multicolumn{2}{c}{Value}}
+\startdata
+\cutinhead{Stellar parameters}
+$T_{\rm eff}$ &  &  K \\
+$\log_{10} g$ & \multicolumn{2}{c}{5.0 dex} \\
+$\Z$ &  &  dex \\
+$v \sin i$ &  &  $\kms$\\
+$v_z$ &  &  $\kms$ \\
+$\log_{10} \Omega$ &  & \\
+\cutinhead{Nuisance parameters}
+$\cc{22}{0}$ & & \\
+$\cc{22}{1}$ & & \\
+$\cc{22}{2}$ & & \\
+$\cc{22}{3}$ & & \\
+$b$ & & \\
+$a_{\rm g} $ & & \\
+$l$ & & \\
+\cutinhead{Local kernel parameters}
+& & \\
+& & \\
+& & \\
+\hline\\
+& & \\
+& & \\
+& & \\
+\hline\\
+& & \\
+& & \\
+& & \\
+\enddata
+\end{deluxetable}
+
+\comm{A simple two-sentence (or so) wrap up on the future promise of this approach for late-type 
+stars and their complex spectra.}
+
+\begin{figure}[!htb]
+\begin{center}
+  \includegraphics{figs/badlines0.pdf}
+  \includegraphics{figs/badlines1.pdf}
+  \includegraphics{figs/badlines2.pdf}
+  \includegraphics{figs/badlines3.pdf}
+  \caption{A collection of spectral lines which have imperfect model fits.
+    \textbf{First panel} The majority of spectral lines ($\gtrsim 60$\%) will
+    have minor differences in strength between data and model spectrum, which
+    produce low-amplitude correlations in the residuals on the length scale of
+    the width of a typical spectral line.  \textbf{Second panel}: Sometimes
+    ($\lesssim 5$\% of all lines), a missing opacity source in the model (in
+    this case a line-blended \ion{Ca}{2}) leaves a large, highly correlated
+    patch of negative residuals.  \textbf{Third panel}: Sometimes ($\lesssim
+    5$\% of all lines), an extraneous line in the model leaves a large, highly
+    correlated patch of positive residuals. \textbf{Fourth panel}: If the line
+    strengths are substantially discrepant ($\lesssim 10$\% of all lines),
+    there will be many correlated residuals of moderate amplitude.  The
+    difficulty with class III lines is that for any specific line, there might
+    exist a $\vT$ that will fit the line, but there does not exist a $\vT$ that
+    will properly fit \emph{all} the lines.}
+\label{fig:badlines}
+\end{center}
+\end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
