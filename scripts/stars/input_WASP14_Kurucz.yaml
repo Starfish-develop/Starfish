@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14_3/Kurucz/21_22_23/cov/
+name: WASP14_3/Kurucz/21_22_23/cov/logg/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
