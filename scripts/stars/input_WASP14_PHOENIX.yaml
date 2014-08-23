@@ -2,8 +2,8 @@
 
 name: WASP14/PHOENIX/21_22_23/region/4sig/logg/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -90,6 +90,6 @@ sigma_clip : 4.
 orders: [21, 22, 23]
 
 #Burn in time
-burn_in : 10000
-samples : 80000
+burn_in : 100
+samples : 1000
 #will probably need 100000 for a good looking posterior
