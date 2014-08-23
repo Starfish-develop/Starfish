@@ -56,7 +56,7 @@ hdf5list = []
 filelist = []
 for file in files:
     try:
-        hdf5list += [h5py.File(file, "r")]
+        hdf5list += [h5py.File(file, "r")["0"]]
         filelist += [file]
     except OSError:
         print("{} does not exist, skipping.".format(file))
@@ -66,6 +66,7 @@ for file in files:
 #Load all of the samples from the a given order into one giant deque
 allRegions = deque()
 
+#Maybe we can just select on model 0 for now.
 hdf5 = hdf5list[0]
 orders = [int(key) for key in hdf5.keys() if key != "stellar"]
 orders.sort()
