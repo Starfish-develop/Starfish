@@ -1,34 +1,36 @@
 #YAML comments are written just like in Python
 
-name: WASP14_2/Kurucz/21_22_23/cov/
+name: WASP14_3/Kurucz/21_22_23/cov/
 
 #HDF5_path : libraries/Kurucz_TRES.hdf5
 HDF5_path : /scratch/Kurucz_TRES.hdf5
 #data : data/WASP14/WASP14-2009-06-14.hdf5
-data : data/WASP14/WASP14-2010-03-29.hdf5
+#data : data/WASP14/WASP14-2010-03-29.hdf5
+data : data/WASP14/WASP14-2010-04-24.hdf5
+
 outdir : output/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  New WASP spectrum.
+  WASP3 spectrum.
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6300
-    logg : 3.90
-    Z : -0.38
+    temp : 6500
+    #logg : 3.90
+    Z : -0.3
     vsini : 4.60
-    vz : -4.4
-    logOmega: -12.966 #Kurucz
+    vz : -3.5
+    logOmega: -13.006 #Kurucz
     #logOmega: -19.91 #PHOENIX
 
-#fix_logg : 4.29
+fix_logg : 4.29
 
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
     temp : 4
-    logg : 0.01
+    #logg : 0.01
     Z : 0.005
     vsini : 0.03
     vz : 0.01
@@ -56,6 +58,8 @@ cheb_jump : 1e-3
 
 no_cov : False
 
+no_region: True
+
 cov_params :
     sigAmp : 1
     logAmp : -14.80
@@ -75,6 +79,14 @@ region_jump:
     mu : 0.02
     sigma : 0.2
 
+region_priors:
+    sigma0: 10. #AA
+    mu_width : 2. #AA
+    sigma_knee : 150 #km/s
+    frac_global : 0.5 #Fraction of the global amplitude lower bound
+
+sigma_clip : 4.5
+
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
 orders: [21, 22, 23]
 
@@ -83,5 +95,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 0
-samples : 200000
+samples : 150000
 #will probably need at least 100000 burned in samples for a good looking posterior
