@@ -371,14 +371,15 @@ def cat_list(file, flatchainTreeList):
     fchain_dicts = [ftree.flatchains_dict for ftree in flatchainTreeList]
 
     for key in keys:
-        dsetkey = key.replace("-", "/")
-        print("\nWriting", dsetkey)
-        params = ftree0.flatchains_dict[key].param_tuple
-        cat = np.concatenate([fchain_dict[key].samples for fchain_dict in fchain_dicts], axis=0)
+        if "region" not in key:
+            dsetkey = key.replace("-", "/")
+            print("\nWriting", dsetkey)
+            params = ftree0.flatchains_dict[key].param_tuple
+            cat = np.concatenate([fchain_dict[key].samples for fchain_dict in fchain_dicts], axis=0)
 
-        dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
-        dset[:] = cat
-        dset.attrs["parameters"] = "{}".format(params)
+            dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
+            dset[:] = cat
+            dset.attrs["parameters"] = "{}".format(params)
 
     hdf5.close()
 
