@@ -1,4 +1,18 @@
-#simple parallel implementatino
+#parallel implementation outline.
+
+#This is potentially a very powerful implementation, because it means that we can use as many data spectra or orders
+# as we want, and there will only be slight overheads. Basically, scaling is flat, as long as we keep adding more
+# processors. This might be tricky on Odyssey going across nodes, but it's still pretty excellent.
+
+# Pie-in-the-sky dream about how to hierarchically fit all stars.
+# Thinking about the alternative problem, where we actually link region parameters across different stars might be a
+# little bit more tricky. The implemenatation might be similar as to what's here, only now we'd also have a
+# synchronization step where regions are proposed (from a common distribution) for each star and each order. This
+# step could be selected upon all stars, specific order. This could get a little complicated, but then again we knew
+# it would be.
+
+# All orders are being selected up and updated based upon which star it is.
+# All regions are being updated selected upon all stars, but a specific order.
 
 from multiprocessing import Process, Pipe, cpu_count
 import os
@@ -12,52 +26,59 @@ def info(title):
     print('process id:', os.getpid())
 
 
-#Eventually we will want a separate OrderModel started on each process. The only thing we send back and forth is
-# parameter information.
-
-#after the models have been created, now fork
-#
-# class Model:
-#     def __init__(self):
-#         self.param = 0
-#
-#     def square_param(self):
-#         return self.param**2
-#
-#     def set_param(self, param):
-#         self.param = param
-#
-#     def get_communication(self, conn):
-#         info("Model")
-#         print("Communication was", conn.recv())
-#         conn.send("Hello back")
-
 class Model:
-    def __init__(self, DataSpectrum, npoly=4, debug=False):
-        self.DataSpectrum = DataSpectrum
+    def __init__(self, npoly=4, debug=False):
+        '''
+        This is designed to be called within the main processes and then distributed to the other processes
+        just so we have something to send stuff to. We don't yet want to load any of the items that would be
+        specific to that specific order, which will be customized by the subprocess in `self.initialize()`.
+        '''
         self.lnprob = -np.inf
 
         self.func_dict = {"INIT": self.initialize,
                           "UPDATE": self.update_stellar,
                           "REVERT": self.revert_stellar,
-                          "IND" : self.independent_sample,
+                          "IND": self.independent_sample,
                           }
 
-    def initialize(self, order_index=0):
+    def initialize(self, key):
         '''
         Designed to be called after the other processes have been created.
+
+        For multiple DataSpectra, need to specify key.
         '''
-        print("Initializing model on order {}.".format(order_index))
+
+        self.id = key
+        model_index, order_index = self.id
+
+        print("Initializing model on order {}, DataSpectrum {}.".format(order_index, model_index))
+
+        #Load the appropriate DataSpectrum from DataSpectra list
+
+        #Load the appropriate Instrument from the Instrument list
 
         #Load the spectrum interpolator
 
+        #Initialiaze the covariance matrix
+        self.CovarianceMatrix = None #Cython object
 
-        pass
+
+    def evaluate(self):
+        '''
+        Using the attached covariance matrix (cython object), evaluate the lnposterior.
+        '''
+        lnp = self.CovarianceMatrix.evaluate()
+        return lnp
 
     def update_stellar(self, params):
         '''
         Update the stellar flux. Evaluate the likelihood, return.
         '''
+
+        #When hierarchically fitting many spectra, we can either send the full stellar parameter list and then parse
+        #what we want from it here, OR, we can do the parsing in the master process and always assume we are getting a
+        #complete stellar param list here. I think that makes more sense.
+
         print("Updating stellar parameters", params)
         lnprob = 1
         return lnprob
@@ -75,6 +96,10 @@ class Model:
         '''
 
         #Take the lnprob from the previous iteration
+
+        #Take a Chebyshev sample, decide if we should keep or revert this
+
+        #Take a Covariance sample, decide if we should keep or revert factorization
 
 
         print("Doing indepedent sampling.")
@@ -114,31 +139,40 @@ class Model:
 
 #Just create one order model. Then when the process forks, each process has an order model. Initialization will have
 # to be done through the pipe entirely.
-model = Model(None)
+DataSpectra = [] #list of all DataSpectra we want to use
+Instruments = []
 
+model = Model()
+
+spectra = [0]
 orders = [22, 23, 24]
 
-#Set up an subprocess for each order
+#Set up an subprocess for each order. Key is (spectra, order)
 pconns = {}
 cconns = {}
 ps = {}
-for order in orders:
-    pconn, cconn = Pipe()
-    pconns[order], cconns[order] = pconn, cconn
-    p = Process(target=model.brain, args=(cconn,))
-    p.start()
-    ps[order] = p
+for spectrum in spectra:
+    for order in orders:
+        pconn, cconn = Pipe()
+        key = (spectrum, order)
+        pconns[key], cconns[key] = pconn, cconn
+        p = Process(target=model.brain, args=(cconn,))
+        p.start()
+        ps[key] = p
 
-#Initialize all of the orders
-for order, pconn in pconns.items():
-    pconn.send(("INIT", order))
+#Initialize all of the orders based upon which DataSpectrum and which order it is
+for key, pconn in pconns.items():
+    pconn.send(("INIT", key))
 
 #Update all of the stellar parameters and calculate the lnprob
 #This function should act to synchronize all of the processes, since it will need to wait until the lnprob message
 # has been put on the queue.
+
+#Parameters are proposed by the MCMC algorithm
 params = {"temp":5700, "logg":3.5}
 lnprob = 0.
 for pconn in pconns.values():
+    #Parse the parameters into what needs to be sent to each Model here.
     pconn.send(("UPDATE", params))
     lnprob += pconn.recv()
 
