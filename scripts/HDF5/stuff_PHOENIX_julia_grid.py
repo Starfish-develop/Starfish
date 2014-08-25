@@ -7,7 +7,7 @@ raw_library_path = "/pool/scout0/libraries/raw/PHOENIX/"
 
 mygrid = grid_tools.PHOENIXGridInterface(base=raw_library_path, wl_range=(3000, 10000))
 
-out_path = "PHOENIX_F_julia_hires.hdf5"
+out_path = "libraries/PHOENIX_F_julia_hires.hdf5"
 HDF5Stuffer = grid_tools.HDF5GridStuffer(mygrid, filename=out_path, ranges={"temp":(5600, 6600), "logg":(2.5, 6.0),
                                                                             "Z":(-1.5, 1.0)})
 
