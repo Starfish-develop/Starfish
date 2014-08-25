@@ -876,8 +876,30 @@ non-trivial Gaussian process covariance matrix.\footnote{It is worth noting
   accurate than the {\sc CfA/Kurucz} grid, systematic uncertainties will tend
   to dominate the error budget.
 
-In addition to statistical and systematic error, one might expect that systematic instrumental error might also contribute to the parameter uncertainties. Commonly, one might estimate this error by fitting spectra taken by different instruments or at different times and then averaging the results. Additionally, one may add in an additional uncertainty ``floor'' that maps to the empirical scatter of typical spectroscopic fits. Such procedures generally make the assumption that this additional error contribution is Gaussian and independent in each parameter of interest. Our hierarchical Bayesian model avoids such a heuristic by
-parameterizing the quality of fit self-consistently: because the parameter uncertainty is derived through the model itself, it preserves correlations between parameters, like the well known degeneracies between $T_{\rm eff}$, $\log g$, and $\Z$. Arbitrarily inflating the posterior estimates to reflect intuition would artificially destroy any natural degeneracy of parameters. However, for well-calibrated data sets from the same instrument any ill-effects are generally small. To quantify this error contribution for the WASP-14 spectrum in the traditional manner, we independently fit 4 separate \emph{TRES} spectra, and find a minimal scatter of $\sim20$ K and $\lesssim 0.02$ dex in $\Z$. When fitting these 4 spectra simultaneously in a hierarchical manner, we find that \todo{numbers}.
+In addition to statistical and systematic error, one might expect that
+systematic instrumental error might also contribute to the parameter
+uncertainties. Commonly, one might estimate this error by fitting spectra taken
+by different instruments or at different times and then averaging the results.
+Additionally, one may add in an additional uncertainty ``floor'' that maps to
+the empirical scatter of typical spectroscopic fits. Such procedures generally
+make the assumption that this additional error contribution is Gaussian and
+independent in each parameter of interest. Our hierarchical Bayesian model
+avoids such a heuristic by parameterizing the quality of fit self-consistently:
+because the parameter uncertainty is derived through the model itself, it
+preserves correlations between parameters, like the well known degeneracies
+between $T_{\rm eff}$, $\log g$, and $\Z$. Arbitrarily inflating the posterior
+estimates to reflect intuition would artificially destroy any natural
+degeneracy of parameters. However, for well-calibrated data sets from the same
+instrument any ill-effects are generally small. To quantify this error
+contribution for the WASP-14 spectrum in the traditional manner, we
+independently fit 4 separate \emph{TRES} spectra, and find a minimal scatter of
+$\sim20$ K and $\lesssim 0.02$ dex in $\Z$. When fitting these 4 spectra
+simultaneously in a hierarchical manner, we find that the posteriors shrink by
+a similar amount as one would achieve by combining the posterior estimates of
+the individual spectra in a weighted average. However, modelling the different
+spectra in a simultaneous manner allows us to preserve the intrinsic
+correlations between stellar parameters, something that would be destroyed in a
+naive weighted average.
 
 \begin{deluxetable}{lr@{$\pm$}l} 
 \tablecaption{\label{table:PHOENIX}WASP-14 {\sc Phoenix} results}
