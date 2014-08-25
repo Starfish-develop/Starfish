@@ -497,25 +497,26 @@ if args.chain:
                     plot_walkers(args.outdir + "{}_cov_region{:0>2}_chain_pos.png".format(order, j), samples,
                                  start=start, end=end)
 
-if args.cov:
-    '''
-    Estimate the covariance of the remaining samples.
-    '''
-    print("Estimating covariances")
-    print(stellar_params)
 
-    cov = np.cov(stellar, rowvar=0)
+def estimate_covariance(flatchainTree):
 
-    print("Standard deviation")
-    print(np.sqrt(np.diag(cov)))
+    for key, flatchain in flatchainTree.flatchains_dict.items():
+        print("Estimating covariances for {}".format(key))
+        samples = flatchain.samples
 
-    print("Covariance")
-    print(cov)
+        cov = np.cov(samples, rowvar=0)
 
-    #Now try correlation coefficient
-    cor = np.corrcoef(stellar, rowvar=0)
-    print("Correlation coefficient")
-    print(cor)
+        print("Standard deviation")
+        print(np.sqrt(np.diag(cov)))
+
+        print("Covariance")
+        print(cov)
+
+        #Now try correlation coefficient
+        cor = np.corrcoef(samples, rowvar=0)
+        print("Correlation coefficient")
+        print(cor)
+
 
 # plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
 # plt.close(figure)
