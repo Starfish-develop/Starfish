@@ -390,3 +390,8 @@ http://www2.keck.hawaii.edu/koa/public/koa.php
 *
 
 Write a download script for all the libraries
+
+Coming soon:
+
+Benchmark tests: How long does it take to fit an Npix, Norder spectrum, with Nregions each? Able to be parallelized,
+etc.
