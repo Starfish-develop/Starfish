@@ -508,7 +508,7 @@ class HDF5GridStuffer:
 
     def process_flux(self, parameters):
         '''
-        Take a flux file from the raw grid ande insert it into the HDF5 file.
+        Take a flux file from the raw grid and insert it into the HDF5 file.
 
         :param parameters: the stellar parameters
         :type parameters: dict
