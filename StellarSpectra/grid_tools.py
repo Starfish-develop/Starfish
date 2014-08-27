@@ -508,7 +508,7 @@ class HDF5GridStuffer:
 
     def process_flux(self, parameters):
         '''
-        Take a flux file from the raw grid ande insert it into the HDF5 file.
+        Take a flux file from the raw grid and insert it into the HDF5 file.
 
         :param parameters: the stellar parameters
         :type parameters: dict
@@ -578,7 +578,7 @@ class HDF5Interface:
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
-            self.name = hdf5.attrs["grid_name"]
+            #self.name = hdf5.attrs["grid_name"]
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
 
@@ -686,7 +686,7 @@ class HDF5InstGridCreator:
             self.points[key] = valid_points[ind]
 
         self.hdf5 = h5py.File(self.filename, "w")
-        self.hdf5.attrs["grid_name"] = self.HDF5Interface.name
+        #self.hdf5.attrs["grid_name"] = self.HDF5Interface.name
         self.hdf5.flux_group = self.hdf5.create_group("flux")
         self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
 
