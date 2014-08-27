@@ -578,7 +578,7 @@ class HDF5Interface:
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
-            self.name = hdf5.attrs["grid_name"]
+            #self.name = hdf5.attrs["grid_name"]
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
 
