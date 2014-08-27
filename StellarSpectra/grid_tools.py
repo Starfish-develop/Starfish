@@ -686,7 +686,7 @@ class HDF5InstGridCreator:
             self.points[key] = valid_points[ind]
 
         self.hdf5 = h5py.File(self.filename, "w")
-        self.hdf5.attrs["grid_name"] = self.HDF5Interface.name
+        #self.hdf5.attrs["grid_name"] = self.HDF5Interface.name
         self.hdf5.flux_group = self.hdf5.create_group("flux")
         self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
 
