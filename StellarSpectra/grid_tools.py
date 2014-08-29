@@ -634,6 +634,8 @@ class HDF5Interface:
 
         :raises KeyError: if spectrum is not found in the HDF5 file.
         '''
+        print("loading {}".format(parameters))
+
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
             if self.ind is not None:
@@ -660,6 +662,54 @@ class HDF5Interface:
         #Note: will raise a KeyError if the file is not found.
 
         return (fl, hdr)
+
+    def get_error_spectrum(self, parameters, axis="temp"):
+        '''
+        Given a grid point specified by parameters, and a direction on the axis, return the error spectrum.
+        '''
+        #load the file specified by the parameters
+        fl = self.load_flux(parameters)
+
+        #identify the axis
+        points = self.points[axis]
+        print(points)
+        #Find which index this point is
+        idx = (np.abs(points - parameters[axis])).argmin()
+
+        #Get the two nearest spectra in the grid, as long as we aren't already at a grid edge
+        #Better checking here, because it overlaps
+        try:
+            low = points[idx - 1]
+            high = points[idx + 1]
+        except KeyError:
+            return None
+
+        #load the spectra that bracket either side of these
+        parameters.update({axis:low})
+        fl_low = self.load_flux(parameters)
+        parameters.update({axis:high})
+        fl_high = self.load_flux(parameters)
+
+        #compare the average of the two side spectra to the central spectrum and return this as the error spectrum
+        errspec = fl - (fl_low + fl_high)/2
+        return errspec
+
+
+    def get_error_spectra(self, parameters):
+        '''
+        Do get_error_spectrum but for each one of the parameters in the grid
+        '''
+        return [self.get_error_spectrum(parameters, axis) for axis in ("temp", "logg", "Z")]
+
+
+#We're going to need a couple methods:
+
+#1 Given a grid point, and an axis (one of temp, logg, Z), return an error spectrum
+# addressed as a function of HDF5Interface?
+
+#2 Create an HDF5 file with all three error spectra for each grid point
+
+#3 Use the error spectra along with the degree of interpolation to return an estimate of the interpolation
 
 class HDF5InstGridCreator:
     '''
@@ -999,6 +1049,7 @@ class Interpolator:
         :param parameters: stellar parameters
         :type parameters: dict
         :raises C.InterpolationError: if parameters are out of bounds.
+
         '''
 
         try:
@@ -1007,19 +1058,20 @@ class Interpolator:
             raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
         #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
-        names = [key for key in edges.keys()]
-        params = [edges[key][0] for key in names]
-        weights = [edges[key][1] for key in names]
+        names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"], but not necessarily in that order
+        params = [edges[key][0] for key in names] #[(6000, 6100), (4.0, 4.5), ...]
+        weights = [edges[key][1] for key in names] #[(0.2, 0.8), (0.4, 0.6), ...]
 
-        param_combos = itertools.product(*params)
+        param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
+        #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
         weight_combos = itertools.product(*weights)
+        #[(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
 
         parameter_list = [dict(zip(names, param)) for param in param_combos]
         if "alpha" not in parameters.keys():
             [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
-        #For each spectrum, want to extract a {"temp":5000, "logg":4.5, "Z":0.0, "alpha":0.0} and weight= 0.1 * 0.4 * .05 * 0.1
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
