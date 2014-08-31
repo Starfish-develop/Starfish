@@ -94,6 +94,11 @@ cdef extern from "cholmod.h":
     cholmod_sparse * cholmod_spsolve(int, cholmod_factor *, cholmod_sparse *, cholmod_common *c) except? NULL
     double cholmod_rcond(cholmod_factor *L, cholmod_common*c) except? 0.0
 
+    #Cholmod ones diagonal matrix?
+    cholmod_sparse *cholmod_speye (size_t nrow, size_t ncol, int xtype, cholmod_common *c) except? NULL
+
+
+
 #These are the functions that I have written myself
 cdef extern from "../extern/cov.h":
 
@@ -101,10 +106,9 @@ cdef extern from "../extern/cov.h":
     double get_min_sep (double *wl, int N)
 
     cholmod_sparse *create_sigma(double *sigma, int N, cholmod_common *c)
-    cholmod_sparse *create_sparse(double *wl, int N, double min_sep, double a,
-        double l, cholmod_common *c)
-    cholmod_sparse *create_sparse_region(double *wl, int N, double a,
-        double mu, double sigma, cholmod_common *c)
+    cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, double *errors, cholmod_common *c)
+    cholmod_sparse *create_sparse(double *wl, int N, double min_sep, double a, double l, cholmod_common *c)
+    cholmod_sparse *create_sparse_region(double *wl, int N, double a, double mu, double sigma, cholmod_common *c)
 
     double get_logdet(cholmod_factor *L)
     double chi2 (cholmod_dense *r, cholmod_factor *L, cholmod_common *c)
@@ -139,6 +143,7 @@ cdef class CovarianceMatrix:
     cdef order_index
     cdef DataSpectrum
     cdef GlobalCovarianceMatrix GCM
+    cdef InterpCovarianceMatrix interp_matrix
     cdef RegionList #Dictionary with integers as keys
     cdef current_region
     cdef region_count
@@ -151,7 +156,7 @@ cdef class CovarianceMatrix:
     cdef cholmod_sparse *sum_regions #Holds a sparse matrix that is the sum of all regions
     cdef cholmod_sparse *sum_regions_last
 
-    def __init__(self, DataSpectrum, order_index, debug=False):
+    def __init__(self, DataSpectrum, order_index, max_v, debug=False):
         self.common = Common()
         self.c = <cholmod_common *>&self.common.c
 
@@ -178,7 +183,9 @@ cdef class CovarianceMatrix:
         else:
             self.logger.setLevel(logging.INFO)
 
-        self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index,self.common, debug=self.debug)
+        self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index, self.common, debug=self.debug)
+        self.interp_matrix = InterpCovarianceMatrix(self.DataSpectrum, self.order_index, max_v, self.common,
+        debug=self.debug)
         self.RegionList = {}
         self.current_region = -1 #non physical value to force initialization
         self.region_count = 0
@@ -221,6 +228,16 @@ cdef class CovarianceMatrix:
         '''
         self.logger.debug("updating global")
         self.GCM.update(params)
+        self.update_factorization()
+        self.update_logPrior()
+
+    def update_interp_errs(self, errors):
+        '''
+        Given the (24, Npix) error spectra, go through and change the interpolation error covariance matrix.
+
+        '''
+        self.logger.debug("updating interp errors")
+        self.interp_matrix.update(errors)
         self.update_factorization()
         self.update_logPrior()
 
@@ -333,7 +350,7 @@ cdef class CovarianceMatrix:
 
     def update_factorization(self):
         '''
-        Sum together the global covariance matrix and the sum_regions, calculate 
+        Sum together the interpolation error, global covariance matrix and the sum_regions, calculate
         the logdet and the new cholmod_factorization.
 
         I think here we must free the memory previously afforded to A.
@@ -342,14 +359,25 @@ cdef class CovarianceMatrix:
         self.logger.debug("updating factorization")
 
         if self.A != NULL:
+            self.logger.debug("freeing old A")
             cholmod_free_sparse(&self.A, self.c)
 
+        cdef cholmod_sparse *temp = NULL
+
         if self.sum_regions != NULL:
-            self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
+            self.logger.debug("Adding GCM and sum_regions")
+            temp = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
+            self.A = cholmod_add(self.interp_matrix.A, temp, self.one, self.one, True, True, self.c)
         else:
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
             #there are no regions declared, so we should COPY self.GCM.A
-            self.A = cholmod_copy_sparse(self.GCM.A, self.c)
+            #self.A = cholmod_copy_sparse(self.GCM.A, self.c)
+            self.logger.debug("Adding interp_matrix and GCM")
+            self.A = cholmod_add(self.interp_matrix.A, self.GCM.A, self.one, self.one, True, True, self.c)
+
+        if temp != NULL:
+            self.logger.debug("Clearing temp")
+            cholmod_free_sparse(&temp, self.c)
 
         #Copy the old self.L to self.L_last
         if self.L_last != NULL and (self.L_last != self.L):
@@ -383,6 +411,10 @@ cdef class CovarianceMatrix:
         #Move self.L to point to self.L_last
         self.logger.debug("shifting self.L to point to self.L_last inside of revert")
         self.L = self.L_last
+
+    def revert_interp(self):
+        self.interp_matrix.revert()
+        self.revert()
 
     def revert_global(self):
         self.GCM.revert()
@@ -487,6 +519,103 @@ cdef class CovarianceMatrix:
         print(self.common == self.GCM.common)
 
 
+cdef class InterpCovarianceMatrix:
+
+    cdef cholmod_sparse *A
+    cdef cholmod_sparse *A_last
+    cdef Common common
+    cdef cholmod_common *c
+    cdef double *wl
+    cdef double min_sep
+    cdef double max_v
+    cdef npoints
+    cdef debug
+    cdef logger
+
+    def __init__(self, DataSpectrum, order_index, max_v, Common common, debug=False):
+        self.common = common
+        self.c = <cholmod_common *>&self.common.c
+        self.debug = debug
+        self.logger = logging.getLogger(self.__class__.__name__)
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+
+        mask = DataSpectrum.masks[order_index]
+        #convert wl into an array
+        cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index][mask]
+        self.npoints = len(wl)
+
+        #Dynamically allocate wl
+        self.wl = <double*> PyMem_Malloc(self.npoints * sizeof(double))
+
+        for i in range(self.npoints):
+            self.wl[i] = wl[i]
+
+        self.min_sep = get_min_sep(self.wl, self.npoints)
+        self.max_v = max_v
+
+        self.A = cholmod_speye(self.npoints, self.npoints, CHOLMOD_REAL, self.c)
+        self.A_last = self.A
+
+        self.logger.debug("Initialized InterpCovarianceMatrix")
+
+
+    def __dealloc__(self):
+        print("Deallocating InterpCovarianceMatrix")
+        PyMem_Free(self.wl)
+
+        if self.A != self.A_last:
+            if self.A != NULL:
+                cholmod_free_sparse(&self.A, self.c)
+            if self.A_last != NULL:
+                cholmod_free_sparse(&self.A_last, self.c)
+        else:
+            if self.A != NULL:
+                cholmod_free_sparse(&self.A, self.c)
+
+    def update(self, np.ndarray[np.double_t, ndim=2, mode="c"] errors):
+        '''
+        Update this matrix with the new interpolation errors, a (24,Npix) array
+
+        Parameters is a dictionary.
+        '''
+        self.logger.debug("Updating InterpCovarianceMatrix")
+
+        #from http://article.gmane.org/gmane.comp.python.cython.user/5625
+        cdef np.ndarray[np.double_t, ndim=2, mode="c"] x
+        # unbox NumPy array into local variable x
+        # make sure we have a contiguous array in C order
+        x = np.ascontiguousarray(errors, dtype=np.float64)
+
+        #Copy the old self.A to self.A_last
+        if self.A_last != NULL and (self.A_last != self.A):
+            #Free the old memory before having it point to something new
+            #as long as they don't point to the same piece of memory
+            self.logger.debug("freeing self.A inside of GCM.update")
+            cholmod_free_sparse(&self.A_last, self.c)
+
+        #Shift the self.A_last pointer to self.A
+        self.logger.debug("shifting self.A_last to point to self.A")
+        self.A_last = self.A
+
+        self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &x[0,0], self.c)
+
+
+    def revert(self):
+        #move A to point to A_last
+        self.logger.debug("reverting InterpCovarianceMatrix")
+        #as long as A and A_last don't point to the same thing, clear A
+        if self.A != NULL and (self.A_last != self.A):
+            self.logger.debug("freeing self.A inside of revert")
+            cholmod_free_sparse(&self.A, self.c)
+
+        #move self.A to point to self.A_last
+        self.logger.debug("shifting self.A to point to self.A_last")
+        self.A = self.A_last
+
+
 cdef class GlobalCovarianceMatrix:
 
     cdef cholmod_sparse *sigma
@@ -531,6 +660,7 @@ cdef class GlobalCovarianceMatrix:
         self.min_sep = get_min_sep(self.wl, self.npoints)
         #wl, fl, sigma, and min_sep do not change with update, since the data is fixed
         self._initialize_sigma(DataSpectrum.sigmas[order_index])
+        self.logger.debug("Initialized GlobalCovarianceMatrix")
 
     def __dealloc__(self):
         print("Deallocating GlobalCovarianceMatrix")
@@ -568,7 +698,7 @@ cdef class GlobalCovarianceMatrix:
 
     def update(self, params):
         '''
-        On update, calculate the logdet and the new cholmod_factorization.
+        Update the structure of this sparse matrix.
 
         Parameters is a dictionary.
         '''

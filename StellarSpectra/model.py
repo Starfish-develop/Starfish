@@ -338,6 +338,11 @@ class ModelHA:
         self.ModelSpectrum.update_all(params)
         self.stellar_params = params
 
+        #Since the ModelSpectrum fluxes have been updated, also update the interpolation errors
+        model_errs = self.ModelSpectrum.downsampled_errors
+        for orderModel in self.OrderModels:
+            orderModel.CovarianceMatrix.update_interp_errs(model_errs[:,orderModel.index, :])
+
     def get_data(self):
         '''
         Returns a DataSpectrum object.
@@ -501,6 +506,7 @@ class OrderModel:
         '''
 
         model_fl = self.ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[self.index]
+
         residuals = self.fl - model_fl
         residuals = residuals[self.mask]
 
