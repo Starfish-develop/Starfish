@@ -792,6 +792,9 @@ class ModelSpectrum:
 
         self.downsampled_fls = np.empty(self.DataSpectrum.shape)
         self.downsampled_fls_last = self.downsampled_fls
+
+        self.downsampled_errors = np.empty((24,) + self.DataSpectrum.shape)
+
         self.grid_params = {}
         self.vz = 0
         self.Av = 0
@@ -821,6 +824,7 @@ class ModelSpectrum:
         '''
         #factor by which to correct from old Omega
         self.fl *= 10**(logOmega - self.logOmega)
+        self.errors *= 10**(logOmega - self.logOmega)
         self.logOmega = logOmega
 
     def update_vz(self, vz):
@@ -862,7 +866,8 @@ class ModelSpectrum:
 
         '''
         try:
-            self.fl = self.interpolator(grid_params) #Query the interpolator with the new stellar combination
+            self.fl, self.errors = self.interpolator(grid_params) #Query the interpolator with the new stellar
+            # combination
             self.grid_params.update(grid_params)
 
         except C.InterpolationError as e:
@@ -887,6 +892,7 @@ class ModelSpectrum:
         # self.influx[:] = self.fl
         # self.fft_object()
         FF = np.fft.rfft(self.fl)
+        FE = np.fft.rfft(self.errors, axis=1)
 
         #Determine the stellar broadening kernel
         ub = 2. * np.pi * self.vsini * self.ss
@@ -904,11 +910,13 @@ class ModelSpectrum:
         #institute velocity and instrumental taper
         # self.FF *= sb
         FF_tap = FF * sb
+        FE_tap = FE * sb
 
         #do ifft
         # self.ifft_object()
         # self.fl[:] = self.outflux
         self.fl = np.fft.irfft(FF_tap, len(self.wl_FFT))
+        self.errors = np.fft.irfft(FE_tap, len(self.wl_FFT), axis=1)
 
 
     # def _update_vsini_and_instrument(self, vsini):
@@ -1008,8 +1016,16 @@ class ModelSpectrum:
 
         self.downsampled_fls_last = self.downsampled_fls
         self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
-
         del interp
+
+        #Interpolate each of the 24 error spectra to the grid points
+        self.downsampled_errors_last = self.downsampled_errors.copy()
+        for i, errspec in enumerate(self.errors):
+            interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
+
+            self.downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
+            del interp
+
         gc.collect()
 
     def revert_flux(self):
@@ -1017,6 +1033,7 @@ class ModelSpectrum:
         If a MH proposal was rejected, revert the downsampled flux to it's last value.
         '''
         self.downsampled_fls = self.downsampled_fls_last
+        self.downsampled_errors = self.downsampled_errors_last
 
 class ModelSpectrumHA:
     '''

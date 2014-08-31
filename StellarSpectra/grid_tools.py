@@ -576,6 +576,7 @@ class HDF5Interface:
     def __init__(self, filename):
         self.filename = filename
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.errspec_name = "{axis}/t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
             #self.name = hdf5.attrs["grid_name"]
@@ -634,7 +635,6 @@ class HDF5Interface:
 
         :raises KeyError: if spectrum is not found in the HDF5 file.
         '''
-        print("loading {}".format(parameters))
 
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
@@ -667,31 +667,51 @@ class HDF5Interface:
         '''
         Given a grid point specified by parameters, and a direction on the axis, return the error spectrum.
         '''
-        #load the file specified by the parameters
-        fl = self.load_flux(parameters)
+
+        params = parameters.copy()
 
         #identify the axis
         points = self.points[axis]
-        print(points)
         #Find which index this point is
-        idx = (np.abs(points - parameters[axis])).argmin()
+        idx = (np.abs(points - params[axis])).argmin()
 
-        #Get the two nearest spectra in the grid, as long as we aren't already at a grid edge
-        #Better checking here, because it overlaps
-        try:
+        #Get the two nearest spectra in the grid.
+        #If we are at a grid edge, just use the error spectrum from one grid point inbounds.
+
+
+        #load the file specified by the parameters
+        fl = self.load_flux(params)
+
+        if idx == 0:
+            #at the low gridpoint
+            low = points[0]
+            mid = points[1]
+            high = points[2]
+
+        elif idx == (len(points) - 1):
+            #at the high grid point
+            high = points[idx]
+            mid = points[idx - 1]
+            low = points[idx - 2]
+
+        else:
+            #Proceed as normal
             low = points[idx - 1]
+            mid = points[idx]
             high = points[idx + 1]
-        except KeyError:
-            return None
 
-        #load the spectra that bracket either side of these
-        parameters.update({axis:low})
-        fl_low = self.load_flux(parameters)
-        parameters.update({axis:high})
-        fl_high = self.load_flux(parameters)
+        #Load all the spectra
+        params.update({axis:mid})
+        fl_mid = self.load_flux(params)
+
+        params.update({axis:low})
+        fl_low = self.load_flux(params)
+
+        params.update({axis:high})
+        fl_high = self.load_flux(params)
 
         #compare the average of the two side spectra to the central spectrum and return this as the error spectrum
-        errspec = fl - (fl_low + fl_high)/2
+        errspec = fl_mid - (fl_low + fl_high)/2
         return errspec
 
 
@@ -701,15 +721,20 @@ class HDF5Interface:
         '''
         return [self.get_error_spectrum(parameters, axis) for axis in ("temp", "logg", "Z")]
 
+    def load_error_spectrum(self, parameters, axis):
+        params = parameters.copy()
+        params.update({"axis":axis})
+        key = self.errspec_name.format(**params)
+        with h5py.File(self.filename, "r") as hdf5:
+            if self.ind is not None:
+                errspec = hdf5[key][self.ind[0]:self.ind[1]]
+            else:
+                errspec = hdf5[key][:]
+        return errspec
 
-#We're going to need a couple methods:
+    def load_error_spectra(self, parameters):
+        return [self.load_error_spectrum(parameters, axis) for axis in ("temp", "logg", "Z")]
 
-#1 Given a grid point, and an axis (one of temp, logg, Z), return an error spectrum
-# addressed as a function of HDF5Interface?
-
-#2 Create an HDF5 file with all three error spectra for each grid point
-
-#3 Use the error spectra along with the degree of interpolation to return an estimate of the interpolation
 
 class HDF5InstGridCreator:
     '''
@@ -868,6 +893,50 @@ class HDF5InstGridCreator:
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
 
+class ErrorSpectrumCreator:
+    '''
+    Go through the grid and do a bunch of drop-out interpolations in each dimension.
+
+    Do this as "/temp/key/"
+               "/logg/key/"
+               "/Z/key/"
+
+    Store each spectrum as (temp, logg, Z, drop_out_axis) key
+    '''
+    def __init__(self, interface):
+        self.interface = interface
+        self.filename = self.interface.filename
+        self.flux_name = "{axis}/t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.points = {}
+        self.points = self.interface.points
+        print("Points are {}".format(self.points))
+
+        self.len = len(self.interface.wl)
+
+
+    def process_grid(self):
+        param_list = [] #list of parameter dictionaries
+        keys,values = self.points.keys(),self.points.values()
+
+        #use itertools.product to create permutations of all possible values
+        for i in itertools.product(*values):
+            param_list.append(dict(zip(keys,i)))
+
+        print("Total of {} files to process.".format(len(param_list)))
+
+        for param in param_list:
+            print("Processing {}".format(param))
+            spec_tuple = self.interface.get_error_spectra(param)
+
+            for axis, spec in zip(("temp", "logg", "Z"), spec_tuple):
+                param.update({"axis":axis})
+                print("Processing {}".format(param))
+
+                with h5py.File(self.filename, "r+") as hdf5:
+                    dset = hdf5.create_dataset(self.flux_name.format(**param), shape=(self.len,),
+                                                            dtype="f", compression='gzip', compression_opts=9)
+                    dset[:] = spec
+
 
 class IndexInterpolator:
     '''
@@ -947,6 +1016,7 @@ class Interpolator:
             self._determine_chunk()
         self.setup_index_interpolators()
         self.cache = OrderedDict([])
+        self.cache_errors = OrderedDict([])
         self.cache_max = cache_max
         self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
 
@@ -1032,6 +1102,7 @@ class Interpolator:
         '''
         if len(self.cache) > self.cache_max:
             [self.cache.popitem(False) for i in range(self.cache_dump)]
+            [self.cache_errors.popitem(False) for i in range(len(self.parameters) * self.cache_dump)]
             self.cache_counter = 0
         return self.interpolate(parameters)
 
@@ -1040,7 +1111,8 @@ class Interpolator:
         self.index_interpolators = {key:IndexInterpolator(self.interface.points[key]) for key in self.parameters}
 
         lenF = self.interface.ind[1] - self.interface.ind[0]
-        self.fluxes = np.empty((2**len(self.parameters), lenF))
+        self.fluxes = np.empty((2**len(self.parameters), lenF)) #8 rows, for temp, logg, Z
+        self.errors = np.empty((len(self.parameters) * 2**len(self.parameters), lenF)) #24 rows, for temp, logg, Z
 
     def interpolate(self, parameters):
         '''
@@ -1050,17 +1122,28 @@ class Interpolator:
         :type parameters: dict
         :raises C.InterpolationError: if parameters are out of bounds.
 
+        Now the interpolator also returns the 24 error spectra along with weights.
         '''
 
+        #Here it really would be nice to return things in a predictable order
+        # (temp, logg, Z)
+        odict = OrderedDict()
+        for key in ("temp", "logg", "Z"):
+            odict[key] = parameters[key]
         try:
-            edges = {key:self.index_interpolators[key](value) for key,value in parameters.items()}
+            edges = {key:self.index_interpolators[key](value) for key,value in odict.items()}
         except C.InterpolationError as e:
             raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
         #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
-        names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"], but not necessarily in that order
+        names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"],
         params = [edges[key][0] for key in names] #[(6000, 6100), (4.0, 4.5), ...]
         weights = [edges[key][1] for key in names] #[(0.2, 0.8), (0.4, 0.6), ...]
+
+        #Somehow extract the appropriate temperature/logg/Z weights here W. For combining the different covariances
+        #Length 3 list
+        Weight_list = [(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
+
 
         param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
         #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
@@ -1073,6 +1156,12 @@ class Interpolator:
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
+        weight_sq = weight_list.copy()
+        weight_sq /= np.sum(weight_sq**2) #normalize by the squares
+
+        # for item in zip(key_list, weight_list):
+        #     print(item)
+
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
         #Assemble flux vector from cache
@@ -1081,13 +1170,22 @@ class Interpolator:
             if key not in self.cache.keys():
                 try:
                     fl = self.interface.load_flux(param) #This method allows loading only the relevant region from HDF5
+                    spec_tuple = self.interface.load_error_spectra(param) #In the order of ("temp", "logg", "Z")
                 except KeyError as e:
                     raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
-                self.cache[key] = fl
-                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
-            self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
-        return np.sum(self.fluxes, axis=0)
+
+                self.cache[key] = fl
+                self.cache_errors[key] = spec_tuple
+                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
+
+            self.fluxes[i,:] = self.cache[key]*weight_list[i]
+            spec_tuple = self.cache_errors[key]
+            for j, spec in enumerate(spec_tuple):
+                self.errors[i*3 + j,:] = spec*weight_sq[i] * Weight_list[j] #Do not square these weights here, since
+                #the routine for adding them to the sparse matrix will automatically square them.
+
+        return np.sum(self.fluxes, axis=0), self.errors
 
 #Convert R to FWHM in km/s by \Delta v = c/R
 class Instrument:
