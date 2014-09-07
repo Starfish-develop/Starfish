@@ -1182,7 +1182,8 @@ class Interpolator:
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
             spec_tuple = self.cache_errors[key]
             for j, spec in enumerate(spec_tuple):
-                self.errors[i*3 + j,:] = spec*weight_sq[i] * Weight_list[j] #Do not square these weights here, since
+                self.errors[i*3 + j,:] = spec * weight_sq[i] * Weight_list[j] #Do not square these weights here, since
+                #self.errors[i*3 + j,:] = spec*0.204124 #Do not square these weights here, since
                 #the routine for adding them to the sparse matrix will automatically square them.
 
         return np.sum(self.fluxes, axis=0), self.errors

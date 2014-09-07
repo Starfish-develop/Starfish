@@ -73,7 +73,7 @@ double get_min_sep (double *wl, int N)
             min_sep = sep;
         }
     }
-    return min_sep;
+    return min_sep; //in km/s
 }
 
 // given an array of sigma values, square them and then stuff them into the
@@ -131,94 +131,118 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
 
     //The outer part of the loop uses wl, min_sep, and max_v to determine which indices to actually loop over.
 
-
+    double r0 = max_v;
     //Let's see how easily we can index into this array
-    printf("Array %f", errors[0]);
-    printf("Array %f", errors[8192]);
-
-
-    //printf("Array %f", errors[0][0]);
+    //printf("Array %f", errors[0]);
+    //printf("Array %f", errors[8192]);
 
     //calculate how big the matrix will be
-//    int i=0, j=0;
-//    int M=N; //How many non-zeros this matrix will have. We initialize
-//    //to the number of elements already on the diagonal
-//    //how many matrix indicies away will we need to go to get to r0?
-//    int max_offset = (int) ceil(r0/min_sep);
-//    //count all of the elements on the off-diagonals until we fill the matix
-//    for (i=1; (i<=max_offset) && (M < N*N); i++)
-//    {
-//        M += 2*(N - i);
-//    }
-//
+    int i=0, j=0, l=0, ii=0, jj=0;
+    double cov = 0.0;
+    int M=N; //How many non-zeros this matrix will have. We initialize
+    //to the number of elements already on the diagonal
+    //how many matrix indicies away will we need to go to get to r0?
+    int max_offset = (int) ceil(r0/min_sep);
+    //count all of the elements on the off-diagonals until we fill the matrix
+    for (i=1; (i<=max_offset) && (M < N*N); i++)
+    {
+        M += 2*(N - i);
+    }
+
 //    //printf("N^2=%d \n", N*N);
 //    //printf("M  =%d \n", M);
 //
 //    /* Initialize a cholmod_triplet matrix, which we will subsequently fill with
 //     * values. This matrix is NxN sparse with M total non-zero elements. 1 means we
 //     * want a square and symmetric matrix. */
-//    cholmod_triplet *T = cholmod_allocate_triplet(N, N, M, 1, CHOLMOD_REAL, c);
-//
-//    if (T == NULL || T->stype == 0)		    /* T must be symmetric */
-//    {
-//      cholmod_free_triplet (&T, c) ;
-//      cholmod_finish (c) ;
-//      return (0) ;
-//    }
-//
-//    int * Ti = T->i;
-//    int * Tj = T->j;
-//    double * Tx = T->x;
-//    int k = 0;
-//    double r;
-//
-//    //Loop for the first block
-//    for (i = 0; (i < max_offset) && (i < N); i++)
-//    {
-//        for (j = 0; j <= i; j++)
-//        {
-//            //printf("(%d,%d)\n", i, j);
-//            r = fabs(wl[i] - wl[j]) * c_kms /wl[i]; //Now in velocity
-//
-//                if (r < r0) //If the distance is below our cutoff, initialize
-//                {
-//                    Ti[k] = i;
-//                    Tj[k] = j;
-//                    Tx[k] = k_3_2(r, a, l, r0);
-//                    k++;
-//                }
-//        }
-//    }
-//
-//
-//    //Loop for the second block
-//    for (i = max_offset; i < N; i++)
-//    {
-//        for (j = (i - max_offset); j <= i; j++)
-//        {
-//            //printf("(%d,%d)\n", i, j);
-//            r = fabs(wl[i] - wl[j]) * c_kms/wl[i];
-//
-//                if (r < r0) //If the distance is below our cutoff, initialize
-//                {
-//                    Ti[k] = i;
-//                    Tj[k] = j;
-//                    Tx[k] = k_3_2(r, a, l, r0);
-//                    k++;
-//                }
-//
-//        }
-//    }
-//
-//    T->nnz = k;
-//
-//    //The conversion will transpose the entries and add to the upper half.
-//    cholmod_sparse *A = cholmod_triplet_to_sparse(T, k, c);
-//    cholmod_free_triplet(&T, c);
-//    return A;
-    return cholmod_speye(N, N, CHOLMOD_REAL, c);
-    //return NULL;
-	
+    cholmod_triplet *T = cholmod_allocate_triplet(N, N, M, 1, CHOLMOD_REAL, c);
+
+    if (T == NULL || T->stype == 0)		    /* T must be symmetric */
+    {
+      cholmod_free_triplet (&T, c) ;
+      cholmod_finish (c) ;
+      return (0) ;
+    }
+
+    int * Ti = T->i;
+    int * Tj = T->j;
+    double * Tx = T->x;
+    int k = 0;
+    double r;
+
+    //Loop for the first block
+    for (i = 0; (i < max_offset) && (i < N); i++)
+    {
+        for (j = 0; j <= i; j++)
+        {
+            //printf("(%d,%d)\n", i, j);
+            r = fabs(wl[i] - wl[j]) * c_kms /wl[i]; //Now in velocity
+
+                if (r < r0) //If the distance is below our cutoff, initialize
+                {
+                    Ti[k] = i;
+                    Tj[k] = j;
+                    //Calculate the contribution by summing over all 24 spectra correlations
+                    //The values of i and j each represent a pixel
+                    cov = 0.0; //accumulator variable
+                    ii = 0; //indices to slice into errors
+                    jj = 0; //indices to slice into errors
+
+                    //Now, for each errorspectrum of the 24, multiply these two pixels together, then add them
+                    //let l signify spectrum
+                    for (l = 0; (l < 24); l++)
+                    {
+                        //think about these...
+                        ii = i + (l * N);
+                        jj = j + (l * N);
+                        cov = cov + errors[ii] * errors[jj];
+
+                    }
+                    Tx[k] = cov;
+                    k++;
+                }
+        }
+    }
+
+    //Loop for the second block
+    for (i = max_offset; i < N; i++)
+    {
+        for (j = (i - max_offset); j <= i; j++)
+        {
+            //printf("(%d,%d)\n", i, j);
+            r = fabs(wl[i] - wl[j]) * c_kms/wl[i];
+
+                if (r < r0) //If the distance is below our cutoff, initialize
+                {
+                    Ti[k] = i;
+                    Tj[k] = j;
+                    //Calculate the contribution by summing over all 24 spectra correlations
+                    //The values of i and j each represent a pixel
+                    cov = 0.0; //accumulator variable
+                    ii = 0; //indices to slice into errors
+                    jj = 0; //indices to slice into errors
+
+                    //Now, for each errorspectrum of the 24, multiply these two pixels together, then add them
+                    //let l signify spectrum
+                    for (l = 0; (l < 24); l++)
+                    {
+                        //think about these...
+                        ii = i + (l * N);
+                        jj = j + (l * N);
+                        cov = cov + errors[ii] * errors[jj];
+                    }
+                    Tx[k] = cov;
+                    k++;
+                }
+        }
+    }
+
+    T->nnz = k;
+
+    //The conversion will transpose the entries and add to the upper half.
+    cholmod_sparse *A = cholmod_triplet_to_sparse(T, k, c);
+    cholmod_free_triplet(&T, c);
+    return A;
 }
 
 // create and return a sparse matrix using a wavelength array and parameters

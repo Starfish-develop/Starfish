@@ -139,7 +139,7 @@ class Model:
         return model
 
     def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple,
-                 outdir="", debug=False):
+                 outdir="", max_v=20, debug=False):
         self.DataSpectrum = DataSpectrum
         self.stellar_tuple = stellar_tuple
         self.cheb_tuple = cheb_tuple
@@ -166,8 +166,8 @@ class Model:
             self.logger.setLevel(logging.INFO)
 
         #Now create a a list which contains an OrderModel for each order
-        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, npoly=len(self.cheb_tuple),
-                                       debug=self.debug)
+        self.OrderModels = [OrderModel(self.ModelSpectrum, self.DataSpectrum, index, max_v=max_v,
+                                       npoly=len(self.cheb_tuple), debug=self.debug)
                             for index in range(self.norders)]
 
 
@@ -190,6 +190,15 @@ class Model:
         self.stellar_params_last = self.stellar_params
         self.stellar_params = params
         self.ModelSpectrum.update_all(params)
+        #print("ModelSpectrum.update_all")
+
+        #Since the ModelSpectrum fluxes have been updated, also update the interpolation errors
+
+        #print("Sum of errors is {}".format(np.sum(model_errs)))
+        for orderModel in self.OrderModels:
+            errs = self.ModelSpectrum.downsampled_errors[:, orderModel.index, :].copy()
+            assert errs.flags["C_CONTIGUOUS"], "Not C contiguous"
+            orderModel.CovarianceMatrix.update_interp_errs(errs)
 
     def revert_Model(self):
         '''
@@ -199,14 +208,15 @@ class Model:
         self.stellar_params = self.stellar_params_last
         #Reset downsampled flux
         self.ModelSpectrum.revert_flux()
-
+        #Since the interp_errors have been updated, revert them now
+        for orderModel in self.OrderModels:
+            orderModel.CovarianceMatrix.revert_interp()
 
     def get_data(self):
         '''
         Returns a DataSpectrum object.
         '''
         return self.DataSpectrum
-
 
     def evaluate(self):
         '''
@@ -220,7 +230,6 @@ class Model:
             lnps[i] = self.OrderModels[i].evaluate()
 
         return np.sum(lnps)
-
 
     def to_json(self, fname="model.json"):
         '''
@@ -341,7 +350,8 @@ class ModelHA:
         #Since the ModelSpectrum fluxes have been updated, also update the interpolation errors
         model_errs = self.ModelSpectrum.downsampled_errors
         for orderModel in self.OrderModels:
-            orderModel.CovarianceMatrix.update_interp_errs(model_errs[:,orderModel.index, :])
+            errspecs = np.ascontiguousarray(model_errs[:, orderModel.index, :])
+            orderModel.CovarianceMatrix.update_interp_errs(errspecs)
 
     def get_data(self):
         '''
@@ -380,7 +390,7 @@ class ModelHA:
         f.close()
 
 class OrderModel:
-    def __init__(self, ModelSpectrum, DataSpectrum, index, npoly=4, debug=False):
+    def __init__(self, ModelSpectrum, DataSpectrum, index, max_v=20, npoly=4, debug=False):
         print("Creating OrderModel {}".format(index))
         self.index = index
         self.DataSpectrum = DataSpectrum
@@ -397,7 +407,7 @@ class OrderModel:
             self.logger.setLevel(logging.INFO)
         self.ModelSpectrum = ModelSpectrum
         self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.index, npoly=npoly)
-        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index, debug=self.debug)
+        self.CovarianceMatrix = CovarianceMatrix(self.DataSpectrum, self.index, max_v=max_v, debug=self.debug)
         self.global_cov_params = None
         self.cheb_params = None
         self.cheb_params_last = None
@@ -697,7 +707,7 @@ class StellarSampler(Sampler):
             others = p[3:]
             params.update({"logg": self.fix_logg})
 
-        self.logger.debug("params in lnprob are {}".format(params))
+        #self.logger.debug("params in lnprob are {}".format(params))
 
         #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
         #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
@@ -712,15 +722,15 @@ class StellarSampler(Sampler):
         try:
             lnps = np.empty((self.nmodels,))
             for i, (model, par) in enumerate(zip(self.model_list, mparams)):
-                self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
+                #self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
                 model.update_Model(par) #This also updates downsampled_fls
                 #For order in myModel, do evaluate, and sum the results.
                 lnp = model.evaluate()
-                self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
+                #self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
                 lnps[i] = lnp
-            self.logger.debug("lnps : {}".format(lnps))
+            #self.logger.debug("lnps : {}".format(lnps))
             s = np.sum(lnps)
-            self.logger.debug("sum lnps {}".format(s))
+            #self.logger.debug("sum lnps {}".format(s))
             return s
         except C.ModelError:
             self.logger.debug("lnprob returning -np.inf")
@@ -746,15 +756,16 @@ class ChebSampler(Sampler):
 
     def lnprob(self, p):
         params = self.model.zip_Cheb_p(p)
-        self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
-                                                                self.model, self.order_index, params))
+        self.logger.debug("Updating cheb params {}".format(params))
+        #self.logger.debug("Updating model {}:{}, order {} with params {}".format(self.model_index,
+        #                                                        self.model, self.order_index, params))
         self.order_model.update_Cheb(params)
 
         lnps = np.empty((self.nmodels,))
         for i, model in enumerate(self.model_list):
             lnps[i] = model.evaluate()
         s = np.sum(lnps)
-        self.logger.debug("lnp {}".format(s))
+        #self.logger.debug("lnp {}".format(s))
         return s
 
 class CovGlobalSampler(Sampler):
