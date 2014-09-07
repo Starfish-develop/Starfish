@@ -22,15 +22,20 @@ params = {"temp":6010, "logg":4.1, "Z":-0.3}
 fl, errspec = interpolator(params)
 
 #A good test here would be to create errspec as an arange() so that inside of cov.h we know how we are indexing this
-N = np.prod(errspec.shape)
-testspec = np.arange(N, dtype="f8")
-print(len(fl))
-testspec.shape = errspec.shape
-print(testspec)
+#N = np.prod(errspec.shape)
+#testspec = np.arange(N, dtype="f8")
+#print(len(fl))
+#testspec.shape = errspec.shape
+#print(testspec)
 
 #Create a CovarianceMatrix object
 cov = CovarianceMatrix(dataspec, 0, 20, debug=True)
 
 
-cov.update_interp_errs(testspec)
+cov.update_interp_errs(errspec)
 
+S = cov.cholmod_to_scipy_sparse()
+
+plt.imshow(S.todense()[0:100,0:100], origin="upper", interpolation="none")
+plt.colorbar()
+plt.show()

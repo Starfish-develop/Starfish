@@ -793,7 +793,9 @@ class ModelSpectrum:
         self.downsampled_fls = np.empty(self.DataSpectrum.shape)
         self.downsampled_fls_last = self.downsampled_fls
 
-        self.downsampled_errors = np.empty((24,) + self.DataSpectrum.shape)
+        #self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
+        self.downsampled_errors = None
+        self.other_downsampled_errors = None
 
         self.grid_params = {}
         self.vz = 0
@@ -1006,6 +1008,7 @@ class ModelSpectrum:
         :returns fls: the downsampled fluxes that has the same shape as DataSpectrum.fls
         '''
 
+        #print("inside downsample")
         #Check to make sure that the grid is within self.wl range, because a spline will not naturally raise an error!
         wls = self.DataSpectrum.wls.flatten()
         if min(wls) < min(self.wl) or max(wls) > max(self.wl):
@@ -1018,13 +1021,34 @@ class ModelSpectrum:
         self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
         del interp
 
+        #if self.downsampled_errors is not None:
+        #    self.downsampled_errors_last = np.copy(self.downsampled_errors)
+
+        # if self.other_downsampled_errors is None:
+        #     print("setting other downsampled errors")
+        #     self.other_downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
+        #     for i, errspec in enumerate(self.errors):
+        #         interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
+        #
+        #         self.other_downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
+        #         del interp
+
         #Interpolate each of the 24 error spectra to the grid points
-        self.downsampled_errors_last = self.downsampled_errors.copy()
+        #if self.downsampled_errors is None:
+        self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
+        print("setting downsampled errors")
         for i, errspec in enumerate(self.errors):
             interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
 
             self.downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
             del interp
+
+        #assert np.allclose(self.downsampled_errors, self.other_downsampled_errors), "No longer downsampling the same " \
+                                                                                    #"thing"
+
+
+
+        #self.downsampled_errors = 1e-15 * np.ones((24,) + self.DataSpectrum.shape)
 
         gc.collect()
 
@@ -1033,7 +1057,8 @@ class ModelSpectrum:
         If a MH proposal was rejected, revert the downsampled flux to it's last value.
         '''
         self.downsampled_fls = self.downsampled_fls_last
-        self.downsampled_errors = self.downsampled_errors_last
+        #if self.downsampled_errors_last is not None:
+        #    self.downsampled_errors = np.copy(self.downsampled_errors_last)
 
 class ModelSpectrumHA:
     '''

@@ -157,11 +157,11 @@ region_priors = config['region_priors']
 model_list = [
     Model(myDataSpectrum, myInstrument, HDF5Interface(config['HDF5_path']), stellar_tuple=stellar_tuple,
           cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir,
-        debug=False)
+          max_v=config["interp_cut"], debug=False)
     for myDataSpectrum in myDataSpectra]
 
 myStellarSampler = StellarSampler(model_list=model_list, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
-                                  fix_logg=fix_logg, outdir=outdir, debug=False)
+                                  fix_logg=fix_logg, outdir=outdir, debug=True)
 
 samplerList = []
 #Create the samplers for each DataSpectrum
@@ -169,14 +169,14 @@ for model_index in range(len(model_list)):
     #Create the three subsamplers for each order
     for order_index in range(len(config['orders'])):
         samplerList.append(ChebSampler(model_list=model_list, model_index=model_index, cov=cheb_MH_cov,
-            starting_param_dict=cheb_Starting, order_index=order_index, outdir=outdir, debug=False))
+            starting_param_dict=cheb_Starting, order_index=order_index, outdir=outdir, debug=True))
         if not config['no_cov']:
             samplerList.append(CovGlobalSampler(model_list=model_list, model_index=model_index, cov=cov_MH_cov,
-            starting_param_dict=cov_Starting, order_index=order_index, outdir=outdir, debug=False))
+            starting_param_dict=cov_Starting, order_index=order_index, outdir=outdir, debug=True))
             if not config['no_region']:
                 samplerList.append(RegionsSampler(model_list=model_list, model_index=model_index, cov=region_MH_cov,
                 default_param_dict=region_Starting, priors=region_priors, order_index=order_index, outdir=outdir,
-                                                                                                       debug=False))
+                                                                                                       debug=True))
 
 mySampler = MegaSampler(samplers=[myStellarSampler] + samplerList, debug=False)
 
@@ -200,8 +200,14 @@ def main():
     print(mySampler.acor)
     for i, model in enumerate(model_list):
         model.to_json("model{}_final.json".format(i))
-        np.save("residuals.npy", model.OrderModels[0].get_residual_array())
+        #np.save("residuals.npy", model.OrderModels[0].get_residual_array())
 
+    #S = model_list[0].OrderModels[0].CovarianceMatrix.cholmod_to_scipy_sparse()
+
+    #import matplotlib.pyplot as plt
+    #plt.imshow(S.todense(), origin="upper", interpolation="none")
+    #plt.colorbar()
+    #plt.show()
 
     mySampler.write()
     mySampler.plot()

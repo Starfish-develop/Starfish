@@ -98,7 +98,6 @@ cdef extern from "cholmod.h":
     cholmod_sparse *cholmod_speye (size_t nrow, size_t ncol, int xtype, cholmod_common *c) except? NULL
 
 
-
 #These are the functions that I have written myself
 cdef extern from "../extern/cov.h":
 
@@ -450,12 +449,11 @@ cdef class CovarianceMatrix:
         '''
         self.logger.debug("evaluating covariance matrix")
 
-        #residuals = self.fl - fl
-
         #convert the residuals to a cholmod_dense matrix
         cdef np.ndarray[np.double_t, ndim=1] rr = residuals
         cdef cholmod_dense *r = cholmod_allocate_dense(self.npoints, 1, self.npoints, CHOLMOD_REAL, self.c)
         cdef double *x = <double*>r.x #pointer to the data in cholmod_dense struct
+        #copy the numpy data directly into the Cholmod struct
         for i in range(self.npoints):
             x[i] = rr[i]
 
@@ -584,10 +582,10 @@ cdef class InterpCovarianceMatrix:
         self.logger.debug("Updating InterpCovarianceMatrix")
 
         #from http://article.gmane.org/gmane.comp.python.cython.user/5625
-        cdef np.ndarray[np.double_t, ndim=2, mode="c"] x
+        #cdef np.ndarray[np.double_t, ndim=2, mode="c"] x
         # unbox NumPy array into local variable x
         # make sure we have a contiguous array in C order
-        x = np.ascontiguousarray(errors, dtype=np.float64)
+        #x = np.ascontiguousarray(errors, dtype=np.float64)
 
         #Copy the old self.A to self.A_last
         if self.A_last != NULL and (self.A_last != self.A):
@@ -600,8 +598,7 @@ cdef class InterpCovarianceMatrix:
         self.logger.debug("shifting self.A_last to point to self.A")
         self.A_last = self.A
 
-        self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &x[0,0], self.c)
-
+        self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &errors[0,0], self.c)
 
     def revert(self):
         #move A to point to A_last
