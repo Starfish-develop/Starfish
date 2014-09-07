@@ -785,8 +785,8 @@ spectral orders covering $\sim$5100-5400\,\AA\ and synthetic spectra from the {\
 library; it indicates $T_{\rm eff} = 6507\pm50$\,K, $[{\rm Fe/H}] = -0.15\pm0.08$\,dex, and $v \sin 
 i = 3.9\pm0.5$\,km s$^{-1}$.  It is worth noting that these parameter inferences represent an 
 average of those determined from four distinct TRES datasets, such that the uncertainties reflect 
-the systematic spread between the best-fit parameter values. \comm{This is something we need to 
-discuss more with Dave and Willie.}
+the systematic spread between the best-fit parameter values. 
+%\comm{This is something we need to discuss more with Dave and Willie.}
 
 Given the decision to employ a spectral library to generate models (Sect.~\ref{subsec:synthetic}), 
 a direct comparison of the \citeauthor{torres12}~{\tt SPC} result with our framework is relevant.  
@@ -842,14 +842,6 @@ library, as explored by the MCMC Gibbs sampler.  For the two-dimensional posteri
 contours are drawn at the standard 1, 2, and 3\,$\sigma$ levels (of a normal distribution) for 
 reference.  \label{fig:Kurucz_posterior} }
 \end{figure}
-
-\begin{figure*}[!htb]
-\begin{center}
-\includegraphics{figs/residuals_Kurucz_logg.pdf}
-\caption{A sample of the WASP-14 data set overlaid with a model spectrum produced by parameters drawn from the posterior probability distribution (fixing $\log_{10} g = 4.29$ dex) and using the {\sc CfA/Kurucz} synthetic library. The residuals are shown zoomed along with the three-sigma contours of random draws from the covariance matrix, after Figure~\ref{fig:matrix}.}
-\label{fig:Kurucz_residuals}
-\end{center}
-\end{figure*}
 
 %\begin{figure}[!htb]
 %\begin{center}
@@ -1133,16 +1125,16 @@ promise in the (ongoing) era of large, homogeneous high resolution spectroscopic
 like those being collected in programs like the APOGEE and HERMES surveys), since they provide 
 enormous leverage for identifying and improving the underlying model systematics.
 
-\comm{Should make note of surveys like the ESA/Gaia program, SEGUE, RAVE, too.  Probably need to 
-include citations to each.  Also, I think HERMES is really GALAH, right?  If not, it should be 
-linked to that, since there is a popular Herschel HERMES program that will confuse people...}
+%\comm{Should make note of surveys like the ESA/Gaia program, SEGUE, RAVE, too.  Probably need to 
+%include citations to each.  Also, I think HERMES is really GALAH, right?  If not, it should be 
+%linked to that, since there is a popular Herschel HERMES program that will confuse people...}
 
 
-\acknowledgments  List your acknowledgments (don't forget anyone!).  I can think of: 
-Foreman-Mackey, Hogg, people on Johnson's group?, Lars?, TRES archive people?  You might want to 
-acknowledge your NSF Fellowship here, and the Smithsonian Institution (how you're being paid now), 
-for funding.  Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}.
-
+%\acknowledgments  List your acknowledgments (don't forget anyone!).  I can think of: 
+%Foreman-Mackey, Hogg, people on Johnson's group?, Lars?, TRES archive people?  You might want to 
+%acknowledge your NSF Fellowship here, and the Smithsonian Institution (how you're being paid now), 
+%for funding.  Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}.
+%
 
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}
