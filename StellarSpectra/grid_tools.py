@@ -653,11 +653,14 @@ class HDF5Interface:
         '''
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
-            hdr = dict(hdf5['flux'][key].attrs)
-            if self.ind is not None:
-                fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
-            else:
-                fl = hdf5['flux'][key][:]
+            try:
+                hdr = dict(hdf5['flux'][key].attrs)
+                if self.ind is not None:
+                    fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
+                else:
+                    fl = hdf5['flux'][key][:]
+            except KeyError as e:
+                raise C.GridError(e)
 
         #Note: will raise a KeyError if the file is not found.
 
