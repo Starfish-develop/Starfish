@@ -1139,11 +1139,13 @@ class Interpolator:
         names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"],
         params = [edges[key][0] for key in names] #[(6000, 6100), (4.0, 4.5), ...]
         weights = [edges[key][1] for key in names] #[(0.2, 0.8), (0.4, 0.6), ...]
+        #print(params)
+        #print(weights)
 
-        #Somehow extract the appropriate temperature/logg/Z weights here W. For combining the different covariances
+        #Somehow extract the appropriate temperature/logg/Z weights here for combining the different covariances
         #Length 3 list
-        Weight_list = [(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
-
+        Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
+        #print(Weight_list)
 
         param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
         #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
@@ -1157,7 +1159,10 @@ class Interpolator:
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
         weight_sq = weight_list.copy()
-        weight_sq /= np.sum(weight_sq**2) #normalize by the squares
+        #print(weight_sq)
+        den = np.sqrt(np.sum(weight_sq**2))
+        weight_sq /=  den #normalize by the squares
+        #print(weight_sq)
 
         # for item in zip(key_list, weight_list):
         #     print(item)

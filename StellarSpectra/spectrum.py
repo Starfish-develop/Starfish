@@ -1036,7 +1036,6 @@ class ModelSpectrum:
         #Interpolate each of the 24 error spectra to the grid points
         #if self.downsampled_errors is None:
         self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        print("setting downsampled errors")
         for i, errspec in enumerate(self.errors):
             interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
 
