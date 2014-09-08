@@ -132,6 +132,7 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
     //The outer part of the loop uses wl, min_sep, and max_v to determine which indices to actually loop over.
 
     double r0 = max_v;
+    double taper;
     //Let's see how easily we can index into this array
     //printf("Array %f", errors[0]);
     //printf("Array %f", errors[8192]);
@@ -180,6 +181,7 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
 
                 if (r < r0) //If the distance is below our cutoff, initialize
                 {
+                    taper = (0.5 + 0.5 * cos(PI * r/r0));
                     Ti[k] = i;
                     Tj[k] = j;
                     //Calculate the contribution by summing over all 24 spectra correlations
@@ -198,7 +200,7 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
                         cov = cov + errors[ii] * errors[jj];
 
                     }
-                    Tx[k] = cov;
+                    Tx[k] = cov * taper;
                     k++;
                 }
         }
@@ -214,6 +216,7 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
 
                 if (r < r0) //If the distance is below our cutoff, initialize
                 {
+                    taper = (0.5 + 0.5 * cos(PI * r/r0));
                     Ti[k] = i;
                     Tj[k] = j;
                     //Calculate the contribution by summing over all 24 spectra correlations
@@ -231,7 +234,7 @@ cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, d
                         jj = j + (l * N);
                         cov = cov + errors[ii] * errors[jj];
                     }
-                    Tx[k] = cov;
+                    Tx[k] = cov * taper;
                     k++;
                 }
         }

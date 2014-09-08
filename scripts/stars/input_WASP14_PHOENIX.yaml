@@ -15,9 +15,9 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6220
+    temp : 6200
     #logg : 3.8
-    Z : -0.44
+    Z : -0.50
     vsini : 5.05
     vz : -4.838
     logOmega: -19.679 #PHOENIX
@@ -25,12 +25,12 @@ stellar_params :
 #Average jump size in each parameter
 #Using covariance
 stellar_jump:
-    temp : 4
+    temp : 15
     #logg : 0.002
-    Z : 0.005
+    Z : 0.01
     vsini : 0.02
-    vz : 0.005
-    logOmega: 4e-4
+    vz : 0.02
+    logOmega: 1e-3
 
 fix_logg : 4.29
 
@@ -55,7 +55,7 @@ cheb_degree: 4
 #using covariance
 cheb_jump : 2e-3
 
-no_cov : True
+no_cov : False
 
 cov_params :
     sigAmp : 1
@@ -93,5 +93,5 @@ orders: [22]
 
 #Burn in time
 burn_in : 0
-samples : 500
+samples : 3000
 #will probably need 100000 for a good looking posterior

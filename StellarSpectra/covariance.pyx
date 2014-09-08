@@ -65,6 +65,9 @@ cdef extern from "cholmod.h":
     double cholmod_norm_sparse(cholmod_sparse *A, int norm, cholmod_common *c) except? 0.0
     int cholmod_print_sparse(cholmod_sparse *A, const char *, cholmod_common *c) except? 0
     cholmod_triplet *cholmod_sparse_to_triplet(cholmod_sparse *A, cholmod_common *c) except? NULL
+    cholmod_triplet *cholmod_allocate_triplet(size_t nrow, size_t ncol, size_t nzmax, int stype, int xtype,
+    cholmod_common *c) except? NULL
+    cholmod_sparse *cholmod_triplet_to_sparse(cholmod_triplet *T, size_t nzmax, cholmod_common *c) except? NULL
 
     ctypedef struct cholmod_dense:
         size_t nrow, ncol, nzmax
@@ -581,12 +584,6 @@ cdef class InterpCovarianceMatrix:
         '''
         self.logger.debug("Updating InterpCovarianceMatrix")
 
-        #from http://article.gmane.org/gmane.comp.python.cython.user/5625
-        #cdef np.ndarray[np.double_t, ndim=2, mode="c"] x
-        # unbox NumPy array into local variable x
-        # make sure we have a contiguous array in C order
-        #x = np.ascontiguousarray(errors, dtype=np.float64)
-
         #Copy the old self.A to self.A_last
         if self.A_last != NULL and (self.A_last != self.A):
             #Free the old memory before having it point to something new
@@ -597,6 +594,82 @@ cdef class InterpCovarianceMatrix:
         #Shift the self.A_last pointer to self.A
         self.logger.debug("shifting self.A_last to point to self.A")
         self.A_last = self.A
+
+#        N = self.npoints
+#        r0 = self.max_v
+#
+#        #calculate how big the matrix will be
+#        i=0
+#        j=0
+#        l=0
+#        ii=0
+#        jj=0
+#        cov = 0.0
+#        M=N #How many non-zeros this matrix will have. We initialize
+#        #to the number of elements already on the diagonal
+#        #how many matrix indicies away will we need to go to get to r0?
+#        max_offset = int(np.ceil(r0/self.min_sep))
+#        #count all of the elements on the off-diagonals until we fill the matrix
+#        for i in range(1, max_offset + 1):
+#            if (M < N*N):
+#                M += 2*(N - i)
+#            else:
+#                break
+#
+#        cdef cholmod_triplet *T = cholmod_allocate_triplet(N, N, M, 1, CHOLMOD_REAL, self.c)
+#
+#        if (T == NULL) or (T.stype == 0): # T must be symmetric
+#          cholmod_free_triplet(&T, self.c)
+#          cholmod_finish(self.c)
+#          return(0)
+#
+#        cdef int * Ti = <int*>T.i
+#        cdef int * Tj = <int*>T.j
+#        cdef double * Tx = <double*>T.x
+#        cdef int k = 0
+#        cdef double r
+#
+#        #Loop for the first block
+#        for i in range(max_offset):
+#            if i == N:
+#                break
+#            else:
+#                for j in range(i + 1):
+#                    r = np.abs(self.wl[i] - self.wl[j]) * C.c_kms /self.wl[i]
+#
+#                    if r < r0:
+#                        tap = (0.5 + 0.5 * np.cos(np.pi * r/r0))
+#                        Ti[k] = i
+#                        Tj[k] = j
+#
+#                        pixi = errors[:,i]
+#                        pixj = errors[:,j]
+#                        cov = np.sum(pixi * pixj)
+#                        Tx[k] = cov * tap
+#                        k += 1
+#
+#
+#        for i in range(max_offset, N):
+#            for j in range(i - max_offset, i + 1):
+#                r = np.abs(self.wl[i] - self.wl[j]) * C.c_kms/self.wl[i]
+#
+#                if r < r0:
+#                    tap = (0.5 + 0.5 * np.cos(np.pi * r/r0))
+#                    Ti[k] = i
+#                    Tj[k] = j
+#
+#                    pixi = errors[:,i]
+#                    pixj = errors[:,j]
+#                    cov = np.sum(pixi * pixj)
+#                    Tx[k] = cov * tap
+#                    k += 1
+#
+#        T.nnz = k
+#
+#        #The conversion will transpose the entries and add to the upper half.
+#        self.A = cholmod_triplet_to_sparse(T, k, self.c)
+#        cholmod_free_triplet(&T, self.c)
+
 
         self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &errors[0,0], self.c)
 
