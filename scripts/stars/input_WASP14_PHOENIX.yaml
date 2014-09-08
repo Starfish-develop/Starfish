@@ -2,10 +2,10 @@
 
 name: WASP14/PHOENIX/22/interp_errors/
 
-HDF5_path : libraries/PHOENIX_TRES_F.hdf5
+#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/PHOENIX_TRES_F_julia.hdf5
 #HDF5_path : /scratch/PHOENIX_TRES_F_julia.hdf5
-#HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
+HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
@@ -67,7 +67,7 @@ cov_jump :
     logAmp : 0.01
     l : 0.1
 
-no_region: True
+no_region: False
 
 region_params:
     loga: -13.6
@@ -92,6 +92,6 @@ interp_cut : 20 #km/s
 orders: [22]
 
 #Burn in time
-burn_in : 0
-samples : 3000
+burn_in : 10000
+samples : 20000
 #will probably need 100000 for a good looking posterior
