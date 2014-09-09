@@ -91,18 +91,7 @@
 \email{iczekala@cfa.harvard.edu}
 
 \begin{abstract}
-An abstract needs to go here. \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd \\
-tbd
+We present a modular and extensible framework for forward-modelling spectra with synthetic models. Due to the nature of spectra, that adjacent pixels are not independent samples of the intrinsic flux distribution, it is common to result in residual spectra that exhibit some degree of correlation. Neglecting this covariance in the residual spectrum can result in a biased estimates of the parameters which describe the model spectrum. In the high signal-to noise, large spectral range limit common to stellar parameter estimation, the covariant structure of the residuals can bias the resulting parameter determinations. We present a likelihood function designed to account for this covariant structure, utilizing the machinery of Gaussian process covariance kernels to self-consistently identify and model the covariance. Specific to stellar parameter estimation, a common problem is the presence of spectral lines with an incorrect strength, often due to incorrect atomic constants or radiative treatment. We also present the development of a local covariance kernel that can track and self-consistently down-weight pathologically wrong spectra lines. Local kernels that track line weights provide a mechanism to learn corrections to spectral models, by fitting in a hierarchical manner. We demonstrate the application of this method, implemented as an open source code, to fit an echelle optical spectrum WASP-14, an F star, and a mid-infra spectrum of Gl51, an M5 star. 
 \end{abstract}
 \keywords{stars: fundamental parameters --- methods: data analysis --- methods: statistical}
 
@@ -1139,5 +1128,29 @@ enormous leverage for identifying and improving the underlying model systematics
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}
 
+\appendix
+
+\section{Interpolation Errors}
+Interpolating a model spectrum from a synthetic library of spectra on a grid is conceptually straightforward; however, in practice there are several subtle effects to consider. Spectra are stored in a synthetic library as samples of the intensity at specific wavelengths, or pixels, at high resolution (typically R$\sim$500,000). Typically, to interpolate a spectrum for a specific.
+
+Moreover, often the flux value of the pixel will not vary monontonically. Visually inspecting values of pixels as a function of parameter values makes it apparent that the spectra have not be Nyquist sampled in parameter space. That the synthetic grid does not contain the full amount of information about the spectral behavior. However, this is not surprising giving the computational complexity of stellar synthesis. Therefore, we are left to make the most conservative assumption about the behavior of the pixels between grid points and decide on a linear interpolation scheme. Going beyond this behavior, for example using a spline or other band-limited interpolation scheme, ignores the fact that the grid itself is not Nyquist sampled. 
+
+We choose to do linear interpolation, but empirically determine the interpolation error by a series of ``drop-out'' interpolation tests, whereby we remove a spectrum from the grid, for example T=6000, logg=4.5, and Z=-0.5, and then create three sets of interpolated spectra, over the various dimensions. Therefore, for each spectrum in the synthetic grid, there are also three error spectra Generally, the interpolation error is small, typically no larger than 1\% across many lines. This test gives us confidence that it is possible to generate an interpolated spectra, and that inference on the stellar parameters may be drawn at a substantially finer level that the coarsity of the grid spacing itself. However, while the interpolation error is small, it is often the case that the error adds \emph{coherently}. When the signal to noise of the spectrum is particularly large, this coherent trend can manifest itself as a behavior that the spectral lines in an interpolated spectrum are less ``physical'' looking than those directly near a gridpoint, with minor or no interpolation. Therefore, it is necessary to quantify the degree of interpolation error, in order to give the proper likelihood to interpolated spectra. 
+
+[Figure here of actuall interpolation error, as alluded to in text].
+
+[Possible second figure showing a 3D cube, with vertices labelled].
+
+Because the interpolation error is covariant, i.e., the interpolation error spectrum is highly dependent on whether the pixel is on the continuum, or on a spectral line (and specifically where on the spectral line), we must model the covariance of the errors. We must multiply and then add in order to preserve the covariance. A simple sum would destroy the covariance and the effect.
+
+For computational expediency and numerical stability, we smoothly taper the covariance to zero after a similar length scale as the global covariance kernel. In reality, this interpolation error matrix is dense: pixels separated by a wide spectral range may in fact exhibit a strong degree of correlation because they happen to fall on the same relative location of a spectral line. For example, all pixels at the continuum will tend to act similarly, regardless of where on the spectrum the pixels fall. Any pixel that falls on the blue side of a spectral line will tend to exhibit a similar error behaviour regardless of which spectral line, as long as that line was changing in a similar manner. 
+
+The elements of the interpolation covariance matrix $\mathsf{C}_{ij}^\textrm{int}$ are determined empirically from the drop-out spectra, and are a function of the degree of the interpolation.
+
+\begin{equation}
+  \mathsf{C}_{ij}^\textrm{int} = 
+\end{equation}
+
+[Figure showing what the truncated covariance matrix looks like, with high values about lines].
 
 \end{document}
