@@ -1155,7 +1155,9 @@ class Interpolator:
 
         #Somehow extract the appropriate temperature/logg/Z weights here for combining the different covariances
         #Length 3 list
-        Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
+        #This is equivalent to np.sqrt(0.5) * np.sqrt(min(lspace, rspace)/0.5)
+        #Giving half the weight to these values, and weighting in a linear manner.
+        Weight_list = [np.sqrt(min(lspace, rspace)) for (lspace, rspace) in weights]
         #print(Weight_list)
 
         param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
@@ -1169,14 +1171,10 @@ class Interpolator:
         key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
-        weight_sq = weight_list.copy()
+        weight_sq = np.sqrt(weight_list.copy())
         #print(weight_sq)
-        den = np.sqrt(np.sum(weight_sq**2))
-        weight_sq /=  den #normalize by the squares
-        #print(weight_sq)
-
-        # for item in zip(key_list, weight_list):
-        #     print(item)
+        #den = np.sqrt(np.sum(weight_sq**2))
+        #weight_sq /=  den #normalize by the squares
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
