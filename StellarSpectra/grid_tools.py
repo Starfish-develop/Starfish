@@ -638,10 +638,13 @@ class HDF5Interface:
 
         key = self.flux_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
-            if self.ind is not None:
-                fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
-            else:
-                fl = hdf5['flux'][key][:]
+            try:
+                if self.ind is not None:
+                    fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
+                else:
+                    fl = hdf5['flux'][key][:]
+            except KeyError as e:
+                raise C.GridError(e)
 
         #Note: will raise a KeyError if the file is not found.
 
@@ -929,16 +932,21 @@ class ErrorSpectrumCreator:
 
         for param in param_list:
             print("Processing {}".format(param))
-            spec_tuple = self.interface.get_error_spectra(param)
+            try:
+                spec_tuple = self.interface.get_error_spectra(param)
 
-            for axis, spec in zip(("temp", "logg", "Z"), spec_tuple):
-                param.update({"axis":axis})
-                print("Processing {}".format(param))
+                for axis, spec in zip(("temp", "logg", "Z"), spec_tuple):
+                    param.update({"axis":axis})
+                    print("Processing {}".format(param))
 
-                with h5py.File(self.filename, "r+") as hdf5:
-                    dset = hdf5.create_dataset(self.flux_name.format(**param), shape=(self.len,),
-                                                            dtype="f", compression='gzip', compression_opts=9)
-                    dset[:] = spec
+                    with h5py.File(self.filename, "r+") as hdf5:
+                        dset = hdf5.create_dataset(self.flux_name.format(**param), shape=(self.len,),
+                                                                dtype="f", compression='gzip', compression_opts=9)
+                        dset[:] = spec
+
+            except C.GridError:
+                print("No spectrum with {}".format(param))
+                continue
 
 
 class IndexInterpolator:
