@@ -57,7 +57,7 @@ class Model:
 
         #Load the appropriate Instrument from the Instrument list
 
-        #Load the spectrum interpolator
+        #Load the spectrum interpolator specific to this order.
 
         #Initialiaze the covariance matrix
         self.CovarianceMatrix = None #Cython object
