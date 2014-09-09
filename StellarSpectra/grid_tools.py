@@ -1155,9 +1155,8 @@ class Interpolator:
 
         #Somehow extract the appropriate temperature/logg/Z weights here for combining the different covariances
         #Length 3 list
-        #This is equivalent to np.sqrt(0.5) * np.sqrt(min(lspace, rspace)/0.5)
         #Giving half the weight to these values, and weighting in a linear manner.
-        Weight_list = [np.sqrt(min(lspace, rspace)) for (lspace, rspace) in weights]
+        Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
         #print(Weight_list)
 
         param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
