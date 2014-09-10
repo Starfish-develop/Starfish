@@ -1160,11 +1160,22 @@ Because the interpolation error is covariant, i.e., the interpolation error spec
 
 For computational expediency and numerical stability, we smoothly taper the covariance to zero after a similar length scale as the global covariance kernel. In reality, this interpolation error matrix is dense: pixels separated by a wide spectral range may in fact exhibit a strong degree of correlation because they happen to fall on the same relative location of a spectral line. For example, all pixels at the continuum will tend to act similarly, regardless of where on the spectrum the pixels fall. Any pixel that falls on the blue side of a spectral line will tend to exhibit a similar error behaviour regardless of which spectral line, as long as that line was changing in a similar manner. 
 
-The elements of the interpolation covariance matrix $\mathsf{C}_{ij}^\textrm{int}$ are determined empirically from the drop-out spectra, and are a function of the degree of the interpolation.
+The elements of the interpolation covariance matrix $\mathsf{C}_{ij}^\textrm{int}$ are determined empirically from the drop-out spectra, and are a function of the degree of the interpolation. The variables are notated such that the last index changes most rapidly.
+
+We could represent the average covariance matrix, for a specific axis $k$, completed from all of the grid points as
 
 \begin{equation}
-  \mathsf{C}_{ij}^\textrm{int} = 
+  \mathsf{C}_{ijk}^\textrm{int} = \sum_{l=1}^8  b_{kl} \lambda_{ikl} \lambda_{jkl}
 \end{equation}
+Then, the final combined matrix requires some weighting based upon interpolation distance in each of the three axes, $k$
+\begin{equation}
+  \mathsf{C}_{ij}^\textrm{int} = w_{ij}(r_0) \sum_{k=1}^3 a_k \mathsf{C}_{ijk}^\textrm{int}
+\end{equation}
+We also add in a Hann taper to ensure sparsity of the covariance matrix for computational efficiency, however note that the interpolation error covariance matrix is itself dense.
+
+Here, $b_{kl}$ corresponds to the same weights that would be applied to each spectra in the interpolation case, for a specific axis $k$. The estimate of covariance is determined as a weighted average between the covariance matrices at all of the grid points. 
+
+Then, the final covariance
 
 [Figure showing what the truncated covariance matrix looks like, with high values about lines].
 
