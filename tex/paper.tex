@@ -1135,11 +1135,26 @@ Interpolating a model spectrum from a synthetic library of spectra on a grid is 
 
 Moreover, often the flux value of the pixel will not vary monontonically. Visually inspecting values of pixels as a function of parameter values makes it apparent that the spectra have not be Nyquist sampled in parameter space. That the synthetic grid does not contain the full amount of information about the spectral behavior. However, this is not surprising giving the computational complexity of stellar synthesis. Therefore, we are left to make the most conservative assumption about the behavior of the pixels between grid points and decide on a linear interpolation scheme. Going beyond this behavior, for example using a spline or other band-limited interpolation scheme, ignores the fact that the grid itself is not Nyquist sampled. 
 
-We choose to do linear interpolation, but empirically determine the interpolation error by a series of ``drop-out'' interpolation tests, whereby we remove a spectrum from the grid, for example T=6000, logg=4.5, and Z=-0.5, and then create three sets of interpolated spectra, over the various dimensions. Therefore, for each spectrum in the synthetic grid, there are also three error spectra Generally, the interpolation error is small, typically no larger than 1\% across many lines. This test gives us confidence that it is possible to generate an interpolated spectra, and that inference on the stellar parameters may be drawn at a substantially finer level that the coarsity of the grid spacing itself. However, while the interpolation error is small, it is often the case that the error adds \emph{coherently}. When the signal to noise of the spectrum is particularly large, this coherent trend can manifest itself as a behavior that the spectral lines in an interpolated spectrum are less ``physical'' looking than those directly near a gridpoint, with minor or no interpolation. Therefore, it is necessary to quantify the degree of interpolation error, in order to give the proper likelihood to interpolated spectra. 
+We choose to do linear interpolation, but empirically determine the interpolation error by a series of ``drop-out'' interpolation tests, whereby we remove a spectrum from the grid, for example T=6000, logg=4.5, and Z=-0.5, and then create three sets of interpolated spectra, over the various dimensions. Therefore, for each spectrum in the synthetic grid, there are also three error spectra Generally, the interpolation error is small, typically no larger than 1\% across many lines. This test gives us confidence that it is possible to generate an interpolated spectra, and that inference on the stellar parameters may be drawn at a substantially finer level that the coarsity of the grid spacing itself, especially given the multitude of possible lines to fit. However, while the interpolation error is small, it is often the case that the error adds \emph{coherently}. When the signal to noise of the spectrum is particularly large, this coherent trend can manifest itself as a behavior that the spectral lines in an interpolated spectrum are less ``physical'' looking than those directly near a gridpoint, with minor or no interpolation. Therefore, it is necessary to quantify the degree of interpolation error, in order to give the proper likelihood to interpolated spectra. 
 
-[Figure here of actuall interpolation error, as alluded to in text].
 
-[Possible second figure showing a 3D cube, with vertices labelled].
+\begin{figure}[!t]
+\begin{center}
+  \includegraphics{figs/interp_errors.pdf}
+  \figcaption{Also showing the envelope for a two gridpoint interpolation. All errors measured relative to the value of the true spectrum.}
+  \label{fig:interp_errors}
+\end{center}
+\end{figure}
+
+Nearly all interpolation errors are below the spread in change for an interpolated value. Those few pixels for which the change in value is \emph{less} than the bracketed change are due to values for which the pixel value changes non-monotonically with parameters. In such a situation, because the synthetic grid is not Nyquist sampled, it is difficult to accurately predict what the true pixel value should be. In this case, the most conservative approach is to incorporate the large interpolation error budget, as we do.
+
+\begin{figure}[!t]
+\begin{center}
+  \includegraphics{figs/interp_grid.pdf}
+  \figcaption{Tri-linear interpolation on a grid cell the shape of a rectangular prism.}
+  \label{fig:interp_grid}
+\end{center}
+\end{figure}
 
 Because the interpolation error is covariant, i.e., the interpolation error spectrum is highly dependent on whether the pixel is on the continuum, or on a spectral line (and specifically where on the spectral line), we must model the covariance of the errors. We must multiply and then add in order to preserve the covariance. A simple sum would destroy the covariance and the effect.
 
