@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/interp_errors/
+name: WASP14/PHOENIX/22/interp_errors/
 
 #HDF5_path : libraries/PHOENIX_TRES_F.hdf5
 #HDF5_path : libraries/PHOENIX_TRES_F_julia.hdf5
@@ -89,7 +89,7 @@ sigma_clip : 4.
 interp_cut : 70 #km/s
 
 #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [21,22,23]
+orders: [22]
 
 #Burn in time
 burn_in : 10000
