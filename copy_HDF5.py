@@ -41,6 +41,10 @@ if os.path.exists(destination):
             md_destination = get_md5(destination)
             print("md5sum of {} is {}".format(existing, md_destination))
             tries += 1
+        if md_existing != md_destination:
+            print("Failed to copy new file.")
+            raise IOError("Unable to transfer grid.")
+
 else:
     print("{} does not exist, copying".format(destination))
     subprocess.call(["cp", existing, destination])
