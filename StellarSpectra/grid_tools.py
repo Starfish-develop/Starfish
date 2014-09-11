@@ -1145,7 +1145,6 @@ class Interpolator:
             edges = OrderedDict()
             for key,value in odict.items():
                 edges[key] = self.index_interpolators[key](value)
-            #edges = {key:self.index_interpolators[key](value) for key,value in odict.items()}
         except C.InterpolationError as e:
             raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
