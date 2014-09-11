@@ -448,6 +448,9 @@ class OrderModel:
     def get_Cov(self):
         return self.CovarianceMatrix.cholmod_to_scipy_sparse()
 
+    def get_Cov_interp(self):
+        return self.CovarianceMatrix.cholmod_to_scipy_sparse_interp()
+
     def get_regions_dict(self):
         return self.CovarianceMatrix.get_regions_dict()
 

@@ -129,6 +129,7 @@ cdef class Common:
 cdef cholmod_sparse *get_A(RegionCovarianceMatrix region):
     return region.A
 
+
 cdef class CovarianceMatrix:
 
     cdef cholmod_sparse *A
@@ -512,6 +513,48 @@ cdef class CovarianceMatrix:
 
         return S
 
+    def cholmod_to_scipy_sparse_interp(self):
+            '''
+            Instantiate and return a scipy.sparse matrix from cholmod_sparse matrix self.interp_matrix
+            '''
+            #First, convert the cholmod_sparse to cholmod_triplet form so it's easier to read off
+            cdef cholmod_triplet *T = cholmod_sparse_to_triplet(self.interp_matrix.A, self.c)
+
+            #initialize a scipy.sparse.dok_matrix
+            S = scipy.sparse.dok_matrix((self.npoints, self.npoints), dtype=np.float64)
+
+            #Iterate through the T to pull out row, column, and value into three separate lists.
+            cdef int *Ti = <int*>T.i
+            cdef int *Tj = <int*>T.j
+            cdef double *Tx = <double*>T.x
+            cdef int stype = <int>T.stype
+
+            if stype == 0:
+                #Matrix is "unsymmetric, and all values are stored
+                for k in range(T.nnz):
+                    row = Ti[k]
+                    column = Tj[k]
+                    value = Tx[k]
+
+                    S[row, column] = value
+
+            else:
+                #Matrix is symmetric and either only lower or only upper values are stored
+                #So therefore also store the transpose (but not diagonal)
+                for k in range(T.nnz):
+                    row = Ti[k]
+                    column = Tj[k]
+                    value = Tx[k]
+
+                    S[row, column] = value
+                    if row != column:
+                        S[column, row] = value
+
+            cholmod_free_triplet(&T, self.c)
+
+            return S
+
+
     def test_common_equal(self):
         '''
         Figure out if all the cholmod_common's are actually the same.
@@ -594,82 +637,6 @@ cdef class InterpCovarianceMatrix:
         #Shift the self.A_last pointer to self.A
         self.logger.debug("shifting self.A_last to point to self.A")
         self.A_last = self.A
-
-#        N = self.npoints
-#        r0 = self.max_v
-#
-#        #calculate how big the matrix will be
-#        i=0
-#        j=0
-#        l=0
-#        ii=0
-#        jj=0
-#        cov = 0.0
-#        M=N #How many non-zeros this matrix will have. We initialize
-#        #to the number of elements already on the diagonal
-#        #how many matrix indicies away will we need to go to get to r0?
-#        max_offset = int(np.ceil(r0/self.min_sep))
-#        #count all of the elements on the off-diagonals until we fill the matrix
-#        for i in range(1, max_offset + 1):
-#            if (M < N*N):
-#                M += 2*(N - i)
-#            else:
-#                break
-#
-#        cdef cholmod_triplet *T = cholmod_allocate_triplet(N, N, M, 1, CHOLMOD_REAL, self.c)
-#
-#        if (T == NULL) or (T.stype == 0): # T must be symmetric
-#          cholmod_free_triplet(&T, self.c)
-#          cholmod_finish(self.c)
-#          return(0)
-#
-#        cdef int * Ti = <int*>T.i
-#        cdef int * Tj = <int*>T.j
-#        cdef double * Tx = <double*>T.x
-#        cdef int k = 0
-#        cdef double r
-#
-#        #Loop for the first block
-#        for i in range(max_offset):
-#            if i == N:
-#                break
-#            else:
-#                for j in range(i + 1):
-#                    r = np.abs(self.wl[i] - self.wl[j]) * C.c_kms /self.wl[i]
-#
-#                    if r < r0:
-#                        tap = (0.5 + 0.5 * np.cos(np.pi * r/r0))
-#                        Ti[k] = i
-#                        Tj[k] = j
-#
-#                        pixi = errors[:,i]
-#                        pixj = errors[:,j]
-#                        cov = np.sum(pixi * pixj)
-#                        Tx[k] = cov * tap
-#                        k += 1
-#
-#
-#        for i in range(max_offset, N):
-#            for j in range(i - max_offset, i + 1):
-#                r = np.abs(self.wl[i] - self.wl[j]) * C.c_kms/self.wl[i]
-#
-#                if r < r0:
-#                    tap = (0.5 + 0.5 * np.cos(np.pi * r/r0))
-#                    Ti[k] = i
-#                    Tj[k] = j
-#
-#                    pixi = errors[:,i]
-#                    pixj = errors[:,j]
-#                    cov = np.sum(pixi * pixj)
-#                    Tx[k] = cov * tap
-#                    k += 1
-#
-#        T.nnz = k
-#
-#        #The conversion will transpose the entries and add to the upper half.
-#        self.A = cholmod_triplet_to_sparse(T, k, self.c)
-#        cholmod_free_triplet(&T, self.c)
-
 
         self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &errors[0,0], self.c)
 
