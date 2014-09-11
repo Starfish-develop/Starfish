@@ -185,14 +185,14 @@ def main():
     if not config['no_region']:
         #In order to instantiate regions, we have to do a bit of burn-in first
         mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-        #mySampler.reset()
+        mySampler.reset()
 
         mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
         mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
-        #mySampler.reset()
+        mySampler.reset()
 
     mySampler.run(config['burn_in'])
-    #mySampler.reset()
+    mySampler.reset()
 
     mySampler.run(config["samples"])
 
