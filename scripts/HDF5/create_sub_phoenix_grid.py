@@ -3,7 +3,7 @@ import StellarSpectra.constants as C
 
 raw_library_path = "libraries/raw/PHOENIX/"
 
-mygrid = grid_tools.PHOENIXGridInterface(base=raw_library_path)
+mygrid = grid_tools.PHOENIXGridInterface(base=raw_library_path, wl_range=[19500, 25000])
 
 out_path = "libraries/" + "PHOENIX_M_julia_hires.hdf5"
 #out_path = "libraries/" + "PHOENIX_F.hdf5"
