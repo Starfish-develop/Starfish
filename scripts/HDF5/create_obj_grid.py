@@ -9,7 +9,8 @@ from StellarSpectra import grid_tools
 #myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_F.hdf5")
 # myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_LkCa15.hdf5")
 #myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_M.hdf5")
-myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_M_interp.hdf5")
+#myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_M_interp.hdf5")
+myHDF5Interface = grid_tools.HDF5Interface("libraries/PHOENIX_M_julia_hires.hdf5")
 
 print("Library only spans from", myHDF5Interface.bounds)
 
@@ -21,7 +22,7 @@ myInstrument = grid_tools.SPEX()
 # out_path = "libraries/" + "Kurucz_TRES.hdf5"
 
 #out_path = "libraries/" + "PHOENIX_SPEX_M.hdf5"
-out_path = "libraries/" + "PHOENIX_SPEX_M_interp.hdf5"
+out_path = "libraries/" + "PHOENIX_SPEX_M_coarse.hdf5"
 
 #out_path = "libraries/" + "PHOENIX_TRES_F_julia.hdf5"
 
