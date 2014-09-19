@@ -1,5 +1,5 @@
 %\documentclass[preprint]{aastex} 
-\documentclass[iop,floatfix]{emulateapj} 
+\documentclass[iop,floatfix,twocolappendix]{emulateapj} 
 
 \usepackage[breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
 \usepackage{graphicx}
@@ -35,35 +35,25 @@
 \newcommand{\A}{[\alpha/{\rm Fe}]}
 \newcommand{\matern}{Mat\'{e}rn}
 \newcommand{\HK}{$\textrm{H}_2$O-K2}
+\newcommand{\cc}[2]{c_{#2}^{(#1)}} 
 
-%Chebyshev coefficients RULE!
-\newcommand{\cc}[2]{c_{#2}^{(#1)}} %echelle order first, then degree coefficient
-
-%flux
 \newcommand{\flam}{f_\lambda}
-
-%\vt stands for ``vector theta''
 \newcommand{\vt}{ {\bm \theta}}
 \newcommand{\vT}{ {\bm \Theta}}
-
-%\vp stands for ``vector phi''
 \newcommand{\vp}{ {\bm \phi}}
 \newcommand{\vP}{ {\bm \Phi}}
-
-%\phi and \Phi are used for nuisance parameters
 \newcommand{\cheb}{ \vp_{\mathsf{P}}}
-\newcommand{\chebi}[1]{ \vp_{\textrm{Cheb}_{#1}}} %for signifying a specific order
+\newcommand{\chebi}[1]{ \vp_{\textrm{Cheb}_{#1}}}
 \newcommand{\Cheb}{ \vP_{\textrm{Cheb}}}
-\newcommand{\Chebi}[1]{ \vP_{\textrm{Cheb}_{\ne #1}}} %for specifying everything but a specific order
+\newcommand{\Chebi}[1]{ \vP_{\textrm{Cheb}_{\ne #1}}} 
 \newcommand{\cov}{ \vp_{\mathsf{C}}}
-\newcommand{\covi}[1]{ \vp_{\textrm{cov}_{#1}}} %for signifying a specific order
+\newcommand{\covi}[1]{ \vp_{\textrm{cov}_{#1}}} 
 \newcommand{\Cov}{ \vP_{\textrm{cov}}}
-\newcommand{\Covi}[1]{ \vP_{\textrm{cov}_{\ne #1}}} %for specifying everything but a specific order
+\newcommand{\Covi}[1]{ \vP_{\textrm{cov}_{\ne #1}}} 
 
-\newcommand{\allParameters}{\vT} %all parameters
-\newcommand{\nuisanceParameters}{\vP} %all nuisance parameters
+\newcommand{\allParameters}{\vT} 
+\newcommand{\nuisanceParameters}{\vP} 
 
-%kernel notation
 \newcommand{\KK}{\mathcal{K}}
 \newcommand{\Kglobal}{\KK^{\textrm{g}}}
 \newcommand{\Klocal}{\KK^l}
@@ -74,7 +64,7 @@
 \newcommand{\hili}[1]{ \textcolor{green}{#1}}
 \newcommand{\ctext}[1]{ \textcolor{blue}{\% #1}}
 
-\shorttitle{Spectroscopic inference}
+\shorttitle{Robust Spectroscopic Inference with Imperfect Models}
 \shortauthors{Czekala et al.}
 
 \begin{document}
@@ -84,38 +74,61 @@
 \slugcomment{draft: \today{}}
 
 
-%\title{A Method for the Spectroscopic Inference of Stellar Parameters}
 \title{Robust Spectroscopic Inference with Imperfect Models}
-\author{Ian Czekala, Sean M.~Andrews, Guillermo Torres, \& David W.~Latham}
+
+\author{Ian Czekala, Sean M.~Andrews, et al.}
 \affil{Harvard-Smithsonian Center for Astrophysics, 60 Garden Street, Cambridge, MA 02138}
 \email{iczekala@cfa.harvard.edu}
 
 \begin{abstract}
-We present a modular and extensible framework for inference of model parameters using synthetic spectra. By the nature of continuously sampled spectra, when subtracting a synthetic model, adjacent pixels in the residual spectrum exhibit some degree of correlation. In the high signal-to noise, large spectral range limit common to stellar parameter estimation, the covariant structure of the residuals can bias the resulting parameter determinations. We present a likelihood function designed to account for this covariant structure, utilizing the machinery of Gaussian process covariance kernels to self-consistently identify and model the covariance. Additionally, a common problem specific to stellar parameter estimation is the presence of spectral lines with mismatched strength, often due to incorrect atomic constants or radiative treatment. To address this issue, we also present the development of a novel local covariance kernel that can identify and self-consistently down-weight pathologically wrong spectral line ``outliers.'' By fitting multiple spectra in a hierarchical manner, these local kernels provide a mechanism to learn empirical corrections to spectral models. We demonstrate the application of this method, implemented as a freely available open source code, by fitting an high resolution optical spectrum WASP-14, an F star, and a moderate resolution mid-infrared spectrum of Gl51, an M5 star. 
+We present a modular, extensible framework for the spectroscopic inference of 
+physical parameters based on synthetic model spectra.  The subtraction of an 
+imperfect model from a continuously sampled spectrum introduces covariance 
+between adjacent datapoints (pixels) into the residual spectrum.  In the limit 
+of high signal-to noise data with large spectral range that is common for 
+stellar parameter estimation, that covariant structure can bias the parameter 
+determinations.  We have designed a likelihood function formalism to account 
+for the structure of the covariance matrix, utilizing the machinery of Gaussian 
+process kernels.  We specifically address the common problem of mismatches in 
+model spectral line strengths (with respect to data) due to intrinsic model 
+imperfections (e.g., in the atomic or molecular data, or radiative transfer 
+treatment) by developing a novel local covariance kernel framework that 
+identifies and self-consistently downweights pathological spectral line 
+``outliers."  By fitting multiple spectra in a hierarchical manner, these local 
+kernels provide a mechanism to learn about and build data-driven corrections to 
+synthetic model spectral libraries.  The application of this method, 
+implemented as a freely available open source code, is demonstrated by fitting 
+the high resolution optical ($V$-band) spectrum of WASP-14, an F5 dwarf with a 
+transiting exoplanet, and the moderate resolution near-infrared ($K$-band) 
+spectrum of Gliese~51, an M5 dwarf. 
 \end{abstract}
 \keywords{stars: fundamental parameters --- methods: data analysis --- methods: statistical}
 
 
+
 \section{Introduction} \label{sec:intro}
 
-All astronomers recognize that spectroscopy offers a wealth of information that can help
-characterize the properties of the observing target.  In the context of stellar astrophysics, 
-spectroscopy plays many fundamental roles.  The relative strengths and widths of stellar absorption 
-lines provide access to key parameters like effective temperature ($T_{\rm eff}$) and surface 
-gravity ($\log g$), enabling model comparisons in the Hertzsprung-Russell diagram to estimate the 
-masses and ages so crucial to understanding stellar evolution, as well as individual elemental (and 
-molecular) abundances or the collective ``metallicity" (typically parameterized as [Fe/H]), 
-facilitating study of the chemical hallmarks of different stellar populations.  With sufficient 
-spectral resolution, the velocity content of a spectrum can convey crucial information about 
-stellar rotation ($v \sin i$) and kinematics (e.g., association with a cluster or companion through 
-the radial velocity, $v_z$).  While many fields benefit from the spectroscopic measurements of 
-these stellar properties, there is acute interest in the exoplanet community.  There, all estimates 
-of the planet properties are made {\it relative} to the host properties (e.g., the planet-to-host 
-mass or radius {\it ratio} is constrained with the radial velocity or transit techniques, 
-respectively).  Moreover, essential clues to the planet formation process are encapsulated in the 
-dependences of planet frequency on host mass \citep[e.g.,][]{johnson07,howard10} and metallicity 
+All astronomers recognize that spectroscopy offers a wealth of information that 
+can help characterize the properties of the observing target.  In the context 
+of stellar astrophysics, spectroscopy plays many fundamental roles.  The 
+relative strengths and widths of stellar absorption lines provide access to key 
+parameters like effective temperature ($T_{\rm eff}$) and surface gravity 
+($\log g$), enabling model comparisons in the Hertzsprung-Russell diagram to 
+estimate the masses and ages so crucial to understanding stellar evolution, as 
+well as individual elemental (and molecular) abundances or the collective 
+``metallicity" (typically parameterized as [Fe/H]), facilitating study of the 
+chemical hallmarks of different stellar populations.  With sufficient spectral 
+resolution, the velocity content of a spectrum can convey crucial information 
+about stellar rotation ($v \sin i$) and kinematics (e.g., association with a 
+cluster or companion through the radial velocity, $v_z$).  While many fields 
+benefit from the spectroscopic measurements of these stellar properties, there 
+is acute interest in the exoplanet community.  There, all estimates of the 
+planet properties are made {\it relative} to the host properties (e.g., the 
+planet-to-host mass or radius {\it ratio} is constrained with the radial 
+velocity or transit techniques, respectively).  Moreover, essential clues to 
+the planet formation process are encapsulated in the dependences of planet 
+frequency on host mass \citep[e.g.,][]{johnson07,howard10} and metallicity 
 \citep[e.g.,][]{fischer05,buchhave14}.   
-% SA: we ought to check with exoplanet people on these references. Can do later...
 
 That said, the robust and quantitative extraction of physical (or empirical) parameters from an 
 observed spectrum can be an extraordinary challenge.  Stellar models are ultimately required as a 
@@ -136,23 +149,23 @@ and thereby infer basic stellar parameters; here we highlight three examples to 
 ideas.  First is a straightforward empirical approach that relies on distilling an information-rich 
 subset of the data, usually in the form of spectral line equivalent widths and/or local continuum 
 shapes.  A combined sequence of the ratios of these quantities are found to be especially sensitive 
-to one key parameter in the models, and therefore can be used to quantify it 
-\citep[e.g.,][]{gray94,reid95,rojas-ayala10,rojas-ayala12}.  This index comparison approach has 
-the advantage of being trivially fast, but each index relationship is only informative over a 
-limited region of parameter-space.  A second technique exploits the cross-correlation of an 
-observed spectrum with a suite of model templates to identify an optimized set of parameters, 
-usually with some weighting applied to specific spectral regions \citep[e.g., {\tt 
-SPC};][]{buchhave12}.  In this case, the speed advantage is maintained and more data content is 
-used (particularly in the spectral dimension), thereby achieving higher precision even for data 
-with comparatively low sensitivity; the disadvantage is that the model quality and parameter 
-inferences are assessed in an empirical, rather than probabilistic, framework.  A third approach 
-employs a direct, pixel-by-pixel comparison between model and data, and is usually associated with 
-a spectral synthesis back-end (e.g., {\tt MOOG}; \citealt{sneden73}; {\tt SME}; 
-\citealt{valenti96}).  This technique has the benefits of parametric flexibility (e.g., one can fit 
-for arbitrary abundances or structures) and a proper inference framework \citep[usually a 
-least-squares approach, although increasingly in a Bayesian format;][]{shkedy07,schoenrich13}, but 
-it is computationally expensive and can be biased by systematics \citep[e.g.,][]{mann13}; in 
-practice, this often requires an effort focused on a pre-selected subsample of the data. 
+to one key parameter in the models, and therefore can be used to quantify it \citep[e.g., {\tt 
+MOOG};][]{sneden73,gray94,reid95,rojas-ayala10,rojas-ayala12}.  This ``indexing" approach has the 
+advantage of being trivially fast, but each condensed relationship is only informative over a 
+limited swath of parameter-space.  A second technique exploits the cross-correlation of a spectrum 
+with a suite of model templates to optimize a set of parameters, usually with some weighting 
+applied to specific spectral regions \citep[e.g., {\tt SPC};][]{buchhave12}.  In this case, the 
+speed advantage is maintained (perhaps enhanced) and more data content is used (particularly in the 
+spectral dimension), thereby achieving higher precision even for data with comparatively low 
+sensitivity; the disadvantage is that the model quality and parameter inferences are assessed in an 
+empirical, rather than probabilistic, framework.  A third approach employs a direct, pixel-by-pixel 
+comparison between model and data, and is usually associated with a spectral synthesis back-end 
+(e.g., {\tt SME}; \citealt{valenti96}).  This technique has the benefits of parametric flexibility 
+(e.g., one can fit for arbitrary abundances or structures) and a proper inference framework 
+\citep[usually a least-squares approach, although increasingly in a Bayesian format;][]{shkedy07,
+schoenrich13}, but it is computationally expensive and can be biased by systematics 
+\citep[e.g.,][]{mann13}; in practice, this often requires an effort focused on a pre-selected 
+subsample of the data. 
 
 In this article, we design a flexible forward-modeling approach to the general spectroscopic 
 inference problem in a Bayesian framework, building on the best aspects of the latter two methods 
@@ -161,7 +174,7 @@ highlighted above.  Employing a non-trivial covariance matrix parameterized by b
 residual pixel-to-pixel correlations that arise when comparing observed spectra to intrinsically 
 imperfect models.  This approach minimizes the potential for bias, efficiently propagates 
 systematic uncertainties into the parameter inferences, and ultimately can serve as tool for using
-observations to guide substantially improvements in the models themselves.  An overview of the 
+observations to guide substantial improvements in the models themselves.  An overview of the 
 methodology of this approach is provided in Section \ref{sec:method}, including the covariance 
 matrix formalism.  Some tests and example applications (for a high resolution optical spectrum of 
 an F star, and a medium-resolution near-infrared spectrum of a mid-M star) of the method are 
@@ -223,46 +236,35 @@ of {\tt SPC};][]{buchhave12}.  The difficulty with this latter approach is that 
 uncertainties can be smaller than the grid spacing; in that case, there is valid concern that this 
 interpolation might not accurately recover intrinsic parameter degeneracies.
 
-We opt for the computationally expedient approach that employs a library of
-model spectra, $\flam(\{\vt_{\ast}\}^{\rm grid})$, where $\vt_{\ast} = [T_{\rm
-eff}, \,\, \log{g}, \,\, [{\rm Fe/H}]]$.  However, it is worth noting that the
-techniques developed here are applicable to {\it any} ``back-end" that
-generates a model spectrum.  In our adopted approach, the model spectrum for an
-arbitrary $\vt_{\ast}$ is interpolated from a spectral library,
-\begin{equation} \label{eqn:interp} \flam(\{\vt_{\ast}\}^{\rm grid}) \leadsto
-\flam(\vt_{\ast}), \end{equation} where we assign the symbol $\leadsto$ as an
-interpolation operator.  The multi-dimensional interpolation in
-Eq.~\ref{eqn:interp} needs to be performed many times, so computational
-efficiency is critical.  In practice, a simple tri-linear interpolation is
-suitably fast, but introduces an undesirable level of inaccuracy
-(particularly in the [Fe/H] dimension).  The interpolation quality can be
-empirically estimated by performing the operation in Eq.~\ref{eqn:interp}
-across a $\{\vt_{\ast}\}^{\rm grid}$ grid point, and then comparing the
-interpolated spectrum with the corresponding library spectrum. After an
-extensive exploration of such calculations \citep[see also][]{husser12}, we
-concluded that the best combination of speed and accuracy can be achieved by
-pre-computing a {\it refined} spectral library using a cubic spline
-interpolation with a $\{\vt_{\ast}\}^{\rm grid}$ spacing of [20\,K, 0.1\,dex,
-0.1\,dex], and then performing tri-linear interpolation over that refined
-grid.  Overall, this interpolation technique is found to be accurate within
-a few percent per full-resolution model pixel and $\lesssim 1$\% once the
-spectrum is downsampled to the pixels of the detector.  Ideally, this
-pre-interpolation could be avoided if the spectral library was computed
-over a refined grid (with a substantial up-front computational investment);
-but for the time being, we can empirically propagate these interpolation
-uncertainties into the likelihood calculations (as will be described in
-Section~\ref{subsec:likelihood}).
+We opt for the computationally expedient approach that employs a library of model spectra, 
+$\flam(\{\vt_{\ast}\}^{\rm grid})$, where $\vt_{\ast} = [T_{\rm eff}, \,\, \log{g}, \,\, 
+[{\rm Fe/H}]]$.  However, it is worth noting that the techniques developed here are applicable to 
+{\it any} ``back-end" that generates a model spectrum.  In our adopted approach, the model spectrum 
+for an arbitrary $\vt_{\ast}$ is interpolated from a spectral library,
+\begin{equation} \label{eqn:interp} 
+\flam(\{\vt_{\ast}\}^{\rm grid}) \leadsto \flam(\vt_{\ast}), 
+\end{equation} 
+where we assign the symbol $\leadsto$ as an interpolation operator.  The multi-dimensional 
+interpolation in Eq.~\ref{eqn:interp} needs to be performed many times, so computational efficiency 
+is critical.  In practice, a simple tri-linear interpolation is suitably fast, but introduces a 
+non-negligible level of uncertainty.  These interpolation uncertainties can be empirically 
+estimated by performing the operation in Eq.~\ref{eqn:interp} across a $\{\vt_{\ast}\}^{\rm grid}$ 
+grid point, and then comparing the interpolated spectrum with the corresponding library spectrum 
+\citep[see also][]{husser12}.  We have developed this approach to propagate the interpolation 
+uncertainties into the likelihood calculations, as described briefly in 
+Section~\ref{subsec:likelihood} and elaborated in the Appendix.
+
 
 \subsection{Post-Processing} \label{subsec:postprocess}
 
 Generally, the ``raw" model spectrum $\flam(\vt_{\ast})$ is highly over-sampled compared to the 
-observed spectrum, and does not account for several additional observational and 
-instrumental effects that become important in comparisons with real data.  Therefore, a certain 
-amount of post-processing is required before assessing the model quality.  We treat that 
-post-processing in two stages: the first deals with an additional set of ``observational" 
-parameters, $\vt_{\rm obs}$, that incorporate dynamical effects, geometry, and the relative 
-location of the target, while the second employs a suite of nuisance (hyper-)parameters ($\vp$) 
-designed to mitigate an imperfect data calibration.
+observed spectrum, and does not account for several additional observational and instrumental 
+effects that become important in comparisons with real data.  Therefore, a certain amount of 
+post-processing is required before assessing the model quality.  We treat that post-processing in 
+two stages: the first deals with an additional set of ``observational" parameters, $\vt_{\rm obs}$, 
+that incorporate dynamical effects, geometry, and the relative location of the target, while the 
+second employs a suite of nuisance (hyper-)parameters ($\vp$) designed to mitigate an imperfect 
+data calibration.
 
 We can further divide $\vt_{\rm obs}$ into those parameters that impact the model primarily in the 
 spectral or flux dimensions.  For the former, we consider three kernels that contribute to the 
@@ -292,9 +294,9 @@ and then re-sampled onto the discrete wavelengths corresponding to each data pix
 \flam(\vt_{\ast},  \sigma_v, v\sin{i}, v_z) \mapsto \vM(\vt_{\ast},  \sigma_v, v\sin{i}, v_z),
 \end{equation}
 where the $\mapsto$ symbol denotes a re-sampling operator that maps the model spectrum onto the 
-$N_{\rm pix}$-element model vector $\vM$ (and $N_{\rm pix}$ is the number of pixels in the 
-spectrum).  Figure \ref{fig:broadening} shows a (condensed) graphical representation 
-of these post-processing steps.
+$N_{\rm pix}$-element model vector $\vM$ ($N_{\rm pix}$ is the number of pixels in the spectrum).  
+Figure \ref{fig:broadening} shows a (condensed) graphical representation of these post-processing 
+steps.
 
 \begin{figure}[!t]
 \begin{center}
@@ -326,6 +328,17 @@ are then applied as
 with simplified notation such that $\vT \equiv [\vt_{\ast}, \,\, \vt_{\rm obs}]$, 
 where $\vt_{\rm obs} = [\sigma_v, v\sin{i}, v_z, \Omega, A_V]$.
 
+% NEEDS UPDATED FIGURE
+\begin{figure}[b!]
+\includegraphics{figs/chebyshev.pdf}
+\vspace{-0.75cm}
+\figcaption{A demonstration of our treatment for residual calibration mismatches.  The observed 
+spectra at the overlap of two echelle orders ({\it top}) have slightly ($\sim$1--3\%) discrepant 
+shapes.  Chebyshev polynomials ({\it middle, top}) are designed to account for that mismatch ({\it 
+middle, bottom}); rather, in practice, the model is scaled (multiplied) by those polynomials ({\it 
+bottom}).  \label{fig:chebyshev}}
+\end{figure}
+
 The procedure so far, summarized in Eq.~\ref{eqn:interp}--\ref{eqn:scaling}, is composed of 
 straightforward operations demanded by practical astronomical and computing issues.  If the data 
 were {\it perfectly} calibrated, we could proceed to a likelihood calculation that makes a direct 
@@ -333,13 +346,13 @@ comparison with $\vM(\vT)$.  However, that is unlikely to be the case.  The key 
 imperfect calibration might produce mismatches in the underlying shapes of the data and model.  
 Although such mismatches presumably occur at a low-level over relatively broad wavelength scales, 
 they still might represent a non-trivial likelihood contribution, and thereby bias our estimates of 
-the physical parameters.  This concern is usually treated externally to any modeling procedure, most often 
-by dividing the observed spectrum (and model spectrum) by a polynomial in $\lambda$.  But that 
-``normalization" implicitly assumes that there is no relevant information content in the spectral 
-shape; if $\vT$ also contributes on the mismatched scales, then adopting this approach will corrupt 
-the inferences of these parameters.  Moreover, in practice this approach is limited, since defining 
-an appropriate polynomial becomes difficult in cases where the spectral line density is high (e.g., 
-molecular bands for cool stars).  
+the physical parameters.  This issue is usually treated externally to any modeling procedure, most 
+often by dividing the observed spectrum (and model spectrum) by a polynomial in $\lambda$.  But 
+that ``normalization" implicitly assumes that there is no relevant information content in the 
+spectral shape; if $\vT$ also contributes on the mismatched scales, then adopting this approach 
+will corrupt the inferences of these parameters.  Moreover, in practice this approach is limited, 
+since defining an appropriate polynomial becomes difficult in cases where the spectral line density 
+is high (e.g., molecular bands for cool stars).  
 
 We employ an analogous, but more rigorous, approach to deal with this issue, cast {\it internal} to 
 the modeling framework to propagate the uncertainties introduced by additional degrees of freedom 
@@ -355,7 +368,7 @@ orders, each denoted with index $o$, the model spectrum can be decomposed into t
 \vM(\vT, \cheb) &=& \{ \vM_o(\vT) \times \mathsf{P}_o \} \\
                 &=& \{ \vM_o(\vT) \times \sum_n c_o^{(n)} \, T_o^{(n)} \}, \nonumber
 \end{eqnarray}
-and $T^{(n)}$ is the $n^{\rm th}$ degree Chebyshev function.  The $n \times N_{\rm ord}$ 
+where $T^{(n)}$ is the $n^{\rm th}$ degree Chebyshev function.  The $n \times N_{\rm ord}$ 
 coefficients are considered a set of nuisance (hyper-)parameters, $\cheb = [\{c_o^{(0)}, c_o^{(1)}, 
 \ldots, c_o^{(n-1)} \}]$.  With judicious priors, we can ensure that the unintended treatment of 
 real spectral features (e.g., molecular bands) as residual calibration artifacts is negligible.  
@@ -363,20 +376,9 @@ The lowest-degree (scaling) coefficient, $c^{(0)}$, is naturally degenerate with
 $\Omega$.  Therefore, we enforce an additional constraint that the mean of the polynomial is 
 unity.  For data with a single spectral order, this means simply setting $c^{(0)} = 1$.  In the 
 multiple order case, we assign $c^{(0)} = 1$ in an arbitrary order as an anchor, but permit the 
-$c^{(0)}$ in other orders to be different.  It is worth noting that this formalism can, in 
-principle, be extended to develop models for completely uncalibrated spectra, rather than the 
-residual calibration mismatches described here (with a suitable relaxation of the priors on 
-$\cheb$).  Figure \ref{fig:chebyshev} offers a practical demonstration of how these nuisance 
-parameters are applied. 
+$c^{(0)}$ in other orders to be different.  Figure \ref{fig:chebyshev} offers a practical 
+demonstration of how these nuisance parameters are applied to the model. 
 
-\begin{figure}[!b]
-\begin{center}
-  \includegraphics{figs/chebyshev.pdf}
-  \figcaption{
-    The spectrum at the overlap of two echelle orders (23 \& 24). ({\it panel 1}) The flux-calibrated dataset shows a slight discrepancy of $\lesssim 3$\% between orders. ({\it panel 2}) To account for this residual error in the flux calibration, we multiply the model spectrum by a Chebyshev polynomial, whose coefficients are parameters that are part of the model. In principle, we could divide the data by these polynomials to recover what the true flux-calibrated data should be ({\it panel 3}), but instead we multiply the model by the polynomials to recover the original discrepancy between orders ( {\it panel 4}). This has the advantage of preserving the original dataset as a fixed quantity and makes the model (Equation~\ref{eqn:chebyshev}) linear in the Chebyshev polynomial coefficients.
-\label{fig:chebyshev}}
-\end{center}
-\end{figure}
 
 \subsection{Model Evaluation} \label{subsec:likelihood}
 
@@ -423,27 +425,26 @@ are addressed in the practical implementation of $\vC$.
 
 Astronomical spectrographs are designed such that the detector over-samples the instrumental 
 line-spread function with at least a few pixels.  Therefore, adjacent pixels never record 
-completely independent samples of the true spectrum.  In that case, a difference between an 
-observed and modeled spectral feature will create a correlated residual that spans multiple 
-pixels.  This can be demonstrated practically through the autocorrelation of $\vR$: a slight model 
-mismatch will produce correlated residuals over a characteristic scale similar to the instrumental
-broadening kernel width ($\sigma_v$).  Figure \ref{fig:class0} highlights a specific example of 
-these correlated residuals in real data; a significant autocorrelation signal is found on a $\sim$5 
-pixel scale, corresponding to the 6.8\,km s$^{-1}$ FWHM of $\mathcal{F}_v^{\rm inst}$.  
+independent samples of the true spectrum.  In that case, a difference between an observed and 
+modeled spectral feature will create a correlated residual that spans multiple pixels.  This can be 
+demonstrated practically through the autocorrelation of $\vR$: a slight model mismatch will produce 
+correlated residuals over a characteristic scale similar to the instrumental broadening kernel 
+width ($\sigma_v$).  Figure \ref{fig:class0} highlights a specific example of these correlated 
+residuals in real data; a significant autocorrelation signal is found on a $\sim$5 pixel scale, 
+corresponding to the 6.8\,km s$^{-1}$ FWHM of $\mathcal{F}_v^{\rm inst}$.  
 
 \begin{figure}[!htb]
 \begin{center}
   \includegraphics{residuals_23.pdf}
   \includegraphics{class0_residuals.pdf}
   \includegraphics{class0_autocorrelation.pdf}
-  \caption{ ({\it top}) A typical model fit using 
-  parameters drawn from the posterior distribution and the residuals that
-  result. ({\it middle}) The low-amplitude, mildly covariant residuals in the gray band enlarged
-  to show the mildly covariant structure produced by slight mismatch between
-  the data and model spectra. ({\it bottom}) The autocorrelation of the
-residual sequence shown at left. Notice that there is significant correlation
-for offsets of $\lesssim 8$ pixels.}
-\label{fig:class0}
+  \figcaption{({\it top}) A comparison of the data and a typical model with parameters drawn from 
+the posterior distribution, along with the corresponding residual spectrum.  ({\it middle}) A 
+zoomed view of the gray band in the top panels, highlighting the mildly covariant residual 
+structure that is produced by slight mismatches between the data and model spectra.  ({\it bottom}) 
+The autocorrelation of the residual spectrum.  Notice the substantial autocorrelation signal for 
+offsets of $\lesssim 8$ pixels, demonstrating clearly that the residuals are not described well by 
+white (Poisson) noise alone. \label{fig:class0}}
 \end{center}
 \end{figure}
 
@@ -491,52 +492,19 @@ enables computational expendiency, we employ a Hann window function
   \right .
   \label{eqn:Hann}
 \end{equation}
-to taper the kernel.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the 
-scale (we set $r_0 = 4\ell$).  Figure \ref{fig:matrix} demonstrates that random draws from such a 
-kernel readily produce correlated structure similar to those seen in a typical residual spectrum.
-
-\begin{figure*}[!htb]
-\begin{center}
-\includegraphics{figs/matrix_compilation.pdf}
-\caption{ ({\it top}) A typical model fit and residual spectrum (zoomed). An illustrative region is shaded in grey, showing the scale and structure of the residuals as an example for the following panels. ({ \it left column}) A small inset of the covariance matrix corresponding to the gray region. Note that the colorbar scale changes with each inset in order to best illustrate the structure of the matrix. ({\it right column}) Each panel shows three random draws (gray) from a multivariate normal distribution using the covariance matrix in the left column. At the bottom of each panel are the one, two, and three sigma contours (orange) of 200 random draws overlaid with the actual residuals from the gray region. {\it first row}: White, Poisson-only noise ($\delta_{ij}\sigma_i$) poorly reproduces both the scale and structure of a typical residual spectrum. ({\it second row}) The addition of a global kernel ($\mathcal{K}^{\rm g}$) yields random draws that closely approximate the structure and amplitude of the residuals, but miss the strong outlier line at 5202.2 \AA. ({\it third row}) Finally, adding in a local kernel ($\mathcal{K}^l$) at the location of the outlier produces random draws that completely match the structure of the residuals. Interestingly, note that the covariance matrix can produce random draws that have negative, positive, and even flat residual lines. The point is that with a non-trivial covariance matrix, the likelihood function can now accommodate the residuals generated from a typical spectroscopic fit. Stated differently, random draws from the likelihood function now behave like the residuals, whereas white noise cannot. All parameters of the covariance kernels are determined self-consistently along with the stellar parameters. }
-\label{fig:matrix}
-\end{center}
-\end{figure*}
+as a taper.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the 
+scale (we set $r_0 = 4\ell$).  
 
 
 \subsubsection{Local Covariance Structure} \label{subsec:local_covariance}
 
-Aside from the global covariance structure, there can also be local regions of strong (highly 
+In addition to the global covariance structure, there can be local regions of strong (highly 
 correlated) residuals that need to be treated in the modeling framework.  These patches of large 
-$\vR$ are usually produced by imperfect spectral lines in the models (missing opacity sources, 
-uncertain oscillator strengths, etc.); some representative examples are highlighted in Figure 
-\ref{fig:badlines}.  To parameterize such regions in $\vC$, we introduce a sequence of 
+$\vR$ are usually produced by imperfect model spectral lines (due to missing opacity sources, 
+uncertain oscillator strengths, etc.); some representative examples are shown in 
+Figure~\ref{fig:badlines}.  To parameterize such regions in $\vC$, we introduce a sequence of 
 non-stationary kernels that explicitly depend on the actual wavelength values of a pair of pixels 
 (on $\lambda_i$ and $\lambda_j$), and not simply the distance between them ($r_{ij}$).  
-
-\begin{figure}[!htb]
-\begin{center}
-  \includegraphics{figs/badlines0.pdf}
-  \includegraphics{figs/badlines1.pdf}
-  \includegraphics{figs/badlines2.pdf}
-  \includegraphics{figs/badlines3.pdf}
-  \caption{A collection of spectral lines which have imperfect model fits.
-    ( {\it first panel}) The majority of spectral lines ($\gtrsim 60$\%) will
-    have minor differences in strength between data and model spectrum, which
-    produce low-amplitude correlations in the residuals on the length scale of
-    the width of a typical spectral line.  ( {\it second panel}) Sometimes
-    ($\lesssim 5$\% of all lines), a missing opacity source in the model (in
-    this case a line-blended \ion{Ca}{2}) leaves a large, highly correlated
-    patch of negative residuals.  ( {\it third panel}) Sometimes ($\lesssim
-    5$\% of all lines), an extraneous line in the model leaves a large, highly
-    correlated patch of positive residuals. ({\it fourth panel}) If the line
-    strengths are substantially discrepant ($\lesssim 10$\% of all lines),
-    there will be many correlated residuals of moderate amplitude. For any specific line, there might
-    exist a $\vT$ that will fit the line, but there does not exist a $\vT$ that
-    will properly fit \emph{all} the lines.}
-\label{fig:badlines}
-\end{center}
-\end{figure}
 
 Assuming that these local residuals are produced primarily by pathological differences in the 
 spectral line strength (rather than shape or center), a simple Gaussian is a reasonable residual 
@@ -557,38 +525,78 @@ combination,
 \end{equation}
 with a set of (hyper-)parameters $\vp_{{\mathsf C},l} = [\{a_k, \mu_k, \sigma_k\}]$.  Note that we 
 again taper the kernels with Hann windows (Eq.~\ref{eqn:Hann}) to ensure a sparse covariance 
-matrix; in this case, the truncation distance $r_0$ can be set to some multiple of the Gaussian 
-width (we use $r_0 = 4\sigma_k$).  Figure \ref{fig:matrix} shows how this non-stationary Gaussian 
-kernel generates a localized region of enhanced variance that successfully mimics the kind of 
-residuals produced by an inaccurate spectral line model.  In effect, these kernels down-weight the 
-influence of such strong residuals in the likelihood calculation, mitigating any potential bias 
-they might induce on inferences of the interesting parameters ($\vT$).  This acts like a robust, 
+matrix; in this case, the truncation distance $r_0$ can be set to some multiple of the width 
+parameter (e.g., $r_0 = 4\sigma_k$).  In effect, these kernels systematically down-weight the 
+influence of strong residuals in the likelihood calculation, mitigating any potential bias they 
+might induce on inferences of the interesting parameters ($\vT$).  This acts like a robust, 
 flexible, and unbiased method for (correlated) outlier rejection that preserves the integrity of 
-the probabilistic framework (as opposed to manual or threshold-based clipping or masking).  
+the probabilistic framework (as opposed to the common manual or threshold-based techniques of 
+clipping or masking).  
 
-These local kernels can be further modified to account for more complex residual structures.  For 
-example, late-type stars with imperfectly modeled molecular bandheads may produce a complicated 
-pattern of positive and negative residuals or a pronounced mismatch over a relatively large 
-spectral scale.  This phenomenologically different local covariance behavior can still be treated 
-in this framework if we design an appropriate kernel. 
+\begin{figure}[!t]
+\begin{center}
+\includegraphics{figs/badlines.pdf}
+\figcaption{A particularly illustrative spectral region with substantial localized structure in 
+the residuals due to ``outlier" spectral lines in the model library.  For any specific line, there 
+might exist a set of model parameters, $\vT$, that will improve its match with the data, but a 
+$\vT$ that will properly fit \emph{all} the outlier lines does not exist in a pre-computed library 
+with (necessarily) limited parametric flexibility.  Out of concern that such intrinsic mismatches 
+can bias the inference on $\vT$, the methodology advocated here introduces local kernels to inflate 
+the covariance around these outliers, self-consistently down-weighting their influence on the fit.  
+\label{fig:badlines}}
+\end{center}
+\end{figure}
+
+These local kernels can be modified to account for more complex residual structures.  For example, 
+late-type stars with imperfectly modeled molecular bandheads may produce a complicated pattern of 
+positive and negative residuals or a pronounced mismatch over a relatively large spectral scale.  
+This phenomenologically different local covariance behavior can still be treated in this framework 
+if an appropriate kernel morphology is adopted. 
+
+\begin{figure*}[!htb]
+\begin{center}
+\includegraphics[scale=1.05]{figs/matrix_compilation.pdf}
+\figcaption{A decomposition of the modeling procedure, explicitly highlighting the roles of the 
+various contributions to the covariance matrix.  The top panels show a typical comparison between 
+the data and model spectrum, along with the associated residual spectrum.  The subsequent panels 
+focus on the illustrative region shaded in grey.  The left column of panels show the corresponding 
+region of the covariance matrix $\vC$, decomposed into its primary contributions: from top to 
+bottom, the trivial noise matrix, then combined with the global covariance kernel, and finally 
+including an appropriate local covariance kernel.  In the right column, we show the zoomed-in 
+residual spectrum ({\it black}) along with example random draws from the subsets of $\vC$ exhibited 
+to the left.  The shaded contours ({\it orange}) represent the 1, 2, and 3\,$\sigma$ dispersions of 
+an ensemble of 200 random draws from $\vC$.  Note that the trivial noise matrix ($\delta_{ij} 
+\sigma_i$) poorly reproduces both the scale and structure of the residual spectrum.  The addition 
+of a global kernel ($\mathcal{K}^{\rm g}$) more closely approximates the structure and amplitude of 
+the residuals, but misses the outlier line at 5202.2\,\AA.  Including a local kernel 
+($\mathcal{K}^l$) at that location results in a covariance structure that does an excellent job 
+reproducing all the key residual features.  \label{fig:matrix}}
+\end{center}
+\end{figure*}
 
 
 \subsubsection{Composite Covariance Matrix}
 
 We can now compute the covariance matrix employed in the likelihood calculation 
-(Eq.~\ref{eqn:lnlikelihood}) as the linear combination of the trivial pixel-by-pixel noise matrix 
-and these global and local kernels, 
+(Eq.~\ref{eqn:lnlikelihood}) as the linear combination of the trivial pixel-by-pixel noise matrix, 
+an interpolation error kernel ($\mathcal{K}^{\rm int}$; see the Appendix), and the global and local 
+kernels discussed above, 
 \begin{equation}
-\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + w_{ij} \,\, \Kglobal_{ij}(\vp_{{\mathsf C}, g}) + 
+\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + \mathcal{K}_{ij}^{\rm int} + w_{ij} \, \Kglobal_{ij}(\vp_{{\mathsf C}, g}) + 
                   \Klocal_{ij}(\vp_{{\mathsf C}, l}), 
 \end{equation}
 with (hyper-)parameters $\cov = [\vp_{{\mathsf C}, g}, \vp_{{\mathsf C}, l}]$.  The factor $b$ is 
-a (constant) parameter that scales up the pixel noise values to account for additional detector or 
-data reduction uncertainties (e.g., read noise, uncertainties in the spectral extraction procedure, 
-and interpolation errors); reasonable values are $b \approx 1.02$--1.10 for well-calibrated optical 
-spectra (see Section \ref{sec:examples} for examples).  If there are $N_{\rm loc}$ local covariance 
-patches (see Section \ref{subsec:MCMC} on how this is determined), then there are $4N_{\rm loc}+2$ 
-elements in the set of covariance (hyper-)parameters, $\cov$.  
+a parameter that scales up the Poisson noise in each pixel by a constant factor to account for 
+additional detector or data reduction uncertainties (e.g., read noise, uncertainties in the 
+spectral extraction procedure, etc.); typically $b < 1.1$ for well-calibrated optical spectra.  If 
+there are $N_{\rm loc}$ local covariance patches (see Section \ref{subsec:MCMC} on how this is 
+determined), then there are $4N_{\rm loc}+2$ elements in the set of covariance (hyper-)parameters, 
+$\cov$.  
+
+Figure \ref{fig:matrix} provides a graphical illustration of how the kernels that comprise the 
+covariance matrix are able to reproduce the structure present in a typical residual spectrum (for 
+the sake of clarity, the interpolation error kernel is discussed separately, in the Appendix).  
+
 
 \subsection{Priors} \label{subsec:priors}
 
@@ -609,12 +617,11 @@ some judicious tapering of the priors (such that high-$n$ coefficients are const
 may be required to ensure that broad spectroscopic features are not absorbed into the polynomial 
 (see Section~\ref{sec:examples}). 
 
-We assume uniform priors on the global covariance parameters.  For the local
-covariance kernels, we adopt flat priors for the amplitudes and means, \{$a_k$,
-$\mu_k$\}, and construct a specialized prior for the widths, \{$\sigma_k$\},
-that is flat below the instrumental width (when $\sigma_k < \sigma_v$) and has
-a rapid (logistic) taper to zero for larger widths.  This form is designed to
-prevent the local kernels from diffusing to large $\sigma_k$ and low $a_k$,
+We suggest assuming uniform priors on the global kernel parameters.  For the local kernels, we 
+typically adopt flat priors for the amplitudes and means \{$a_k$, $\mu_k$\}, but construct a 
+specialized prior for the widths \{$\sigma_k$\} that is flat below the instrumental broadening 
+width (when $\sigma_k < \sigma_v$) and has a rapid (logistic) taper to zero at larger values.  This 
+form is designed to prevent the local kernels from diffusing to large $\sigma_k$ and low $a_k$,
 since such behavior is better treated by the global kernel.  
 
 
@@ -637,9 +644,9 @@ iteration of the Gibbs sampler is indexed with a superscript: \\
 
 \noindent (1) Initialize the parameters.  One might set $\vT^0$ based on estimates in the 
 literature or scaling behaviors, and make simple assumptions about $\vP^0$.  Here, we set the 
-Chebyshev coefficients ($\cheb^0$) so that the polynomials are constant ($c_0 = 1$,  $c_{>0} = 0$ 
-in all spectral orders) and assume only the trivial noise spectrum contributes to the covariance 
-matrix ($\cov^0 = 0$, so $\vC$ is diagonal).  \\
+Chebyshev coefficients ($\cheb^0$) so that the polynomials are constant ($c_o^{(0)} = 1$,  
+$c_o^{(>0)} = 0$, $\forall$ $o$) and assume only the trivial noise spectrum and interpolation error 
+kernel contribute to the covariance matrix ($\cov^0 = 0$).  \\
 
 \noindent (2) Start the $i^{\rm th}$ (where $i \in [1,N_G]$) iteration of the Gibbs sampler.  For 
 each iteration of the Metropolis-Hastings algorithm, sample in the interesting parameters $\vT$ to 
@@ -655,80 +662,68 @@ each spectral order,
 \item Sample in the polynomial coefficients $\cheb$ along a subset of the posterior space where 
 $\vT^i$ and $\cov^{i-1}$ are fixed.  Update the coefficients, $\cheb^{i-1} \rightarrow \cheb^i$.  
 
-\item Sample in the global (stationary) covariance kernel parameters, $\vp_{{\mathsf C},g} = 
-[a_g, \ell]$, with $\vT^i$, $\cheb^i$, and the local covariance kernel parameters, 
-$\vp_{{\mathsf C}, l}^{i-1}$, fixed.  Update $\vp_{{\mathsf C}, g}^{i-1} \rightarrow \vp_{{\mathsf 
-C}, g}^i$.
+\item Sample in the global (stationary) kernel parameters, $\vp_{{\mathsf C},g} = [a_g, \ell]$, 
+with $\vT^i$, $\cheb^i$, and the local kernel parameters, $\vp_{{\mathsf C}, l}^{i-1}$, fixed.  
+Update $\vp_{{\mathsf C}, g}^{i-1} \rightarrow \vp_{{\mathsf C}, g}^i$.
 
-\item If any local (non-stationary) covariance kernels have been instantiated (see below), sample in their hyperparameters $\vp_{{\mathsf C},l}$ with $\vT^i$, 
-$\cheb^i$, and $\vp_{{\mathsf C}, g}^i$ fixed.  Update the local kernel parameters 
-$\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$.  
+\item If any local (non-stationary) kernels have been instantiated (see below), sample in their 
+hyperparameters $\vp_{{\mathsf C},l}$ with $\vT^i$, $\cheb^i$, and $\vp_{{\mathsf C}, g}^i$ fixed.  
+Update the local kernel parameters $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$. 
+
 \end{enumerate}
 
-\noindent (4) Return to Step~(2) and iterate to convergence. \\
+\noindent (4) Return to Step~(2) and iterate.  After a burn-in period, periodically pause the Gibbs 
+sampler and compute the Gelman-Rubin convergence diagnostic, $\hat{R}$ \citep[][their 
+Eq.~11.4]{gelman13}.  Break the loop if $\hat{R} \, < \, 1.1$.  \\
 
 \noindent (5) Repeat the procedure in Steps~(1)--(4) with different initializations and compute 
 convergence diagnostics to ensure that all of the chains have reached the same global maximum in 
 the posterior probability distribution. \\
 
-Local kernels are instantiated by the following procedure:  an ``average''
-residual spectrum is created by combining ~500 spectra residuals stored from a
-burn-in period using only global covariance kernels (prior to storage the
-Markov chain is thinned to account for autocorrelation of the posterior
-samples). Then, using an iterative thresholding criterion similar in procedure
-to ``sigma clipping,''\footnote{Although the procedure of identifying outliers
-  is similar to sigma clipping, the inference on the stellar parameters is
-  emphatically \emph{not} the same as sigma clipping, since we now determine
-  the weights of these spectral outliers inside of a probabilistic framework,
-  rather than directly setting their weights to zero as in sigma clipping.} we
-  identify the largest outlier pixel not already covered by a local kernel,
-  instantiate a local kernel at its location, and repeat until no residual
-  pixels above a certain threshold remain. Alternative local kernel
-  instantiation schemes, such as re-evaluating the location of kernels with
-  each Gibbs sampler iteration, yield similar results to the thresholding
-  approach. However, we found that this thresholding approach most consistently
-  converged with the least computational overhead. We explored the behavior of
-  setting different threshold levels, and decided to use four times the
-  standard deviation of the average residual spectrum. Lower thresholds (e.g.,
-  3$\sigma$ and 3.5$\sigma$) result in the instantiation of more kernels, which
-  in turn slightly reduces the amplitude of the global kernel. Taken to the
-  logical conclusion, if the threshold was set low enough then there would be a
-  local kernel for each spectral line and no global kernel would be required.
-  We find that the final stellar posterior is relatively insensitive to the
-  choice of threshold level as long as it is set low enough to capture the most
-  egregious spectral outliers (e.g., 4$\sigma$).  Once all of the local kernels
-  have been instantiated, the Gibbs sampler is run for another period of
-  burn-in.\footnote{There is no practical reason to delete local kernels once
-    instantiated.  If the parameters have changed such that a given local
-    kernel is no longer required, that kernel amplitude will be driven towards
-    zero and represent a negligible contribution to $\vC$; in effect, the model
-    will act as if the kernel were deleted automatically.}
+In Step~(3c), local covariance kernels are instantiated into the model according to the following 
+procedure.  First, an ``average" residual spectrum is generated by combining $\sim$500 residual 
+spectra that were stored during a burn-in period using only the global kernels (prior to this 
+storage, the Markov chain is thinned to account for autocorrelation of the posterior samples).  
+This average spectrum is then iteratively examined for deviations outside a critical threshold; 
+when a large residual is identified, a local kernel is introduced with a mean ($\mu_k$) at its 
+location.\footnote{Although this may seem similar to the procedure of ``sigma-clipping", there is a 
+crucial difference.  Rather than rejecting outlier data once it is found (i.e., setting its weight 
+in the inference problem to zero), this procedure will actually self-consistently determine how to 
+weight the outliers inside the probabilistic framework.}  After some experimentation with different 
+threshold levels, we have adopted a criterion whereby a kernel is instantiated where the local 
+residual is at least 4$\times$ the standard deviation in the average residual 
+spectrum.\footnote{Lower thresholds result in more local kernels, thereby reducing the amplitude of 
+the global kernel.  In the extreme case of a very low threshold, a local kernel would be 
+instantiated for every spectral line (and no global kernel would be required).  We found that 
+ultimately the posterior inferences on the parameters of interest are relatively insensitive to the 
+choice of a threshold level, so long as it is set low enough to capture the egregious outliers.}  
+Alternative instantiation schemes, such as re-evaluating the locations of kernels with each 
+iteration of the Gibbs sampler, yield similar results; however, the adopted approach was found to 
+consistently converge with minimal computational overhead.  Once all of the necessary local kernels 
+have been instantiated, the Gibbs sampler is run for another period of burn-in.\footnote{There is 
+no practical reason to delete local kernels once instantiated.  If the parameters have changed such 
+that a given local kernel is no longer required, that kernel amplitude will be driven towards zero 
+and represent a negligible contribution to $\vC$; in effect, the model will act as if the kernel 
+were deleted automatically.}
 
-After burn-in is complete, we periodically pause the Gibbs sampler and compute the Gelman-Rubin convergence 
-diagnostic  $\hat{R}$ \citep[][their Eq.~11.4]{gelman13}, which compares the intra-chain and 
-inter-chain variances to assess how the inference of the posterior would be improved if the chains 
-were to be run for an infinite number of iterations.  The Gibbs sampler is eventually stopped if 
-$\hat{R} \, < \, 1.1$, and the chains appear converged in a visual inspection. 
-
-Gibbs sampling from the posterior with this procedure can be a computational challenge.  A typical 
-spectrum might have $N_{\rm pix}$$>$1000, and therefore the many repeated evaluations of the matrix 
-product $\vR^{\trans} \vC^{-1} \vR$ in the likelihood function calculation can be numerically 
-expensive; prohibitively so in the brute force sense, since $\vC$ is non-trivial by design.  
-However, there are two aspects of these calculations that enable us to take advantage of some 
-clever algorithms designed for these kinds of issues.  First, since we are only interested in the 
-product $\vR^{\trans} \vC^{-1} \vR$ and not $\vC^{-1}$ itself, we can employ some efficient sparse 
-matrix approximations that avoid the computational expense of matrix inversion.  And second, 
-because $\vC$ is a symmetric, positive semi-definite matrix, we can employ Cholesky factorization
-to optimize the evaluation of the matrix product.  In practice, this means Steps~(2), (3a), and 
-(3b) in the procedure outlined above can be conducted with minimal computation cost.  Although the
-Cholesky factorization must be re-done for each update of $\vp_{\mathsf C}$ (Step~3d), this does 
-not incur a high cost because the covariance kernels were designed to deliver a sparse matrix (via 
-the Hann windows).  We use the high-performance 
-\texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}} 
-library to implement the sparse matrix and Cholesky factorization operations \citep{chen08,
-davis09}, and extend the Metropolis-Hastings sampler included in the {\tt emcee} package 
-\citep{foreman-mackey13} to function within a blocked Gibbs 
+The procedure outlined above can be a significant computational challenge.  A typical data spectrum 
+has $N_{\rm pix} > \mathcal{O}(10^3)$, and therefore the many repeated evaluations of the matrix 
+product $\vR^{\trans} \vC^{-1} \vR$ in the likelihood calculation can be numerically expensive; 
+prohibitively so in the brute force sense, since $\vC$ is non-trivial by design.  However, there 
+are two aspects of these calculations that enable us to take advantage of some clever algorithms 
+designed for such issues.  First, since we are only interested in the product $\vR^{\trans} 
+\vC^{-1} \vR$ and not $\vC^{-1}$ itself, we can employ some efficient sparse matrix approximations 
+that avoid the computational expense of matrix inversion.  And second, because $\vC$ is a 
+symmetric, positive semi-definite matrix, we can employ Cholesky factorization to optimize the 
+evaluation of the matrix product.  In practice, this means Steps~(2), (3a), and (3b) in the 
+procedure outlined above can be conducted with minimal computation cost.  Although the Cholesky 
+factorization must be re-done for each update of $\vp_{\mathsf C}$ (Step~3d), this does not incur a 
+high cost because the covariance kernels were designed to deliver a sparse matrix (via the Hann 
+windows).  We use the high-performance \texttt{SuiteSparse/CHOLMOD}\footnote{\url{http://www.cise.ufl.edu/research/sparse/cholmod/}} library to implement the sparse matrix and Cholesky factorization 
+operations \citep{chen08,davis09}, and extend the Metropolis-Hastings sampler included in the {\tt 
+emcee} package \citep{foreman-mackey13} to function within a blocked Gibbs 
 sampler.\footnote{\url{https://github.com/iancze/emcee}} \\
+
 
 
 \section{Demonstrations} \label{sec:examples}
@@ -753,10 +748,10 @@ since it is well-sampled at cooler temperatures.
 
 A high resolution ($R\approx44,000$) optical spectrum of WASP-14 was obtained on 2009 June 14 
 using the Tillinghast Reflector Echelle Spectrograph \citep[TRES;][]{furesz08} on the Fred Lawrence 
-Whipple Observatory 1.5\,m telescope.  TRES delivers a 51-order echelle spectrum covering the 
-full optical wavelength range (3860--9100\,\AA).  The data were reduced and calibrated using 
-standard techniques in the TRES pipeline (cf.,~\citealt{buchhave10}; see \citealt{torres12} for 
-more specific details).  At 5100\,\AA, the S/N is $\sim$150 per resolution element.  
+Whipple Observatory 1.5\,m telescope.  TRES delivers an echelle spectrum with 51 orders that cover 
+the optical range from 3860--9100\,\AA.  The data were reduced and calibrated using standard 
+techniques in the TRES pipeline (cf.,~\citealt{buchhave10}; see \citealt{torres12} for more 
+specific details).  At 5100\,\AA, the S/N is $\sim$150 per resolution element.  
 
 \citet{torres12} originally acquired these data in an effort to measure the WASP-14 stellar 
 properties, and thereby better constrain the parameters of the transiting exoplanet it hosts.  To 
@@ -772,25 +767,22 @@ sense.  This approach suggests that $T_{\rm eff} = 6150\pm75$\,K and $[{\rm Fe/H
 -0.34\pm0.10$\,dex.  The {\tt SPC} analysis relied on a direct comparison between three TRES 
 spectral orders covering $\sim$5100-5400\,\AA\ and synthetic spectra from the {\sc CfA/Kurucz} 
 library; it indicates $T_{\rm eff} = 6507\pm50$\,K, $[{\rm Fe/H}] = -0.15\pm0.08$\,dex, and $v \sin 
-i = 3.9\pm0.5$\,km s$^{-1}$.  It is worth noting that these parameter inferences represent an 
-average of those determined from four distinct TRES datasets, such that the uncertainties reflect 
-the systematic spread between the best-fit parameter values. 
-%\comm{This is something we need to discuss more with Dave and Willie.}
+i = 3.9\pm0.5$\,km s$^{-1}$.  The uncertainties are dominated by a ``floor" contribution, imposed 
+independently on each parameter and meant to be representative of the systematics (a standard 
+procedure in this field).  
 
 Given the decision to employ a spectral library to generate models (Sect.~\ref{subsec:synthetic}), 
-a direct comparison of the \citeauthor{torres12}~{\tt SPC} result with our framework is relevant.  
-Using the same TRES spectral orders (for a single WASP-14 observation, as noted above), the {\sc 
-CfA/Kurucz} library, and an appropriate $\delta$-function prior on $\log g$, we infer parameters 
-that are entirely consistent with the {\tt SPC} approach; see Table~\ref{table:Kurucz}.  
-Figure~\ref{fig:Kurucz_residuals} demonstrates the quality of our approach in reproducing the 
-WASP-14 spectrum and, especially significant, the structure of the residuals.  
-Figure~\ref{fig:Kurucz_posterior} shows some marginal projections of the posterior-space, 
-highlighting key parameter degeneracies.  
-%Figure~\ref{fig:metacomparison} compares the inferred 
-%parameters with the various determinations made by \citet{torres12}.  
+a direct comparison of the \citeauthor{torres12}~{\tt SPC} result with our framework is most 
+relevant.  Using the same TRES spectral orders, the {\sc CfA/Kurucz} library, and a 
+$\delta$-function prior on $\log g$ (at 4.29), we infer parameters that are consistent with the 
+{\tt SPC} approach; see Table~\ref{table:Kurucz}.  Figure~\ref{fig:Kurucz_residuals} demonstrates 
+the quality of our approach in reproducing the WASP-14 spectrum and, especially significant, the 
+structure of the residuals.  Figure~\ref{fig:Kurucz_posterior} shows some marginal projections of 
+the posterior-space, highlighting key parameter degeneracies.  
 
 \begin{figure*}[!t]
 \includegraphics{figs/residuals_Kurucz_logg.pdf}
+\vspace{-0.3cm}
 \figcaption{({\it top}) A representative segment of the TRES spectrum of WASP-14 ({\it blue}), 
 overlaid with a {\sc CfA/Kurucz} model ({\it red}) generated by drawing parameters from the 
 posterior distribution (for a fixed $\log g = 4.29$).  ({\it bottom}) The residual spectrum along 
@@ -798,8 +790,8 @@ with contours representing the distributions of a large number of random draws f
 matrix (the shading is representative of the 1, 2, and 3\,$\sigma$ spreads of that distribution of 
 draws), as in Fig.~\ref{fig:matrix}.  With such a finely tuned model library, local covariance 
 kernels are not required.  \label{fig:Kurucz_residuals}}
+\vspace{0.2cm}
 \end{figure*}
-
 
 \begin{deluxetable}{lr@{ $\pm$ }l|r@{ $\pm$ }l}[!b]
 \tablecaption{\label{table:Kurucz}Inferred Parameters for WASP-14}
@@ -810,7 +802,8 @@ $\log g$      & 4.29     & 0 (fixed)               &  4.29   & 0 (fixed) \\
 $\Z$          & -0.28    & 0.01                    & -0.52  & 0.02     \\
 $v \sin i$ ($\kms$)\tablenotemark{a}   & 4.28     & 0.06                    &  4.89   & 0.06      \\
 $v_z$ ($\kms$)        & -4.62    & 0.02                    & -4.86   & 0.02      \\
-$\log \Omega$\tablenotemark{b} & -12.7180 & 0.0004 & -19.676 & 0.001
+$\log \Omega$\tablenotemark{b} & -12.7180 & 0.0004 & -19.676 & 0.001 \\
+$A_V$                          & 0        & 0 (fixed) & 0 & 0 (fixed)
 \enddata
 \tablenotetext{a}{Small differences in the rotational broadening between the two libraries are
 expected, since they assume different micro- and macro-turbulence behavior in the stellar
@@ -822,9 +815,9 @@ distributions for each parameter.  The quoted uncertainties correspond to the 68
 for all nuisance parameters are available electronically.}
 \end{deluxetable}
 
-
 \begin{figure}[!b]
   \includegraphics[width=0.5\textwidth]{figs/Kurucz_triangle.pdf}
+\vspace{-0.5cm}
   \figcaption{The posterior probability distributions for the interesting stellar parameters 
 (marginalized over all other model parameters) of WASP-14 based on the {\sc CfA/Kurucz} model 
 library, as explored by the MCMC Gibbs sampler.  For the two-dimensional posterior projections, 
@@ -832,98 +825,70 @@ contours are drawn at the standard 1, 2, and 3\,$\sigma$ levels (of a normal dis
 reference.  \label{fig:Kurucz_posterior} }
 \end{figure}
 
-
-%\begin{figure}[!htb]
-%\begin{center}
-%\includegraphics{figs/metacomparison.pdf}
-%\caption{The posterior peaks and widths for various determination of the stellar parameters of WASP-14. The determinations in \citet{torres12} are shown along with the estimates using the {\sc CfA/Kurucz} synthetic library and the {\sc PHOENIX} synthetic library. \todo{What else do we want to show on here?}}
-%\label{fig:metacomparison}
-%\end{center}
-%\end{figure}
-
-It is beneficial to review what factors into the parameter uncertainties.  In our approach, we 
-consider contributions from both trivial (Poisson) noise and a non-trivial Gaussian process 
-covariance matrix.\footnote{Note that the {\sc CfA/Kurucz} library is so well-tuned for stars like 
-WASP-14 over this limited spectral range that no local covariance kernels need to be instantiated; 
-in this specific case, we employ only global covariance kernels to reproduce the residual 
-structure.} To decompose their respective contributions, we performed the same analysis with only a 
-trivial covariance matrix ($b = 1$; $\cov = 0$), which simplifies the likelihood function to the 
-familiar $\chi^2$ form.  Doing this, we identify little bias to the best-fit parameters, but find 
-unrealistic precision (i.e., $T_{\rm eff}$ to $\pm$5\,K, $[{\rm Fe/H}]$ to $\pm0.004$\,dex, and $v 
-\sin i$ to $\pm0.01$\,km s$^{-1}$).  Such small uncertainties are to be expected, since the 
-prescribed likelihood function presumes that the data are generated from the model; in this 
-paradigm, the only way to introduce deviation is through white noise (see Fig.~\ref{fig:matrix}).  
-Of course, that implicit assumption is invalid, since just a few simple parameters ($\vT$) are 
-generally insufficient to account for the thousands of pixels and hundreds of spectral features in 
-a typical dataset.  In essence, the data and an imperfect model spectrum also have {\it systematic} 
-differences that also contribute to the uncertainties, which we forward-model using a non-trivial 
-covariance matrix.  In this specific case, these systematic and the Poisson uncertainties 
-contribute roughly equally to the $\vT$ posteriors.  For synthetic models that are less finely 
-tuned than the {\sc CfA/Kurucz} grid, the systematic uncertainties will dominate (see below). 
-
-In addition to noise in the data (statistical uncertainties) and systematic uncertainties in the 
-models, we might also expect that systematics associated with the instrument and/or calibration 
-contribute to the parameter uncertainties.  Common practice is to estimate these latter systematics 
-by comparing parameter inferences made using different spectra (e.g., from different instruments or 
-observing nights): the results are usually presented as an average, with uncertainties inflated by 
-adding in a ``floor" term that accounts for the dispersion between the inferences from individual 
-spectra.  That procedure implicitly assumes that these systematics are Gaussian (add in quadrature) 
-and independent in each parameter.  But the approach we are advocating here avoids such a heuristic 
-by self-consistently parameterizing the fit quality.  Because the parameter uncertainties are 
-derived through a forward model, this method (crucially) preserves the morphologies of intrinsic 
-parameter degeneracies in a way that cannot be reproduced by artificially (i.e., manually) 
-inflating the posteriors.  
-
-To quantify these instrumental systematics for WASP-14, we modeled the three other TRES spectra 
-obtained by \citet{torres12} independently (under the same assumptions).  We found a minimal 
-scatter of $\sim$20\,K in $T_{\rm eff}$ and $\sim$0.02\,dex in $\Z$ between the individual 
-inferences, a testament to quality calibration and an exceptionally stable spectrograph.  The more 
-appropriate way of combining the inferences is to model these four spectra simultaneously in our 
-hierarchical framework: in that case, we found that the parameter inferences become slightly more 
-precise (as one would expect for a weighted average and well-tuned models), while preserving the 
-intrinsic correlations between parameters (something expressly destroyed in a weighted average).
-
-%\comm{I am not sure how/if it will fit in, but I want to see the results of fitting many more 
-%orders with Phoenix.}
-
-While comparisons with the {\sc CfA/Kurucz} models confirm that our methodology can faithfully 
-reproduce the inferences made with standard spectral fitting routines, they do little to illustrate 
-a key feature -- the treatment of local patches of large covariance (see 
-Sect.~\ref{subsec:local_covariance}) in a more sophisticated likelihood function.  For that we turn 
-to the {\sc Phoenix} library, comprised of model spectra with a much broader spectral range that 
-have not been fine-tuned for solar type stars.  As a result, users should expect that there will 
-likely be a population of ``outlier" residual lines present when comparing any observed spectrum 
-with the {\sc Phoenix} models \citep[e.g.,][their Fig.~8]{husser13}.  The standard approach is to 
-outright ignore, or perhaps ``$\sigma$-clip", the outlier lines and proceed with fitting the 
-remainder of the spectrum.  However, it is difficult to quantify how such decisions ultimately 
-affect the parameter inferences \citep{hogg10}.  By parameterizing these residual features with 
-local covariance kernels, we are self-consistently preserving any discriminatory power against the 
-stellar parameters that might still be contained in their imperfect representations.  
+It is worthwhile to comment on the inferred parameter uncertainties.  In this specific example, 
+some experimentation with restricted forms of the covariance matrix confirm that the uncertainties 
+of the interesting parameters have roughly equal contributions from trivial (Poisson) noise, grid 
+interpolation errors, and a non-trivial global covariance term.\footnote{Note that the {\sc 
+CfA/Kurucz} library has been specifically well-tuned for stars like WASP-14, by careful variation 
+of atomic data (e.g., line lists, oscillator strengths) with reference to observations of the Sun 
+and Vega, by J.~Morse and J.~B.~Laird.  Over this limited spectral range, this means that no local 
+covariance kernels need to be instantiated to reproduce the residual structure.}  For synthetic 
+models that are less well-tuned than the {\sc CfA/Kurucz} grid, the latter two terms will certainly 
+dominate.  In any case, these uncertainties are still considerably smaller than the ``floor" values 
+imposed by \citet{torres12}, but they are representative of our expectations for comparing data of 
+high sensitivity and volume with models of limited parametric flexibility (i.e., the uncertainties 
+would inflate considerably if the many fixed or restricted parameters that went into building the 
+model libraries were available for variation).  
 
 \begin{figure*}[!htb]
 \includegraphics{figs/residuals_PHOENIX_logg.pdf}
-\figcaption{Same as Fig.~\ref{fig:Kurucz_residuals} for the {\sc Phoenix} models.  Note the 
-increased vertical scale and local covariance structure for the residuals.
- \label{fig:PHOENIX_residuals}}
+\vspace{-0.3cm}
+\figcaption{Same as Fig.~\ref{fig:Kurucz_residuals} for the {\sc Phoenix} models.  Note the
+increased vertical scale and local covariance structure for the residuals.  
+\label{fig:PHOENIX_residuals}}
+\vspace{0.2cm}
 \end{figure*}
 
 \begin{figure}[!b]
 \begin{center}
   \includegraphics[width=0.5\textwidth]{figs/PHOENIX_triangle.pdf}
-\figcaption{Same as Fig.~\ref{fig:Kurucz_posterior}, but for the {\sc Phoenix} models.  
+\vspace{-0.5cm}
+\figcaption{Same as Fig.~\ref{fig:Kurucz_posterior}, but for the {\sc Phoenix} models.
 \label{fig:PHOENIX_posterior}}
 \end{center}
 \end{figure}
 
+There are two additional, {\it systematic} sources of uncertainty that merit attention.  First are 
+those associated with the instrument and/or calibration procedure.  Common practice is to quantify 
+these contributions by comparing parameter inferences made using different spectra (e.g., from 
+different instruments or observing nights): the results are usually presented as an average, with 
+uncertainties inflated by adding in quadrature parameter-independent terms that account for the 
+dispersion between the inferences from individual spectra.  To quantify these instrumental 
+systematics for WASP-14, we modeled three other TRES spectra obtained by \citet{torres12} 
+independently (under the same assumptions).  We found a scatter of $\sim$20\,K in $T_{\rm eff}$ and 
+$\sim$0.02\,dex in $\Z$ between the individual inferences, a testament to quality calibration and 
+an exceptionally stable spectrograph.  The more appropriate way of combining the inferences is to 
+model these four spectra simultaneously in our hierarchical framework: we found that the parameter 
+inferences become slightly more precise (as would be expected for a weighted average and well-tuned 
+models), while preserving the intrinsic parameter degeneracies (which is not possible in the 
+weighted average approach).
 
-%This behavior of the {\sc PHOENIX} library motivates the use of global and local covariance kernels in a sophisticated likelihood function. The amplitude and scale of the global covariance grows to capture the discrepancy between data spectrum and synthetic spectrum, and acts as a mechanism to account for the systematic mismatch of data spectrum and model spectrum. Including this covariance broadens the posteriors on the stellar parameters, while the local covariance kernels provide cushion against outlier lines.  
+A second source of systematic uncertainty lies with the models themselves, including the treatment 
+of structure, assumptions about boundary conditions (convection, etc.), and the employment of 
+fundamental atomic and molecular data.  As a benchmark for estimating the scope of this kind of 
+uncertainty, we repeated the analysis described above using instead the {\sc Phoenix} model 
+library.  Because the {\sc Phoenix} model spectra cover a much broader spectral range that has not 
+been fine-tuned for solar type stars (unlike the {\sc CfA/Kurucz} library), this has the added 
+benefit of demonstrating a key feature of the modeling framework -- the treatment of spectral line 
+``outliers" with local patches of high covariance (Sect.~\ref{subsec:local_covariance}) in a 
+sophisticated likelihood function.  
 
 Figure~\ref{fig:PHOENIX_residuals} illustrates the approach in practice through a comparison of the 
 WASP-14 data and the {\sc Phoenix} models.  There are two notable differences in the residual 
 spectra presented there and in the corresponding Figure~\ref{fig:Kurucz_residuals} for the {\sc 
-CfA/Kurucz} models.  First, the amplitude of the global covariance structure is $\sim$2$\times$ 
-larger for the {\sc Phoenix} models: since that amplitude is an indirect parameterization of the 
-fit quality, this indicates that the {\sc Phoenix} models present an overall worse match to the 
+CfA/Kurucz} models.  First, the amplitude of the global covariance structure is twice as large for 
+the {\sc Phoenix} models: since that amplitude is an indirect parameterization of the {\it fit 
+quality}, this indicates that the {\sc Phoenix} models present an overall worse match to the 
 data.  Second, there are several local regions of strong residuals (outlier lines), which are 
 enveloped in a parametric treatment of the local covariance structure.  In effect, we have modeled 
 the large residuals with a suite of individual covariance kernels, with parameters that identify 
@@ -931,19 +896,40 @@ and appropriately down-weight imperfect model spectral lines in a self-consisten
 
 Aside from the structure of the covariance matrix, there is also a striking difference between the 
 posterior distributions of the stellar parameters inferred using the {\sc Phoenix} and {\sc 
-CfA/Kurucz} model libraries: see Table~\ref{table:Kurucz} and compare 
-Figures~\ref{fig:Kurucz_posterior} and \ref{fig:PHOENIX_posterior}.  The {\sc Phoenix} models find 
-a systematically cooler temperature (by $\sim$240\,K) and lower metallicity (by a factor of 
-$\sim$2) than inferred from the {\sc CfA/Kurucz} models.  Because our framework explicitly 
-mitigates the potential for posterior bias from imperfect matches between data and models, we can 
-safely conclude that these apparent discrepancies are intrinsic to the different input physics of 
-the model libraries.\footnote{It is worth noting that these differences are not a manifestation of 
-the stringent prior on surface gravity.  When the spectra are modeled with $\log g$ unconstrained, 
-the posteriors for both libraries shift, but their respective discrepancies actually increase 
-slightly.}  Such a comparison serves as a stark reminder that incomplete and/or over-simplified 
-physical prescriptions remain the most significant source of systematic uncertainty in estimates 
-of fundamental stellar parameters.
+CfA/Kurucz} libraries: see Table~\ref{table:Kurucz} and compare Figures~\ref{fig:Kurucz_posterior} 
+and \ref{fig:PHOENIX_posterior}.  The {\sc Phoenix} models find a systematically cooler temperature 
+(by $\sim$240\,K) and lower metallicity (by a factor of $\sim$2) than inferred from the {\sc 
+CfA/Kurucz} models.  Because our framework explicitly mitigates the potential for posterior bias 
+from imperfect matches between data and models, we can safely conclude that these apparent 
+discrepancies are intrinsic to the different input physics of the model libraries.\footnote{It is 
+worth noting that these differences are not a manifestation of the stringent prior on surface 
+gravity.  When the spectra are modeled with $\log g$ unconstrained, the posteriors for both 
+libraries shift, but their respective discrepancies actually increase slightly.}  Such a comparison 
+serves as a stark reminder that incomplete and/or over-simplified physical prescriptions remain the 
+most significant source of systematic uncertainty in estimates of fundamental stellar parameters.
 
+
+\begin{figure*}[!htb]
+  \includegraphics{figs/residuals_Gl51_logg.pdf}
+\vspace{-0.3cm}
+  \figcaption{The $K$-band SPEX spectrum of Gl~51 ({\it blue}) compared with a {\sc Phoenix} model
+({\it red}) generated by drawing parameters from the posterior distribution (for a fixed $\log g = 
+5.0$).  ({\it bottom}) The residual spectrum along with contours representing the distributions of
+a large number of random draws from the covariance matrix (the shading is representative of the 1,
+2, and 3\,$\sigma$ spreads of that distribution of draws), as in Fig.~\ref{fig:Kurucz_residuals}.  
+Note how the ``outlier" features are clearly identified and treated by the local covariance kernels.
+\label{fig:Gl51_residuals}}
+\vspace{0.2cm}
+\end{figure*}
+
+\begin{figure}[!b]
+  \includegraphics[width=0.5\textwidth]{figs/Gl51_triangle.pdf}
+  \figcaption{The posterior probability distributions for the interesting stellar parameters
+(marginalized over all other model parameters) of Gl~51 based on the {\sc Phoenix} model library,
+as explored by the MCMC Gibbs sampler.  For the two-dimensional posterior projections, contours are
+drawn at the standard 1, 2, and 3\,$\sigma$ levels (of a normal distribution) for reference.
+\label{fig:Gl51_posterior}}
+\end{figure}
 
 \subsection{Gl~51}
 
@@ -959,7 +945,7 @@ Modeling late-type stellar atmosphere structures and their spectra is considerab
 than for Sun-like stars, due to lingering uncertainties in the atmosphere physics and molecular 
 opacities.  Especially confounding is the presence of complex condensates (clouds) at the coolest 
 temperatures \citep{allard13}, making it considerably more challenging to determine (sub-)stellar 
-properties \citep{rajpurohit14}.  Various approaches have been taken to infer stellar parameters in 
+properties \citep{rajpurohit14}.  Various approaches have been taken to infer the key parameters in 
 the face of these difficulties, including iteratively masking regions with poor spectral agreement 
 \citep[e.g.,][]{mann13}.  Astutely, \citeauthor{mann13}~note that such a scheme may exclude 
 regions of the spectrum that contain intrinsically useful information for discriminating between 
@@ -967,28 +953,8 @@ physical properties, and that a more sophisticated approach would weight each sp
 on its consistency with the data.  The modeling framework that we have constructed here does 
 exactly that.
 
-\begin{figure*}[!htb]
-  \includegraphics{figs/residuals_Gl51_logg.pdf}
-  \figcaption{The $K$-band SPEX spectrum of Gl~51 ({\it blue}) compared with a {\sc Phoenix} model 
-({\it red}) generated by drawing parameters from the posterior distribution (for a fixed $\log g = 
-5.0$).  ({\it bottom}) The residual spectrum along with contours representing the distributions of 
-a large number of random draws from the covariance matrix (the shading is representative of the 1, 
-2, and 3\,$\sigma$ spreads of that distribution of draws), as in Fig.~\ref{fig:}.  Note how the 
-``outlier" features are clearly identified and treated by the local covariance kernels.
-\label{fig:Gl51_residuals}}
-\end{figure*}
-
-\begin{figure}[!b]
-  \includegraphics[width=0.5\textwidth]{figs/Gl51_triangle.pdf}
-  \figcaption{The posterior probability distributions for the interesting stellar parameters 
-(marginalized over all other model parameters) of Gl~51 based on the {\sc Phoenix} model library, 
-as explored by the MCMC Gibbs sampler.  For the two-dimensional posterior projections, contours are 
-drawn at the standard 1, 2, and 3\,$\sigma$ levels (of a normal distribution) for reference.  
-\label{fig:Gl51_posterior}}
-\end{figure}
-
 As a point of reference, \citet{rojas-ayala12} used a $K$-band spectrum at similar resolution to 
-the SPEX data to estimate the Gl~51 stellar parameters using an index technique.  They measured 
+the SPEX data to estimate the basic Gl~51 parameters using an index technique.  They measured 
 equivalent widths for the 2.205\,$\mu$m \ion{Na}{1} doublet and 2.263\,$\mu$m \ion{Ca}{1} triplet, 
 along with a pseudo-continuum index defined over three narrow passbands, 2.070--2.090, 
 2.235--2.255, and 2.360--2.380\,$\mu$m (see their Fig.~2 for a useful visualization), designed to 
@@ -1012,14 +978,14 @@ We concur with \citet{rojas-ayala12} that the {\sc Phoenix} models manage to mat
 spectral morphology of mid-M type stars well, but consistently under-predict the strengths of the 
 \ion{Na}{1} and \ion{Ca}{1} resonance lines, even for high metallicities.  \citet{rajpurohit10} 
 speculated that this discrepancy may be a consequence of inaccurate atomic data (oscillator 
-strengths and/or opacities).  \hili{The indexing technique adopted by \citeauthor{rojas-ayala12} 
-presumes that these discrepancies do not affect the line {\it ratios}}.  Our approach offers an 
-alternative that makes no such assumption, instead using local covariance kernels to 
-self-consistently determine the ``weights" of discrepant spectral lines in the overall fit.  In 
-that sense, these outlier features still bring their full information content to bear on the 
-posterior distributions of the stellar parameters without imposing a systematic bias.  
-Figure~\ref{fig:Gl51_residuals} demonstrates that these features have been identified as
-problematic, resulting in localized patches of appropriately inflated covariance.
+strengths and/or opacities).  The indexing technique adopted by \citeauthor{rojas-ayala12} presumes 
+that these discrepancies do not affect the line {\it ratios}.  Our approach offers an alternative 
+that makes no such assumption, instead using local covariance kernels to self-consistently 
+determine the ``weights" of discrepant spectral lines in the overall fit.  In that sense, these 
+outlier features still bring their full information content to bear on the posterior distributions 
+of the stellar parameters without imposing a systematic bias.  Figure~\ref{fig:Gl51_residuals} 
+demonstrates that these features have been identified as problematic, resulting in localized 
+patches of appropriately inflated covariance.
 
 \begin{deluxetable}{lr@{ $\pm$ }l}[h]
 \tablecaption{\label{table:Gl51}Inferred Parameters for Gl 51}
@@ -1030,7 +996,8 @@ $\log g$ & 5.0 & 0 (fixed) \\
 $\Z$ & -0.01 & 0.04 \\
 $v \sin i$ ($\kms$) & \hili{5.68} & \hili{4.15} \\
 $v_z$ ($\kms$) & 12.1 & 1.3 \\
-$\log \Omega$ (sr) & -19.628  & 0.003
+$\log \Omega$ (sr) & -19.628  & 0.003 \\
+$A_V$ & 0 & 0 (fixed)
 \enddata
 \tablecomments{Notation as in Table~\ref{table:Kurucz}.}
 \end{deluxetable}
@@ -1044,7 +1011,8 @@ see][their Fig.~9]{mann13}.  The overall framework we have employed should still
 more appropriate local covariance kernels may need to be developed to capture the different nature 
 of these outliers.  For example, one might employ hybrid kernels (like the product of a truncated 
 exponential and a \matern\ kernel) or empirically-motivated parametric shapes (e.g., a saw-tooth 
-pattern) to provide a better representation than a simple Gaussian feature.  
+pattern) to provide a better representation than a simple Gaussian feature.  \\
+
 
 
 \section{Discussion} \label{sec:discussion}
@@ -1067,16 +1035,17 @@ generative, hierarchical Bayesian framework.  The method advocated here construc
 likelihood function, employing a non-trivial covariance matrix to treat the correlated 
 pixel-to-pixel residuals generated from intrinsically imperfect models.  That matrix is composed of 
 a linear combination of {\it global} (stationary) and {\it local} (non-stationary) Gaussian 
-Process kernels, which parameterize an overall mild covariance structure as well as small patches 
+process kernels, which parameterize an overall mild covariance structure as well as small patches 
 of highly discrepant outlier features.  The approach we describe is generally applicable to any 
 spectroscopic inference problem (e.g., population synthesis in unresolved star clusters or 
 galaxies, physical/chemical models of emission line spectra in star-forming regions, etc.).  
 Moreover, it has the flexibility to incorporate additional information (as priors) or parametric 
 complexity (if desired), and could be deployed as a substitute for a simplistic $\chi^2$ metric in 
-already-established fitting tools (e.g., {\tt SME}, {\tt MOOG}).  To demonstrate how it is used, we 
-determined the surface parameters of main-sequence stars with mid-F and mid-M spectral types from 
-high-S/N optical and near-infrared data, with reference to pre-computed model libraries 
-(Sect.~\ref{sec:examples}).
+already-established fitting tools (e.g., {\tt SME}).  To demonstrate how it is used, we determined 
+the surface parameters of main-sequence stars with mid-F and mid-M spectral types from high-S/N 
+optical and near-infrared data, with reference to pre-computed model libraries 
+(Sect.~\ref{sec:examples}).  The source code developed here is open and freely available for use: 
+see \url{http://github.com/iancze/StellarSpectra}.
 
 The novelty of employing this kind of likelihood function in the spectroscopic inference problem is 
 that the treatment of data--model mismatches (in essence, the fit quality) is explicitly built into 
@@ -1113,71 +1082,156 @@ physical anchoring for the key physical parameters, since they are reflected in 
 on the physical assumptions in the original models.  This kind of large-scale analysis holds great 
 promise in the (ongoing) era of large, homogeneous high resolution spectroscopic datasets (e.g., 
 like those being collected in programs like the APOGEE and HERMES surveys), since they provide 
-enormous leverage for identifying and improving the underlying model systematics.
-
-%\comm{Should make note of surveys like the ESA/Gaia program, SEGUE, RAVE, too.  Probably need to 
+enormous leverage for identifying and improving the underlying model systematics. \\
+%Should make note of surveys like the ESA/Gaia program, SEGUE, RAVE, too.  Probably need to 
 %include citations to each.  Also, I think HERMES is really GALAH, right?  If not, it should be 
-%linked to that, since there is a popular Herschel HERMES program that will confuse people...}
+%linked to that, since there is a popular Herschel HERMES program that will confuse people...
 
 
-%\acknowledgments  List your acknowledgments (don't forget anyone!).  I can think of: 
-%Foreman-Mackey, Hogg, people on Johnson's group?, Lars?, TRES archive people?  You might want to 
-%acknowledge your NSF Fellowship here, and the Smithsonian Institution (how you're being paid now), 
-%for funding.  Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}.
-%
+\acknowledgments  List your acknowledgments (don't forget anyone!).  I can think of: 
+Foreman-Mackey, Hogg, people on Johnson's group?, Lars?, TRES archive people?  You might want to 
+acknowledge your NSF Fellowship here, and the Smithsonian Institution (how you're being paid now), 
+for funding.  Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. \\
+
+
+
+\appendix
+
+\section{Interpolation Errors} \label{sec:Appendix}
+
+Interpolation from a library of synthetic spectra is conceptually straightforward, but in the 
+application discussed here there are some subtleties that require detailed consideration.  
+Spectral line formation is a non-linear process, where line shapes are determined by the complex 
+radiative transfer through a stellar atmosphere.  We aim to bypass this non-linear 
+process and predict (through interpolation) the behavior of spectral lines based on pre-computed 
+library spectra with similar physical parameters.  The goal in this Appendix is to describe a 
+procedure by which we propagate an empirical approximation of the {\it inaccuracy} in that 
+prediction through the probabilistic framework we have developed.
+
+There are two important factors to consider when interpolating in libraries of model stellar 
+spectra.  First, the flux values in some non-negligible fraction of the spectra do not vary 
+monotonically with changes in the physical parameters that define the library: this helps inform 
+the decision about which functional form of interpolation should be used.  And second, the spectra 
+are usually not Nyquist sampled with respect to the physical parameters that define the library.  
+This unfortunately (but not surprisingly) means that the library is not sampled densely enough in 
+parameter-space to reconstruct a synthetic spectrum for arbitrary parameters without some 
+information loss.  Given these factors, we make the conservative (and computationally tractable) 
+assumption and adopt a linear interpolation scheme.  More advanced interpolation methods, like a 
+spline or other band-limited approach, do not change the fact that the library grid is not Nyquist 
+sampled, and so do not improve performance.  To account for the loss of spectral information during 
+the interpolation process, we have to build a model of the interpolation errors and incorporate it 
+into the likelihood function (via the covariance matrix).
+
+Model library spectra, $f_{\lambda}(\{\vt_{\ast}\})$, are stored as (1-dimensional) arrays of flux 
+values, sampled on high resolution wavelength grids (typically $R \gtrsim 100,000$).  In the case 
+of interest here, the collections of model parameters $\{\vt_{\ast}\} = [\{T_{\rm eff}, \log g,  \Z 
+\}]$ define the dimensions of the library grid; the full library is therefore encapsulated in a 
+4-dimensional array.  Both the libraries used here have grid spacings of 0.5 dex in $\log g$ and 
+0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but the {\sc 
+Phoenix} library has finer coverage in 100\,K increments.  We empirically determine a model grid of 
+interpolation errors through a series of ``drop-out" interpolation tests.  The idea is to remove a 
+spectrum from the library, $f_{\lambda}(\vt_{\ast})$, generate an interpolated spectrum, 
+$\tilde{f}_{\lambda}(\vt_{\ast})$, at the parameters corresponding to that removed spectrum from 
+the neighboring spectra, and then compare the two.  The result is a set of three ``error" (or, 
+rather ``difference") spectra, each representing an individual dimension in parameter-space, where
+\begin{eqnarray} \label{eqn:interr}
+e_{\lambda}(\vt_{\ast}^{k}) &=& f_{\lambda}(\vt_{\ast}^k) - \tilde{f}_{\lambda}(\vt_{\ast}^k) \\
+                            &=& f_{\lambda}(\vt_{\ast}^k) - \frac{1}{2}\left[f_{\lambda}(\vt_{\ast}^{k+1})+f_{\lambda}(\vt_{\ast}^{k-1}))\right], \nonumber
+\end{eqnarray}
+for $k = 1, 2, 3$ indexing the library parameters ($\vt_{\ast}$).
+
+As a concrete example, consider the stellar parameters $\vt_{\ast}$ = [6000\,K, 4.0 dex, -0.5 
+dex].  An ``error spectrum" in the $T_{\rm eff}$ dimension, $e_{\lambda}(\vt_{\ast}^1)$, would be 
+calculated from the difference between the grid spectrum at that $\vt_{\ast}$ and the average of 
+$f_{\lambda}$([5900\,K, 4.0 dex, -0.5 dex]) and $f_{\lambda}$([6100\,K, 4.0 dex, -0.5 dex]), as 
+defined in Eq.~\ref{eqn:interr}.  Likewise for the error spectra in the $\log g$ and $\Z$ 
+dimensions, $e_{\lambda}(\vt_{\ast}^2)$ and $e_{\lambda}(\vt_{\ast}^3)$.  A graphical demonstration 
+is shown in Figure~\ref{fig:interp_errors}.  These kinds of drop-out tests over larger spans of the 
+grid show that the amplitude of $e_{\lambda}$ grows approximately linearly with the interpolation 
+distance.
+
+\begin{figure*}[!t]
+\begin{center}
+  \includegraphics{figs/interp_errors.pdf}
+\vspace{-0.1cm}
+  \figcaption{(\emph{top}) A small subset of a {\sc Phoenix} model spectrum at library gridpoint 
+defined by $\vt_{\ast} = [T_\textrm{eff} = 6000$\,K, $\log g=4.0$ dex, and $\Z = $-0.5 dex$]$, 
+shown with the drop-out interpolation spectra ($\tilde{f}_{\lambda}$) along each of the three 
+parameter axes.  The interpolated spectra closely match the ``true'' spectrum.  (\emph{bottom}) The 
+three corresponding ``error" spectra plotted {\it relative to the true spectrum} (i.e., 
+$e_{\lambda}/f_{\lambda}$).  The shaded regions show the total change in $f_{\lambda}$ between the 
+two neighboring spectra in the library used for the interpolation (again relative to the true 
+spectrum).  Note that the error spectrum is generally much smaller than the typical change in flux 
+across gridpoints.  For the few points where this is not true (e.g., $\log g$ near 5161.5\AA), this 
+indicates non-monotonic changes between gridpoints.  Therefore, it is most conservative to build an 
+interpolation error model that accounts for this behavior and protects against assumptions of 
+monotonicity. \label{fig:interp_errors}}
+\end{center}
+\end{figure*}
+
+The interpolation error is generally small, $\lesssim$2\%, much less than the Poisson noise for 
+spectra with moderate sensitivity and usually (although not always) less than the difference 
+between spectra at adjacent grid points.  This gives us confidence that it is possible to generate 
+accurate interpolated spectra, and that any inference on the stellar parameters can be made at a 
+level substantially more precise than dictated by the coarse spacing of the library itself 
+(especially for such a large data volume).  However, although $e_{\lambda}$ is small in magnitude, 
+the fact that spectral lines have similar shapes means that the interpolation error often compounds 
+\emph{coherently}.  That coherence can substantially diminish the likelihood of an interpolated 
+spectrum, since its spectral line shapes are less ``physical" than for a spectrum located directly 
+on a computed gridpoint.  In essence, this highlights the underlying {\it necessity} of propagating 
+an interpolation error to deliver a proper likelihood at interpolated parameter values.  
+
+Because the magnitude of $e_{\lambda}$ is strongly dependent on its association with the continuum 
+or a spectral line, the interpolation error model must be based on a (spectral) covariance kernel.  
+The elements of that kernel, $\mathcal{K}_{ij}^{\rm int}$, are determined from the empirical model 
+grid of $e_{\lambda}$ calculated from the drop-out technique.  The interpolated model spectrum and 
+is a weighted average of the neighboring 8 gridpoints (standard tri-linear interpolation).  To 
+construct $\mathcal{K}_{ij}^{\rm int}$ from the associated 24 interpolation error spectra, we first 
+need to generate sub-kernels that represent each dimension in parameter-space, 
+\begin{equation} \label{eq:subsubkernel}
+^k_l\mathcal{K}_{ij}^{\rm int} = \langle e_{\lambda_i}^k \; e_{\lambda_j}^k \rangle_l,
+\end{equation}
+where again $k$ indexes each element of $\vt_{\ast}$, and $l$ indexes each of the neighboring 
+gridpoints (and $i, j$ denote a pixel pairing, as in Sect.~\ref{sec:method}).  The sub-kernel for 
+dimension $k$ corresponding to the desired interpolate location is a simple weighted sum of the 
+matrices in Eq.~\ref{eq:subsubkernel},
+\begin{equation} \label{eq:subkernel}
+^k\mathcal{K}_{ij}^{\rm int} = \sum_{l=1}^8 \Delta_l \,\, ^k_l\mathcal{K}_{ij}^{\rm int},
+\end{equation}
+where the weights $\Delta_l$ depend on the distance from each grid point to the interpolate 
+location. 
+
+\begin{figure}[!b]
+\begin{center}
+  \includegraphics{figs/interp_matrix.pdf}
+  \figcaption{A sub-region of a typical interpolation error kernel, $\mathcal{K}_{\ij}^{\rm int}$, 
+for an arbitrary set of parameters; $\vt_{\ast} = T_\textrm{eff} = 6220$, K, $\log g=4.2$ dex, and 
+$\Z = $-0.4 dex$]$.  The color scale is the same as in Fig.~\ref{fig:matrix}; since elements of 
+this covariance kernel can be negative, an analogous scale (in {\it red}) is duplicated to 
+highlight such regions with the same logarithmic stretch.  \label{fig:interp_matrix}}
+\end{center}
+\end{figure}
+
+Finally, we average the 3 sub-kernels in Eq.~\ref{eq:subkernel}, representing the covariance 
+introduced in each parameter dimension at the interpolate location, as 
+\begin{equation}
+\mathcal{K}_{ij}^{\rm int} = w_{ij}(r_0) \sum_{k=1}^3 \varrho_k \, ^k\mathcal{K}_{ij}^{\rm int}.
+\end{equation}
+Here, the weights $\varrho_k$ are based on the interpolation distance in parameter-space.  For 
+example, if the target interpolate distance were $T_{\rm eff} = 6120$\,K then $\varrho_1 = 0.4$ 
+(as a reminder, the library gridpoints are spaced by 100\,K in this dimension); for $T_{\rm eff} = 
+6100$\,K, $\varrho_1 = 0.0$; and for $T_{\rm eff} = 6150$\,K, the maximal interpolation distance, 
+$\varrho_1 = 1.0$.  
+For computational expediency and numerical stability, we smoothly taper the covariance kernel to 
+zero at the same length scale ($r_0 = 4 \ell$) as the global covariance kernel, again employing a 
+Hann window.  In reality, $\mathcal{K}^{\rm int}$ is a dense matrix: pixels separated by a wide 
+spectral range may in fact exhibit a strong degree of correlation because they happen to fall on 
+the same relative location of a spectral line.  A representative interpolation error kernel is 
+shown in Figure~\ref{fig:interp_matrix}. \\
+
 
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}
 
-\appendix
-
-\section{Interpolation Errors}
-The interpolation of a model spectrum from a synthetic library of spectra is a conceptually straightforward process; however, depending on the application, in practice there may be several subtle effects that require consideration. Spectra are generally stored in a synthetic library as 1-D arrays of flux values, sampled at specific wavelengths at high resolution (typically R$\gtrsim$100,000). Each spectrum has several fundamental parameters which describe the model that generated it. For example, the stellar libraries used in this paper have three parameters, $T_\textrm{eff}$, $\log_{10} g$, and $\Z$, each of which constitutes an axis in the synthetic library. Therefore, the full synthetic grid is stored as a 4-D array, where the first three axes are the stellar parameters and the 4th axis describes the wavelength. The value stored in the array is the flux of the spectrum described by the current value of the four axes.
-
-Spectral line formation is a non-linear process: line shapes are determined by the complicated radiative transfer through the stellar atmosphere, the structure of which is iterated to convergence using a specific set of stellar parameters. Interpolating a spectrum short-cuts this non-linear process and attempts to predict the behavior of the spectral line based upon the behavior of nearby spectra in the grid. While this approximation is generally accurate enough for our applications, in the high signal-to-noise regime it becomes necessary to account for any inaccuracies introduced by the interpolation. In practice, there are two factors to consider when interpolating spectra. First, for a small percentage of pixels, the flux value will not vary monotonically with change in fundamental parameters. This informs the decision about which functional form of interpolation to use. Second, inspecting the flux values of a sample of pixels as a function of fundamental parameters makes it apparent that not all pixels of the spectrum are Nyquist sampled with regards to the stellar parameters. This unfortunately means that the synthetic grid is not sampled densely enough to losslessly reconstruct a synthetic spectrum. However, given the computational complexity of stellar synthesis, this fact is not surprising. In order to proceed, we make the most conservative assumption about the behavior of the pixels between grid points and decide to use a linear interpolation scheme. Using a more advanced interpolation method, such as a spline or other band-limited interpolation scheme, would not remedy the fact that the grid itself is not Nyquist sampled. To account for the loss of spectral information during the interpolation process, we build a model of interpolation error and incorporate this into the likelihood function (Eqn.~\ref{eqn:lnlikelihood}).
-
-We empirically determine the interpolation error by performing a series of ``drop-out'' interpolation tests, whereby we remove a spectrum from the grid, generate an interpolated spectrum from the nearest two grid points, and compare the difference between the two. As a concrete example, the {\sc Phoenix} grid used for the WASP-14 parameter estimation is sampled every 100K in $T_\textrm{eff}$ and every 0.5 dex in $\log_{10} g$ and $\Z$. Therefore, for each spectrum in the synthetic grid, there are also three error spectra associated with it, one for each axis of stellar parameters. For example, consider a spectrum with stellar parameters $T_\textrm{eff} = $ 6000K, $\log_{10} g=$4.0 dex, and $\Z = $ -0.5 dex. A temperature ``error spectrum'' would be formed by subtracting this true spectrum from the spectrum formed by the average of the $T_\textrm{eff} = $ 6100K spectrum and the $T_\textrm{eff} = $ 5900K spectrum, with $\log_{10} g$ and $\Z$ held constant. Likewise, the $\log_{10} g$ and $\Z$ error spectra are created by performing the same operation over the $\log_{10} g$ and $\Z$ axes of the grid (see Figure~\ref{fig:interp_errors}). Because the error spectra are determined over an interpolation distance twice that (e.g., 100K) of the actual distance used (e.g., 50K), we reduce the amplitude of the error spectra by two. Drop-out tests at larger interpolation distances (e.g., 200K and 300K) show that the amplitude of the error spectrum grows approximately linearly with interpolation distance. 
-
-\begin{figure}[!t]
-\begin{center}
-  \includegraphics{figs/interp_errors.pdf}
-  \figcaption{(\emph{top}) A small range of the ``true'' {\sc Phoenix} spectrum at $T_\textrm{eff} = $ 6000K, $\log_{10} g=$4.0 dex, and $\Z = $ -0.5 dex, shown with the drop-out interpolation spectra along each of the three parameter axes. These interpolation error spectra are determined over an interpolation distance twice that (e.g., 100K) of the actual distance used while fitting. The interpolated spectra closely match the ``true'' spectrum. (\emph{bottom}) The three ``error spectra'', or difference between the interpolated spectrum and the true spectrum, relative to the true spectrum value. The shaded region shows the total change in flux between the two spectra used for interpolation, relative to the true spectrum. Note that the error spectrum is generally much smaller than the typical change in flux. For the few points where this is not true (e.g., $\log_{10} g$ near 5161.5\AA) this implies a non-monotonic change in flux between grid points. Therefore, it is most conservative to use the error spectrum in an interpolation error model, which accounts for this behavior and protects against assumptions of monotonicity.}
-  \label{fig:interp_errors}
-\end{center}
-\end{figure}
-
-Generally, the interpolation error is small: typically no larger than 2\% of the flux (smaller than the Poisson noise for moderate to high signal-to-noise spectra) and usually--but not always--much smaller than the total flux difference between spectra at adjacent grid points (see Figure~\ref{fig:interp_errors}). This test gives us confidence that it is possible to generate a sufficiently accurate interpolated spectrum, and that inference on the stellar parameters may be drawn at a substantially finer level that the coarsity of the grid spacing itself, especially given the large number of possible lines to fit. However, while the interpolation error is small, because all spectral lines have roughly the same shape, it is often true that the error adds \emph{coherently}. When the signal to noise of the spectrum is particularly high, this coherent trend can contribute substantially by diminishing the likelihood of an interpolated spectrum, since the lines in the spectrum are less ``physical'' in shape than that of a spectrum directly on a gridpoint, which requires minor or no interpolation. Therefore in order to deliver the proper likelihood for interpolated spectra it is necessary to quantify the degree of interpolation error and add this into the covariance matrix. 
-
-\begin{figure}[!t]
-\begin{center}
-  \includegraphics{figs/interp_grid.pdf}
-  \figcaption{Tri-linear interpolation on a grid cell the shape of a rectangular prism. I'm not sure if this figure is necessary, but I think it could help guide the reader. Perhaps by labelling the axis with temperature and so on. It is here as a prototype.}
-  \label{fig:interp_grid}
-\end{center}
-\end{figure}
-
-Because the interpolation error is highly dependent on whether the wavelength is on the continuum or on a spectral line, we must model the covariance of the errors. For example, all pixels at the continuum will tend to act similarly, regardless of where on the spectrum the pixels fall. All pixels that fall on the blue side of a spectral line will tend to exhibit a similar error behaviour regardless of which spectral line they belong to, as long as the general behavior of the spectral lines was similar. The elements of the interpolation covariance matrix $\mathsf{C}_{ij}^\textrm{int}$ are determined empirically from the drop-out spectra, and are a function of the degree of the interpolation. Consider the manner in which a typical spectrum is tri-linearly interpolated from the synthetic grid (Figure~\ref{fig:interp_grid}). The interpolated spectrum is a weighted average of the neighboring 8 spectra, with weights $d_l$ based upon the distance from the nearest grid points $P$. To generate a composite covariance matrix which reflects the interpolation error present for the interpolated spectra, we must also combine the error spectra. Because the error is covariant, we must first determine the empirical covariance matrix for each error spectrum and then add the covariance matrices. A simple sum of error spectra would destroy any information about the covariance. The empirical covariance matrix generated by a single error spectrum $l$, for a specific axis $k$ (e.g., $T_\textrm{eff}$, $\log_{10} g$, or $\Z$), is
-\begin{equation}
-  \mathsf{C}_{ijkl}^\textrm{int} = \lambda_{ikl} \lambda_{jkl}
-\end{equation}
-We represent the average covariance matrix as a composite of all of the error covariance matrices of this species
-\begin{equation}
-  \mathsf{C}_{ijk}^\textrm{int} = \sum_{l=1}^8  d_{l} \mathsf{C}_{ijl}^\textrm{int}
-\end{equation}
-
-We combine the covariance matrices of each axis into a total interpolation covariance matrix by adding them together, with weights $g_k$ based upon the total interpolation distance in that axis. For example, if we were to interpolate a spectrum with $T_\textrm{eff} = 6120$K, then $g_{T_\textrm{eff}} = 0.4$. $g_{T_\textrm{eff}} = 0.0$ would signify no interpolation distance (0K, $T_\textrm{eff} = 6100$K) while $g_{T_\textrm{eff}} = 1.0$ would signify maximal interpolation distance (50K, $T_\textrm{eff} = 6150$K). Therefore, the final interpolation covariance matrix is
-\begin{equation}
-  \mathsf{C}_{ij}^\textrm{int} = w_{ij}(r_0) \sum_{k=1}^3 g_k \mathsf{C}_{ijk}^\textrm{int}
-\end{equation}
-
-For computational expediency and numerical stability, we smoothly taper the covariance to zero after a similar length scale as the global covariance kernel. In reality, the interpolation error matrix is dense: pixels separated by a wide spectral range may in fact exhibit a strong degree of correlation because they happen to fall on the same relative location of a spectral line. A typical covariance matrix is shown in Figure~\ref{fig:interp_matrix}.
-
-\begin{figure}[!t]
-\begin{center}
-  \includegraphics{figs/interp_matrix.pdf}
-  \figcaption{A typical interpolation error matrix for $T_\textrm{eff} = $ 6220K, $\log_{10} g=$4.2 dex, and $\Z = $ -0.4 dex. Some elements of the covariance matrix may be negative.}
-  \label{fig:interp_matrix}
-\end{center}
-\end{figure}
 
 \end{document}
