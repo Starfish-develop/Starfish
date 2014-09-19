@@ -3,7 +3,7 @@ import sys
 import emcee
 from emcee import GibbsSampler, GibbsSubController, GibbsController
 from . import constants as C
-from .grid_tools import Interpolator
+from .grid_tools import Interpolator, ErrorInterpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
 from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
 import time
@@ -84,7 +84,7 @@ class Model:
     '''
 
     @classmethod
-    def from_json(cls, filename, DataSpectrum, Instrument, HDF5Interface):
+    def from_json(cls, filename, DataSpectrum, Instrument, HDF5Interface, ErrorHDF5Interface):
         '''
         Instantiate from a JSON file.
         '''
@@ -101,8 +101,8 @@ class Model:
         region_tuple = tuple(read['region_tuple'])
 
         #Initialize the Model object
-        model = cls(DataSpectrum, Instrument, HDF5Interface, stellar_tuple=stellar_tuple, cheb_tuple=cheb_tuple,
-                      cov_tuple=cov_tuple, region_tuple=region_tuple)
+        model = cls(DataSpectrum, Instrument, HDF5Interface, ErrorHDF5Interface, stellar_tuple=stellar_tuple,
+                    cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple)
 
         #Update all of the parameters so covariance matrix uploads
         #1) update stellar parameters
@@ -138,9 +138,10 @@ class Model:
 
         return model
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cheb_tuple, cov_tuple, region_tuple,
-                 outdir="", max_v=20, debug=False):
+    def __init__(self, DataSpectrum, Instrument, HDF5Interface, ErrorHDF5Interface, stellar_tuple, cheb_tuple,
+                 cov_tuple, region_tuple, outdir="", max_v=20, ismaster=False, debug=False):
         self.DataSpectrum = DataSpectrum
+        self.ismaster = ismaster #Is this the first model instantiated?
         self.stellar_tuple = stellar_tuple
         self.cheb_tuple = cheb_tuple
         self.cov_tuple = cov_tuple
@@ -154,10 +155,15 @@ class Model:
             trilinear = True
         else:
             trilinear = False
-        myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        self.ModelSpectrum = ModelSpectrum(myInterpolator, Instrument)
+        #myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        fluxInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        errorInterpolator = ErrorInterpolator(ErrorHDF5Interface, self.DataSpectrum, trilinear=trilinear)
+
+        self.ModelSpectrum = ModelSpectrum(fluxInterpolator, errorInterpolator, Instrument)
         self.stellar_params = None
         self.stellar_params_last = None
+        self.logPrior = 0.0
+        self.logPrior_last = 0.0
 
         self.logger = logging.getLogger(self.__class__.__name__)
         if self.debug:
@@ -192,6 +198,9 @@ class Model:
         self.ModelSpectrum.update_all(params)
         #print("ModelSpectrum.update_all")
 
+        if self.ismaster:
+            self.logPrior = self.evaluate_logPrior(params)
+
         #Since the ModelSpectrum fluxes have been updated, also update the interpolation errors
 
         #print("Sum of errors is {}".format(np.sum(model_errs)))
@@ -206,6 +215,8 @@ class Model:
         '''
         #Reset stellar_params
         self.stellar_params = self.stellar_params_last
+        if self.ismaster:
+            self.logPrior = self.logPrior_last
         #Reset downsampled flux
         self.ModelSpectrum.revert_flux()
         #Since the interp_errors have been updated, revert them now
@@ -229,7 +240,17 @@ class Model:
             #Evaluate using the current CovarianceMatrix
             lnps[i] = self.OrderModels[i].evaluate()
 
-        return np.sum(lnps)
+        return np.sum(lnps) + self.logPrior
+
+    def evaluate_logPrior(self, params):
+        '''
+        Define the prior here
+        '''
+        logg = params["logg"]
+        #if (logg >= 4.8) and (logg <= 5.2):
+        return -0.5 * (logg - 5.0)**2/(0.1)**2
+        #else:
+        #    return -np.inf
 
     def to_json(self, fname="model.json"):
         '''
@@ -710,7 +731,7 @@ class StellarSampler(Sampler):
             others = p[3:]
             params.update({"logg": self.fix_logg})
 
-        #self.logger.debug("params in lnprob are {}".format(params))
+        self.logger.debug("params in lnprob are {}".format(params))
 
         #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
         #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
@@ -723,17 +744,18 @@ class StellarSampler(Sampler):
 
         self.logger.debug("updated lnprob params: {}".format([params for params in mparams]))
         try:
+
             lnps = np.empty((self.nmodels,))
             for i, (model, par) in enumerate(zip(self.model_list, mparams)):
-                #self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
+                self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
                 model.update_Model(par) #This also updates downsampled_fls
                 #For order in myModel, do evaluate, and sum the results.
                 lnp = model.evaluate()
-                #self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
+                self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
                 lnps[i] = lnp
-            #self.logger.debug("lnps : {}".format(lnps))
+            self.logger.debug("lnps : {}".format(lnps))
             s = np.sum(lnps)
-            #self.logger.debug("sum lnps {}".format(s))
+            self.logger.debug("sum lnps {}".format(s))
             return s
         except C.ModelError:
             self.logger.debug("lnprob returning -np.inf")

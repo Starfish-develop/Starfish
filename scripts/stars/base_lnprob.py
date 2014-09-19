@@ -154,11 +154,23 @@ region_MH_cov = np.array([float(config["region_jump"][key]) for key in region_tu
 region_priors = config['region_priors']
 
 #Create a separate model for each DataSpectrum. Note the new instance of HDF5 interface as well.
-model_list = [
-    Model(myDataSpectrum, myInstrument, HDF5Interface(config['HDF5_path']), stellar_tuple=stellar_tuple,
-          cheb_tuple=cheb_tuple, cov_tuple=cov_tuple, region_tuple=region_tuple, outdir=outdir,
-          max_v=config["interp_cut"], debug=False)
-    for myDataSpectrum in myDataSpectra]
+model_list = []
+master = True
+for myDataSpectrum in myDataSpectra:
+    model_list.append(
+        Model(myDataSpectrum,
+              myInstrument,
+              HDF5Interface(config['HDF5_path']),
+              HDF5Interface(config['HDF5_path_err']),
+              stellar_tuple=stellar_tuple,
+              cheb_tuple=cheb_tuple,
+              cov_tuple=cov_tuple,
+              region_tuple=region_tuple,
+              outdir=outdir,
+              max_v=config["interp_cut"],
+              ismaster=master,
+              debug=False))
+    master = False
 
 myStellarSampler = StellarSampler(model_list=model_list, cov=stellar_MH_cov, starting_param_dict=stellar_Starting,
                                   fix_logg=fix_logg, outdir=outdir, debug=True)
@@ -185,14 +197,14 @@ def main():
     if not config['no_region']:
         #In order to instantiate regions, we have to do a bit of burn-in first
         mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
-        #mySampler.reset()
+        mySampler.reset()
 
         mySampler.run(config["burn_in"], ignore=(RegionsSampler,))
         mySampler.instantiate_regions(config["sigma_clip"]) #Based off of accumulated history in 2nd burn-in
-        #mySampler.reset()
+        mySampler.reset()
 
     mySampler.run(config['burn_in'])
-    #mySampler.reset()
+    mySampler.reset()
 
     mySampler.run(config["samples"])
 
