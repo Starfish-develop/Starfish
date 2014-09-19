@@ -2,7 +2,8 @@
 
 name: Gl51/PHOENIX/RA/region/logg/4_8sig/
 
-HDF5_path : libraries/PHOENIX_SPEX_M.hdf5
+HDF5_path : libraries/PHOENIX_SPEX_M_interp.hdf5
+HDF5_path_err : libraries/PHOENIX_SPEX_M_err.hdf5
 #HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
@@ -13,9 +14,9 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 3100
-    #logg : 5.6
-    Z : 0.3
+    temp : 3000
+    logg : 5.2
+    Z : 0.2
     vsini : 10
     vz : 6.
     logOmega: -19.62 #PHOENIX
@@ -23,7 +24,7 @@ stellar_params :
 #Average jump size in each parameter
 stellar_jump:
     temp : 2
-    #logg : 0.01
+    logg : 0.001
     Z : 0.005
     vsini : 0.4
     vz : 0.5
@@ -40,9 +41,9 @@ stellar_cov:
 
 
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
-fix_logg: 5.0
+#fix_logg: 5.0
 
-cheb_degree : 4 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
+cheb_degree : 15 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
 #Average jump size in each coefficient
 cheb_jump : 5e-4
@@ -86,5 +87,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 1000
-samples : 2000
+burn_in : 5000
+samples : 20000
