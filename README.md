@@ -359,6 +359,9 @@ which drive the fit towards lower metallicity. Labelling these as regions should
 to behave might be a very good test case for the regions.
 
 
+Does the state-full model play well with the ModelError interrupt way of signalling out of bounds? Could this somehow
+ leave the model in a corrupted state?
+
 # Stellar parameter papers
 
 * Dong 2013 LAMOST v. KIC
