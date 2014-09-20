@@ -25,10 +25,10 @@ stellar_params :
 stellar_jump:
     temp : 2
     logg : 0.001
-    Z : 0.005
-    vsini : 0.4
-    vz : 0.5
-    logOmega: 5e-4
+    Z : 0.004
+    vsini : 0.2
+    vz : 0.2
+    logOmega: 3e-4
 
 use_cov: False
 #Needs to be updated for Gl51
@@ -77,7 +77,7 @@ region_priors:
     sigma_knee : 150 #km/s
     frac_global : 0.5 #Fraction of the global amplitude lower bound
 
-sigma_clip : 5.5
+sigma_clip : 4.8
 
 interp_cut : 600 #km/s
 
@@ -87,5 +87,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 5000
-samples : 20000
+burn_in : 100
+samples : 10000
