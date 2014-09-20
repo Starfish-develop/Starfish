@@ -777,16 +777,17 @@ class ModelSpectrum:
     2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
 
     '''
-    def __init__(self, interpolator, instrument):
-        self.interpolator = interpolator
+    def __init__(self, fluxInterpolator, errorInterpolator, instrument):
+        self.fluxInterpolator = fluxInterpolator
+        self.errorInterpolator = errorInterpolator
         #Set raw_wl from wl stored with interpolator
-        self.wl_raw = self.interpolator.wl #Has already been truncated thanks to initialization of Interpolator
+        self.wl_raw = self.fluxInterpolator.wl #Has already been truncated thanks to initialization of Interpolator
         self.instrument = instrument
-        self.DataSpectrum = self.interpolator.DataSpectrum #so that we can downsample to the same wls
+        self.DataSpectrum = self.fluxInterpolator.DataSpectrum #so that we can downsample to the same wls
 
-        self.wl_FFT = self.interpolator.wl
+        self.wl_FFT = self.fluxInterpolator.wl
 
-        self.min_v = self.interpolator.interface.wl_header["min_v"]
+        self.min_v = self.fluxInterpolator.interface.wl_header["min_v"]
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
 
@@ -868,7 +869,8 @@ class ModelSpectrum:
 
         '''
         try:
-            self.fl, self.errors = self.interpolator(grid_params) #Query the interpolator with the new stellar
+            self.fl = self.fluxInterpolator(grid_params) #Query the interpolator with the new stellar
+            self.errors = self.errorInterpolator(grid_params)
             # combination
             self.grid_params.update(grid_params)
 
@@ -976,7 +978,7 @@ class ModelSpectrum:
         '''
         #First set stellar parameters using _update_grid_params
         # grid_params = {'temp':params['temp'], 'logg': 4.29, 'Z':params['Z']}
-        grid_params = {key:params[key] for key in self.interpolator.parameters}
+        grid_params = {key:params[key] for key in self.fluxInterpolator.parameters}
 
         #self._update_grid_params(grid_params)
         self.update_grid_params(grid_params)
