@@ -665,6 +665,7 @@ cdef class GlobalCovarianceMatrix:
     cdef npoints
     cdef amp
     cdef logPrior
+    cdef logPrior_last
     cdef debug
     cdef logger
 
@@ -681,6 +682,7 @@ cdef class GlobalCovarianceMatrix:
         self.A_last = self.A
         self.amp = 1.0
         self.logPrior = 0.0
+        self.logPrior_last = 0.0
 
         #mask wl
         mask = DataSpectrum.masks[order_index]
@@ -748,6 +750,8 @@ cdef class GlobalCovarianceMatrix:
         if (l <= 0) or (sigAmp < 0):
             raise C.ModelError("l {} and sigAmp {} must be positive.".format(l, sigAmp))
 
+        self.eval_prior(params)
+
         cdef double *alpha =  [1, 0]
         cdef double *beta = [sigAmp**2, 0]
 
@@ -767,7 +771,27 @@ cdef class GlobalCovarianceMatrix:
         self.A = cholmod_add(temp, self.sigma, alpha, beta, True, True, self.c)
         cholmod_free_sparse(&temp, self.c)
 
+    def eval_prior(self, params):
+        '''
+        Define and evaluate the prior for a given set of parameters.
+        '''
+        b = params['sigAmp']
+        a = params['logAmp']
+
+        #Use a Gaussian prior on b, that keeps it near 1
+        lnGauss = -0.5 * np.abs(1.0 - b)**2/(0.05)**2
+
+        #Use a Gaussian prior that keeps a near -15.5
+        #lnG2 = -0.5 * np.abs(-15.5 - a)**2/(0.01)**2
+
+        self.logPrior_last = self.logPrior
+        self.logPrior = lnGauss #+ lnG2
+
+    def get_prior(self):
+        return self.logPrior
+
     def revert(self):
+        self.logPrior = self.logPrior_last
         #move A to point to A_last
         self.logger.debug("reverting global covariance matrix")
         #as long as A and A_last don't point to the same thing, clear A
@@ -801,8 +825,6 @@ cdef class RegionCovarianceMatrix:
     def __init__(self, DataSpectrum, order_index, params, priors, Common common, debug=False):
         self.common = common 
         self.c = <cholmod_common *>&self.common.c
-
-
 
         #convert wl into an array
         cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index]
