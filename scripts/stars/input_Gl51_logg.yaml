@@ -15,10 +15,10 @@ Comments: >
 #Nested data structures are allowed
 stellar_params :
     temp : 3000
-    logg : 5.2
-    Z : 0.2
-    vsini : 10
-    vz : 6.
+    logg : 5.3
+    Z : 0.0
+    vsini : 8.
+    vz : 8.
     logOmega: -19.62 #PHOENIX
 
 #Average jump size in each parameter
@@ -49,8 +49,8 @@ cheb_degree : 15 #actually how many coefficients to include, so c0 + c1 + c2 + c
 cheb_jump : 5e-4
 
 cov_params :
-    sigAmp : 2.2
-    logAmp : -16.0
+    sigAmp : 1.0
+    logAmp : -15.7
     l : 100.
 
 cov_jump :
@@ -79,7 +79,7 @@ region_priors:
 
 sigma_clip : 4.8
 
-interp_cut : 600 #km/s
+interp_cut : 200 #km/s
 
 orders: [0]
 
@@ -87,5 +87,5 @@ orders: [0]
 max_regions : 0
 
 #Burn in time
-burn_in : 100
-samples : 10000
+burn_in : 500
+samples : 1000
