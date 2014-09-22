@@ -650,6 +650,14 @@ class HDF5Interface:
 
         return fl
 
+    @property
+    def fluxes(self):
+        '''
+        Iterator to loop over all of the spectra stored in the grid, for PCA.
+        '''
+        for grid_point in self.list_grid_points:
+            yield self.load_flux(grid_point)
+
     def load_flux_hdr(self, parameters):
         '''
         Just like load_flux, but also returns the header
@@ -719,7 +727,6 @@ class HDF5Interface:
         #compare the average of the two side spectra to the central spectrum and return this as the error spectrum
         errspec = fl_mid - (fl_low + fl_high)/2
         return errspec
-
 
     def get_error_spectra(self, parameters):
         '''
@@ -1349,7 +1356,10 @@ class ErrorInterpolator:
         #Somehow extract the appropriate temperature/logg/Z weights here for combining the different covariances
         #Length 3 list
         #Giving half the weight to these values, and weighting in a linear manner.
-        Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
+        #Original, correct version
+        #Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
+        #Modified version
+        Weight_list = [np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
         #print(Weight_list)
 
         param_combos = itertools.product(*params) #Selects all the possible combinations of parameters

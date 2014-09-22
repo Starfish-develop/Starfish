@@ -248,7 +248,7 @@ class Model:
         '''
         logg = params["logg"]
         #if (logg >= 4.8) and (logg <= 5.2):
-        return -0.5 * (logg - 5.0)**2/(0.1)**2
+        return -0.5 * (logg - 5.0)**2/(0.15)**2
         #else:
         #    return -np.inf
 
