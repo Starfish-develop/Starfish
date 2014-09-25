@@ -1,5 +1,4 @@
-StellarSpectra
-==============
+# Starfish
 
 Repository for techniques to fit stellar spectra using a likelihood function taking into account a non-trivial covariance matrix.
 
