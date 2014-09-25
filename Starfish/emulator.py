@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from Starfish.grid_tools import HDF5Interface
-from Starfish.em_cov import Sigma
+import Starfish.em_cov as em
 
 grid = HDF5Interface("../libraries/PHOENIX_SPEX_M.hdf5",
                  ranges={"temp":(2800, 3400), "logg":(4.5, 6.0), "Z":(-0.5, 1.0), "alpha":(0.0, 0.0)})
@@ -44,7 +44,7 @@ for i, params in enumerate(grid.list_grid_points):
 #Then standardize onto the interval 0 - 1
 mins = np.min(gparams, axis=0)
 maxs = np.max(gparams, axis=0)
-gparams = (gparams - mins)/(maxs - mins)
+sparams = (gparams - mins)/(maxs - mins)
 
 def Phi():
     '''
@@ -107,21 +107,6 @@ def R(p0, p1, irhos):
     '''
     return np.prod(irhos**(4 * (p0 - p1)**2 ))
 
-def Sigma_i(iprecision, irhos):
-    '''
-    Function to create the dense matrix Sigma, for a specific eigenspectra
-
-    iprecision : scalar
-    irhos : shape (nparams,)
-
-    returns a matrix with shape (m, m)
-    '''
-    mat = sp.dok_matrix((m,m), dtype=np.float64)
-    for i in range(m):
-        for j in range(m):
-            mat[i,j] = iprecision * R(gparams[i], gparams[j], irhos)
-    return mat
-
 PHI = Phi()
 PP = PHI.T.dot(PHI).tocsc()
 
@@ -171,7 +156,7 @@ def lnprob(p):
         return -np.inf
 
     inv = sp.linalg.inv(lambda_p * PP)
-    bigsig = Sigma(gparams, lambda_w, rho_w)
+    bigsig = em.Sigma(sparams, lambda_w, rho_w)
 
     #sparse matrix
     comb = inv + bigsig
@@ -179,7 +164,7 @@ def lnprob(p):
     sign, pref = np.linalg.slogdet(comb.todense())
     pref *= -0.5
 
-    central = -0.5 * (WHAT.T.dot(sp.linalg.spsolve(inv, WHAT)))
+    central = -0.5 * (WHAT.T.dot(sp.linalg.spsolve(comb, WHAT)))
 
     prior = (a_Pprime - 1) * np.log(lambda_p) - \
             b_Pprime*lambda_p + np.sum((a_P - 1.)*lambda_w - b_P*lambda_w) + \
@@ -195,7 +180,7 @@ def sample_lnprob():
     nwalkers = 4 * ndim
 
     #Designed to be a list of walker positions
-    log_lambda_p = np.random.uniform(low=-10.2, high=-10.08, size=(1, nwalkers))
+    log_lambda_p = np.random.uniform(low=-5, high=5, size=(1, nwalkers))
     log_lambda_w = np.random.uniform(low=-0.8, high=0.8, size=(ncomp, nwalkers))
     rho_w = np.random.uniform(low=0.001, high=0.99, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, log_lambda_w, rho_w)).T
@@ -203,11 +188,11 @@ def sample_lnprob():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
 
     print("Running Sampler")
-    pos, prob, state = sampler.run_mcmc(p0, 8000)
+    pos, prob, state = sampler.run_mcmc(p0, 3000)
     print("Burn-in complete")
     np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
-    sampler.run_mcmc(pos, 8000)
+    sampler.run_mcmc(pos, 3000)
 
     samples = sampler.flatchain
     np.save("samples.npy", samples)
@@ -231,14 +216,51 @@ class Emulator:
         self.rho_w = p[1+ncomp:]
         self.rho_w.shape = (ncomp, 3)
 
+        inv = sp.linalg.inv(self.lambda_p * PP)
+        bigsig = em.Sigma(sparams, self.lambda_w, self.rho_w)
 
+        self.V11 = inv + bigsig
+
+        self._params = None #Where we want to interpolate
+
+        self.V12 = None
+        self.V22 = None
+        self.mu = None
+        self.sig = None
+
+    @property
+    def params(self):
+        return self._params
         pass
 
-    def V12(self, params):
+    @params.setter
+    def params(self, pars):
+        self._params = pars
+
+        #Recalculate V12, V21, and V22.
+        self.V12 = em.V12(self._params, sparams, self.rho_w)
+        self.V22 = em.V22(self._params, self.rho_w)
+
+        #Recalculate the covariance
+        self.mu = self.V12.T.dot(sp.linalg.spsolve(self.V11, WHAT))
+        self.sig = self.V22 - self.V12.T.dot(sp.linalg.spsolve(self.V11, self.V12))
+
+    def __call__(self, *args):
         '''
-        Construct V12 using the anticipated set of parameters.
+        If you call this with an arg, it will set the emulator to these parameters first. If not,
+        uses the previous result.
         '''
-        pass
+        if args:
+            params, *junk = args
+            self.params = params
+
+        if self.V12 is None:
+            print("No parameters are set, yet. Must set parameters first.")
+            return
+
+        else:
+            return np.random.multivariate_normal(self.mu, self.sig)
+
 
 def main():
     sample_lnprob()
