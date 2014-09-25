@@ -9,7 +9,7 @@ import numpy as np
 cimport numpy as np
 import scipy
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
-import StellarSpectra.constants as C
+import Starfish.constants as C
 import logging
 
 cdef extern from "cholmod.h":

@@ -2,7 +2,7 @@
 
 import sys
 if sys.version < '3.3':
-    sys.exit('Error: Python 3.3 or greater required for StellarSpectra')
+    sys.exit('Error: Python 3.3 or greater required for Starfish')
 
 import ez_setup
 ez_setup.use_setuptools()
@@ -31,7 +31,7 @@ INCLUDE_DIRS = [np.get_include()]# + ["YOUR_INCLUDE_DIR_HERE"]
 if __name__=="__main__":
     import argparse
     #Pass LIBRARY DIRS and INCLUDE_DIRS as command line arguments
-    parser = argparse.ArgumentParser(prog="setup.py", description="Setup file for StellarSpectra.")
+    parser = argparse.ArgumentParser(prog="setup.py", description="Setup file for Starfish.")
     parser.add_argument("-L", "--L", help="Location of SuiteSparse C libraries, if a custom directory chosen.")
     parser.add_argument("-I", "--I", help="Location of SuiteSparse C headers, if a custom directory chosen.")
     args, unknown = parser.parse_known_args() #handy trick from dfm/george
@@ -44,13 +44,13 @@ if __name__=="__main__":
         INCLUDE_DIRS += [args.I]
 
     setup(
-            name="StellarSpectra",
+            name="Starfish",
             version="0.1",
             author="Ian Czekala",
             author_email="iancze",
-            packages=["StellarSpectra"],
-            url="https://github.com/iancze/StellarSpectra",
-            download_url="https://github.com/iancze/StellarSpectra/archive/master.zip",
+            packages=["Starfish"],
+            url="https://github.com/iancze/Starfish",
+            download_url="https://github.com/iancze/Starfish/archive/master.zip",
             license="BSD",
             description="Covariance tools for fitting stellar spectra",
             classifiers=[
@@ -63,12 +63,20 @@ if __name__=="__main__":
             maintainer = "Ian Czekala",
             maintainer_email = "iancze@gmail.com",
             cmdclass = {'build_ext' :build_ext},
-            ext_modules = [Extension("StellarSpectra.covariance",
-                ["StellarSpectra/covariance.pyx"],
+            ext_modules = [Extension("Starfish.covariance",
+                ["Starfish/covariance.pyx"],
                 libraries=['m', 'cholmod', 'amd', 'colamd', 'blas', 'lapack', 'suitesparseconfig', 'rt'],
                 #include_dirs=[np.get_include()],
                 include_dirs=INCLUDE_DIRS,
                 library_dirs=LIBRARY_DIRS,
+                extra_compile_args=["-Wno-declaration-after-statement",
+                                    "-Wno-error=declaration-after-statement",
+                                    "-Wno-unused-function",
+                                    "-Wno-unused-variable",
+                                    "-Wno-unused-but-set-variable"]),
+                           Extension("Starfish.em_cov",
+                ["Starfish/em_cov.pyx"],
+                include_dirs=[np.get_include()],
                 extra_compile_args=["-Wno-declaration-after-statement",
                                     "-Wno-error=declaration-after-statement",
                                     "-Wno-unused-function",

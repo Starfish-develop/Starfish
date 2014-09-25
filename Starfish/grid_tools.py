@@ -573,7 +573,8 @@ class HDF5Interface:
     :type param: string
 
     '''
-    def __init__(self, filename):
+    def __init__(self, filename, ranges={"temp":(0,np.inf),
+                         "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
         self.filename = filename
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
         self.errspec_name = "{axis}/t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
@@ -584,10 +585,22 @@ class HDF5Interface:
             self.wl_header = dict(hdf5["wl"].attrs.items())
 
             grid_points = []
+
             for key in hdf5["flux"].keys():
                 #assemble all temp, logg, Z, alpha keywords into a giant list
                 hdr = hdf5['flux'][key].attrs
-                grid_points.append({k: hdr[k] for k in C.grid_set})
+
+                params = {k: hdr[k] for k in C.grid_set}
+
+                #Check whether the parameters are within the range
+                for kk,vv in params.items():
+                    low, high = ranges[kk]
+                    if (vv < low) or (vv > high):
+                        break
+                else:
+                    #If all parameters have passed successfully through the ranges, allow.
+                     grid_points.append(params)
+
             self.list_grid_points = grid_points
 
         #determine the bounding regions of the grid by sorting the grid_points

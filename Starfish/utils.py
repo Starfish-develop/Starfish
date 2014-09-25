@@ -1,6 +1,6 @@
 import numpy as np
 import multiprocessing as mp
-import StellarSpectra.constants as C
+import Starfish.constants as C
 
 def multivariate_normal(cov):
     np.random.seed()

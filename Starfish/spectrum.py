@@ -8,7 +8,7 @@ from scipy.sparse.linalg import spsolve
 import gc
 # import pyfftw
 import warnings
-import StellarSpectra.constants as C
+import Starfish.constants as C
 import copy
 
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
