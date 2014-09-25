@@ -5,7 +5,7 @@ from emcee import GibbsSampler, GibbsSubController, GibbsController
 from . import constants as C
 from .grid_tools import Interpolator, ErrorInterpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
-from .covariance import CovarianceMatrix #from StellarSpectra.spectrum import CovarianceMatrix #pure Python
+from .covariance import CovarianceMatrix #from Starfish.spectrum import CovarianceMatrix #pure Python
 import time
 import json
 import h5py
