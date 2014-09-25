@@ -200,13 +200,14 @@ def sample_lnprob():
     rho_w = np.random.uniform(low=0.001, high=0.99, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, log_lambda_w, rho_w)).T
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=48)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
 
     print("Running Sampler")
-    pos, prob, state = sampler.run_mcmc(p0, 200)
+    pos, prob, state = sampler.run_mcmc(p0, 8000)
     print("Burn-in complete")
+    np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
-    sampler.run_mcmc(pos, 400)
+    sampler.run_mcmc(pos, 8000)
 
     samples = sampler.flatchain
     np.save("samples.npy", samples)
