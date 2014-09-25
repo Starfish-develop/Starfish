@@ -20,7 +20,7 @@ cdef R(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
     return math.exp(sum)
 
 @cython.boundscheck(False)
-cdef csigma(int m, iprecision, irhos, gparams):
+cdef csigma(int m, iprecision, irhos, sparams):
     '''
     Create the dense matrix using cython
     '''
@@ -31,34 +31,34 @@ cdef csigma(int m, iprecision, irhos, gparams):
     cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
     for i in range(m):
         for j in range(i+1):
-                cov = R(gparams[i], gparams[j], lnrhos)
+                cov = R(sparams[i], sparams[j], lnrhos)
                 mat[i,j] = cov
                 mat[j,i] = cov
     return mat/iprecision
 
-def Sigma(gparams, precisions, rhos):
+def Sigma(sparams, precisions, rhos):
     '''
     Create all Sigmas
     '''
-    m = len(gparams)
+    m = len(sparams)
 
     sigmas = []
 
     for iprecision, irhos in zip(precisions, rhos):
-        sigmas.append(csigma(m, iprecision, irhos, gparams))
+        sigmas.append(csigma(m, iprecision, irhos, sparams))
 
     return sp.block_diag(sigmas)
 
 
-def V12(params, gparams, rhos):
+def V12(params, sparams, rhos):
     '''
     Given the new parameters and the set parameters, setup the covariance matrix.
     '''
-    m = len(gparams)
+    m = len(sparams)
     cdef int ncomp = len(rhos)
     nparams = len(params)
 
-    #Do hstack on these
+    #Create all of the small matrices and then do an hstack on them
     out = []
 
     cdef int i = 0
@@ -67,23 +67,25 @@ def V12(params, gparams, rhos):
 
     lnrhos = np.log(rhos)
 
-    for ilnrhos in lnrhos:
-        mat = np.empty((m , ncomp), dtype=np.float64)
+    #For each eigenspectra component
+    for j, ilnrhos in enumerate(lnrhos):
+        mat = sp.dok_matrix((m , ncomp), dtype=np.float64)
         for i in range(m):
-            for j in range(ncomp):
-                mat[i,j] = R(gparams[i], params, ilnrhos)
+            mat[i,j] = R(sparams[i], params, ilnrhos)
         out.append(mat)
 
-    return np.vstack(out)
-
+    return sp.vstack(out)
 
 def V22(params, rhos):
     lnrhos = np.log(rhos)
-    out = []
-    for ilnrhos in lnrhos:
-        out.append(R(params, params, ilnrhos))
+    cdef int ncomp = len(rhos)
+    cdef int i = 0
 
-    return np.eye(len(rhos)).dot(np.array(out))
+    mat = sp.dok_matrix((ncomp, ncomp))
+    for i, ilnrhos in enumerate(lnrhos):
+        mat[i,i] = R(params, params, ilnrhos))
+
+    return mat
 
 
 
