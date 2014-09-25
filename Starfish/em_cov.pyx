@@ -83,7 +83,7 @@ def V22(params, rhos):
 
     mat = sp.dok_matrix((ncomp, ncomp))
     for i, ilnrhos in enumerate(lnrhos):
-        mat[i,i] = R(params, params, ilnrhos))
+        mat[i,i] = R(params, params, ilnrhos)
 
     return mat
 
