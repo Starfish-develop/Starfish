@@ -200,7 +200,7 @@ def sample_lnprob():
     rho_w = np.random.uniform(low=0.001, high=0.99, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, log_lambda_w, rho_w)).T
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=48)
 
     print("Running Sampler")
     pos, prob, state = sampler.run_mcmc(p0, 200)
@@ -238,3 +238,9 @@ class Emulator:
         Construct V12 using the anticipated set of parameters.
         '''
         pass
+
+def main():
+    sample_lnprob()
+
+if __name__=="__main__":
+    main()
