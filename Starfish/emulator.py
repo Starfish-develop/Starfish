@@ -192,7 +192,7 @@ def sample_lnprob():
     import emcee
 
     ndim = (1 + ncomp + ncomp * 3)
-    nwalkers = 2 * ndim
+    nwalkers = 4 * ndim
 
     #Designed to be a list of walker positions
     log_lambda_p = np.random.uniform(low=-10.2, high=-10.08, size=(1, nwalkers))
@@ -203,10 +203,10 @@ def sample_lnprob():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=4)
 
     print("Running Sampler")
-    pos, prob, state = sampler.run_mcmc(p0, 80)
+    pos, prob, state = sampler.run_mcmc(p0, 200)
     print("Burn-in complete")
     sampler.reset()
-    sampler.run_mcmc(pos, 240)
+    sampler.run_mcmc(pos, 400)
 
     samples = sampler.flatchain
     np.save("samples.npy", samples)
