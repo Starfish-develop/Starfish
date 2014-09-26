@@ -4,7 +4,7 @@ import math
 cimport numpy as np
 cimport cython
 
-@cython.boundscheck(False)
+#@cython.boundscheck(False)
 cdef R(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] irhos):
     '''
     Autocorrelation function.
@@ -19,7 +19,7 @@ cdef R(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
         sum += 4. * (p0[i] - p1[i])*(p0[i] - p1[i]) * irhos[i]
     return math.exp(sum)
 
-@cython.boundscheck(False)
+#@cython.boundscheck(False)
 cdef csigma(int m, iprecision, irhos, sparams):
     '''
     Create the dense matrix using cython
