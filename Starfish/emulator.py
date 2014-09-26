@@ -19,12 +19,29 @@ fluxes = np.empty((m,len(wl)))
 for i, spec in enumerate(grid.fluxes):
     fluxes[i,:] = spec[ind]
 
+#Subtract the mean from all of the fluxes.
+flux_mean = np.average(fluxes, axis=0)
+fluxes = fluxes - flux_mean
+
+#Scale each spectrum by the variance.
+std_flux = np.std(fluxes)
+fluxes /= std_flux
+
 pca = PCA()
 pca.fit(fluxes)
 comp = pca.transform(fluxes)
 components = pca.components_
 mean = pca.mean_
 print("Shape of PCA components {}".format(components.shape))
+
+# import matplotlib.pyplot as plt
+# plt.plot(wl, flux_mean)
+# plt.show()
+#
+# plt.plot(wl, mean)
+# plt.show()
+# import sys
+# sys.exit()
 
 ncomp = 5
 print("Keeping only the first {} components".format(ncomp))
@@ -97,18 +114,9 @@ def reconstruct(i, weights):
     return mean + np.sum(f, axis=0)
 
 
-def R(p0, p1, irhos):
-    '''
-    Autocorrelation function.
-
-    p0, p1 : the two sets of parameters, each shape (nparams,)
-
-    irhos : shape (nparams,)
-    '''
-    return np.prod(irhos**(4 * (p0 - p1)**2 ))
-
 PHI = Phi()
 PP = PHI.T.dot(PHI).tocsc()
+PP_inv = sp.linalg.inv(PP)
 
 WHAT = get_what(PHI)
 
@@ -148,14 +156,10 @@ def lnprob(p):
     rho_w = p[1+ncomp:]
     rho_w.shape = (ncomp, 3)
 
-    # print("lambda_p : {}".format(lambda_p))
-    # print("lambda_w : {}".format(lambda_w))
-    # print("rho_w : {}".format(rho_w))
-
     if np.any((rho_w > 1.0) | (rho_w < 0.0)):
         return -np.inf
 
-    inv = sp.linalg.inv(lambda_p * PP)
+    inv = PP_inv/lambda_p
     bigsig = em.Sigma(sparams, lambda_w, rho_w)
 
     #sparse matrix
@@ -170,25 +174,31 @@ def lnprob(p):
             b_Pprime*lambda_p + np.sum((a_P - 1.)*lambda_w - b_P*lambda_w) + \
             np.sum((b_rho_w - 1.) * np.log(1 - rho_w))
 
-    return pref + central + prior
+    return pref + central #+ prior
 
+
+def test_lnprob():
+    pars = np.concatenate((np.array([-10.]), np.random.uniform(size=(ncomp,)), np.random.uniform(size=(ncomp*3,))))
+    lnprob(pars)
 
 def sample_lnprob():
     import emcee
 
     ndim = (1 + ncomp + ncomp * 3)
     nwalkers = 4 * ndim
+    print("using {} walkers".format(nwalkers))
 
     #Designed to be a list of walker positions
-    log_lambda_p = np.random.uniform(low=-5, high=5, size=(1, nwalkers))
-    log_lambda_w = np.random.uniform(low=-0.8, high=0.8, size=(ncomp, nwalkers))
-    rho_w = np.random.uniform(low=0.001, high=0.99, size=(ncomp*3, nwalkers))
+    log_lambda_p = np.random.uniform(low=-3.9, high=-3.5, size=(1, nwalkers))
+    log_lambda_w = np.random.uniform(low=-1, high=1, size=(ncomp, nwalkers))
+    rho_w = np.random.uniform(low=0.4, high=0.99, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, log_lambda_w, rho_w)).T
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
 
     print("Running Sampler")
     pos, prob, state = sampler.run_mcmc(p0, 3000)
+
     print("Burn-in complete")
     np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
