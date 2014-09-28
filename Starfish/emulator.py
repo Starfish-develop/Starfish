@@ -7,13 +7,13 @@ import Starfish.em_cov as em
 grid = HDF5Interface("../libraries/PHOENIX_SPEX_M.hdf5",
                  ranges={"temp":(2800, 3400), "logg":(4.5, 6.0), "Z":(-0.5, 1.0), "alpha":(0.0, 0.0)})
 
-test_index = 49
+test_index = 5000
 
 wl = grid.wl
 ind = (wl > 20000) * (wl < 24000)
 wl = wl[ind]
 npix = len(wl)
-m = len(grid.list_grid_points) - 1
+m = len(grid.list_grid_points)# - 1
 print("Using {} spectra with Npix = {}".format(m, npix))
 
 test_spectrum = None
@@ -52,10 +52,8 @@ ncomp = 5
 print("Keeping only the first {} components".format(ncomp))
 pcomps = components[0:ncomp]
 
-#Subtract the PCA mean
-nfluxes = fluxes #- mean
 #Flatten into a large array for later use
-orign = np.ravel(nfluxes)
+orign = np.ravel(fluxes)
 
 #Load all the stellar parameters into an (m, 3) array
 gparams = np.empty((m, 3))
@@ -90,9 +88,10 @@ def Phi():
 #Create w
 def get_w():
     out = []
+    print(fluxes.shape)
+    print(pcomps[0].shape)
     for i in range(ncomp):
-        temp = np.sum(nfluxes * pcomps[i], axis=1)
-        out.append(temp)
+        out.append(np.sum(fluxes * pcomps[i], axis=1))
     w = np.hstack(out)[np.newaxis].T
     return w
 
@@ -102,10 +101,11 @@ def reconstruct_full(PHI, w):
     grid would look like.
     '''
     recons = PHI.dot(w)
-    recons = recons.reshape(m,-1) #+ mean
+    recons = recons.reshape(m,-1)
 
-    recons = np.ravel(recons)
-    return recons
+    recons = recons * flux_std + flux_mean
+
+    return np.ravel(recons)
 
 def get_what(PHI):
     '''
@@ -118,13 +118,13 @@ def reconstruct(weights):
     '''
     Reconstruct a spectrum given some weights.
 
-    Do nothing about original scaling.
+    Also correct for original scaling.
     '''
 
     f = np.empty((ncomp, len(wl)))
     for i, (pcomp, weight) in enumerate(zip(pcomps, weights)):
         f[i, :] = pcomp * weight
-    return np.sum(f, axis=0)
+    return np.sum(f, axis=0) * flux_std + flux_mean
 
 PHI = Phi()
 PP = PHI.T.dot(PHI).tocsc()
@@ -167,11 +167,14 @@ def lnprob(p):
 
     '''
     lambda_p = 10**p[0]
-    lambda_w = 10**p[1:1+ncomp]
+    lambda_w = p[1:1+ncomp]
     rho_w = p[1+ncomp:]
     rho_w.shape = (ncomp, 3)
 
-    if np.any((rho_w > 1.0) | (rho_w < 0.0)):
+    if np.any((rho_w >= 1.0) | (rho_w <= 0.0)):
+        return -np.inf
+
+    if np.any((lambda_w < 0)):
         return -np.inf
 
     inv = PP_inv/lambda_p
@@ -187,7 +190,7 @@ def lnprob(p):
 
     prior = (a_Pprime - 1) * np.log(lambda_p) - \
             b_Pprime*lambda_p + np.sum((a_P - 1.)*lambda_w - b_P*lambda_w) + \
-            np.sum((b_rho_w - 1.) * np.log(1 - rho_w))
+            np.sum((b_rho_w - 1.) * np.log(1. - rho_w))
 
     return pref + central + prior
 
@@ -204,27 +207,27 @@ def sample_lnprob():
     print("using {} walkers".format(nwalkers))
 
     #Designed to be a list of walker positions
-    log_lambda_p = np.random.uniform(low=-5, high=-1, size=(1, nwalkers))
-    log_lambda_w = np.random.uniform(low=-4, high=4, size=(ncomp, nwalkers))
-    rho_w = np.random.uniform(low=0.1, high=0.99, size=(ncomp*3, nwalkers))
-    p0 = np.vstack((log_lambda_p, log_lambda_w, rho_w)).T
+    log_lambda_p = np.random.uniform(low=1.28, high=1.52, size=(1, nwalkers))
+    lambda_w = np.random.uniform(low=0.5, high=2, size=(ncomp, nwalkers))
+    rho_w = np.random.uniform(low=0.1, high=0.9, size=(ncomp*3, nwalkers))
+    p0 = np.vstack((log_lambda_p, lambda_w, rho_w)).T
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=5)
 
     print("Running Sampler")
-    pos, prob, state = sampler.run_mcmc(p0, 30000)
+    pos, prob, state = sampler.run_mcmc(p0, 3000)
 
     print("Burn-in complete")
-    np.save("after_burn_in2.npy", np.array(pos))
+    np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
-    sampler.run_mcmc(pos, 30000)
+    sampler.run_mcmc(pos, 3000)
 
     samples = sampler.flatchain
-    np.save("samples2.npy", samples)
+    np.save("samples.npy", samples)
 
     import triangle
     fig = triangle.corner(samples)
-    fig.savefig("triangle2.png")
+    fig.savefig("triangle.png")
 
 
 class Emulator:
@@ -237,11 +240,9 @@ class Emulator:
         #Emulator parameters include
         p = emulator_params
         self.lambda_p = 10**p[0]
-        self.lambda_w = 10**p[1:1+ncomp]
+        self.lambda_w = p[1:1+ncomp]
         self.rho_w = p[1+ncomp:]
         self.rho_w.shape = (ncomp, 3)
-
-        #TODO: add flux sigma and mean back in to properly reconstruct spectrum
 
         inv = PP_inv/self.lambda_p
         bigsig = em.Sigma(sparams, self.lambda_w, self.rho_w)
@@ -257,13 +258,13 @@ class Emulator:
 
     @property
     def emulator_params(self):
-        return np.concatenate((np.log10(self.lambda_p), np.log10(self.lambda_w), self.rho_w.flatten()))
+        return np.concatenate((np.log10(self.lambda_p), self.lambda_w, self.rho_w.flatten()))
 
     @emulator_params.setter
     def emulator_params(self, emulator_params):
         p = emulator_params
         self.lambda_p = 10**p[0]
-        self.lambda_w = 10**p[1:1+ncomp]
+        self.lambda_w = p[1:1+ncomp]
         self.rho_w = p[1+ncomp:]
         self.rho_w.shape = (ncomp, 3)
 
@@ -315,11 +316,8 @@ class Emulator:
             return
 
         weights = self.draw_weights()
-        spec = reconstruct(weights)
-
-        #Now add the PCA mean back in, scale by the STD and add the flux_mean back in
-        fspec = spec * flux_std + flux_mean
-        return fspec
+        print("Weights are {}".format(weights))
+        return reconstruct(weights)
 
 def main():
     sample_lnprob()
