@@ -212,7 +212,7 @@ def sample_lnprob():
     rho_w = np.random.uniform(low=0.1, high=0.9, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, lambda_w, rho_w)).T
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=5)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
 
     print("Running Sampler")
     pos, prob, state = sampler.run_mcmc(p0, 3000)
