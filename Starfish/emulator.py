@@ -74,6 +74,14 @@ maxs = np.max(gparams, axis=0)
 deltas = maxs - mins
 sparams = (gparams - mins)/deltas
 
+
+def get_index(stellar_params):
+    '''
+    Given a np.array of stellar params (corresponding to a grid point), deliver the index that corresponds to the
+    entry in the fluxes, list_grid_points, and weights
+    '''
+    return np.sum(np.abs(gparams - stellar_params), axis=1).argmin()
+
 def Phi():
     '''
     Use the ncomponents to create the large Phi matrix
@@ -85,7 +93,7 @@ def Phi():
     #Then hstack these together to form \Phi
     return sp.hstack(out, format="csc")
 
-#Create w
+#Create the vector w
 def get_w():
     out = []
     print(fluxes.shape)
@@ -189,7 +197,7 @@ def lnprob(p):
     central = -0.5 * (WHAT.T.dot(sp.linalg.spsolve(comb, WHAT)))
 
     prior = (a_Pprime - 1) * np.log(lambda_p) - \
-            b_Pprime*lambda_p + np.sum((a_P - 1.)*lambda_w - b_P*lambda_w) + \
+            b_Pprime*lambda_p + np.sum((a_w - 1.)*lambda_w - b_w*lambda_w) + \
             np.sum((b_rho_w - 1.) * np.log(1. - rho_w))
 
     return pref + central + prior
@@ -207,7 +215,7 @@ def sample_lnprob():
     print("using {} walkers".format(nwalkers))
 
     #Designed to be a list of walker positions
-    log_lambda_p = np.random.uniform(low=1.28, high=1.52, size=(1, nwalkers))
+    log_lambda_p = np.random.uniform(low=1, high=5, size=(1, nwalkers))
     lambda_w = np.random.uniform(low=0.5, high=2, size=(ncomp, nwalkers))
     rho_w = np.random.uniform(low=0.1, high=0.9, size=(ncomp*3, nwalkers))
     p0 = np.vstack((log_lambda_p, lambda_w, rho_w)).T
@@ -215,12 +223,12 @@ def sample_lnprob():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=54)
 
     print("Running Sampler")
-    pos, prob, state = sampler.run_mcmc(p0, 3000)
+    pos, prob, state = sampler.run_mcmc(p0, 5000)
 
     print("Burn-in complete")
     np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
-    sampler.run_mcmc(pos, 3000)
+    sampler.run_mcmc(pos, 5000)
 
     samples = sampler.flatchain
     np.save("samples.npy", samples)
