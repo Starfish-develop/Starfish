@@ -197,8 +197,8 @@ def lnprob(p):
     central = -0.5 * (WHAT.T.dot(sp.linalg.spsolve(comb, WHAT)))
 
     #prior = (a_Pprime - 1) * np.log(lambda_p) - \
-            b_Pprime*lambda_p + np.sum((a_w - 1.)*lambda_w - b_w*lambda_w) + \
-            np.sum((b_rho_w - 1.) * np.log(1. - rho_w))
+            # b_Pprime*lambda_p + np.sum((a_w - 1.)*lambda_w - b_w*lambda_w) + \
+            # np.sum((b_rho_w - 1.) * np.log(1. - rho_w))
 
     return pref + central# + prior
 
