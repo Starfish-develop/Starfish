@@ -1,0 +1,18 @@
+#sim_grid : /scratch/PHOENIX_SPEX_M.hdf5 #
+sim_grid : libraries/PHOENIX_SPEX_M.hdf5 #File which stores the actual PHOENIX spectra
+
+ranges:
+    temp:[2800, 3400]
+    logg: [4.5, 6.0]
+    Z: [-0.5, 1.0]
+    alpha: [0.0, 0.0]
+
+
+ncomp : 5 #Number of principal components to use
+
+drop_out : None #Otherwise the integer of which spectrum to drop out
+
+threads : 5
+
+burn_in : 10
+samples : 10
