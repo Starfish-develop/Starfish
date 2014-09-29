@@ -226,16 +226,15 @@ def sample_lnprob():
     pos, prob, state = sampler.run_mcmc(p0, 5000)
 
     print("Burn-in complete")
-    np.save("after_burn_in.npy", np.array(pos))
     sampler.reset()
     sampler.run_mcmc(pos, 5000)
 
     samples = sampler.flatchain
-    np.save("samples.npy", samples)
+    np.save("samples_new.npy", samples)
 
     import triangle
     fig = triangle.corner(samples)
-    fig.savefig("triangle.png")
+    fig.savefig("triangle_new.png")
 
 
 class Emulator:
