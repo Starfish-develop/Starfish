@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import scipy.sparse as sp
 from sklearn.decomposition import PCA
@@ -5,9 +6,7 @@ from Starfish.grid_tools import HDF5Interface
 import Starfish.em_cov as em
 
 grid = HDF5Interface("../libraries/PHOENIX_SPEX_M.hdf5",
-                 ranges={"temp":(2800, 3400), "logg":(4.5, 6.0), "Z":(-0.5, 1.0), "alpha":(0.0, 0.0)})
-
-test_index = 5000
+                 ranges={"temp":(2800, 3400), "logg":(4.5, 6.0), "Z":(-1.0, 0.5), "alpha":(0.0, 0.0)})
 
 wl = grid.wl
 ind = (wl > 20000) * (wl < 24000)
@@ -16,6 +15,8 @@ npix = len(wl)
 m = len(grid.list_grid_points)# - 1
 print("Using {} spectra with Npix = {}".format(m, npix))
 
+#test_index = 38
+test_index = 5000
 test_spectrum = None
 
 fluxes = np.empty((m,len(wl)))
@@ -31,8 +32,8 @@ for i, spec in enumerate(grid.fluxes):
 flux_mean = np.average(fluxes, axis=0)
 fluxes -= flux_mean
 
-#Scale each spectrum by the variance.
-flux_std = np.std(fluxes)
+#"Whiten" each spectrum such that the variance for each wavelength is 1
+flux_std = np.std(fluxes, axis=0)
 fluxes /= flux_std
 
 pca = PCA()
@@ -73,7 +74,6 @@ mins = np.min(gparams, axis=0)
 maxs = np.max(gparams, axis=0)
 deltas = maxs - mins
 sparams = (gparams - mins)/deltas
-
 
 def get_index(stellar_params):
     '''
@@ -133,6 +133,8 @@ def reconstruct(weights):
     for i, (pcomp, weight) in enumerate(zip(pcomps, weights)):
         f[i, :] = pcomp * weight
     return np.sum(f, axis=0) * flux_std + flux_mean
+
+ws = get_w().reshape(ncomp, -1)
 
 PHI = Phi()
 PP = PHI.T.dot(PHI).tocsc()
@@ -202,6 +204,78 @@ def lnprob(p):
 
     return pref + central# + prior
 
+
+w_index = 0
+start = w_index * m
+end = (w_index + 1) * m
+w1 = get_w()[start:end]
+
+def lnprob_w(p, weight_index):
+    '''
+    Calculate the lnprob using Eqn 2.29 R&W
+    '''
+
+    wi = ws[weight_index]
+
+
+    loga, lt, ll, lz = p
+
+    if (lt <= 0) or (ll <= 0) or (lz <= 0):
+        return -np.inf
+
+    if (lt > 3000) or (ll > 10) or (lz > 10):
+        return -np.inf
+
+    a2 = 10**(2 * loga)
+    lt2 = lt**2
+    ll2 = ll**2
+    lz2 = lz**2
+
+    if loga < -1.:
+        return -np.inf
+
+    C = em.sigma(gparams, a2, lt2, ll2, lz2)
+
+    sign, pref = np.linalg.slogdet(C)
+
+    central = wi.T.dot(np.linalg.solve(C, wi))
+
+    s = 5.
+    r = 5.
+    prior_l = s * np.log(r) + (s - 1.) * np.log(ll) - r*ll - math.lgamma(s)
+
+    s = 5.
+    r = 5.
+    prior_z = s * np.log(r) + (s - 1.) * np.log(lz) - r*lz - math.lgamma(s)
+
+    return -0.5 * (pref + central + m*np.log(2. * np.pi)) + prior_l + prior_z
+
+def sample_lnprob_w(weight_index):
+    import emcee
+
+    ndim = 4
+    nwalkers = 4 * ndim
+    print("using {} walkers".format(nwalkers))
+    p0 = np.vstack((np.random.uniform(0, 2, size=(1, nwalkers)),
+                    np.random.uniform(50, 300, size=(1, nwalkers)),
+                    np.random.uniform(0.2, 1.5, size=(1, nwalkers)),
+                    np.random.uniform(0.2, 1.5, size=(1, nwalkers)))).T
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_w, args=(weight_index,), threads=4)
+
+    print("Running Sampler")
+    pos, prob, state = sampler.run_mcmc(p0, 800)
+
+    print("Burn-in complete")
+    sampler.reset()
+    sampler.run_mcmc(pos, 800)
+
+    samples = sampler.flatchain
+    np.save("samples_w{}.npy".format(weight_index), samples)
+
+    import triangle
+    fig = triangle.corner(samples)
+    fig.savefig("triangle_w{}.png".format(weight_index))
 
 def test_lnprob():
     pars = np.concatenate((np.array([-10.]), np.random.uniform(size=(ncomp,)), np.random.uniform(size=(ncomp*3,))))
@@ -326,8 +400,161 @@ class Emulator:
         print("Weights are {}".format(weights))
         return reconstruct(weights)
 
+class WeightEmulator:
+    def __init__(self, emulator_params, wvec, samples=None):
+        #Construct the emulator using the sampled parameters.
+
+        #vector of weights
+        self.wvec = wvec
+
+        #Optionally store the samples from an MCMC run.
+        self.samples = samples
+        if self.samples is not None:
+            self.indexes = np.arange(len(self.samples))
+
+        if emulator_params is None:
+            if self.samples is None:
+                raise ValueError("Must supply either emulator parameters or samples.")
+            else:
+                self.emulator_params = self.samples[np.random.choice(self.indexes)]
+        else:
+            loga, lt, ll, lz = emulator_params
+            self.a2 = 10**(2 * loga)
+            self.lt2 = lt**2
+            self.ll2 = ll**2
+            self.lz2 = lz**2
+
+            C = em.sigma(gparams, self.a2, self.lt2, self.ll2, self.lz2)
+
+            self.V11 = C
+
+        self._params = None #Where we want to interpolate
+
+        self.V12 = None
+        self.V22 = None
+        self.mu = None
+        self.sig = None
+
+
+    @property
+    def emulator_params(self):
+        #return np.concatenate((np.log10(self.lambda_p), self.lambda_w, self.rho_w))
+        pass
+
+    @emulator_params.setter
+    def emulator_params(self, emulator_params):
+        loga, lt, ll, lz = emulator_params
+        self.a2 = 10**(2 * loga)
+        self.lt2 = lt**2
+        self.ll2 = ll**2
+        self.lz2 = lz**2
+
+        C = em.sigma(gparams, self.a2, self.lt2, self.ll2, self.lz2)
+
+        self.V11 = C
+
+    @property
+    def params(self):
+        return self._params
+
+    @params.setter
+    def params(self, pars):
+        #Assumes pars are coming in as Temp, logg, Z.
+        self._params = pars
+
+        #Do this according to R&W eqn 2.18, 2.19
+
+        #Recalculate V12, V21, and V22.
+        self.V12 = em.V12_w(self._params, gparams, self.a2, self.lt2, self.ll2, self.lz2)
+        self.V22 = em.V22_w(self._params, self.a2, self.lt2, self.ll2, self.lz2)
+
+        #Recalculate the covariance
+        self.mu = self.V12.T.dot(np.linalg.solve(self.V11, self.wvec))
+        self.mu.shape = (-1)
+        self.sig = self.V22 - self.V12.T.dot(np.linalg.solve(self.V11, self.V12))
+
+    def draw_weights(self):
+        '''
+        Using the current settings, draw a sample of PCA weights
+        '''
+        return np.random.multivariate_normal(self.mu, self.sig)
+
+    def __call__(self, *args):
+        '''
+        If you call this with an arg that is an np.array, it will set the emulator to these parameters first and then
+        draw weights.
+
+        If no args are provided, the emulator uses the previous parameters but redraws the weights,
+        for use in seeing the full scatter.
+
+        If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
+        combination from MCMC samples.
+        '''
+        if self.samples is not None:
+            self.emulator_params = self.samples[np.random.choice(self.indexes)]
+            if not args:
+                #Reset V12, V22, since we also changed emulator paramaters.
+                self.params = self._params
+
+        if args:
+            params, *junk = args
+            self.params = params
+
+        if self.V12 is None:
+            print("No parameters are set, yet. Must set parameters first.")
+            return
+
+        weights = self.draw_weights()
+        return weights
+
+class SonOfEmulator:
+    '''
+    Stores a Gaussian process for the weight of each principal component.
+    '''
+    def __init__(self, pcomps, weights_list, samples_list):
+        '''
+
+        :param weights_list: [w0s, w1s, w2s, ...]
+        :param samples_list:
+        '''
+        self.pcomps = pcomps
+
+        self.WEs = []
+        for weight, samples in zip(weights_list, samples_list):
+            self.WEs.append(WeightEmulator(None, weight, samples))
+
+    @property
+    def params(self):
+        return self._params
+
+    @params.setter
+    def params(self, pars):
+        #Assumes pars are coming in as Temp, logg, Z.
+        self._params = pars
+
+    def draw_weights(self):
+        '''
+        Draw a weight from each WeightEmulator and return as an array.
+        '''
+        return np.array([WE(self._params) for WE in self.WEs])
+
+    def __call__(self, *args):
+        '''
+        Same behavior as with WeightEmulator.
+        '''
+        if args:
+            params, *junk = args
+            self.params = params
+
+        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
+
+        weights = self.draw_weights()
+        recons = pcomps.T.dot(weights).reshape(-1)
+        return recons * flux_std + flux_mean
+
 def main():
-    sample_lnprob()
+    #sample_lnprob()
+    sample_lnprob_w(4)
 
 if __name__=="__main__":
     main()
