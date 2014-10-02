@@ -8,14 +8,16 @@ HDF5_path_err : libraries/PHOENIX_SPEX_M_err.hdf5
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
+emulator_samples : libraries/PHOENIX_SPEX_M_samples5.npy
+
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Using range by RA and keeping Ca and Na lines. No masking. Adding global cov and regions.
+  Bayesian emulator.
 
 #Nested data structures are allowed
 stellar_params :
     temp : 3000
-    logg : 5.3
+    logg : 5.0
     Z : 0.0
     vsini : 8.
     vz : 8.
