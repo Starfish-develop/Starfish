@@ -1,7 +1,8 @@
-from StellarSpectra.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
-from StellarSpectra.spectrum import DataSpectrum, Mask
-from StellarSpectra.grid_tools import TRES, HDF5Interface
-import StellarSpectra.constants as C
+from Starfish.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
+from Starfish.spectrum import DataSpectrum, Mask
+from Starfish.grid_tools import TRES, HDF5Interface
+from Starfish.emulator import PCAGrid
+import Starfish.constants as C
 import numpy as np
 import yaml
 import os
@@ -9,7 +10,7 @@ import shutil
 import logging
 
 import argparse
-parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run StellarSpectra fitting model.")
+parser = argparse.ArgumentParser(prog="base_lnprob.py", description="Run Starfish fitting model.")
 parser.add_argument("-i", "--input", help="*.yaml file specifying parameters.")
 parser.add_argument("-r", "--run_index", help="Which run (of those running concurrently) is this? All data will "
                                         "be written into this directory, overwriting any that exists.")
@@ -160,8 +161,10 @@ for myDataSpectrum in myDataSpectra:
     model_list.append(
         Model(myDataSpectrum,
               myInstrument,
-              HDF5Interface(config['HDF5_path']),
-              HDF5Interface(config['HDF5_path_err']),
+              PCAGrid(config['PCA']),
+              np.load(config['samples_path']),
+              #HDF5Interface(config['HDF5_path']),
+              #HDF5Interface(config['HDF5_path_err']),
               stellar_tuple=stellar_tuple,
               cheb_tuple=cheb_tuple,
               cov_tuple=cov_tuple,
