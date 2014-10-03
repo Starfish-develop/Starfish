@@ -461,13 +461,15 @@ class Emulator:
         '''
         self.PCAGrid = PCAGrid
         self.pcomps = self.PCAGrid.pcomps
+        self.min_v = self.PCAGrid.grid.wl_header["min_v"]
+        self.wl = self.PCAGrid.wl
 
         assert len(self.PCAGrid.w) == len(samples_list), "Must return a samples list that has samples for each " \
                                                          "component."
 
         self.WEs = []
-        for weight, samples in zip(self.PCAGrid.w, samples_list):
-            self.WEs.append(WeightEmulator(None, weight, samples))
+        for weight_index, samples in enumerate(samples_list):
+            self.WEs.append(WeightEmulator(self.PCAGrid, None, weight_index, samples))
 
     @property
     def params(self):

@@ -2,26 +2,43 @@
 
 name: Gl51/PHOENIX/RA/region/logg/4_8sig/
 
-HDF5_path : libraries/PHOENIX_SPEX_M_interp.hdf5
-HDF5_path_err : libraries/PHOENIX_SPEX_M_err.hdf5
-#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
-data : [data/Gl51/Gl51RA.hdf5]
-outdir : output/
-
-emulator_samples : libraries/PHOENIX_SPEX_M_samples5.npy
-
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
   Bayesian emulator.
 
+
+#HDF5_path : libraries/PHOENIX_SPEX_M_interp.hdf5
+#HDF5_path_err : libraries/PHOENIX_SPEX_M_err.hdf5
+#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
+data : [data/Gl51/Gl51RA.hdf5]
+outdir : output/
+
+#Emulator
+samples_path : output/emulator/Gl51/samples.npy
+
+#All of these configuration options will be later passed as a dictionary.
+PCA :
+  grid : libraries/PHOENIX_SPEX_M.hdf5 #File which stores the actual PHOENIX spectra
+  ranges:
+      temp: [2800, 3400]
+      logg: [4.5, 6.0]
+      Z: [-0.5, 1.0]
+      alpha: [0.0, 0.0]
+  wl : [20033, 24000] #hack to make wl power of 2 for FFT
+  test_index : 500
+  outdir : output/emulator/Gl51/
+  ncomp : 5 #Number of principal components to use
+
+
 #Nested data structures are allowed
 stellar_params :
     temp : 3000
-    logg : 5.0
-    Z : 0.0
+    logg : 5.02
+    Z : 0.1
     vsini : 8.
     vz : 8.
-    logOmega: -19.62 #PHOENIX
+    logOmega : -13.48
+    #logOmega: -19.62 #PHOENIX
 
 #Average jump size in each parameter
 stellar_jump:
@@ -41,11 +58,10 @@ stellar_cov:
     temp_logOmega : -1.48e-1
     factor : 0.02
 
-
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
 #fix_logg: 5.0
 
-cheb_degree : 15 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
+cheb_degree : 8 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
 #Average jump size in each coefficient
 cheb_jump : 5e-4
@@ -88,6 +104,8 @@ orders: [0]
 #Maximum number of sub-regions allowed per order
 max_regions : 0
 
+
 #Burn in time
 burn_in : 500
 samples : 1000
+

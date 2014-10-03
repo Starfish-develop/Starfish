@@ -108,7 +108,7 @@ cdef extern from "../extern/cov.h":
     double get_min_sep (double *wl, int N)
 
     cholmod_sparse *create_sigma(double *sigma, int N, cholmod_common *c)
-    cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, double *errors, cholmod_common *c)
+    #cholmod_sparse *create_interp(double *wl, int N, double min_sep, double max_v, double *errors, cholmod_common *c)
     cholmod_sparse *create_sparse(double *wl, int N, double min_sep, double a, double l, cholmod_common *c)
     cholmod_sparse *create_sparse_region(double *wl, int N, double a, double mu, double sigma, cholmod_common *c)
 
@@ -146,7 +146,7 @@ cdef class CovarianceMatrix:
     cdef order_index
     cdef DataSpectrum
     cdef GlobalCovarianceMatrix GCM
-    cdef InterpCovarianceMatrix interp_matrix
+    #cdef InterpCovarianceMatrix interp_matrix
     cdef RegionList #Dictionary with integers as keys
     cdef current_region
     cdef region_count
@@ -187,8 +187,8 @@ cdef class CovarianceMatrix:
             self.logger.setLevel(logging.INFO)
 
         self.GCM = GlobalCovarianceMatrix(self.DataSpectrum, self.order_index, self.common, debug=self.debug)
-        self.interp_matrix = InterpCovarianceMatrix(self.DataSpectrum, self.order_index, max_v, self.common,
-        debug=self.debug)
+        #self.interp_matrix = InterpCovarianceMatrix(self.DataSpectrum, self.order_index, max_v, self.common,
+        #debug=self.debug)
         self.RegionList = {}
         self.current_region = -1 #non physical value to force initialization
         self.region_count = 0
@@ -234,15 +234,15 @@ cdef class CovarianceMatrix:
         self.update_factorization()
         self.update_logPrior()
 
-    def update_interp_errs(self, errors):
-        '''
-        Given the (24, Npix) error spectra, go through and change the interpolation error covariance matrix.
-
-        '''
-        self.logger.debug("updating interp errors")
-        self.interp_matrix.update(errors)
-        self.update_factorization()
-        self.update_logPrior()
+    # def update_interp_errs(self, errors):
+    #     '''
+    #     Given the (24, Npix) error spectra, go through and change the interpolation error covariance matrix.
+    #
+    #     '''
+    #     self.logger.debug("updating interp errors")
+    #     #self.interp_matrix.update(errors)
+    #     self.update_factorization()
+    #     self.update_logPrior()
 
     def create_region(self, params, priors):
         '''
@@ -369,14 +369,14 @@ cdef class CovarianceMatrix:
 
         if self.sum_regions != NULL:
             self.logger.debug("Adding GCM and sum_regions")
-            temp = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
-            self.A = cholmod_add(self.interp_matrix.A, temp, self.one, self.one, True, True, self.c)
+            self.A = cholmod_add(self.GCM.A, self.sum_regions, self.one, self.one, True, True, self.c)
+            #self.A = cholmod_add(self.interp_matrix.A, temp, self.one, self.one, True, True, self.c)
         else:
             assert len(self.RegionList) == 0, "RegionList is not empty but pointer is NULL"
             #there are no regions declared, so we should COPY self.GCM.A
-            #self.A = cholmod_copy_sparse(self.GCM.A, self.c)
-            self.logger.debug("Adding interp_matrix and GCM")
-            self.A = cholmod_add(self.interp_matrix.A, self.GCM.A, self.one, self.one, True, True, self.c)
+            self.A = cholmod_copy_sparse(self.GCM.A, self.c)
+            #self.logger.debug("Adding interp_matrix and GCM")
+            #self.A = cholmod_add(self.interp_matrix.A, self.GCM.A, self.one, self.one, True, True, self.c)
 
         if temp != NULL:
             self.logger.debug("Clearing temp")
@@ -415,9 +415,9 @@ cdef class CovarianceMatrix:
         self.logger.debug("shifting self.L to point to self.L_last inside of revert")
         self.L = self.L_last
 
-    def revert_interp(self):
-        self.interp_matrix.revert()
-        self.revert()
+    # def revert_interp(self):
+    #     self.interp_matrix.revert()
+    #     self.revert()
 
     def revert_global(self):
         self.GCM.revert()
@@ -513,46 +513,46 @@ cdef class CovarianceMatrix:
 
         return S
 
-    def cholmod_to_scipy_sparse_interp(self):
-            '''
-            Instantiate and return a scipy.sparse matrix from cholmod_sparse matrix self.interp_matrix
-            '''
-            #First, convert the cholmod_sparse to cholmod_triplet form so it's easier to read off
-            cdef cholmod_triplet *T = cholmod_sparse_to_triplet(self.interp_matrix.A, self.c)
-
-            #initialize a scipy.sparse.dok_matrix
-            S = scipy.sparse.dok_matrix((self.npoints, self.npoints), dtype=np.float64)
-
-            #Iterate through the T to pull out row, column, and value into three separate lists.
-            cdef int *Ti = <int*>T.i
-            cdef int *Tj = <int*>T.j
-            cdef double *Tx = <double*>T.x
-            cdef int stype = <int>T.stype
-
-            if stype == 0:
-                #Matrix is "unsymmetric, and all values are stored
-                for k in range(T.nnz):
-                    row = Ti[k]
-                    column = Tj[k]
-                    value = Tx[k]
-
-                    S[row, column] = value
-
-            else:
-                #Matrix is symmetric and either only lower or only upper values are stored
-                #So therefore also store the transpose (but not diagonal)
-                for k in range(T.nnz):
-                    row = Ti[k]
-                    column = Tj[k]
-                    value = Tx[k]
-
-                    S[row, column] = value
-                    if row != column:
-                        S[column, row] = value
-
-            cholmod_free_triplet(&T, self.c)
-
-            return S
+    # def cholmod_to_scipy_sparse_interp(self):
+    #         '''
+    #         Instantiate and return a scipy.sparse matrix from cholmod_sparse matrix self.interp_matrix
+    #         '''
+    #         #First, convert the cholmod_sparse to cholmod_triplet form so it's easier to read off
+    #         cdef cholmod_triplet *T = cholmod_sparse_to_triplet(self.interp_matrix.A, self.c)
+    #
+    #         #initialize a scipy.sparse.dok_matrix
+    #         S = scipy.sparse.dok_matrix((self.npoints, self.npoints), dtype=np.float64)
+    #
+    #         #Iterate through the T to pull out row, column, and value into three separate lists.
+    #         cdef int *Ti = <int*>T.i
+    #         cdef int *Tj = <int*>T.j
+    #         cdef double *Tx = <double*>T.x
+    #         cdef int stype = <int>T.stype
+    #
+    #         if stype == 0:
+    #             #Matrix is "unsymmetric, and all values are stored
+    #             for k in range(T.nnz):
+    #                 row = Ti[k]
+    #                 column = Tj[k]
+    #                 value = Tx[k]
+    #
+    #                 S[row, column] = value
+    #
+    #         else:
+    #             #Matrix is symmetric and either only lower or only upper values are stored
+    #             #So therefore also store the transpose (but not diagonal)
+    #             for k in range(T.nnz):
+    #                 row = Ti[k]
+    #                 column = Tj[k]
+    #                 value = Tx[k]
+    #
+    #                 S[row, column] = value
+    #                 if row != column:
+    #                     S[column, row] = value
+    #
+    #         cholmod_free_triplet(&T, self.c)
+    #
+    #         return S
 
 
     def test_common_equal(self):
@@ -563,94 +563,94 @@ cdef class CovarianceMatrix:
         print(self.common == self.GCM.common)
 
 
-cdef class InterpCovarianceMatrix:
-
-    cdef cholmod_sparse *A
-    cdef cholmod_sparse *A_last
-    cdef Common common
-    cdef cholmod_common *c
-    cdef double *wl
-    cdef double min_sep
-    cdef double max_v
-    cdef npoints
-    cdef debug
-    cdef logger
-
-    def __init__(self, DataSpectrum, order_index, max_v, Common common, debug=False):
-        self.common = common
-        self.c = <cholmod_common *>&self.common.c
-        self.debug = debug
-        self.logger = logging.getLogger(self.__class__.__name__)
-        if debug:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
-
-        mask = DataSpectrum.masks[order_index]
-        #convert wl into an array
-        cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index][mask]
-        self.npoints = len(wl)
-
-        #Dynamically allocate wl
-        self.wl = <double*> PyMem_Malloc(self.npoints * sizeof(double))
-
-        for i in range(self.npoints):
-            self.wl[i] = wl[i]
-
-        self.min_sep = get_min_sep(self.wl, self.npoints)
-        self.max_v = max_v
-
-        self.A = cholmod_speye(self.npoints, self.npoints, CHOLMOD_REAL, self.c)
-        self.A_last = self.A
-
-        self.logger.debug("Initialized InterpCovarianceMatrix")
-
-
-    def __dealloc__(self):
-        print("Deallocating InterpCovarianceMatrix")
-        PyMem_Free(self.wl)
-
-        if self.A != self.A_last:
-            if self.A != NULL:
-                cholmod_free_sparse(&self.A, self.c)
-            if self.A_last != NULL:
-                cholmod_free_sparse(&self.A_last, self.c)
-        else:
-            if self.A != NULL:
-                cholmod_free_sparse(&self.A, self.c)
-
-    def update(self, np.ndarray[np.double_t, ndim=2, mode="c"] errors):
-        '''
-        Update this matrix with the new interpolation errors, a (24,Npix) array
-
-        Parameters is a dictionary.
-        '''
-        self.logger.debug("Updating InterpCovarianceMatrix")
-
-        #Copy the old self.A to self.A_last
-        if self.A_last != NULL and (self.A_last != self.A):
-            #Free the old memory before having it point to something new
-            #as long as they don't point to the same piece of memory
-            self.logger.debug("freeing self.A inside of GCM.update")
-            cholmod_free_sparse(&self.A_last, self.c)
-
-        #Shift the self.A_last pointer to self.A
-        self.logger.debug("shifting self.A_last to point to self.A")
-        self.A_last = self.A
-
-        self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &errors[0,0], self.c)
-
-    def revert(self):
-        #move A to point to A_last
-        self.logger.debug("reverting InterpCovarianceMatrix")
-        #as long as A and A_last don't point to the same thing, clear A
-        if self.A != NULL and (self.A_last != self.A):
-            self.logger.debug("freeing self.A inside of revert")
-            cholmod_free_sparse(&self.A, self.c)
-
-        #move self.A to point to self.A_last
-        self.logger.debug("shifting self.A to point to self.A_last")
-        self.A = self.A_last
+# cdef class InterpCovarianceMatrix:
+#
+#     cdef cholmod_sparse *A
+#     cdef cholmod_sparse *A_last
+#     cdef Common common
+#     cdef cholmod_common *c
+#     cdef double *wl
+#     cdef double min_sep
+#     cdef double max_v
+#     cdef npoints
+#     cdef debug
+#     cdef logger
+#
+#     def __init__(self, DataSpectrum, order_index, max_v, Common common, debug=False):
+#         self.common = common
+#         self.c = <cholmod_common *>&self.common.c
+#         self.debug = debug
+#         self.logger = logging.getLogger(self.__class__.__name__)
+#         if debug:
+#             self.logger.setLevel(logging.DEBUG)
+#         else:
+#             self.logger.setLevel(logging.INFO)
+#
+#         mask = DataSpectrum.masks[order_index]
+#         #convert wl into an array
+#         cdef np.ndarray[np.double_t, ndim=1] wl = DataSpectrum.wls[order_index][mask]
+#         self.npoints = len(wl)
+#
+#         #Dynamically allocate wl
+#         self.wl = <double*> PyMem_Malloc(self.npoints * sizeof(double))
+#
+#         for i in range(self.npoints):
+#             self.wl[i] = wl[i]
+#
+#         self.min_sep = get_min_sep(self.wl, self.npoints)
+#         self.max_v = max_v
+#
+#         self.A = cholmod_speye(self.npoints, self.npoints, CHOLMOD_REAL, self.c)
+#         self.A_last = self.A
+#
+#         self.logger.debug("Initialized InterpCovarianceMatrix")
+#
+#
+#     def __dealloc__(self):
+#         print("Deallocating InterpCovarianceMatrix")
+#         PyMem_Free(self.wl)
+#
+#         if self.A != self.A_last:
+#             if self.A != NULL:
+#                 cholmod_free_sparse(&self.A, self.c)
+#             if self.A_last != NULL:
+#                 cholmod_free_sparse(&self.A_last, self.c)
+#         else:
+#             if self.A != NULL:
+#                 cholmod_free_sparse(&self.A, self.c)
+#
+#     def update(self, np.ndarray[np.double_t, ndim=2, mode="c"] errors):
+#         '''
+#         Update this matrix with the new interpolation errors, a (24,Npix) array
+#
+#         Parameters is a dictionary.
+#         '''
+#         self.logger.debug("Updating InterpCovarianceMatrix")
+#
+#         #Copy the old self.A to self.A_last
+#         if self.A_last != NULL and (self.A_last != self.A):
+#             #Free the old memory before having it point to something new
+#             #as long as they don't point to the same piece of memory
+#             self.logger.debug("freeing self.A inside of GCM.update")
+#             cholmod_free_sparse(&self.A_last, self.c)
+#
+#         #Shift the self.A_last pointer to self.A
+#         self.logger.debug("shifting self.A_last to point to self.A")
+#         self.A_last = self.A
+#
+#         self.A = create_interp(self.wl, self.npoints, self.min_sep, self.max_v, &errors[0,0], self.c)
+#
+#     def revert(self):
+#         #move A to point to A_last
+#         self.logger.debug("reverting InterpCovarianceMatrix")
+#         #as long as A and A_last don't point to the same thing, clear A
+#         if self.A != NULL and (self.A_last != self.A):
+#             self.logger.debug("freeing self.A inside of revert")
+#             cholmod_free_sparse(&self.A, self.c)
+#
+#         #move self.A to point to self.A_last
+#         self.logger.debug("shifting self.A to point to self.A_last")
+#         self.A = self.A_last
 
 
 cdef class GlobalCovarianceMatrix:

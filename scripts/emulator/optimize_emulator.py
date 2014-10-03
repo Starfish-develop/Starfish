@@ -87,7 +87,7 @@ def sample_lnprob(weight_index):
 
 def main():
     #plot_eigenspectra()
-    sample_lnprob(1)
+    sample_lnprob(4)
 
 if __name__=="__main__":
     main()

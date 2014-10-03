@@ -150,8 +150,8 @@ def get_git_commit():
     '''
 
     #Figure out what the relative path is to base
-    import StellarSpectra, subprocess
-    base = StellarSpectra.__file__[:-26]
+    import Starfish, subprocess
+    base = Starfish.__file__[:-26]
     gitbase = base + "/.git"
 
     proc = subprocess.Popen(["git", "--git-dir={}".format(gitbase), "--work-tree={}".format(base), "log", "-1",
