@@ -6,10 +6,6 @@ name: Gl51/PHOENIX/RA/region/logg/4_8sig/
 Comments: >
   Bayesian emulator.
 
-
-#HDF5_path : libraries/PHOENIX_SPEX_M_interp.hdf5
-#HDF5_path_err : libraries/PHOENIX_SPEX_M_err.hdf5
-#HDF5_path : /scratch/PHOENIX_SPEX_M.hdf5
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
@@ -29,25 +25,23 @@ PCA :
   outdir : output/emulator/Gl51/
   ncomp : 5 #Number of principal components to use
 
-
 #Nested data structures are allowed
 stellar_params :
     temp : 3000
-    logg : 5.02
-    Z : 0.1
+    #logg : 5.04
+    Z : 0.16
     vsini : 8.
     vz : 8.
     logOmega : -13.48
-    #logOmega: -19.62 #PHOENIX
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 2
-    logg : 0.001
-    Z : 0.004
-    vsini : 0.2
+    temp : 15
+    #logg : 0.02
+    Z : 0.02
+    vsini : 0.1
     vz : 0.2
-    logOmega: 3e-4
+    logOmega: 2e-4
 
 use_cov: False
 #Needs to be updated for Gl51
@@ -59,7 +53,7 @@ stellar_cov:
     factor : 0.02
 
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
-#fix_logg: 5.0
+fix_logg: 5.0
 
 cheb_degree : 8 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
@@ -107,5 +101,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 500
-samples : 1000
+samples : 2000
 

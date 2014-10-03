@@ -249,9 +249,10 @@ class Model:
         '''
         Define the prior here
         '''
-        logg = params["logg"]
+        #logg = params["logg"]
         #if (logg >= 4.8) and (logg <= 5.2):
-        return -0.5 * (logg - 5.0)**2/(0.15)**2
+        #return -0.5 * (logg - 5.0)**2/(0.15)**2
+        return 0.0
         #else:
         #    return -np.inf
 
@@ -697,7 +698,7 @@ class StellarSampler(Sampler):
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
         print("param_tuple is {}".format(self.param_tuple))
 
-        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob, "resample":True})
         super(StellarSampler, self).__init__(**kwargs)
         self.fname = "stellar"
 
