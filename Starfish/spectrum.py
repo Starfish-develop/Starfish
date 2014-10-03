@@ -740,7 +740,7 @@ class Mask:
             self.masks = self.masks[orders]
             self.orders = orders
         else:
-            self.orders = np.arange(self.shape[0])
+            self.orders = np.arange(self.masks.shape[0])
 
 
     @classmethod
@@ -777,17 +777,16 @@ class ModelSpectrum:
     2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
 
     '''
-    def __init__(self, fluxInterpolator, errorInterpolator, instrument):
-        self.fluxInterpolator = fluxInterpolator
-        self.errorInterpolator = errorInterpolator
-        #Set raw_wl from wl stored with interpolator
-        self.wl_raw = self.fluxInterpolator.wl #Has already been truncated thanks to initialization of Interpolator
+    def __init__(self, Emulator, DataSpectrum, instrument):
+        self.Emulator = Emulator
+
+        #Set raw_wl from wl stored with emulator
         self.instrument = instrument
-        self.DataSpectrum = self.fluxInterpolator.DataSpectrum #so that we can downsample to the same wls
+        self.DataSpectrum = DataSpectrum #so that we can downsample to the same wls
 
-        self.wl_FFT = self.fluxInterpolator.wl
+        self.wl_FFT = self.Emulator.wl
 
-        self.min_v = self.fluxInterpolator.interface.wl_header["min_v"]
+        self.min_v = self.Emulator.min_v
         self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 #junk so we don't get a divide by zero error
 
@@ -795,8 +794,8 @@ class ModelSpectrum:
         self.downsampled_fls_last = self.downsampled_fls
 
         #self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        self.downsampled_errors = None
-        self.other_downsampled_errors = None
+        #self.downsampled_errors = None
+        #self.other_downsampled_errors = None
 
         self.grid_params = {}
         self.vz = 0
@@ -827,7 +826,7 @@ class ModelSpectrum:
         '''
         #factor by which to correct from old Omega
         self.fl *= 10**(logOmega - self.logOmega)
-        self.errors *= 10**(logOmega - self.logOmega)
+        #self.errors *= 10**(logOmega - self.logOmega)
         self.logOmega = logOmega
 
     def update_vz(self, vz):
@@ -869,8 +868,11 @@ class ModelSpectrum:
 
         '''
         try:
-            self.fl = self.fluxInterpolator(grid_params) #Query the interpolator with the new stellar
-            self.errors = self.errorInterpolator(grid_params)
+            self.fl = self.Emulator(np.array([grid_params['temp'], grid_params['logg'], grid_params['Z']])) #Query the
+            # interpolator with
+            #  the new
+            #  stellar
+
             # combination
             self.grid_params.update(grid_params)
 
@@ -896,7 +898,7 @@ class ModelSpectrum:
         # self.influx[:] = self.fl
         # self.fft_object()
         FF = np.fft.rfft(self.fl)
-        FE = np.fft.rfft(self.errors, axis=1)
+        #FE = np.fft.rfft(self.errors, axis=1)
 
         #Determine the stellar broadening kernel
         ub = 2. * np.pi * self.vsini * self.ss
@@ -914,13 +916,13 @@ class ModelSpectrum:
         #institute velocity and instrumental taper
         # self.FF *= sb
         FF_tap = FF * sb
-        FE_tap = FE * sb
+        #FE_tap = FE * sb
 
         #do ifft
         # self.ifft_object()
         # self.fl[:] = self.outflux
         self.fl = np.fft.irfft(FF_tap, len(self.wl_FFT))
-        self.errors = np.fft.irfft(FE_tap, len(self.wl_FFT), axis=1)
+        #self.errors = np.fft.irfft(FE_tap, len(self.wl_FFT), axis=1)
 
 
     # def _update_vsini_and_instrument(self, vsini):
@@ -977,10 +979,8 @@ class ModelSpectrum:
 
         '''
         #First set stellar parameters using _update_grid_params
-        # grid_params = {'temp':params['temp'], 'logg': 4.29, 'Z':params['Z']}
-        grid_params = {key:params[key] for key in self.fluxInterpolator.parameters}
+        grid_params = {key:params[key] for key in ["temp", "logg", "Z"]}
 
-        #self._update_grid_params(grid_params)
         self.update_grid_params(grid_params)
 
         #Reset the relative variables
@@ -988,15 +988,12 @@ class ModelSpectrum:
         self.Av = 0
         self.logOmega = 0
 
-
         #Then vsini and instrument using _update_vsini
-        #self._update_vsini_and_instrument(params['vsini'])
         self.update_vsini(params['vsini'])
 
         #Then vz, logOmega, and Av using public methods
         self.update_vz(params['vz'])
         self.update_logOmega(params['logOmega'])
-
 
         if 'Av' in params:
             self.update_Av(params['Av'])
@@ -1037,12 +1034,12 @@ class ModelSpectrum:
 
         #Interpolate each of the 24 error spectra to the grid points
         #if self.downsampled_errors is None:
-        self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        for i, errspec in enumerate(self.errors):
-            interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
-
-            self.downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
-            del interp
+        # self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
+        # for i, errspec in enumerate(self.errors):
+        #     interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
+        #
+        #     self.downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
+        #     del interp
 
         #assert np.allclose(self.downsampled_errors, self.other_downsampled_errors), "No longer downsampling the same " \
                                                                                     #"thing"

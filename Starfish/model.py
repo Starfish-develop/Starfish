@@ -6,6 +6,7 @@ from . import constants as C
 from .grid_tools import Interpolator, ErrorInterpolator
 from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
 from .covariance import CovarianceMatrix #from Starfish.spectrum import CovarianceMatrix #pure Python
+from .emulator import Emulator
 import time
 import json
 import h5py
@@ -138,8 +139,8 @@ class Model:
 
         return model
 
-    def __init__(self, DataSpectrum, Instrument, HDF5Interface, ErrorHDF5Interface, stellar_tuple, cheb_tuple,
-                 cov_tuple, region_tuple, outdir="", max_v=20, ismaster=False, debug=False):
+    def __init__(self, DataSpectrum, Instrument, PCAGrid, samples, stellar_tuple,
+                 cheb_tuple, cov_tuple, region_tuple, outdir="", max_v=20, ismaster=False, debug=False):
         self.DataSpectrum = DataSpectrum
         self.ismaster = ismaster #Is this the first model instantiated?
         self.stellar_tuple = stellar_tuple
@@ -156,10 +157,12 @@ class Model:
         else:
             trilinear = False
         #myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        fluxInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        errorInterpolator = ErrorInterpolator(ErrorHDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        #fluxInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
+        #errorInterpolator = ErrorInterpolator(ErrorHDF5Interface, self.DataSpectrum, trilinear=trilinear)
 
-        self.ModelSpectrum = ModelSpectrum(fluxInterpolator, errorInterpolator, Instrument)
+        emulator = Emulator(PCAGrid, samples)
+
+        self.ModelSpectrum = ModelSpectrum(emulator, self.DataSpectrum, Instrument)
         self.stellar_params = None
         self.stellar_params_last = None
         self.logPrior = 0.0
@@ -204,10 +207,10 @@ class Model:
         #Since the ModelSpectrum fluxes have been updated, also update the interpolation errors
 
         #print("Sum of errors is {}".format(np.sum(model_errs)))
-        for orderModel in self.OrderModels:
-            errs = self.ModelSpectrum.downsampled_errors[:, orderModel.index, :].copy()
-            assert errs.flags["C_CONTIGUOUS"], "Not C contiguous"
-            orderModel.CovarianceMatrix.update_interp_errs(errs)
+        # for orderModel in self.OrderModels:
+        #     errs = self.ModelSpectrum.downsampled_errors[:, orderModel.index, :].copy()
+        #     assert errs.flags["C_CONTIGUOUS"], "Not C contiguous"
+        #     orderModel.CovarianceMatrix.update_interp_errs(errs)
 
     def revert_Model(self):
         '''
@@ -220,8 +223,8 @@ class Model:
         #Reset downsampled flux
         self.ModelSpectrum.revert_flux()
         #Since the interp_errors have been updated, revert them now
-        for orderModel in self.OrderModels:
-            orderModel.CovarianceMatrix.revert_interp()
+        # for orderModel in self.OrderModels:
+        #     orderModel.CovarianceMatrix.revert_interp()
 
     def get_data(self):
         '''
