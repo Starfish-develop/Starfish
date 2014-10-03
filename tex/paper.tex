@@ -1,7 +1,9 @@
 %\documentclass[preprint]{aastex} 
 \documentclass[iop,floatfix,twocolappendix]{emulateapj} 
 
-\usepackage[breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
+\usepackage[backref,breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
+\usepackage[all]{hypcap}
+\renewcommand*{\backref}[1]{[#1]}
 \usepackage{graphicx}
 %\usepackage{apjfonts}
 \usepackage{enumerate}
@@ -103,6 +105,7 @@ transiting exoplanet, and the moderate resolution near-infrared ($K$-band)
 spectrum of Gliese~51, an M5 dwarf. 
 \end{abstract}
 \keywords{stars: fundamental parameters --- methods: data analysis --- methods: statistical}
+
 
 
 
@@ -793,6 +796,7 @@ kernels are not required.  \label{fig:Kurucz_residuals}}
 \vspace{0.2cm}
 \end{figure*}
 
+\capstartfalse
 \begin{deluxetable}{lr@{ $\pm$ }l|r@{ $\pm$ }l}[!b]
 \tablecaption{\label{table:Kurucz}Inferred Parameters for WASP-14}
 \tablehead{\colhead{Parameter} & \multicolumn{2}{c}{{\sc CfA/Kurucz}} & \multicolumn{2}{c}{{\sc Phoenix}}}
@@ -814,6 +818,7 @@ distributions for each parameter.  The quoted uncertainties correspond to the 68
 ($\sim$1\,$\sigma$) confidence intervals.  Expanded lists of the inferred values and uncertainties 
 for all nuisance parameters are available electronically.}
 \end{deluxetable}
+\capstarttrue
 
 \begin{figure}[!b]
   \includegraphics[width=0.5\textwidth]{figs/Kurucz_triangle.pdf}
@@ -987,6 +992,7 @@ of the stellar parameters without imposing a systematic bias.  Figure~\ref{fig:G
 demonstrates that these features have been identified as problematic, resulting in localized 
 patches of appropriately inflated covariance.
 
+\capstartfalse
 \begin{deluxetable}{lr@{ $\pm$ }l}[h]
 \tablecaption{\label{table:Gl51}Inferred Parameters for Gl 51}
 \tablehead{\colhead{Parameter} & \multicolumn{2}{c}{{\sc Phoenix}}}
@@ -1001,6 +1007,7 @@ $A_V$ & 0 & 0 (fixed)
 \enddata
 \tablecomments{Notation as in Table~\ref{table:Kurucz}.}
 \end{deluxetable}
+\capstarttrue
 
 The fitting methodology adopted here could prove especially useful in spectroscopic inference for
 cool stars like Gl~51, where substantial uncertainties in their more complex atmospheres will 
