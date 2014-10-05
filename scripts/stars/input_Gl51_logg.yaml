@@ -86,6 +86,6 @@ max_regions : 0
 
 
 #Burn in time
-burn_in : 50
-samples : 100
+burn_in : 100
+samples : 40000
 
