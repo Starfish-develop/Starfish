@@ -40,6 +40,56 @@ def chunk_list(mylist, n=mp.cpu_count()):
         chunks[i%n].append(mylist[edge+i])
     return chunks
 
+def determine_chunk_log(wl, wl_min, wl_max):
+    '''
+    Take in a wavelength grid and then using two bounds, determine the indices that will allow us to truncate
+    this grid to near the requested bounds by still forcing the wl length to be a power of 2.
+
+    As a side note, HDF5Interface should be LogLambda spaced, because otherwise you shouldn't need a grid with 2^n
+    points, because you would need to interpolate in wl space after this anyway.
+    '''
+
+    #wl_min and wl_max must of course be within the bounds of wl
+    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "wl_min {} and wl_max {} are not within the bounds of the " \
+                                                          "grid.".format(wl_min, wl_max)
+
+    #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the number of points
+    #contained between wl_min and wl_max
+    len_wl = len(wl)
+    npoints = np.sum((wl >= wl_min) & (wl <= wl_max))
+    chunk = len_wl
+    inds = (0, chunk)
+
+    while chunk > npoints:
+        if chunk/2 > npoints:
+            chunk = chunk//2
+        else:
+            break
+
+    #This loop will exit with chunk being the smallest power of 2 that is larger than npoints
+    assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
+
+    if chunk < len_wl:
+        # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
+        # that straddle the data spectrum.
+
+        # What index corresponds to the wl at the center of the data spectrum?
+        center_wl = (wl_min + wl_max)/2.
+        center_ind = (np.abs(wl - center_wl)).argmin()
+
+        #Take the chunk that straddles either side.
+        inds = (center_ind - chunk//2, center_ind + chunk//2)
+
+        ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
+    else:
+        print("keeping grid as is")
+        ind = np.ones_like(wl, dtype="b")
+
+    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
+        "didn't encapsulate full wl range ({:.2f}, {:.2f}).".format(min(wl[ind]), max(wl[ind]), wl_min, wl_max)
+
+    return ind
+
 
 class RawGridInterface:
     '''
