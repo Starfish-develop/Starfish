@@ -4,11 +4,16 @@ from Starfish import em_cov as em
 import numpy as np
 import math
 
-f = open("scripts/emulator/Gl51.yaml")
+import argparse
+parser = argparse.ArgumentParser(prog="optimize_emulator.py", description="Optimize the GP weight modelling.")
+parser.add_argument("input", help="*.yaml file specifying parameters.")
+args = parser.parse_args()
+
+f = open(args.input)
 cfg = yaml.load(f)
 f.close()
 
-pca = emulator.PCAGrid(cfg)
+pca = emulator.PCAGrid.from_cfg(cfg)
 
 def plot_eigenspectra():
     import matplotlib.pyplot as plt
@@ -23,7 +28,6 @@ def lnprob(p, weight_index):
     '''
 
     wi = pca.w[weight_index]
-
 
     loga, lt, ll, lz = p
 
@@ -87,7 +91,7 @@ def sample_lnprob(weight_index):
 
 def main():
     #plot_eigenspectra()
-    sample_lnprob(4)
+    sample_lnprob(0)
 
 if __name__=="__main__":
     main()

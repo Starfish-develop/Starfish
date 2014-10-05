@@ -793,10 +793,6 @@ class ModelSpectrum:
         self.downsampled_fls = np.empty(self.DataSpectrum.shape)
         self.downsampled_fls_last = self.downsampled_fls
 
-        #self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        #self.downsampled_errors = None
-        #self.other_downsampled_errors = None
-
         self.grid_params = {}
         self.vz = 0
         self.Av = 0
@@ -805,13 +801,6 @@ class ModelSpectrum:
         #Grab chunk from wl_FFT
         chunk = len(self.wl_FFT)
         assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
-
-        # self.influx = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.FF = pyfftw.n_byte_align_empty(chunk // 2 + 1, 16, 'complex128')
-        # self.outflux = pyfftw.n_byte_align_empty(chunk, 16, 'float64')
-        # self.fft_object = pyfftw.FFTW(self.influx, self.FF, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'))
-        # self.ifft_object = pyfftw.FFTW(self.FF, self.outflux, flags=('FFTW_ESTIMATE', 'FFTW_DESTROY_INPUT'),
-        #                           direction='FFTW_BACKWARD')
 
     def __str__(self):
         return "Model Spectrum for Instrument {}".format(self.instrument.name)

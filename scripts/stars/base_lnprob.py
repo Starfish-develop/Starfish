@@ -1,7 +1,7 @@
 from Starfish.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
 from Starfish.spectrum import DataSpectrum, Mask
 from Starfish.grid_tools import TRES, HDF5Interface
-from Starfish.emulator import PCAGrid
+from Starfish.emulator import Emulator
 import Starfish.constants as C
 import numpy as np
 import yaml
@@ -161,10 +161,7 @@ for myDataSpectrum in myDataSpectra:
     model_list.append(
         Model(myDataSpectrum,
               myInstrument,
-              PCAGrid(config['PCA']),
-              np.load(config['samples_path']),
-              #HDF5Interface(config['HDF5_path']),
-              #HDF5Interface(config['HDF5_path_err']),
+              Emulator.open(config['PCA_path']),
               stellar_tuple=stellar_tuple,
               cheb_tuple=cheb_tuple,
               cov_tuple=cov_tuple,
