@@ -139,7 +139,7 @@ class Model:
 
         return model
 
-    def __init__(self, DataSpectrum, Instrument, PCAGrid, samples, stellar_tuple,
+    def __init__(self, DataSpectrum, Instrument, Emulator, stellar_tuple,
                  cheb_tuple, cov_tuple, region_tuple, outdir="", max_v=20, ismaster=False, debug=False):
         self.DataSpectrum = DataSpectrum
         self.ismaster = ismaster #Is this the first model instantiated?
@@ -156,13 +156,10 @@ class Model:
             trilinear = True
         else:
             trilinear = False
-        #myInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        #fluxInterpolator = Interpolator(HDF5Interface, self.DataSpectrum, trilinear=trilinear)
-        #errorInterpolator = ErrorInterpolator(ErrorHDF5Interface, self.DataSpectrum, trilinear=trilinear)
 
-        emulator = Emulator(PCAGrid, samples)
+        Emulator.determine_chunk_log(self.DataSpectrum.wls.flatten()) #Possibly truncate the grid
 
-        self.ModelSpectrum = ModelSpectrum(emulator, self.DataSpectrum, Instrument)
+        self.ModelSpectrum = ModelSpectrum(Emulator, self.DataSpectrum, Instrument)
         self.stellar_params = None
         self.stellar_params_last = None
         self.logPrior = 0.0
@@ -249,10 +246,10 @@ class Model:
         '''
         Define the prior here
         '''
-        #logg = params["logg"]
+        logg = params["logg"]
         #if (logg >= 4.8) and (logg <= 5.2):
-        #return -0.5 * (logg - 5.0)**2/(0.15)**2
-        return 0.0
+        return -0.5 * (logg - 5.0)**2/(0.05)**2
+        #return 0.0
         #else:
         #    return -np.inf
 
