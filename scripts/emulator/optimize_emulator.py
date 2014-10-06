@@ -62,7 +62,7 @@ def sample_lnprob(weight_index):
     ndim = 4
     nwalkers = 8 * ndim
     print("using {} walkers".format(nwalkers))
-    p0 = np.vstack((np.random.uniform(-1.5, 2, size=(1, nwalkers)),
+    p0 = np.vstack((np.random.uniform(-0.5, 2, size=(1, nwalkers)),
                     np.random.uniform(50, 300, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)))).T
