@@ -94,5 +94,5 @@ for i in range(pcagrid.m):
     ax[0].plot(recon_fluxes[i])
     ax[1].plot(frac_err[i] * 100.)
     ax[1].set_ylabel("Error [\%]")
-    fig.savefig(base + "reconstruct_{:0>3}.png")
+    fig.savefig(base + "reconstruct_{:0>3}.png".format(i))
     plt.close()
