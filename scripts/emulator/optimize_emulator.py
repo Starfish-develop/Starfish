@@ -7,6 +7,7 @@ import math
 import argparse
 parser = argparse.ArgumentParser(prog="optimize_emulator.py", description="Optimize the GP weight modelling.")
 parser.add_argument("input", help="*.yaml file specifying parameters.")
+parser.add_argument("--index", type=int, default="-1", help="Which weight index to plot up. Default is to plot all.")
 args = parser.parse_args()
 
 f = open(args.input)
@@ -61,7 +62,7 @@ def sample_lnprob(weight_index):
     ndim = 4
     nwalkers = 8 * ndim
     print("using {} walkers".format(nwalkers))
-    p0 = np.vstack((np.random.uniform(-1, 2, size=(1, nwalkers)),
+    p0 = np.vstack((np.random.uniform(-1.5, 2, size=(1, nwalkers)),
                     np.random.uniform(50, 300, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)))).T
@@ -83,7 +84,15 @@ def sample_lnprob(weight_index):
     fig.savefig(cfg['outdir'] + "triangle_w{}.png".format(weight_index))
 
 def main():
-    sample_lnprob(0)
+    ncomp = pca.ncomp
+    if args.index < 0:
+        for i in range(ncomp):
+            sample_lnprob(i)
+            print("Finished pcomp {}".format(i))
+
+    else:
+        assert args.index < ncomp, "There are only {} PCA components to choose from.".format(args.index)
+        sample_lnprob(args.index)
 
 if __name__=="__main__":
     main()
