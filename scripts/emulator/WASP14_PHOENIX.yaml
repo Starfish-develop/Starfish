@@ -8,14 +8,14 @@ ranges:
     Z: [-1.5, 1.0]
     alpha: [0.0, 0.0]
 
-#wl : [20100, 23900]
+wl : [5000, 5400]
 
 test_index : 2500
 
 outdir : output/emulator/WASP14/PHOENIX/
 
 
-ncomp : 40 #Number of principal components to use
+ncomp : 20 #Number of principal components to use
 
 threads : 5
 
