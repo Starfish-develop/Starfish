@@ -13,7 +13,7 @@ f = open(args.input)
 cfg = yaml.load(f)
 f.close()
 
-pca = emulator.PCAGrid.from_cfg(cfg)
+pca = emulator.PCAGrid.open(cfg["PCA_grid"])
 
 def lnprob(p, weight_index):
     '''
@@ -59,9 +59,9 @@ def sample_lnprob(weight_index):
     import emcee
 
     ndim = 4
-    nwalkers = 4 * ndim
+    nwalkers = 8 * ndim
     print("using {} walkers".format(nwalkers))
-    p0 = np.vstack((np.random.uniform(-2, 2, size=(1, nwalkers)),
+    p0 = np.vstack((np.random.uniform(-1, 2, size=(1, nwalkers)),
                     np.random.uniform(50, 300, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)),
                     np.random.uniform(0.2, 1.5, size=(1, nwalkers)))).T
