@@ -14,10 +14,9 @@ test_index : 2500
 
 outdir : output/emulator/WASP14/PHOENIX/
 
-
 ncomp : 40 #Number of principal components to use
 
-threads : 5
+threads : 16
 
 burn_in : 500
 samples : 500
