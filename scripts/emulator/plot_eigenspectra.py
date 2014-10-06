@@ -95,4 +95,4 @@ for i in range(pcagrid.m):
     ax[1].plot(frac_err[i] * 100.)
     ax[1].set_ylabel("Error [\%]")
     fig.savefig(base + "reconstruct_{:0>3}.png")
-    fig.close()
+    plt.close()
