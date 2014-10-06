@@ -83,6 +83,11 @@ fluxes = np.array([flux[ind] for flux in grid.fluxes])
 fluxes = fluxes/np.average(fluxes, axis=1)[np.newaxis].T
 
 frac_err = (fluxes - recon_fluxes)/fluxes
+
+print(fluxes)
+print(recon_fluxes)
+print(frac_err)
+
 print("Max fractional error {:.2f}".format(100*frac_err))
 print("Std fractional error {:.2f}".format(100*np.std(frac_err)))
 
