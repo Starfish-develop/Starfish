@@ -15,13 +15,6 @@ f.close()
 
 pca = emulator.PCAGrid.from_cfg(cfg)
 
-def plot_eigenspectra():
-    import matplotlib.pyplot as plt
-    for i,pcomp in enumerate(pca.pcomps):
-        plt.plot(pca.wl, pcomp, label=i)
-    plt.legend()
-    plt.show()
-
 def lnprob(p, weight_index):
     '''
     Calculate the lnprob using Eqn 2.29 R&W
@@ -42,8 +35,8 @@ def lnprob(p, weight_index):
     ll2 = ll**2
     lz2 = lz**2
 
-    #if loga < -1.:
-    #    return -np.inf
+    if loga < -20.:
+        return -np.inf
 
     C = em.sigma(pca.gparams, a2, lt2, ll2, lz2)
 
@@ -90,7 +83,6 @@ def sample_lnprob(weight_index):
     fig.savefig(cfg['outdir'] + "triangle_w{}.png".format(weight_index))
 
 def main():
-    #plot_eigenspectra()
     sample_lnprob(0)
 
 if __name__=="__main__":
