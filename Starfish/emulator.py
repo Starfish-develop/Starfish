@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 import Starfish.em_cov as em
 import h5py
+from Starfish import constants as C
 
 class PCAGrid:
 
@@ -342,6 +343,11 @@ class Emulator:
         :param samples_list:
         '''
         self.PCAGrid = PCAGrid
+
+        #Determine the minimum and maximum bounds of the grid
+        self.min_params = np.min(self.PCAGrid.gparams, axis=0)
+        self.max_params = np.max(self.PCAGrid.gparams, axis=0)
+
         self.pcomps = self.PCAGrid.pcomps
         self.min_v = self.PCAGrid.min_v
         self.wl = self.PCAGrid.wl
@@ -373,6 +379,10 @@ class Emulator:
     @params.setter
     def params(self, pars):
         #Assumes pars are coming in as Temp, logg, Z.
+        #If the parameters are out of bounds, raise an error
+        if np.any(pars < self.min_params) or np.any(pars > self.max_params):
+            raise C.ModelError("Emulating outside of the grid.")
+
         self._params = pars
 
     def draw_weights(self):

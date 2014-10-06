@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/region/logg/4_8sig/
+name: Gl51/PHOENIX/RA/region/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
@@ -25,7 +25,7 @@ stellar_jump:
     temp : 15
     logg : 0.02
     Z : 0.02
-    vsini : 0.4
+    vsini : 1.
     vz : 0.2
     logOmega: 2e-4
 
@@ -87,5 +87,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 100
-samples : 40000
+samples : 50000
 
