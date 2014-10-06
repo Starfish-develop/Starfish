@@ -84,13 +84,13 @@ fluxes = fluxes/np.average(fluxes, axis=1)[np.newaxis].T
 
 frac_err = (fluxes - recon_fluxes)/fluxes
 
-print("Max fractional error {:.2f}".format(100*np.max(np.abs(frac_err))))
-print("Std fractional error {:.2f}".format(100*np.std(frac_err)))
+print("Max fractional error {:.2f}%".format(100*np.max(np.abs(frac_err))))
+print("Std fractional error {:.2f}%".format(100*np.std(frac_err)))
 
 fig, ax = plt.subplots(nrows=2, figsize=(20, 5), sharex=True)
 ax[0].plot(fluxes.flatten())
 ax[0].plot(recon_fluxes.flatten())
-for frac_e in frac_err[:20]:
+for frac_e in frac_err[:10]:
     ax[1].plot(frac_e * 100.)
     ax[1].set_ylabel("Error [\%]")
 fig.savefig(base + "reconstruct.png")
