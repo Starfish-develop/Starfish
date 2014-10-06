@@ -60,9 +60,12 @@ class PCAGrid:
         wl = grid.wl
         min_v = grid.wl_header["min_v"]
 
-        low, high = cfg['wl']
-        ind = determine_chunk_log(wl, low, high) #Sets the wavelength vector using a power of 2
-        wl = wl[ind]
+        if 'wl' in cfg:
+            low, high = cfg['wl']
+            ind = determine_chunk_log(wl, low, high) #Sets the wavelength vector using a power of 2
+            wl = wl[ind]
+        else:
+            ind = np.ones_like(wl, dtype="bool")
 
         npix = len(wl)
         m = len(grid.list_grid_points)
@@ -128,7 +131,9 @@ class PCAGrid:
             for j,spec in enumerate(fluxes):
                 w[i,j] = np.sum(pcomp * spec)
 
-        return cls(wl, min_v, flux_mean, flux_std, pcomps, w, gparams)
+        pca = cls(wl, min_v, flux_mean, flux_std, pcomps, w, gparams)
+        pca.ind = ind
+        return pca
 
     def determine_chunk_log(self, wl_data):
         '''
@@ -198,6 +203,19 @@ class PCAGrid:
         for i, (pcomp, weight) in enumerate(zip(self.pcomps, weights)):
             f[i, :] = pcomp * weight
         return np.sum(f, axis=0) * self.flux_std + self.flux_mean
+
+    def reconstruct_all(self):
+        '''
+        Return a (m, npix) array with all of the spectra reconstructed.
+        '''
+        recon_fluxes = np.empty((self.m, self.npix))
+        for i in range(self.m):
+            f = np.empty((self.ncomp, self.npix))
+            for j, (pcomp, weight) in enumerate(zip(self.pcomps, self.w[:,i])):
+                f[j, :] = pcomp * weight
+            recon_fluxes[i, :] = np.sum(f, axis=0) * self.flux_std + self.flux_mean
+
+        return recon_fluxes
 
     def write(self, filename):
         '''

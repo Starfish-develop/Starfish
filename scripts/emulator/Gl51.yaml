@@ -1,5 +1,6 @@
 #sim_grid : /scratch/PHOENIX_SPEX_M.hdf5 #
 grid : libraries/PHOENIX_SPEX_M.hdf5 #File which stores the actual PHOENIX spectra
+PCA_grid : libraries/PHOENIX_SPEX_M_PCA.hdf5
 
 ranges:
     temp: [2800, 3400]
@@ -7,11 +8,12 @@ ranges:
     Z: [-0.5, 1.0]
     alpha: [0.0, 0.0]
 
-wl : [20000, 24000]
+wl : [20100, 23900]
 
 test_index : 500
 
 outdir : output/emulator/Gl51/
+
 
 ncomp : 5 #Number of principal components to use
 
