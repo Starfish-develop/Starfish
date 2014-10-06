@@ -79,11 +79,18 @@ fluxes = np.array([flux[ind] for flux in grid.fluxes])
 
 #Normalize all of the fluxes to an average value of 1
 #In order to remove interesting correlations
+
 fluxes = fluxes/np.average(fluxes, axis=1)[np.newaxis].T
+
+frac_err = (fluxes - recon_fluxes)/fluxes
+print("Max fractional error {:.2f}%".format(100*frac_err))
+print("Std fractional error {:.2f}%".format(100*np.std(frac_err)))
 
 fig, ax = plt.subplots(nrows=2, figsize=(20, 5), sharex=True)
 ax[0].plot(fluxes.flatten())
 ax[0].plot(recon_fluxes.flatten())
-ax[1].plot( (fluxes.flatten() - recon_fluxes.flatten())/fluxes.flatten() * 100.)
+for frac_e in frac_err[:20]:
+    ax[1].plot(frac_e * 100.)
+    ax[1].set_ylabel("Error [\%]")
 fig.savefig(base + "reconstruct.png")
 plt.show()
