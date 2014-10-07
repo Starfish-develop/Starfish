@@ -354,7 +354,7 @@ class Emulator:
     '''
     Stores a Gaussian process for the weight of each principal component.
     '''
-    def __init__(self, PCAGrid, samples_list):
+    def __init__(self, PCAGrid, optimized_params=None, samples_list=None):
         '''
 
         :param weights_list: [w0s, w1s, w2s, ...]
@@ -366,29 +366,52 @@ class Emulator:
         self.min_params = np.min(self.PCAGrid.gparams, axis=0)
         self.max_params = np.max(self.PCAGrid.gparams, axis=0)
 
-        self.pcomps = self.PCAGrid.pcomps
+        #self.pcomps = self.PCAGrid.pcomps
         self.min_v = self.PCAGrid.min_v
         self.wl = self.PCAGrid.wl
 
         self.WEs = []
-        for weight_index, samples in enumerate(samples_list):
-            self.WEs.append(WeightEmulator(self.PCAGrid, None, weight_index, samples))
+        if optimized_params is not None:
+            for weight_index, params in enumerate(optimized_params):
+                self.WEs.append(WeightEmulator(self.PCAGrid, params, weight_index, None))
+        elif samples_list is not None:
+            for weight_index, samples in enumerate(samples_list):
+                self.WEs.append(WeightEmulator(self.PCAGrid, None, weight_index, samples))
+        else:
+            raise RuntimeError("Must specify either optimized_params or samples_list.")
 
     @classmethod
     def open(cls, filename):
+        '''
+        Create an Emulator object from an HDF5 file.
+        '''
         #Create the PCAGrid from this filename
         pcagrid = PCAGrid.open(filename)
         hdf5 = h5py.File(filename, "r")
-        samples = hdf5["samples"][:]
-        hdf5.close()
 
-        return cls(pcagrid, samples)
+        #Try loading either samples or parameters from the HDF5
+        try:
+            samples = hdf5["samples"][:]
+            hdf5.close()
+            return cls(pcagrid, None, samples)
+        except KeyError:
+            pass
+
+        try:
+            params = hdf5["params"][:]
+            hdf5.close()
+            return cls(pcagrid, params, None)
+        except KeyError:
+            pass
+
+        raise RuntimeError("Found neither samples or parameters.")
 
     def determine_chunk_log(self, wl_data):
         '''
         Possibly truncate the wl grid in response to some data. Also truncate pcomps, and flux_mean and flux_std.
         '''
         self.PCAGrid.determine_chunk_log(wl_data)
+        self.wl = self.PCAGrid.wl
 
     @property
     def params(self):
@@ -420,7 +443,7 @@ class Emulator:
         #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
 
         weights = self.draw_weights()
-        recons = self.pcomps.T.dot(weights).reshape(-1)
+        recons = self.PCAGrid.pcomps.T.dot(weights).reshape(-1)
         return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
 
 def main():

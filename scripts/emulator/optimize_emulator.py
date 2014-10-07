@@ -91,6 +91,7 @@ def fmin_lnprob(weight_index):
     result = fmin(func, p0)
     #result = minimize(func, p0, bounds=[(-3, 3),(40, 400),(0.1, 2.0),(0.1, 2.0)])
     print(weight_index, result)
+    return result
 
 
 def main():
@@ -100,7 +101,9 @@ def main():
         #Map fmin to all available threads using a pool
         import multiprocessing as mp
         pool = mp.Pool(mp.cpu_count())
-        pool.map(fmin_lnprob, range(ncomp))
+        iterable = pool.imap(fmin_lnprob, range(ncomp))
+        np.save(cfg["outdir"] + "params.npy", np.array([params for params in iterable]))
+
         #for i in range(ncomp):
             #sample_lnprob(i)
         #    fmin_lnprob(i)

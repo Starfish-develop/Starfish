@@ -1,15 +1,15 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/region/4sig/logg/
+name: WASP14/PHOENIX/22/region/
 
-#HDF5_path : libraries/PHOENIX_TRES_F.hdf5
-HDF5_path : /scratch/PHOENIX_TRES_F.hdf5
 data : data/WASP14/WASP14-2009-06-14.hdf5
 outdir : output/
 
+PCA_path : libraries/PHOENIX_TRES_F_PCA.hdf5
+
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
-  Trying with regions and many orders, fixing logg.
+  Bayesian Emulator
 
 #Nested data structures are allowed
 stellar_params :
@@ -18,7 +18,7 @@ stellar_params :
     Z : -0.50
     vsini : 5.05
     vz : -4.838
-    logOmega: -19.679 #PHOENIX
+    logOmega: -12.715 #PHOENIX
 
 #Average jump size in each parameter
 #Using covariance
@@ -26,20 +26,11 @@ stellar_jump:
     temp : 15
     #logg : 0.002
     Z : 0.01
-    vsini : 0.02
-    vz : 0.02
-    logOmega: 1e-3
+    vsini : 0.05
+    vz : 0.05
+    logOmega: 3e-3
 
 fix_logg : 4.29
-
-#no covariance
-#stellar_jump:
-#    temp : 1
-#    logg : 0.002
-#    Z : 0.001
-#    vsini : 0.02
-#    vz : 0.02
-#    logOmega: 1e-4
 
 use_cov: False
 stellar_cov:
@@ -50,14 +41,13 @@ stellar_cov:
     factor : 0.02
 
 cheb_degree: 4
-#using covariance
 cheb_jump : 2e-3
 
 no_cov : False
 
 cov_params :
     sigAmp : 1
-    logAmp : -14.17
+    logAmp : -14.30
     l : 10.3
 
 cov_jump :
@@ -90,6 +80,6 @@ interp_cut : 70 #km/s
 orders: [21, 22, 23]
 
 #Burn in time
-burn_in : 10000
-samples : 20000
+burn_in : 300
+samples : 50000
 #will probably need 100000 for a good looking posterior
