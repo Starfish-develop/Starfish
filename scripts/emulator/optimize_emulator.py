@@ -83,16 +83,33 @@ def sample_lnprob(weight_index):
     fig = triangle.corner(samples)
     fig.savefig(cfg['outdir'] + "triangle_w{}.png".format(weight_index))
 
+def fmin_lnprob(weight_index):
+    from scipy.optimize import fmin
+    #from scipy.optimize import minimize
+    p0 = np.array([1., 200., 1.0, 1.0])
+    func = lambda x: -lnprob(x, weight_index)
+    result = fmin(func, p0)
+    #result = minimize(func, p0, bounds=[(-3, 3),(40, 400),(0.1, 2.0),(0.1, 2.0)])
+    print(weight_index, result)
+
+
 def main():
+    #fmin_lnprob(0)
     ncomp = pca.ncomp
     if args.index < 0:
-        for i in range(ncomp):
-            sample_lnprob(i)
-            print("Finished pcomp {}".format(i))
+        #Map fmin to all available threads using a pool
+        import multiprocessing as mp
+        pool = mp.Pool(mp.cpu_count())
+        pool.map(fmin_lnprob, range(ncomp))
+        #for i in range(ncomp):
+            #sample_lnprob(i)
+        #    fmin_lnprob(i)
+        #    print("Finished pcomp {}".format(i))
 
     else:
         assert args.index < ncomp, "There are only {} PCA components to choose from.".format(args.index)
-        sample_lnprob(args.index)
+        #sample_lnprob(args.index)
+        fmin_lnprob(args.index)
 
 if __name__=="__main__":
     main()
