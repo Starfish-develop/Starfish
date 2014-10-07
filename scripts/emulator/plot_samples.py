@@ -13,7 +13,6 @@ import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
-from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import MultipleLocator
 from Starfish.emulator import PCAGrid, WeightEmulator
 
@@ -23,7 +22,10 @@ f.close()
 
 #Load individual samples and then concatenate them
 base = cfg["outdir"]
-samples = np.array([np.load(base + "samples_w{}.npy".format(i)) for i in range(5)])
+#samples = np.array([np.load(base + "samples_w{}.npy".format(i)) for i in range(5)])
+
+#Instead, use the optimized parameters.
+params = np.load(base + "params.npy")
 
 
 pcagrid = PCAGrid.from_cfg(cfg)
@@ -44,11 +46,11 @@ int_Zs = np.linspace(Zs[0], Zs[-1], num=40)
 def explore(weight_index):
     weights = pcagrid.w[weight_index]
     #Set up the emulator
-    EMw = WeightEmulator(pcagrid, None, weight_index, samples[weight_index])
+    EMw = WeightEmulator(pcagrid, params[weight_index], weight_index, None) #samples[weight_index])
 
     nsamp = 5
 
-    figt, axt = plt.subplots(nrows=4, ncols=4, figsize=(12,12), sharex=True, sharey=True)
+    figt, axt = plt.subplots(nrows=nls, ncols=nzs, figsize=(12,12), sharex=True, sharey=True)
 
     for i in range(nls):
         for j in range(nzs):
@@ -76,7 +78,7 @@ def explore(weight_index):
     axt[-1, -1].xaxis.set_major_locator(MultipleLocator(200))
 
 
-    figl, axl = plt.subplots(nrows=4, ncols=7, figsize=(18,12), sharex=True, sharey=True)
+    figl, axl = plt.subplots(nrows=nzs, ncols=nts, figsize=(18,12), sharex=True, sharey=True)
 
     for i in range(nzs):
         for j in range(nts):
@@ -104,7 +106,7 @@ def explore(weight_index):
     axl[-1, -1].xaxis.set_major_formatter(FSF("%.1f"))
     axl[-1, -1].xaxis.set_major_locator(MultipleLocator(0.5))
 
-    figz, axz = plt.subplots(nrows=4, ncols=7, figsize=(18,12), sharex=True, sharey=True)
+    figz, axz = plt.subplots(nrows=nls, ncols=nts, figsize=(18,12), sharex=True, sharey=True)
 
     for i in range(nls):
         for j in range(nts):
@@ -136,6 +138,8 @@ def explore(weight_index):
     figt.savefig(base + "weight{}_temp.png".format(weight_index))
     figl.savefig(base + "weight{}_logg.png".format(weight_index))
     figz.savefig(base + "weight{}_Z.png".format(weight_index))
+
+    plt.close()
 
 ncomp = pcagrid.ncomp
 

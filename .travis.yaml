@@ -3,6 +3,8 @@ python:
   - "3.2"
   - "3.3"
   - "3.4"
+before-install:
+  - "sudo apt-get install suitesparse"
 # command to install dependencies
 install:
   - "python setup.py install"
