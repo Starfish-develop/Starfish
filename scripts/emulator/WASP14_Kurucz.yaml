@@ -1,0 +1,22 @@
+#sim_grid : /scratch/PHOENIX_SPEX_M.hdf5 #
+grid : libraries/Kurucz_TRES.hdf5 #File which stores the actual PHOENIX spectra
+PCA_grid : libraries/Kurucz_TRES_F_PCA.hdf5
+
+ranges:
+    temp: [5500, 7000]
+    logg: [3.0, 5.0]
+    Z: [-1.5, 1.0]
+    alpha: [0.0, 0.0]
+
+#wl : [5000, 5400]
+
+test_index : 2500
+
+outdir : output/emulator/WASP14/Kurucz/
+
+ncomp : 30 #Number of principal components to use
+
+threads : 4
+
+burn_in : 500
+samples : 500
