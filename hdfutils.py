@@ -42,6 +42,8 @@ parser.add_argument("--acor", action="store_true", help="Calculate the autocorre
 parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
 parser.add_argument("--cov", action="store_true", help="Estimate the covariance between two parameters.")
+parser.add_argument("--paper", action="store_true", help="Change the figure plotting options appropriate for the "
+                                                         "paper.")
 
 args = parser.parse_args()
 
@@ -59,11 +61,11 @@ args.outdir += "/"
 import h5py
 
 #Plot kw
-label_dict = {"temp":r"$T_{\rm eff}$", "logg":r"$\log_{10} g$", "Z":r"$[{\rm Fe}/{\rm H}]$",
+label_dict = {"temp":r"$T_{\rm eff}\;[{\rm K}]$", "logg":r"$\log g$", "Z":r"$[{\rm Fe}/{\rm H}]$",
               "alpha":r"$[\alpha/{\rm Fe}]$",
-              "vsini":r"$v \sin i$",
+              "vsini":r"$v \sin i\;[{\rm km\;s}^{-1}]$",
               "vz":r"$v_z$", "vz1":r"$v_z1$", "vz2":r"$v_z2$", "vz3":r"$v_z3$",
-              "logOmega":r"$\log_{10} \Omega$",
+              "logOmega":r"$\log \Omega$",
               "logOmega1":r"$\log{10} \Omega 1$",
               "logOmega2":r"$\log{10} \Omega 2$",
               "logOmega3":r"$\log{10} \Omega 3$",
@@ -404,9 +406,60 @@ def plot(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plo
         labels = [label_dict.get(key, "unknown") for key in params]
 
         figure = triangle.corner(samples, labels=labels, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 16})
+                                 show_titles=True, title_args={"fontsize": 16}, plot_contours=True,
+                                 plot_datapoints=False)
         figure.savefig(base + flatchain.id + format)
 
+
+def plot_paper(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plot=args.chain,
+         lnprob=args.lnprob, clip_stellar='all', format=".pdf"):
+    '''
+    Make a bunch of plots to diagnose how the run went.
+    '''
+
+    import matplotlib
+    matplotlib.rc("font", size=8)
+    #matplotlib.rc("axes", labelpad=10)
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FormatStrFormatter as FSF
+
+    #Navigate the flatchain tree, and plot just the stellar parameters
+    flatchain = [flatchain for flatchain in flatchainTree.flatchains if flatchain.id == "stellar"][0]
+
+    if clip_stellar != "all":
+        flatchain.clip_param(clip_stellar)
+
+    params = flatchain.param_tuple
+    samples = flatchain.samples
+    labels = [label_dict.get(key, "unknown") for key in params]
+
+    K = len(labels)
+    fig, axes = plt.subplots(K, K, figsize=(3.5, 3.35))
+
+    figure = triangle.corner(samples, labels=labels, # quantiles=[0.16, 0.5, 0.84],
+                             show_titles=False, title_args={"fontsize": 8}, plot_contours=True,
+                             plot_datapoints=False, fig=fig)
+    if K == 3:
+        figure.subplots_adjust(left=0.13, right=0.87, top=0.95, bottom=0.15)
+    if K == 4:
+        figure.subplots_adjust(left=0.13, right=0.87, top=0.95, bottom=0.15)
+
+    axes[-1,0].xaxis.set_major_formatter(FSF("%.0f"))
+
+    if K == 4:
+        #Yaxis
+        for ax in axes[:, 0]:
+            ax.yaxis.set_label_coords(-0.48, 0.5)
+        for ax in axes[-1, :]:
+            ax.xaxis.set_label_coords(0.5, -0.48)
+    if K == 3:
+        #Yaxis
+        for ax in axes[:, 0]:
+            ax.yaxis.set_label_coords(-0.38, 0.5)
+        for ax in axes[-1, :]:
+            ax.xaxis.set_label_coords(0.5, -0.34)
+
+    figure.savefig(base + flatchain.id + format)
 
 def plot_walkers(filename, samples, lnprobs=None, start=0, end=-1, labels=None):
     import matplotlib.pyplot as plt

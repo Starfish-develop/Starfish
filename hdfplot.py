@@ -11,5 +11,9 @@ Script designed to plot the HDF5 output from MCMC runs. It will only plot the fi
 if hdfutils.args.cov:
     hdfutils.estimate_covariance(hdfutils.flatchainTreeList[0])
 
-hdfutils.plot(hdfutils.flatchainTreeList[0], clip_stellar=hdfutils.args.stellar_params)
+if hdfutils.args.paper:
+    hdfutils.plot_paper(hdfutils.flatchainTreeList[0], clip_stellar=hdfutils.args.stellar_params)
+else:
+    hdfutils.plot(hdfutils.flatchainTreeList[0], clip_stellar=hdfutils.args.stellar_params)
+
 
