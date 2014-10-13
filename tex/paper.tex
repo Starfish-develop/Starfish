@@ -1095,12 +1095,12 @@ enormous leverage for identifying and improving the underlying model systematics
 %linked to that, since there is a popular Herschel HERMES program that will confuse people...
 
 
-\acknowledgments  The authors would like to graciously acknowledge the following people for many helpful discussions and key insights: Gregory M. Green, Kaisey Mandel, Daniel Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship and the Smithsonian Institution. Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. Astropy. JuliaLang.\\
+\acknowledgments  The authors would like to graciously acknowledge the following people for many helpful discussions and key insights: Gregory M. Green, Kaisey Mandel, Daniel Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship and the Smithsonian Institution. Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. Astropy. JuliaLang. Python/Scikit-learn.\\
 
 
 \appendix
 
-\section{Interpolation Errors} \label{sec:Appendix}
+\section{Spectral Emulator} \label{sec:Appendix}
 
 Interpolation from a library of synthetic spectra is conceptually straightforward, but in the 
 application discussed here there are some subtleties that require detailed consideration.  
@@ -1108,7 +1108,7 @@ Spectral line formation is a non-linear process, where line shapes are determine
 radiative transfer through a stellar atmosphere.  We aim to bypass this non-linear 
 process and predict (through interpolation) the behavior of spectral lines based on pre-computed 
 library spectra with similar physical parameters.  The goal in this Appendix is to describe a 
-procedure by which we propagate an empirical approximation of the {\it inaccuracy} in that 
+procedure by which we propagate an empirical approximation of the {\it uncertainty} in that 
 prediction through the probabilistic framework we have developed.
 
 There are two important factors to consider when interpolating in libraries of model stellar 
@@ -1118,12 +1118,7 @@ the decision about which functional form of interpolation should be used.  And s
 are usually not Nyquist sampled with respect to the physical parameters that define the library.  
 This unfortunately (but not surprisingly) means that the library is not sampled densely enough in 
 parameter-space to reconstruct a synthetic spectrum for arbitrary parameters without some 
-information loss.  Given these factors, we make the conservative (and computationally tractable) 
-assumption and adopt a linear interpolation scheme.  More advanced interpolation methods, like a 
-spline or other band-limited approach, do not change the fact that the library grid is not Nyquist 
-sampled, and so do not improve performance.  To account for the loss of spectral information during 
-the interpolation process, we have to build a model of the interpolation errors and incorporate it 
-into the likelihood function (via the covariance matrix).
+information loss.  Given these factors, we choose to develop a spectral ``emulator,'' which, given the information contained in the library of synthesized spectra, seeks to non-deterministically predict the behavior of a spectrum for stellar parameters not sampled by the library. 
 
 Model library spectra, $f_{\lambda}(\{\vt_{\ast}\})$, are stored as (1-dimensional) arrays of flux 
 values, sampled on high resolution wavelength grids (typically $R \gtrsim 100,000$).  In the case 
@@ -1131,106 +1126,32 @@ of interest here, the collections of model parameters $\{\vt_{\ast}\} = [\{T_{\r
 \}]$ define the dimensions of the library grid; the full library is therefore encapsulated in a 
 4-dimensional array.  Both the libraries used here have grid spacings of 0.5 dex in $\log g$ and 
 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but the {\sc 
-Phoenix} library has finer coverage in 100\,K increments.  We empirically determine a model grid of 
-interpolation errors through a series of ``drop-out" interpolation tests.  The idea is to remove a 
-spectrum from the library, $f_{\lambda}(\vt_{\ast})$, generate an interpolated spectrum, 
-$\tilde{f}_{\lambda}(\vt_{\ast})$, at the parameters corresponding to that removed spectrum from 
-the neighboring spectra, and then compare the two.  The result is a set of three ``error" (or, 
-rather ``difference") spectra, each representing an individual dimension in parameter-space, where
-\begin{eqnarray} \label{eqn:interr}
-e_{\lambda}(\vt_{\ast}^{k}) &=& f_{\lambda}(\vt_{\ast}^k) - \tilde{f}_{\lambda}(\vt_{\ast}^k) \\
-                            &=& f_{\lambda}(\vt_{\ast}^k) - \frac{1}{2}\left[f_{\lambda}(\vt_{\ast}^{k+1})+f_{\lambda}(\vt_{\ast}^{k-1}))\right], \nonumber
-\end{eqnarray}
-for $k = 1, 2, 3$ indexing the library parameters ($\vt_{\ast}$).
+Phoenix} library has finer coverage in 100\,K increments.  
 
-As a concrete example, consider the stellar parameters $\vt_{\ast}$ = [6000\,K, 4.0 dex, -0.5 
-dex].  An ``error spectrum" in the $T_{\rm eff}$ dimension, $e_{\lambda}(\vt_{\ast}^1)$, would be 
-calculated from the difference between the grid spectrum at that $\vt_{\ast}$ and the average of 
-$f_{\lambda}$([5900\,K, 4.0 dex, -0.5 dex]) and $f_{\lambda}$([6100\,K, 4.0 dex, -0.5 dex]), as 
-defined in Eq.~\ref{eqn:interr}.  Likewise for the error spectra in the $\log g$ and $\Z$ 
-dimensions, $e_{\lambda}(\vt_{\ast}^2)$ and $e_{\lambda}(\vt_{\ast}^3)$.  A graphical demonstration 
-is shown in Figure~\ref{fig:interp_errors}.  These kinds of drop-out tests over larger spans of the 
-grid show that the amplitude of $e_{\lambda}$ grows approximately linearly with the interpolation 
-distance.
-
-\begin{figure*}[!t]
-\begin{center}
-  \includegraphics{figs/interp_errors.pdf}
-\vspace{-0.1cm}
-  \figcaption{(\emph{top}) A small subset of a {\sc Phoenix} model spectrum at library gridpoint 
-defined by $\vt_{\ast} = [T_\textrm{eff} = 6000$\,K, $\log g=4.0$ dex, and $\Z = $-0.5 dex$]$, 
-shown with the drop-out interpolation spectra ($\tilde{f}_{\lambda}$) along each of the three 
-parameter axes.  The interpolated spectra closely match the ``true'' spectrum.  (\emph{bottom}) The 
-three corresponding ``error" spectra plotted {\it relative to the true spectrum} (i.e., 
-$e_{\lambda}/f_{\lambda}$).  The shaded regions show the total change in $f_{\lambda}$ between the 
-two neighboring spectra in the library used for the interpolation (again relative to the true 
-spectrum).  Note that the error spectrum is generally much smaller than the typical change in flux 
-across gridpoints.  For the few points where this is not true (e.g., $\log g$ near 5161.5\AA), this 
-indicates non-monotonic changes between gridpoints.  Therefore, it is most conservative to build an 
-interpolation error model that accounts for this behavior and protects against assumptions of 
-monotonicity. \label{fig:interp_errors}}
-\end{center}
-\end{figure*}
-
-The interpolation error is generally small, $\lesssim$2\%, much less than the Poisson noise for 
-spectra with moderate sensitivity and usually (although not always) less than the difference 
-between spectra at adjacent grid points.  This gives us confidence that it is possible to generate 
-accurate interpolated spectra, and that any inference on the stellar parameters can be made at a 
-level substantially more precise than dictated by the coarse spacing of the library itself 
-(especially for such a large data volume).  However, although $e_{\lambda}$ is small in magnitude, 
-the fact that spectral lines have similar shapes means that the interpolation error often compounds 
-\emph{coherently}.  That coherence can substantially diminish the likelihood of an interpolated 
-spectrum, since its spectral line shapes are less ``physical" than for a spectrum located directly 
-on a computed gridpoint.  In essence, this highlights the underlying {\it necessity} of propagating 
-an interpolation error to deliver a proper likelihood at interpolated parameter values.  
-
-Because the magnitude of $e_{\lambda}$ is strongly dependent on its association with the continuum 
-or a spectral line, the interpolation error model must be based on a (spectral) covariance kernel.  
-The elements of that kernel, $\mathcal{K}_{ij}^{\rm int}$, are determined from the empirical model 
-grid of $e_{\lambda}$ calculated from the drop-out technique.  The interpolated model spectrum and 
-is a weighted average of the neighboring 8 gridpoints (standard tri-linear interpolation).  To 
-construct $\mathcal{K}_{ij}^{\rm int}$ from the associated 24 interpolation error spectra, we first 
-need to generate sub-kernels that represent each dimension in parameter-space, 
-\begin{equation} \label{eq:subsubkernel}
-^k_l\mathcal{K}_{ij}^{\rm int} = \langle e_{\lambda_i}^k \; e_{\lambda_j}^k \rangle_l,
-\end{equation}
-where again $k$ indexes each element of $\vt_{\ast}$, and $l$ indexes each of the neighboring 
-gridpoints (and $i, j$ denote a pixel pairing, as in Sect.~\ref{sec:method}).  The sub-kernel for 
-dimension $k$ corresponding to the desired interpolate location is a simple weighted sum of the 
-matrices in Eq.~\ref{eq:subsubkernel},
-\begin{equation} \label{eq:subkernel}
-^k\mathcal{K}_{ij}^{\rm int} = \sum_{l=1}^8 \Delta_l \,\, ^k_l\mathcal{K}_{ij}^{\rm int},
-\end{equation}
-where the weights $\Delta_l$ depend on the distance from each grid point to the interpolate 
-location. 
-
-\begin{figure}[!b]
-\begin{center}
-  \includegraphics{figs/interp_matrix.pdf}
-  \figcaption{A sub-region of a typical interpolation error kernel, $\mathcal{K}_{\ij}^{\rm int}$, 
-for an arbitrary set of parameters; $\vt_{\ast} = T_\textrm{eff} = 6220$, K, $\log g=4.2$ dex, and 
-$\Z = $-0.4 dex.  The color scale is the same as in Fig.~\ref{fig:matrix}; since elements of 
-this covariance kernel can be negative, an analogous scale (in {\it red}) is duplicated to 
-highlight such regions with the same logarithmic stretch.  \label{fig:interp_matrix}}
-\end{center}
-\end{figure}
-
-Finally, we average the 3 sub-kernels in Eq.~\ref{eq:subkernel}, representing the covariance 
-introduced in each parameter dimension at the interpolate location, as 
+The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation. We use principal component analysis (PCA) to decompose the synthetic library into a set of ``eigenspectra'' $\varphi$. Following techniques of SLOAN (cite Ivecik 2014). After examining how well the spectra reconstruct the grid, we keep the first $m$ of the eigenspectra, and discard the latter eigenspectra. We keep enough eigenspectra to reconstruct any pixel flux to better than $2\%$, however most pixels are more like $XX\%$. $\varphi_k$, $k = \{1, 2, \ldots, m\}$. Before we do the PCA operation, however, we first standardize the synthetic library by subtracting the mean spectrum and ``whitening'' the spectra by dividing by the standard deviation in each pixel. First, we select only a subset of the spectra synthetic library which will be relevant to our  The mean spectrum is 
 \begin{equation}
-\mathcal{K}_{ij}^{\rm int} = w_{ij}(r_0) \sum_{k=1}^3 \varrho_k \, ^k\mathcal{K}_{ij}^{\rm int}.
+  f_{\lambda, \mu} = \frac{1}{N} \sum_{i = 1}^N f_\lambda(\{\vt_\ast \}^\textrm{grid})
 \end{equation}
-Here, the weights $\varrho_k$ are based on the interpolation distance in parameter-space.  For 
-example, if the target interpolate distance were $T_{\rm eff} = 6120$\,K then $\varrho_1 = 0.4$ 
-(as a reminder, the library gridpoints are spaced by 100\,K in this dimension); for $T_{\rm eff} = 
-6100$\,K, $\varrho_1 = 0.0$; and for $T_{\rm eff} = 6150$\,K, the maximal interpolation distance, 
-$\varrho_1 = 1.0$.  
-For computational expediency and numerical stability, we smoothly taper the covariance kernel to 
-zero at the same length scale ($r_0 = 4 \ell$) as the global covariance kernel, again employing a 
-Hann window.  In reality, $\mathcal{K}^{\rm int}$ is a dense matrix: pixels separated by a wide 
-spectral range may in fact exhibit a strong degree of correlation because they happen to fall on 
-the same relative location of a spectral line.  A representative interpolation error kernel is 
-shown in Figure~\ref{fig:interp_matrix}. \\
+and the standard deviation spectrum is
+\begin{equation}
+  f_{\lambda, \sigma} = \sqrt{\frac{1}{N} \sum_{i=1}^N \bigl [ f_\lambda(\{\vt_\ast \}^\textrm{grid}) - f_{\lambda, \mu} \bigr]^2 } 
+\end{equation}
+So a spectrum from the standardized library is given by
+\begin{equation}
+  \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) = \frac{f_\lambda(\{\vt_\ast \}^\textrm{grid}) - f_{\lambda, \mu}}{f_{\lambda, \sigma}}
+\end{equation}
+Then, the eigenspectra are determined from the standardize grid using PCA analysis (see Ivecik). To speed computation, we first select a 
+
+Using the PCA basis, we can lossily reconstruct any spectrum from the library by a linear combination of the eigenspactra
+\begin{equation}
+  \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) \approx \sum_{k=1}^m w_k(\{\vt_\ast \}^\textrm{grid}) \varphi_k
+\end{equation}
+where $w_k$ is the weight of a given eigenspectrum, $k$. This weight is a three dimensional scalar function, which depends on the stellar parameters $\vt_\ast$. By projecting the spectra from the synthetic library onto the eigenspectra, we can determine the weights at the grid points in the library, $\{\vt_\ast \}^\textrm{grid}$. For a given eigenspectrum $\varphi_k$, the weight is 
+\begin{equation}
+  w_k(\{\vt_\ast \}^\textrm{grid}) = \sum_\lambda \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) \varphi_k
+\end{equation}
+These weights are generally a smooth function of stellar parameters.
+
 
 
 \bibliographystyle{yahapj}

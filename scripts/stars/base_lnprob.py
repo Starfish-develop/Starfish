@@ -108,8 +108,22 @@ myInstrument = TRES()
 stellar_Starting = config['stellar_params']
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
 #go for each item in stellar_tuple, and assign the appropriate covariance to it
-stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
-                 * np.identity(len(stellar_Starting))
+#stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
+#                 * np.identity(len(stellar_Starting))
+stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2
+
+temulator = Emulator.open(config['PCA_path'])
+#Call the emulator at the starting stellar parameters
+pp = np.array([stellar_Starting["temp"], stellar_Starting["logg"], stellar_Starting["Z"]])
+starting_Weights = temulator.draw_weights(pp)
+stellar_Starting["weights"] = starting_Weights
+
+weight_mu, weight_cov = temulator(pp)
+weight_cov = weight_cov * config["frac_weight"]
+
+stellar_MH_cov = np.concatenate((stellar_MH_cov, weight_cov))
+stellar_MH_cov = stellar_MH_cov * np.identity(len(stellar_MH_cov))
+print(len(stellar_MH_cov))
 
 fix_logg = config.get("fix_logg", None)
 

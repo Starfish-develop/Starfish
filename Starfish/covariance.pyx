@@ -7,6 +7,7 @@
 
 import numpy as np
 cimport numpy as np
+cimport cython
 import scipy
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import Starfish.constants as C
@@ -958,3 +959,36 @@ cdef class RegionCovarianceMatrix:
 
 
 #How long does the add operation actually take? About 0.02s to add together two large covariance regions. I think it might be OK to leave in the extra add operation at this point.
+
+#New covariance filler routines
+@cython.boundscheck(False)
+def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
+    '''
+    Fill out the covariance matrix.
+    '''
+
+    cdef int N = len(wl)
+    cdef int i = 0
+    cdef int j = 0
+    cdef double cov = 0.0
+
+    #Find all the indices that are less than the radius
+    rr = np.abs(wl[:, None] - wl[None, :]) * C.c_kms/wl #Velocity space
+    flag = (rr < max_r)
+    indices = np.argwhere(flag)
+
+    #The matrix that we want to fill
+    mat = np.zeros((N,N))
+
+    #Loop over all the indices
+    for index in indices:
+        i,j = index
+        if j > i:
+            continue
+        else:
+            #Initilize [i,j] and [j,i]
+            cov = k_func(i, j)
+            mat[i,j] = cov
+            mat[j,i] = cov
+
+    return mat
