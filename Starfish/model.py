@@ -246,12 +246,17 @@ class Model:
         '''
         Define the prior here
         '''
+
+        #Evaluate prior values of weights.
+        w = params["weights"]
+        #Get the mean and sigma of p(w | theta_stellar)
+        mu, sigma = self.ModelSpectrum.Emulator(w)
+        wprior = -np.log(sigma) - 0.5 * (w - mu)**2 - 0.5 * np.log(2. * np.pi)
+
         logg = params["logg"]
-        #if (logg >= 4.8) and (logg <= 5.2):
-        return -0.5 * (logg - 5.0)**2/(0.05)**2
-        #return 0.0
-        #else:
-        #    return -np.inf
+        logg_prior = -0.5 * (logg - 5.0)**2/(0.05)**2
+
+        return wprior + logg_prior
 
     def to_json(self, fname="model.json"):
         '''
@@ -692,6 +697,10 @@ class StellarSampler(Sampler):
         self.fix_logg = kwargs.get("fix_logg", False)
 
         starting_param_dict = kwargs.get("starting_param_dict")
+        #Expand weights component
+        weights = starting_param_dict["weights"]
+
+
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
         print("param_tuple is {}".format(self.param_tuple))
 
@@ -734,13 +743,19 @@ class StellarSampler(Sampler):
 
         self.logger.debug("params in lnprob are {}".format(params))
 
+
+        #Now we need to have weights as the last part of the array.
+        ncomp = self.model_list[0].ModelSpectrum.Emulator.PCAGrid.ncomp
+        weights = others[-ncomp:]
+        others = others[:-ncomp]
+
         #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
         #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
         #mparams is now a list of parameter dictionaries
         mparams = deque()
         for vz, logOmega in grouper(others, 2):
             p = params.copy()
-            p.update({"vz":vz, "logOmega":logOmega})
+            p.update({"vz":vz, "logOmega":logOmega, "weights":weights})
             mparams.append(p)
 
         self.logger.debug("updated lnprob params: {}".format([params for params in mparams]))

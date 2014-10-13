@@ -316,14 +316,10 @@ class WeightEmulator:
         self.mu.shape = (-1)
         self.sig = self.V22 - self.V12.T.dot(np.linalg.solve(self.V11, self.V12))
 
-    def draw_weights(self):
+    def draw_weights(self, *args):
         '''
         Using the current settings, draw a sample of PCA weights
-        '''
-        return np.random.multivariate_normal(self.mu, self.sig)
 
-    def __call__(self, *args):
-        '''
         If you call this with an arg that is an np.array, it will set the emulator to these parameters first and then
         draw weights.
 
@@ -347,8 +343,34 @@ class WeightEmulator:
             print("No parameters are set, yet. Must set parameters first.")
             return
 
-        weights = self.draw_weights()
-        return weights
+
+        return np.random.multivariate_normal(self.mu, self.sig)
+
+    def __call__(self, *args):
+        '''
+        If you call this with an arg that is an np.array, it will set the emulator to these parameters first and then
+        draw weights.
+
+        If no args are provided, then the emulator uses the previous parameters.
+
+        If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
+        combination from MCMC samples.
+        '''
+        if self.samples is not None:
+            self.emulator_params = self.samples[np.random.choice(self.indexes)]
+            if not args:
+                #Reset V12, V22, since we also changed emulator paramaters.
+                self.params = self._params
+
+        if args:
+            params, *junk = args
+            self.params = params
+
+        if self.V12 is None:
+            print("No parameters are set, yet. Must set parameters first.")
+            return
+
+        return (self.mu, self.sig)
 
 class Emulator:
     '''
@@ -426,15 +448,18 @@ class Emulator:
 
         self._params = pars
 
-    def draw_weights(self):
+    def draw_weights(self, *args):
         '''
         Draw a weight from each WeightEmulator and return as an array.
         '''
-        return np.array([WE(self._params) for WE in self.WEs])
+        if args:
+            params, *junk = args
+            self.params = params
+        return np.array([WE.draw_weights(self._params) for WE in self.WEs])
 
-    def __call__(self, *args):
+    def reconstruct_draw(self, *args):
         '''
-        Same behavior as with WeightEmulator.
+        Reconstructing a spectrum. Taking the place of the old __call__ behavior.
         '''
         if args:
             params, *junk = args
@@ -445,6 +470,31 @@ class Emulator:
         weights = self.draw_weights()
         recons = self.PCAGrid.pcomps.T.dot(weights).reshape(-1)
         return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
+
+    def reconstruct(self, weights):
+        '''
+        Reconstructing a spectrum. Taking the place of the old __call__ behavior.
+        '''
+        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
+
+        recons = self.PCAGrid.pcomps.T.dot(weights).reshape(-1)
+        return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
+
+    def __call__(self, *args):
+        '''
+        Same behavior as with WeightEmulator. Returns a two vectors of [mu_1, mu_2, ..., mu_m], [var_1, var_2, ...]
+        '''
+        if args:
+            params, *junk = args
+            self.params = params
+
+        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
+        mu = np.empty((self.PCAGrid.ncomp,))
+        sig = np.empty((self.PCAGrid.ncomp,))
+        for i in range(self.PCAGrid.ncomp):
+            mu[i], sig[i] = self.WEs[i](self._params)
+
+        return mu, sig
 
 def main():
     pass

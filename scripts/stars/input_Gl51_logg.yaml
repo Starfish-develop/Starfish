@@ -22,12 +22,12 @@ stellar_params :
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 15
-    logg : 0.02
-    Z : 0.02
+    temp : 3
+    logg : 0.005
+    Z : 0.005
     vsini : 1.
-    vz : 0.2
-    logOmega: 2e-4
+    vz : 0.01
+    logOmega: 1e-4
 
 use_cov: False
 #Needs to be updated for Gl51
@@ -37,6 +37,10 @@ stellar_cov:
     logg_Z : 1.8e-3
     temp_logOmega : -1.48e-1
     factor : 0.02
+
+#Multiple of weight COVARIANCE that you want to jump
+frac_weight: 0.1
+
 
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
 #fix_logg: 5.0
@@ -87,5 +91,5 @@ max_regions : 0
 
 #Burn in time
 burn_in : 100
-samples : 100000
+samples : 1000
 
