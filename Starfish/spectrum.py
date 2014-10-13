@@ -6,9 +6,10 @@ import scipy.sparse as sp
 from astropy.io import ascii,fits
 from scipy.sparse.linalg import spsolve
 import gc
-# import pyfftw
 import warnings
 import Starfish.constants as C
+from Starfish.covariance import get_dense_C
+from scipy.linalg import cho_factor, cho_solve
 import copy
 
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
@@ -847,7 +848,7 @@ class ModelSpectrum:
         #self.Av = Av
 
     #Make this private again after speed testing is done
-    def update_grid_params(self, grid_params):
+    def update_grid_params(self, weights, grid_params):
         '''
         Private method to update just those stellar parameters. Designed to be used as part of update_all.
         ASSUMES that grid is log-linear spaced and already instrument-convolved
@@ -857,12 +858,8 @@ class ModelSpectrum:
 
         '''
         try:
-            self.fl = self.Emulator(np.array([grid_params['temp'], grid_params['logg'], grid_params['Z']])) #Query the
-            # interpolator with
-            #  the new
-            #  stellar
+            self.fl = self.Emulator.reconstruct(weights)
 
-            # combination
             self.grid_params.update(grid_params)
 
         except C.InterpolationError as e:
@@ -967,10 +964,13 @@ class ModelSpectrum:
         Give parameters as a dict and choose the params to update.
 
         '''
+        #Pull the weights from here
+        weights = params["weights"]
+
         #First set stellar parameters using _update_grid_params
         grid_params = {key:params[key] for key in ["temp", "logg", "Z"]}
 
-        self.update_grid_params(grid_params)
+        self.update_grid_params(weights, grid_params)
 
         #Reset the relative variables
         self.vz = 0
@@ -1544,11 +1544,47 @@ class ChebyshevSpectrum:
     def revert(self):
         self.k = self.k_last
 
-class CovarianceMatrix:
+class DataCovarianceMatrix:
     '''
     Non-trivial covariance matrices (one for each order) for correlated noise.
 
-    '''
+    Let's try doing everything dense.
+
+    And, let's try doing everything all at once. Step in the Global Cov parameters and the Regions.
+
+    How to efficiently fill the matrix?
+    1. Define a k_func, based off of update
+    2. Pass this to some optimized cython routine which only loops over the appropriate indices, evaluating k_func
+    (this is get_dense_C.
+
+    Then we will just have two methods
+
+    CovarianceMatrix.update(params) #updates global and all regions
+    CovarianceMatrix.evaluate() uses existing matrix to determine lnprob.
+
+    Passes some partial function to the cython routine.
+
+    initialized via CovarianceMatrix.__init__(self.DataSpectrum, self.index, max_v=max_v, debug=self.debug)
+
+    CovarianceMatrix.update_global(params)
+
+    CovarianceMatrix.revert_global()
+
+    CovarianceMatrix.get_amp()
+
+    CovarianceMatrix.get_region_coverage()
+
+    CovarianceMatrix.evaluate(residuals)
+
+    CovarianceMatrix.create_region(starting_param_dict, self.priors)
+
+    CovMatrix.delete_region(self.region_index)
+
+    CovMatrix.revert_region(self.region_index)
+
+    CovMatrix.update_region(self.region_index, params)
+
+'''
 
     def __init__(self, DataSpectrum, index):
         self.wl = DataSpectrum.wls[index]
@@ -1563,41 +1599,9 @@ class CovarianceMatrix:
         self.logdet = 0.0
         self.calculate_logdet()
 
-
-    def sparse_k_3_2(self, xs, amp, l):
-        N = len(xs)
-        offset = 0
-        r0 = 6 * l
-        diags = []
-        while offset < N:
-            #Pairwise calculate rs
-            if offset == 0:
-                rs = np.zeros_like(xs)
-            else:
-                rs = np.abs(xs[offset:] - xs[:-offset])
-                k = np.empty_like(rs)
-            if np.min(rs) >= r0:
-                break
-            k = (0.5 + 0.5 * np.cos(np.pi * rs/r0)) * amp**2 * (1 + np.sqrt(3) * rs/l) * np.exp(-np.sqrt(3) * rs/l)
-            k[rs >= r0] = 0
-            diags.append(k)
-            offset += 1
-
-        #Mirror the diagonals
-        front = diags[1:].copy()
-        front.reverse()
-        diags = front + diags
-        offsets = [i for i in range(-offset + 1, offset)]
-        return sp.diags(diags, offsets, format="csc")
-
-    def calculate_logdet(self):
+    def update_logdet(self):
         #Calculate logdet
-
-        sign, logdet = np.linalg.slogdet(self.matrix.todense())
-        if sign <= 0:
-            raise C.ModelError("The determinant is negative.")
-        self.logdet = logdet
-
+        self.logdet = np.sum(2 * np.log*np.diag(self.factor))
 
     def update(self, params):
         '''
@@ -1615,75 +1619,18 @@ class CovarianceMatrix:
         if (l <= 0) or (sigAmp < 0):
             raise C.ModelError("l {} and sigAmp {} must be positive.".format(l, sigAmp))
 
-        self.matrix = self.sparse_k_3_2(self.wl, amp, l) + sigAmp**2 * self.sigma_matrix
-        self.calculate_logdet()
+        mat = get_dense_C()
 
+        self.factor, self.flag = cho_factor(mat)
+        self.update_logdet()
 
-
-    def gauss_func(x0i, x1i, x0v=None, x1v=None, amp=None, mu=None, sigma=None):
-        x0 = x0v[x0i]
-        x1 = x1v[x1i]
-        return amp**2/(2 * np.pi * sigma**2) * np.exp(-((x0 - mu)**2 + (x1 - mu)**2)/(2 * sigma**2))
-
-    def Cregion(xs, amp, mu, sigma, var=1):
-        '''Create a sparse covariance matrix using identity and block_diagonal'''
-        #In the region of the Gaussian, the matrix will be dense, so just create it as `fromfunction`
-        #and then later turn it into a sparse matrix with size xs x xs
-
-        #Given mu, and the extent of sigma, estimate the data points that are above, in Gaussian, and below
-        n_above = np.sum(xs < (mu - 4 * sigma))
-        n_below = np.sum(xs > (mu + 4 * sigma))
-
-        #Create dense matrix and indexes, then convert to lists so that you can pack things in as:
-
-        #csc_matrix((data, ij), [shape=(M, N)])
-        #where data and ij satisfy the relationship a[ij[0, k], ij[1, k]] = data[k]
-
-        len_x = len(xs)
-        ind_in = (xs >= (mu - 4 * sigma)) & (xs <= (mu + 4 * sigma)) #indices to grab the x values
-        len_in = np.sum(ind_in)
-        #print(n_above, n_below, len_in)
-        #that will be needed to evaluate the Gaussian
-
-
-        #Create Gaussian matrix fromfunction
-        x_gauss = xs[ind_in]
-        gauss_mat = np.fromfunction(gauss_func, (len_in,len_in), x0v=x_gauss, x1v=x_gauss,
-                                    amp=amp, mu=mu, sigma=sigma, dtype=np.int).flatten()
-
-        #Create an index array that matches the Gaussian
-        ij = np.indices((len_in, len_in)) + n_above
-        ij.shape = (2, -1)
-
-        return sp.csc_matrix((gauss_mat, ij), shape=(len_x,len_x))
-
-
-    def evaluate(self, model_fl):
+    def evaluate(self, residuals):
         '''
-        Evaluate lnprob using the data flux, model flux and covariance matrix.
+        Evaluate lnprob using the residuals and current covariance matrix.
         '''
 
-        a = self.fl - model_fl
-        lnp = -0.5 * (a.T.dot(spsolve(self.matrix, a)) + self.logdet)
+        lnp = -0.5 * (residuals.T.dot(cho_solve((self.factor, self.flag), residuals)) + self.logdet)
         return lnp
-
-    #def evaluate_cho(self, model_fls):
-    #    '''
-    #    Evaluate lnprob but using the cho_factor for speedup
-    #    '''
-    #    A = self.DataSpectrum.fls - model_fls #2D array
-    #
-    #    #Go through each order
-    #    lnp = np.empty((self.norders,))
-    #    for i in range(self.norders):
-    #        a = A[i]
-    #        s = self.matrices[i].todense()
-    #        factor, flag = cho_factor(s)
-    #        logdet = np.sum(2 * np.log(np.diag(factor)))
-    #        lnp[i] = -0.5 * (a.T.dot(cho_solve((factor, flag), a)) + logdet)
-    #
-    #    return np.sum(lnp)
-
 
 class OrderSpectrum:
     '''
