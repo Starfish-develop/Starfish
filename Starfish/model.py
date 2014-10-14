@@ -566,7 +566,6 @@ class Sampler(GibbsSampler):
     :param starting_param_dict: the dictionary of starting parameters
     :param cov: the MH proposal
 
-
         Optional, specify by kwargs
         order_index
         args = []
@@ -581,11 +580,11 @@ class Sampler(GibbsSampler):
             p0[i] = starting_param_dict[param]
 
         kwargs.update({"p0":p0, "dim":self.dim})
-        self.model_list = kwargs.get("model_list")
-        self.nmodels = len(self.model_list)
-        if "model_index" in kwargs:
-            self.model_index = kwargs.get("model_index")
-            self.model = self.model_list[self.model_index]
+        #self.model_list = kwargs.get("model_list")
+        self.spectra_list = kwargs.get("spectra_list", [0])
+        #if "model_index" in kwargs:
+        #    self.model_index = kwargs.get("model_index")
+        #    self.model = self.model_list[self.model_index]
 
         super(Sampler, self).__init__(**kwargs)
 
@@ -694,27 +693,26 @@ class StellarSampler(Sampler):
 
     """
     def __init__(self, **kwargs):
+
+        #Dictionary of parent connections to each PIPE connecting to the child processes.
+        self.pconns = kwargs.get("pconns")
+        self.spectrum_ids = sorted(self.pconns.keys())
+        self.nprocs = len(self.pconns)
+
         self.fix_logg = kwargs.get("fix_logg", False)
 
         starting_param_dict = kwargs.get("starting_param_dict")
-        #Expand weights component
-        weights = starting_param_dict["weights"]
-
-
         self.param_tuple = C.dictkeys_to_tuple(starting_param_dict)
         print("param_tuple is {}".format(self.param_tuple))
 
-        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob, "resample":True})
+        kwargs.update({"revertfn":self.revertfn, "lnprobfn":self.lnprob})
         super(StellarSampler, self).__init__(**kwargs)
         self.fname = "stellar"
 
-        #From now on, self.model will always be a list of models (or just a list with one model)
+    def zip_stellar_p(self, p):
+        return dict(zip(self.param_tuple, p))
 
     def reset(self):
-        #Clear accumulated residuals in each order sampler
-        for model in self.model_list:
-            for order_model in model.OrderModels:
-                order_model.clear_resid_deque()
         super(StellarSampler, self).reset()
 
     def revertfn(self):
@@ -722,60 +720,58 @@ class StellarSampler(Sampler):
         Revert the model to the previous state of parameters, in the case of a rejected MH proposal.
         '''
         self.logger.debug("reverting stellar parameters")
-        for model in self.model_list:
-            model.revert_Model()
+
+        #Decide we don't want these stellar params, now revert.
+        #Distribute the REVERT command to each process
+        for pconn in self.pconns.values():
+            pconn.send(("REVERT", None))
 
     def lnprob(self, p):
-        # We want to send the same stellar parameters to each model, but also the different vz and logOmega parameters
-        # to the separate models.
+        # We want to send the same stellar parameters to each model,
+        # but also send the different vz and logOmega parameters
+        # to the separate spectra, based upon spectrum_id.
         self.logger.debug("lnprob p is {}".format(p))
 
         #Extract only the temp, logg, Z, vsini parameters
         if not self.fix_logg:
-            params = self.model_list[0].zip_stellar_p(p[:4])
+            params = self.zip_stellar_p(p[:4])
             others = p[4:]
         else:
             #Coming in as temp, Z, vsini, vz, logOmega...
-
-            params = self.model_list[0].zip_stellar_p(p[:3])
+            params = self.zip_stellar_p(p[:3])
             others = p[3:]
             params.update({"logg": self.fix_logg})
 
         self.logger.debug("params in lnprob are {}".format(params))
 
-
-        #Now we need to have weights as the last part of the array.
-        ncomp = self.model_list[0].ModelSpectrum.Emulator.PCAGrid.ncomp
-        weights = others[-ncomp:]
-        others = others[:-ncomp]
-
         #others should now be either [vz, logOmega] or [vz0, logOmega0, vz1, logOmega1, ...] etc. Always div by 2.
         #split p up into [vz, logOmega], [vz, logOmega] pairs that update the other parameters.
         #mparams is now a list of parameter dictionaries
-        mparams = deque()
-        for vz, logOmega in grouper(others, 2):
+
+        #Now, pack up mparams into a dictionary to send the right stellar parameters to the right subprocesses
+        mparams = {}
+        for (spectrum_id, order_id), (vz, logOmega) in zip(self.spectrum_ids, grouper(others, 2)):
             p = params.copy()
-            p.update({"vz":vz, "logOmega":logOmega, "weights":weights})
-            mparams.append(p)
+            p.update({"vz":vz, "logOmega":logOmega})
+            mparams[spectrum_id] = p
 
         self.logger.debug("updated lnprob params: {}".format([params for params in mparams]))
-        try:
 
-            lnps = np.empty((self.nmodels,))
-            for i, (model, par) in enumerate(zip(self.model_list, mparams)):
-                self.logger.debug("Updating model {}:{} with {}".format(i, model, par))
-                model.update_Model(par) #This also updates downsampled_fls
-                #For order in myModel, do evaluate, and sum the results.
-                lnp = model.evaluate()
-                self.logger.debug("model {}:{} lnp {}".format(i, model, lnp))
-                lnps[i] = lnp
-            self.logger.debug("lnps : {}".format(lnps))
-            s = np.sum(lnps)
-            self.logger.debug("sum lnps {}".format(s))
-            return s
-        except C.ModelError:
-            self.logger.debug("lnprob returning -np.inf")
-            return -np.inf
+        lnps = np.empty((self.nprocs,))
+
+        #Distribute the calculation to each process
+        for ((spectrum_id, order_id), pconn) in self.pconns.items():
+            #Parse the parameters into what needs to be sent to each Model here.
+            pconn.send(("UPDATE", mparams[spectrum_id]))
+
+        #Collect the answer from each process
+        for i, pconn in enumerate(self.pconns.values()):
+            lnps[i] = pconn.recv()
+
+        self.logger.debug("lnps : {}".format(lnps))
+        s = np.sum(lnps)
+        self.logger.debug("sum lnps {}".format(s))
+        return s
 
 class ChebSampler(Sampler):
     def __init__(self, **kwargs):

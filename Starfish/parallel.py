@@ -1,5 +1,3 @@
-#parallel implementation outline.
-
 #This is potentially a very powerful implementation, because it means that we can use as many data spectra or orders
 # as we want, and there will only be slight overheads. Basically, scaling is flat, as long as we keep adding more
 # processors. This might be tricky on Odyssey going across nodes, but it's still pretty excellent.
@@ -17,6 +15,8 @@
 from multiprocessing import Process, Pipe, cpu_count
 import os
 import numpy as np
+from Starfish.model import StellarSampler
+
 
 def info(title):
     print(title)
@@ -26,12 +26,13 @@ def info(title):
     print('process id:', os.getpid())
 
 
-class Model:
+class OrderModel:
     def __init__(self, npoly=4, debug=False):
         '''
-        This is designed to be called within the main processes and then distributed to the other processes
-        just so we have something to send stuff to. We don't yet want to load any of the items that would be
-        specific to that specific order, which will be customized by the subprocess in `self.initialize()`.
+        This is designed to be called within the main processes and then forked to other
+        subprocesses. We don't yet want to load any of the items that would be
+        specific to that specific order. Those will be loaded via an `INIT` message call, which tells which key
+        to initialize on in the `self.initialize()`.
         '''
         self.lnprob = -np.inf
 
@@ -43,9 +44,12 @@ class Model:
 
     def initialize(self, key):
         '''
-        Designed to be called after the other processes have been created.
+        Initialize the OrderModel to the correct chunk of data.
 
-        For multiple DataSpectra, need to specify key.
+        :param key: (model_index, order_index)
+        :param type: (int, int)
+
+        Designed to be called after the other processes have been created.
         '''
 
         self.id = key
@@ -53,19 +57,21 @@ class Model:
 
         print("Initializing model on order {}, DataSpectrum {}.".format(order_index, model_index))
 
-        #Load the appropriate DataSpectrum from DataSpectra list
+        #TODO: Load the appropriate DataSpectrum from DataSpectra list
 
-        #Load the appropriate Instrument from the Instrument list
+        #TODO: Load the appropriate Instrument from the Instrument list
 
-        #Load the spectrum interpolator specific to this order.
+        #TODO: Load the spectrum interpolator specific to this order.
 
-        #Initialiaze the covariance matrix
-        self.CovarianceMatrix = None #Cython object
+        #TODO: Initialiaze the covariance matrix
+        self.CovarianceMatrix = None
+
+        #TODO: Initialize a sampler to this appropriate lnprob.
 
 
     def evaluate(self):
         '''
-        Using the attached covariance matrix (cython object), evaluate the lnposterior.
+        Using the attached DataCovariance matrix and the other intermediate products, evaluate the lnposterior.
         '''
         lnp = self.CovarianceMatrix.evaluate()
         return lnp
@@ -90,9 +96,23 @@ class Model:
         print("Reverting stellar parameters")
         pass
 
+    def update_nuisance(self, *args):
+        '''
+        Update the nuisance parameters.
+        '''
+        pass
+
+    def revert_nuisance(self, *args):
+        '''
+        Revert all products from the nuisance parameters.
+        '''
+        pass
+
     def independent_sample(self, *args):
         '''
         Now, do all the sampling that is specific to this order.
+
+        Built in MH proposer?
         '''
 
         #Take the lnprob from the previous iteration
@@ -112,10 +132,12 @@ class Model:
         while alive:
             #Keep listening for messages put on the Pipe
             alive = self.interpret()
+            #Once self.interpret() returns `False`, this loop will die.
         self.conn.send("DEAD")
 
     def interpret(self):
         #Interpret the messages being put into the Pipe, and do something with them.
+        #Messages are always sent in a 2-arg tuple (fname, arg)
         #Right now we only expect one function and one argument but we could generalize this to **args
         #info("brain")
 
@@ -130,26 +152,26 @@ class Model:
             return False
 
         #Functions only return a response other than None when they want them communicated back to the master process.
+        #Some commands sent to the child processes do not require a response to the main process.
         if response:
             print("{} sending back {}".format(os.getpid(), response))
             self.conn.send(response)
         return True
 
-#Message sent will alwas be a 2-arg tuple ()
-
-#Just create one order model. Then when the process forks, each process has an order model. Initialization will have
-# to be done through the pipe entirely.
 DataSpectra = [] #list of all DataSpectra we want to use
 Instruments = []
 
-model = Model()
+spectra = [0] #Number of different data sets we are fitting.
+orders = [22, 23, 24] #Which orders within that data set that we will fit.
 
-spectra = [0]
-orders = [22, 23, 24]
+#We create one OrderModel in the main process. When the process forks, each process now has an order model.
+#Then, each forked model will be customized using an INIT command passed through the PIPE.
 
-#Set up an subprocess for each order. Key is (spectra, order)
-pconns = {}
-cconns = {}
+model = OrderModel()
+
+#Fork a subprocess for each key: (spectra, order)
+pconns = {} #Parent connections
+cconns = {} #Child connections
 ps = {}
 for spectrum in spectra:
     for order in orders:
@@ -163,6 +185,13 @@ for spectrum in spectra:
 #Initialize all of the orders based upon which DataSpectrum and which order it is
 for key, pconn in pconns.items():
     pconn.send(("INIT", key))
+
+#From here on, we are here operating inside of the master process only.
+#TODO: Initialize a StellarSampler
+
+#Needs to know which how many spectra exist.
+
+#TODO: lnprob of StellarSampler is to distribute and collect lnprobs of subprocesses.
 
 #Update all of the stellar parameters and calculate the lnprob
 #This function should act to synchronize all of the processes, since it will need to wait until the lnprob message
@@ -186,6 +215,7 @@ for pconn in pconns.values():
 for pconn in pconns.values():
     pconn.send(("IND", None))
 
+#Do some combined sampling again
 params = {"temp":5700, "logg":3.6}
 lnprob = 0.
 for pconn in pconns.values():
@@ -207,7 +237,6 @@ for p in ps.values():
 print("This should only be printed once")
 import sys;sys.exit()
 
-
-#Also, all subprocesses will inherit pipe file descriptors created in the master process.
+# All subprocesses will inherit pipe file descriptors created in the master process.
 # http://www.pushingbits.net/posts/python-multiprocessing-with-pipes/
 # thus, to really close a pipe, you need to close it in every subprocess.
