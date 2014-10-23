@@ -37,20 +37,21 @@ points = {"temp":temps, "logg":loggs, "Z":Zs}
 base = cfg['outdir']
 # Plot the eigenspectra
 
-fig = plt.figure(figsize=(8, 5))
-ax = fig.add_subplot(111)
-
-ax.xaxis.set_major_formatter(FSF("%.0f"))
-ax.set_xlabel(r"$\lambda$ [\AA]")
-ax.set_ylabel(r"$\propto f_\lambda$")
-    
-ax.set_title("Eigenspectra")
-
 for i,comp in enumerate(pcagrid.pcomps):
+    print("plotting {}".format(i))
+
+    fig = plt.figure(figsize=(8, 5))
+    ax = fig.add_subplot(111)
+
+    ax.xaxis.set_major_formatter(FSF("%.0f"))
+    ax.set_xlabel(r"$\lambda$ [\AA]")
+    ax.set_ylabel(r"$\propto f_\lambda$")
+
     ax.plot(wl, comp, label="{}".format(i+1))
-    
-ax.legend(loc="lower left")
-fig.savefig(base + "eigenspectra.png")
+    ax.set_xlim(5150, 5200)
+
+    fig.savefig(base + "eigenspectrum_{:0>3}.png".format(i))
+    plt.close()
 
 fig = plt.figure(figsize=(8, 5))
 ax = fig.add_subplot(111)

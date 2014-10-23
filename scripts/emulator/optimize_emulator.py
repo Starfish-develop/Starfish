@@ -104,6 +104,8 @@ def main():
         iterable = pool.imap(fmin_lnprob, range(ncomp))
         np.save(cfg["outdir"] + "params.npy", np.array([params for params in iterable]))
 
+        #Store the samples directly into the HDF5 file
+
         #for i in range(ncomp):
             #sample_lnprob(i)
         #    fmin_lnprob(i)

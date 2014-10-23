@@ -1588,20 +1588,16 @@ class DataCovarianceMatrix:
 
     def __init__(self, DataSpectrum, index):
         self.wl = DataSpectrum.wls[index]
-        self.fl = DataSpectrum.fls[index]
         self.sigma = DataSpectrum.sigmas[index]
 
         self.npoints = len(self.wl)
 
-        #Because sparse matrices only come in 2D, we have a list of sparse matrices.
-        self.sigma_matrix = sp.diags([self.sigma**2], [0], dtype=np.float64, format="csc")
-        self.matrix = sp.diags([self.sigma**2], [0], dtype=np.float64, format="csc")
-        self.logdet = 0.0
-        self.calculate_logdet()
+        self.sigma_matrix = np.dot(self.sigma**2, np.eye(self.npoints))
+        self.matrix = self.sigma_matrix
 
-    def update_logdet(self):
-        #Calculate logdet
-        self.logdet = np.sum(2 * np.log*np.diag(self.factor))
+    #def update_logdet(self):
+    #    #Calculate logdet
+    #    self.logdet = np.sum(2 * np.log*np.diag(self.factor))
 
     def update(self, params):
         '''
@@ -1621,16 +1617,16 @@ class DataCovarianceMatrix:
 
         mat = get_dense_C()
 
-        self.factor, self.flag = cho_factor(mat)
-        self.update_logdet()
+        #self.factor, self.flag = cho_factor(mat)
+        #self.update_logdet()
 
-    def evaluate(self, residuals):
-        '''
-        Evaluate lnprob using the residuals and current covariance matrix.
-        '''
-
-        lnp = -0.5 * (residuals.T.dot(cho_solve((self.factor, self.flag), residuals)) + self.logdet)
-        return lnp
+    #def evaluate(self, residuals):
+    #    '''
+    #    Evaluate lnprob using the residuals and current covariance matrix.
+    #    '''
+    #
+    #    lnp = -0.5 * (residuals.T.dot(cho_solve((self.factor, self.flag), residuals)) + self.logdet)
+    #    return lnp
 
 class OrderSpectrum:
     '''

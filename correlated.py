@@ -4,6 +4,9 @@ from numpy.linalg import slogdet
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
 
+def money(x, y):
+    pass
+
 def gauss(x, amp, mu, sigma):
     return amp/np.sqrt(2 * np.pi * sigma**2) * np.exp(-0.5 * (x - mu)**2 / sigma**2)
 
