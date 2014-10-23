@@ -13,20 +13,20 @@ PCA_path : libraries/PHOENIX_SPEX_M_PCA.hdf5
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 3000
-    logg : 5.04
-    Z : 0.16
-    vsini : 8.
-    vz : 8.
-    logOmega : -13.48
+    temp : 3100
+    logg : 5.25
+    Z : 0.2
+    vsini : 10.
+    vz : 10.
+    logOmega : -13.481
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 3
-    logg : 0.005
-    Z : 0.005
-    vsini : 1.
-    vz : 0.01
+    temp : 14
+    logg : 0.01
+    Z : 0.01
+    vsini : 2.
+    vz : 0.3
     logOmega: 1e-4
 
 use_cov: False
@@ -51,33 +51,33 @@ cheb_degree : 8 #actually how many coefficients to include, so c0 + c1 + c2 + c3
 cheb_jump : 5e-4
 
 cov_params :
-    sigAmp : 1.0
-    logAmp : -15.7
+    sigAmp : 2.0
+    logAmp : -15.5
     l : 100.
 
 cov_jump :
-    sigAmp : 0.05
-    logAmp : 0.05
-    l : 1.5
+    sigAmp : 0.02
+    logAmp : 0.01
+    l : 1.
 
 no_cov : False
 
 no_region: False
 
 region_params:
-    loga: -15.0
+    logAmp: -15.0
     sigma: 100. #km/s
 
 region_jump:
-    loga : 0.1
+    logAmp : 0.03
     mu : 0.5
-    sigma : 10.
+    sigma : 5.
 
 region_priors:
     sigma0: 10. #AA
     mu_width : 2. #AA
     sigma_knee : 150 #km/s
-    frac_global : 0.5 #Fraction of the global amplitude lower bound
+    frac_global : 0.1 #Fraction of the global amplitude lower bound
 
 sigma_clip : 4.8
 
@@ -88,8 +88,7 @@ orders: [0]
 #Maximum number of sub-regions allowed per order
 max_regions : 0
 
-
 #Burn in time
 burn_in : 100
-samples : 1000
+samples : 50000
 
