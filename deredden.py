@@ -1,13 +1,13 @@
 #==============================================================================
 # DEREDDEN.py Sean Andrews's deredden.pro ported to python3
 #
-# A simple function to provide the de-reddening factor in either magnitudes 
-# (with keyword /mags set) or flux density at a range of input wavelengths, 
-# given a visual extinction (Av).  
+# A simple function to provide the de-reddening factor in either magnitudes
+# (with keyword /mags set) or flux density at a range of input wavelengths,
+# given a visual extinction (Av).
 #
-# made composite extinction curves for different Av 
-#			regimes: at higher Av, use McClure 2009 model, but at 
-#			lower Av can use the Rv = 3.1 (DISM) Mathis 1990 model. 
+# made composite extinction curves for different Av
+#			regimes: at higher Av, use McClure 2009 model, but at
+#			lower Av can use the Rv = 3.1 (DISM) Mathis 1990 model.
 #           the McClure 2009 model switches at Ak = 1
 #==============================================================================
 

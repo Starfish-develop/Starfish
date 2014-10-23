@@ -42,7 +42,7 @@ stellar_set = grid_set | pp_set #the union of grid_parameters and pp_parameters
 var_default = {"temp":5800, "logg":4.5, "Z":0.0, "alpha":0.0, "vsini":0.0, "FWHM": 0.0, "vz":0.0, "Av":0.0, "logOmega":0.0}
 
 cov_global_parameters = ("sigAmp", "logAmp", "l")
-cov_region_parameters = ("h", "a", "mu", "sigma")
+cov_region_parameters = ("logAmp", "mu", "sigma")
 
 def dictkeys_to_tuple(keys):
     '''

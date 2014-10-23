@@ -242,7 +242,7 @@ class PCAGrid:
         hdf5.close()
 
 class WeightEmulator:
-    def __init__(self, PCAGrid, emulator_params, w_index, samples=None):
+    def __init__(self, PCAGrid, emulator_params, w_index):
         #Construct the emulator using the sampled parameters.
 
         self.PCAGrid = PCAGrid
@@ -250,26 +250,15 @@ class WeightEmulator:
         #vector of weights
         self.wvec = self.PCAGrid.w[w_index]
 
-        #Optionally store the samples from an MCMC run.
-        self.samples = samples
-        if self.samples is not None:
-            self.indexes = np.arange(len(self.samples))
+        loga, lt, ll, lz = emulator_params
+        self.a2 = 10**(2 * loga)
+        self.lt2 = lt**2
+        self.ll2 = ll**2
+        self.lz2 = lz**2
 
-        if emulator_params is None:
-            if self.samples is None:
-                raise ValueError("Must supply either emulator parameters or samples.")
-            else:
-                self.emulator_params = self.samples[np.random.choice(self.indexes)]
-        else:
-            loga, lt, ll, lz = emulator_params
-            self.a2 = 10**(2 * loga)
-            self.lt2 = lt**2
-            self.ll2 = ll**2
-            self.lz2 = lz**2
+        C = em.sigma(self.PCAGrid.gparams, self.a2, self.lt2, self.ll2, self.lz2)
 
-            C = em.sigma(self.PCAGrid.gparams, self.a2, self.lt2, self.ll2, self.lz2)
-
-            self.V11 = C
+        self.V11 = C
 
         self._params = None #Where we want to interpolate
 
@@ -356,11 +345,9 @@ class WeightEmulator:
         If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
         combination from MCMC samples.
         '''
-        if self.samples is not None:
-            self.emulator_params = self.samples[np.random.choice(self.indexes)]
-            if not args:
-                #Reset V12, V22, since we also changed emulator paramaters.
-                self.params = self._params
+
+        # Don't reset the parameters. We want to be using the optimized GP parameters so that the likelihood call
+        # is deterministic
 
         if args:
             params, *junk = args
@@ -376,7 +363,7 @@ class Emulator:
     '''
     Stores a Gaussian process for the weight of each principal component.
     '''
-    def __init__(self, PCAGrid, optimized_params=None, samples_list=None):
+    def __init__(self, PCAGrid, optimized_params):
         '''
 
         :param weights_list: [w0s, w1s, w2s, ...]
@@ -393,14 +380,8 @@ class Emulator:
         self.wl = self.PCAGrid.wl
 
         self.WEs = []
-        if optimized_params is not None:
-            for weight_index, params in enumerate(optimized_params):
-                self.WEs.append(WeightEmulator(self.PCAGrid, params, weight_index, None))
-        elif samples_list is not None:
-            for weight_index, samples in enumerate(samples_list):
-                self.WEs.append(WeightEmulator(self.PCAGrid, None, weight_index, samples))
-        else:
-            raise RuntimeError("Must specify either optimized_params or samples_list.")
+        for weight_index, params in enumerate(optimized_params):
+            self.WEs.append(WeightEmulator(self.PCAGrid, params, weight_index))
 
     @classmethod
     def open(cls, filename):
@@ -411,22 +392,9 @@ class Emulator:
         pcagrid = PCAGrid.open(filename)
         hdf5 = h5py.File(filename, "r")
 
-        #Try loading either samples or parameters from the HDF5
-        try:
-            samples = hdf5["samples"][:]
-            hdf5.close()
-            return cls(pcagrid, None, samples)
-        except KeyError:
-            pass
-
-        try:
-            params = hdf5["params"][:]
-            hdf5.close()
-            return cls(pcagrid, params, None)
-        except KeyError:
-            pass
-
-        raise RuntimeError("Found neither samples or parameters.")
+        params = hdf5["params"][:]
+        hdf5.close()
+        return cls(pcagrid, params)
 
     def determine_chunk_log(self, wl_data):
         '''
@@ -482,6 +450,9 @@ class Emulator:
 
     def __call__(self, *args):
         '''
+
+        :param params: [temp, logg, Z] numpy array
+
         Same behavior as with WeightEmulator. Returns a two vectors of [mu_1, mu_2, ..., mu_m], [var_1, var_2, ...]
         '''
         if args:

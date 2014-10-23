@@ -12,6 +12,7 @@ import scipy
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import Starfish.constants as C
 import logging
+import math
 
 cdef extern from "cholmod.h":
 
@@ -965,6 +966,12 @@ cdef class RegionCovarianceMatrix:
 def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
     '''
     Fill out the covariance matrix.
+
+    :param wl: numpy wavelength vector
+
+    :param k_func: partial function to fill in matrix
+
+    :param max_r: (km/s) max velocity to fill out to
     '''
 
     cdef int N = len(wl)
@@ -973,7 +980,7 @@ def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
     cdef double cov = 0.0
 
     #Find all the indices that are less than the radius
-    rr = np.abs(wl[:, None] - wl[None, :]) * C.c_kms/wl #Velocity space
+    rr = np.abs(wl[:, np.newaxis] - wl[np.newaxis, :]) * C.c_kms/wl #Velocity space
     flag = (rr < max_r)
     indices = np.argwhere(flag)
 
@@ -987,8 +994,45 @@ def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
             continue
         else:
             #Initilize [i,j] and [j,i]
-            cov = k_func(i, j)
+            cov = k_func(wl[i], wl[j])
             mat[i,j] = cov
             mat[j,i] = cov
 
     return mat
+
+def make_k_func(params):
+    cdef double amp = 10**params["cov"]["logAmp"]
+    cdef double l = params["cov"]["l"] #Given in Km/s
+    cdef double r0 = 6.0 * l #Km/s
+    cdef double taper
+    regions = params["regions"] #could be an empty dictionary {}
+
+    cdef double a, mu, sigma, rx0, rx1, r_tap, r0_r
+
+    def k_func(wl0, wl1):
+        cdef double cov = 0.0
+
+        #Initialize the global covariance
+        cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+        if r < r0:
+            taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
+            cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
+
+        #If covered by a region, instantiate
+        for rparams in regions.values():
+            a = 10**rparams["logAmp"]
+            mu = rparams["mu"]
+            sigma = rparams["sigma"]
+
+            rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
+            rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
+            r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
+            r0_r = 4.0 * sigma # where the kernel goes to 0
+
+            if r_tap < r0_r:
+                taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
+                cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) +
+                                                             (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
+        return cov
+
+    return k_func
