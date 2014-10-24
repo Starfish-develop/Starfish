@@ -85,7 +85,9 @@ DataSpectra = [DataSpectrum.open(data_file, orders=orders) for data_file in data
 
 spectra = np.arange(len(DataSpectra)) #Number of different data sets we are fitting. Used for indexing purposes.
 
-Instruments = [SPEX()]
+INSTRUMENTS = {"TRES": TRES, "SPEX": SPEX}
+#Instruments are provided as one per dataset
+Instruments = [INSTRUMENTS[key]() for key in config["instruments"]]
 
 masks = config.get("mask", None)
 if masks is not None:
