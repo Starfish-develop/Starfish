@@ -9,6 +9,8 @@ Comments: >
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
+instruments : [SPEX] #must have one per data set
+
 PCA_path : libraries/PHOENIX_SPEX_M_PCA.hdf5
 
 #Nested data structures are allowed
