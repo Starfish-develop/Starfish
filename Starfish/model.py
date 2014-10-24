@@ -383,8 +383,6 @@ class ModelHA:
         '''
         return self.DataSpectrum
 
-
-
     def evaluate(self):
         '''
         Compare the different data and models.
@@ -402,7 +400,6 @@ class ModelHA:
             lnps[i] = self.OrderModels[i].evaluate()
 
         return np.sum(lnps)
-
 
     def to_json(self, fname="model.json"):
         '''
