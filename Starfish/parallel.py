@@ -81,6 +81,7 @@ if type(data) != list:
     data = [data]
 print("loading data spectra {}".format(data))
 orders = config["orders"] #list of which orders to fit
+order_ids = np.arange(len(orders))
 DataSpectra = [DataSpectrum.open(data_file, orders=orders) for data_file in data]
 
 spectra = np.arange(len(DataSpectra)) #Number of different data sets we are fitting. Used for indexing purposes.
@@ -185,7 +186,7 @@ class OrderModel:
         self.id = key
         self.spectrum_id, self.order_id = self.id
 
-        print("Initializing model on order {}, DataSpectrum {}.".format(self.order_id, self.spectrum_id))
+        print("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_id))
 
         self.instrument = Instruments[self.spectrum_id]
         self.DataSpectrum = DataSpectra[self.spectrum_id]
@@ -256,7 +257,7 @@ class OrderModel:
 
         #Because this initialization is happening on the subprocess, I think the random state should be fine.
         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov,
-                                       debug=True, outdir=outdir)
+                                       debug=True, outdir=outdir, order=self.order)
         self.p0 = self.sampler.p0
 
         # Udpate the nuisance parameters to the starting values so that we at least have a self.data_mat
@@ -341,7 +342,7 @@ class OrderModel:
 
         # Initialize a new sampler, replacing the old one
         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov,
-                                       debug=True, outdir=outdir, prior_params=prior_params)
+                                       debug=True, outdir=outdir, prior_params=prior_params, order=self.order)
 
         self.p0 = self.sampler.p0
 
@@ -653,9 +654,9 @@ pconns = {} #Parent connections
 cconns = {} #Child connections
 ps = {}
 for spectrum in spectra:
-    for order in orders:
+    for order_id in order_ids:
         pconn, cconn = Pipe()
-        key = (spectrum, order)
+        key = (spectrum, order_id)
         pconns[key], cconns[key] = pconn, cconn
         p = Process(target=model.brain, args=(cconn,))
         p.start()
@@ -670,7 +671,7 @@ if args.perturb:
     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
 
 mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting, cov=stellar_MH_cov,
-                           outdir=outdir, debug=True)
+                           outdir=outdir, debug=True, fix_logg=config["fix_logg"])
 
 mySampler.run_mcmc(mySampler.p0, config['burn_in'])
 #mySampler.reset()
