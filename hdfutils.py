@@ -73,6 +73,19 @@ label_dict = {"temp":r"$T_{\rm eff}\;[{\rm K}]$", "logg":r"$\log g$", "Z":r"$[{\
               "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}$", "l":r"$l$",
               "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
+import re
+p = re.compile("r\d\d*", re.IGNORECASE)
+
+def not_region(str):
+    '''
+    Return true if this is not a region
+    '''
+    m = p.match(str)
+    if m:
+        return False
+    else:
+        return True
+
 #Additionally, there should be an object for each flatchain, that stores param_tuple and samples
 class Flatchain:
     '''
@@ -106,7 +119,13 @@ class Flatchain:
         param_tuple = tuple([param.strip("'() ") for param in param_tuple.split(",")])
         samples = dset[:]
 
-        return cls(id, param_tuple, samples)
+        #If we have regions, then separate them and discard for now.
+        ind = np.array([not_region(param) for param in param_tuple], dtype='bool')
+        print("Non regions", ind)
+
+        param_tuple = tuple([param_tuple[i] for i in range(len(param_tuple)) if ind[i]])
+
+        return cls(id, param_tuple, samples[:,ind])
 
     @property
     def shape(self):
@@ -571,17 +590,12 @@ def estimate_covariance(flatchainTree):
         print(cor)
 
 
-# plot_walkers(self.outdir + self.fname + "_chain_pos.png", samples, labels=self.param_tuple)
-# plt.close(figure)
-
 if args.acor:
     from emcee import autocorr
     print("Stellar Autocorrelation")
     acors = autocorr.integrated_time(stellar, axis=0, window=args.acor_window)
     for param,acor in zip(stellar_tuple, acors):
         print("{} : {}".format(param, acor))
-
-
 
 #Now that all of the structures have been declared, do the initialization stuff.
 

@@ -9,6 +9,8 @@ Comments: >
 data : [data/Gl51/Gl51RA.hdf5]
 outdir : output/
 
+orders: [0] # Which orders (indexed from 0) do you want to fit?
+
 instruments : [SPEX] #must have one per data set
 
 PCA_path : libraries/PHOENIX_SPEX_M_PCA.hdf5
@@ -39,10 +41,6 @@ stellar_cov:
     logg_Z : 1.8e-3
     temp_logOmega : -1.48e-1
     factor : 0.02
-
-#Multiple of weight COVARIANCE that you want to jump
-frac_weight: 0.1
-
 
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
 #fix_logg: 5.0
@@ -83,12 +81,6 @@ region_priors:
 
 sigma_clip : 4.8
 
-interp_cut : 200 #km/s
-
-orders: [0]
-
-#Maximum number of sub-regions allowed per order
-max_regions : 0
 
 #Burn in time
 burn_in : 100

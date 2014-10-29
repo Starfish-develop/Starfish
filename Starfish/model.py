@@ -1,20 +1,11 @@
 import numpy as np
-import sys
-import emcee
-from emcee import GibbsSampler, GibbsSubController, GibbsController, ParallelSampler
+from emcee import GibbsSampler, ParallelSampler
 from . import constants as C
-from .grid_tools import Interpolator, ErrorInterpolator
-from .spectrum import ModelSpectrum, ChebyshevSpectrum, ModelSpectrumHA
-from .covariance import CovarianceMatrix #from Starfish.spectrum import CovarianceMatrix #pure Python
-from .emulator import Emulator
-import time
+from .grid_tools import Interpolator
+from .spectrum import ModelSpectrum, ModelSpectrumHA
 import json
 import h5py
-from astropy.stats.funcs import sigma_clip
 import logging
-import os
-from collections import deque
-from operator import itemgetter
 import matplotlib.pyplot as plt
 from itertools import zip_longest
 
@@ -805,7 +796,8 @@ class NuisanceSampler(Sampler):
 
         self.model = kwargs.get("OrderModel")
         spectrum_id, order_id = self.model.id
-        self.fname = "{}/{}/{}".format(spectrum_id, order_id, "nuisance")
+        order = kwargs.get("order", order_id)
+        self.fname = "{}/{}/{}".format(spectrum_id, order, "nuisance")
         self.params = None
         self.prior_params = kwargs.get("prior_params", None)
         if self.prior_params:
