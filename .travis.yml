@@ -3,10 +3,10 @@ python:
   - 3.2
   - 3.3
   - 3.4
-# command to install dependencies
+before_install:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq build-essential
 install:
-#  - sudo apt-get update -qq
-  - sudo pip install cython
   - python setup.py install
 # command to run tests
 #script: nosetests
