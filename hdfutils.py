@@ -315,9 +315,13 @@ def gelman_rubin(samplelist):
     full_iterations = len(samplelist[0])
     assert full_iterations % 2 == 0, "Number of iterations must be even. Try cutting off a different number of burn " \
                                      "in samples."
+    shape = samplelist[0].shape
     #make sure all the chains have the same number of iterations
     for flatchain in samplelist:
         assert len(flatchain) == full_iterations, "Not all chains have the same number of iterations!"
+        assert flatchain.shape == shape, "Not all flatchains have the same shape!"
+
+    #make sure all chains have the same number of parameters.
 
     #Following Gelman,
     # n = length of split chains
