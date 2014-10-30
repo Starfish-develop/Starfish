@@ -227,6 +227,7 @@ class FlatchainTree:
         #Load everything from the HDF5File into a bunch of Flatchain objects
         #We will always have the stellar samples
 
+        print("Loading {}".format(file))
         hdf5 = h5py.File(file, "r")
 
         self.stellar = Flatchain.from_dset("stellar", hdf5.get("stellar"))
@@ -240,6 +241,7 @@ class FlatchainTree:
             self.modelTreeDict = {id:ModelTree.from_dset(id, dset) for (id, dset) in ((key, dset) for (key, dset) in hdf5
                                     .items() if key.isdigit())}
 
+        print("Closing {}".format(file))
         hdf5.close()
 
     #How to iterate over all flatchains?
