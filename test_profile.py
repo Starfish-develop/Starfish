@@ -2,10 +2,9 @@ import cProfile
 import pstats
 
 #Your module here
-from scripts.stars.base_lnprob import main
-cProfile.run("main()", "prof")
+#from Starfish.parallel import profile_code
 
-
+#cProfile.run("profile_code()", "prof")
 
 def display_stats(pfile):
     p = pstats.Stats(pfile)
