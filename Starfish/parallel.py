@@ -702,13 +702,13 @@ def main():
     mySampler.run_mcmc(mySampler.p0, config['burn_in'])
     #mySampler.reset()
 
-    # print("\n\n\n Instantiating Regions")
-    #
-    # # Now that we are burned in, instantiate any regions
-    # for key, pconn in pconns.items():
-    #     pconn.send(("INST", None))
-    #
-    # mySampler.run_mcmc(mySampler.p0, config['samples'])
+    print("\n\n\n Instantiating Regions")
+
+    # Now that we are burned in, instantiate any regions
+    for key, pconn in pconns.items():
+        pconn.send(("INST", None))
+
+    mySampler.run_mcmc(mySampler.p0, config['samples'])
 
     print(mySampler.acceptance_fraction)
     print(mySampler.acor)
