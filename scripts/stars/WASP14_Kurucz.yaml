@@ -25,7 +25,7 @@ stellar_params :
     Z : -0.27
     vsini : 4.2
     vz : -4.57
-    logOmega: -12.709 #Kurucz
+    logOmega: -12.714 #Kurucz
     #logOmega: -19.91 #PHOENIX
 
 fix_logg : 4.29
@@ -35,10 +35,10 @@ fix_logg : 4.29
 stellar_jump:
     temp : 4
     #logg : 0.01
-    Z : 0.005
-    vsini : 0.06
-    vz : 0.02
-    logOmega: 2e-4
+    Z : 0.004
+    vsini : 0.03
+    vz : 0.01
+    logOmega: 1e-4
 
 #no covariance
 #stellar_jump:
@@ -92,5 +92,5 @@ region_priors:
 sigma_clip : 4.
 
 #Burn in time
-burn_in : 500
-samples : 0
+burn_in : 1000
+samples : 3000

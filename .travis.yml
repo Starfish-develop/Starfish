@@ -7,8 +7,10 @@ python:
 #before_install:
 # - sudo apt-get update -qq
 # - sudo apt-get install -qq build-essential
+# Need to install hdf5 headers here but we can't do that due to no sudo access on educational version
 install:
   - pip install cython
+  - pip install h5py
   - python setup.py install
 # command to run tests
 #script: nosetests
