@@ -1,9 +1,14 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/22/region/
+name: WASP14/PHOENIX/21_22_23/region/
 
-data : data/WASP14/WASP14-2009-06-14.hdf5
+data : [data/WASP14/WASP14-2009-06-14.hdf5]
 outdir : output/
+
+#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+orders: [21, 22, 23]
+
+instruments : [TRES]
 
 PCA_path : libraries/PHOENIX_TRES_F_PCA.hdf5
 
@@ -20,17 +25,17 @@ stellar_params :
     vz : -4.838
     logOmega: -12.715 #PHOENIX
 
-#Average jump size in each parameter
-#Using covariance
-stellar_jump:
-    temp : 15
-    #logg : 0.002
-    Z : 0.01
-    vsini : 0.05
-    vz : 0.05
-    logOmega: 3e-3
-
 fix_logg : 4.29
+
+#Average jump size in each parameter
+stellar_jump:
+    temp : 5
+    #logg : 0.002
+    Z : 0.005
+    vsini : 0.02
+    vz : 0.01
+    logOmega: 1e-4
+
 
 use_cov: False
 stellar_cov:
@@ -41,7 +46,7 @@ stellar_cov:
     factor : 0.02
 
 cheb_degree: 4
-cheb_jump : 2e-3
+cheb_jump : 5e-4
 
 no_cov : False
 
@@ -58,13 +63,13 @@ cov_jump :
 no_region: False
 
 region_params:
-    loga: -13.6
+    logAmp: -13.6
     sigma: 7.
 
 region_jump:
-    loga : 0.1
+    logAmp : 0.1
     mu : 0.01
-    sigma : 0.4
+    sigma : 0.2
 
 region_priors:
     sigma0: 0.5   #AA
@@ -74,12 +79,6 @@ region_priors:
 
 sigma_clip : 4.
 
-interp_cut : 70 #km/s
-
-#orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-orders: [21, 22, 23]
-
 #Burn in time
-burn_in : 300
-samples : 50000
-#will probably need 100000 for a good looking posterior
+burn_in : 500
+samples : 500
