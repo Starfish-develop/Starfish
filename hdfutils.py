@@ -121,8 +121,6 @@ class Flatchain:
 
         #If we have regions, then separate them and discard for now.
         ind = np.array([not_region(param) for param in param_tuple], dtype='bool')
-        print("Non regions", ind)
-
         param_tuple = tuple([param_tuple[i] for i in range(len(param_tuple)) if ind[i]])
 
         return cls(id, param_tuple, samples[:,ind])
@@ -445,6 +443,7 @@ def plot_paper(flatchainTree, base=args.outdir, triangle_plot=args.triangle, cha
     #matplotlib.rc("axes", labelpad=10)
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FormatStrFormatter as FSF
+    from matplotlib.ticker import MaxNLocator
 
     #Navigate the flatchain tree, and plot just the stellar parameters
     flatchain = [flatchain for flatchain in flatchainTree.flatchains if flatchain.id == "stellar"][0]
@@ -475,6 +474,9 @@ def plot_paper(flatchainTree, base=args.outdir, triangle_plot=args.triangle, cha
             ax.yaxis.set_label_coords(-0.48, 0.5)
         for ax in axes[-1, :]:
             ax.xaxis.set_label_coords(0.5, -0.48)
+
+        axes[-1,-1].xaxis.set_major_locator(MaxNLocator(nbins=5, prune='lower'))
+
     if K == 3:
         #Yaxis
         for ax in axes[:, 0]:
