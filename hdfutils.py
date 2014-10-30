@@ -622,8 +622,8 @@ flatchainTreeList = []
 for file in files:
     try:
         flatchainTreeList.append(FlatchainTree(file, old=args.old))
-    except OSError:
-        print("{} does not exist, skipping.".format(file))
+    except OSError as e:
+        print("{} does not exist, skipping. Or error {}".format(file, e))
 
 #Check to see if burn or thin were specified
 if args.burn and args.thin:
