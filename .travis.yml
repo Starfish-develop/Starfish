@@ -8,7 +8,7 @@ python:
 # - sudo apt-get update -qq
 # - sudo apt-get install -qq build-essential
 install:
-  - pip install cython --user
+  - pip install cython
   - python setup.py install
 # command to run tests
 #script: nosetests
