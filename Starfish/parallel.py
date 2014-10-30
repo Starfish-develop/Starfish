@@ -162,9 +162,7 @@ class OrderModel:
         self.lnprob_last = -np.inf
 
         self.func_dict = {"INIT": self.initialize,
-                          #"UPDATE": self.update_stellar,
                           "DECIDE": self.decide_stellar,
-                          #"IND": self.independent_sample,
                           "INST": self.instantiate,
                           "LNPROB": self.stellar_lnprob,
                           "GET_LNPROB": self.get_lnprob,
@@ -267,7 +265,7 @@ class OrderModel:
 
     def instantiate(self, *args):
         '''
-        Clear the old NuisanceSamplre, Instantiate the regions, and create a new NuisanceSampler.
+        Clear the old NuisanceSampler, Instantiate the regions, and create a new NuisanceSampler.
         '''
 
         # Using the stored residual spectra, find the largest outliers
@@ -365,7 +363,7 @@ class OrderModel:
         try:
             #lnp = None
             self.update_stellar(params)
-            lnp = self.evaluate() #Also sets self.lnprob to new value
+            lnp = self.evaluate() # Also sets self.lnprob to new value
             return lnp
         except C.ModelError:
             self.logger.debug("ModelError in stellar parameters, sending back -np.inf {}".format(params))
@@ -383,23 +381,23 @@ class OrderModel:
 
         R = self.fl - self.ChebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
 
-        sign, logdet = slogdet(CC)
-        if sign <= 0:
-            self.logger.debug("The determinant is negative {}".format(logdet))
-            #np.save("CC.npy", CC)
-            self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
-            self.exceptions.append(self.sampler.params)
-
-            raise C.ModelError("The determinant is negative.")
+        # sign, logdet = slogdet(CC)
+        # if sign <= 0:
+        #     self.logger.debug("The determinant is negative {}".format(logdet))
+        #     #np.save("CC.npy", CC)
+        #     self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
+        #     self.exceptions.append(self.sampler.params)
+        #
+        #     raise C.ModelError("The determinant is negative.")
 
         try:
             factor, flag = cho_factor(CC)
         except np.linalg.LinAlgError as e:
             #np.save("CC.npy", CC)
             self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
-            raise C.ModelError("Can't Cholesky factor")
+            raise C.ModelError("Can't Cholesky factor {}".format(e))
 
-        #logdet = np.sum(2 * np.log((np.diag(factor))))
+        logdet = np.sum(2 * np.log((np.diag(factor))))
 
 
         self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet) + self.prior
@@ -649,6 +647,7 @@ class OrderModel:
 
 model = OrderModel(debug=True)
 
+## Comment these following lines to profile
 #Fork a subprocess for each key: (spectra, order)
 pconns = {} #Parent connections
 cconns = {} #Child connections
@@ -670,38 +669,66 @@ for key, pconn in pconns.items():
 if args.perturb:
     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
 
-mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting, cov=stellar_MH_cov,
-                           outdir=outdir, debug=True, fix_logg=config["fix_logg"])
 
-mySampler.run_mcmc(mySampler.p0, config['burn_in'])
-#mySampler.reset()
+def profile_code():
+    '''
+    Test hook designed to be used by cprofile or kernprof. Does not include any network latency from communicating or
+    synchronizing between processes because we are just evaluating things directly.
+    '''
 
-print("\n\n\n Instantiating Regions")
+    #Evaluate one complete iteration from delivery of stellar parameters from master process
 
-# Now that we are burned in, instantiate any regions
-for key, pconn in pconns.items():
-    pconn.send(("INST", None))
+    #Master proposal
+    stellar_Starting.update({"logg":4.29})
+    model.stellar_lnprob(stellar_Starting)
+    #Assume we accepted
+    model.decide_stellar(True)
 
-mySampler.run_mcmc(mySampler.p0, config['samples'])
-
-print(mySampler.acceptance_fraction)
-print(mySampler.acor)
-mySampler.write()
-mySampler.plot() #triangle_plot = True
+    #Right now, assumes Kurucz order 23
 
 
-#Kill all of the orders
-for pconn in pconns.values():
-    pconn.send(("FINISH", None))
-    pconn.send(("DIE", None))
+def main():
 
-#Join on everything and terminate
-for p in ps.values():
-    p.join()
-    p.terminate()
+    # Uncomment these lines to profile
+    # #Initialize the current model for profiling purposes
+    # model.initialize((0, 0))
+    # import cProfile
+    # cProfile.run("profile_code()", "prof")
+    # import sys; sys.exit()
 
-#print("This should only be printed once")
-import sys;sys.exit()
+    mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting, cov=stellar_MH_cov,
+                               outdir=outdir, debug=True, fix_logg=config["fix_logg"])
+
+    mySampler.run_mcmc(mySampler.p0, config['burn_in'])
+    #mySampler.reset()
+
+    # print("\n\n\n Instantiating Regions")
+    #
+    # # Now that we are burned in, instantiate any regions
+    # for key, pconn in pconns.items():
+    #     pconn.send(("INST", None))
+    #
+    # mySampler.run_mcmc(mySampler.p0, config['samples'])
+
+    print(mySampler.acceptance_fraction)
+    print(mySampler.acor)
+    mySampler.write()
+    mySampler.plot() #triangle_plot = True
+
+    #Kill all of the orders
+    for pconn in pconns.values():
+        pconn.send(("FINISH", None))
+        pconn.send(("DIE", None))
+
+    #Join on everything and terminate
+    for p in ps.values():
+        p.join()
+        p.terminate()
+
+    import sys;sys.exit()
+
+if __name__=="__main__":
+    main()
 
 # All subprocesses will inherit pipe file descriptors created in the master process.
 # http://www.pushingbits.net/posts/python-multiprocessing-with-pipes/
