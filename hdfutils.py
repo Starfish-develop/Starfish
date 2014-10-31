@@ -13,8 +13,11 @@ import triangle
 
 import argparse
 parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
-parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored within run* "
-                                                       "folders in the current directory. Designed to collate runs from a JobArray.")
+parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell "
+                                  "expansion.")
+#parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored within run* "
+#                                                       "folders in the current directory. Designed to collate runs
+# from a JobArray.")
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
@@ -97,7 +100,6 @@ class Flatchain:
         self.param_tuple = param_tuple
         self.samples = samples
 
-
     def clip_param(self, clip_params):
         '''
         Clip the sample chain to include only those parameters in the param_list
@@ -109,6 +111,38 @@ class Flatchain:
         index_arr = np.array(index_arr)
         self.samples = self.samples[:, index_arr]
         self.param_tuple = tuple([self.param_tuple[index] for index in index_arr])
+
+    @classmethod
+    def open(cls, fname, discard_regions=True):
+        '''
+        Create a flatchain from an HDF5 filepath.
+
+        :param fname: filename of HDF5 to open
+        :param regions: True/False: discard any regions for now.
+        '''
+
+        hdf5 = h5py.File(fname, "r")
+
+        #Get the first dset
+        #id, value = lsthdf5.items()
+        ilist = list(hdf5.items())
+        assert len(ilist) == 1, "More than one dataset stored in {}".format(fname)
+        id, dset = ilist[0]
+
+        param_tuple = dset.attrs["parameters"]
+        param_tuple = tuple([param.strip("'() ") for param in param_tuple.split(",")])
+        samples = dset[:]
+
+        if discard_regions:
+            #If we have regions, then separate them and discard for now.
+            ind = np.array([not_region(param) for param in param_tuple], dtype='bool')
+            param_tuple = tuple([param_tuple[i] for i in range(len(param_tuple)) if ind[i]])
+            samples = samples[:,ind].copy()
+
+        flatchain = cls(id, param_tuple, samples)
+        hdf5.close()
+
+        return flatchain
 
     @classmethod
     def from_dset(cls, id, dset):
@@ -153,7 +187,6 @@ class Flatchain:
         Test equality between this flatchain and another (ie, can we concatenate them together)
         '''
         return (self.param_tuple == other.param_tuple) and (self.shape == other.shape)
-
 
 class ModelTree:
     '''
@@ -362,54 +395,53 @@ def gelman_rubin(samplelist):
         print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
 
 
-def GR_list(flatchainTreeList):
+def GR_list(flatchainList):
     '''
     Given a list of FlatchainTrees, step through each key in turn (following the structure of the first
     FlatchainTree), and pull out the relevant chains to perform the GR diagnostic.
     '''
-    ftree0 = flatchainTreeList[0]
-    keys = ftree0.flatchains_dict.keys() #list of all possible base keys
+    gelman_rubin([flatchain.samples for flatchain in flatchainList])
 
-    #List of flatchain dicts
-    fchain_dicts = [ftree.flatchains_dict for ftree in flatchainTreeList]
-
-    for key in keys:
-        print("\n", key)
-        #We can't do this for the region chains in this format, because they are not guaranteed to match.
-        if "region" not in key:
-            #Accumulate one set of samples (from each FlatchainTree) corresponding to the key
-            gelman_rubin([fchain_dict[key].samples for fchain_dict in fchain_dicts])
-
-
-def cat_list(file, flatchainTreeList):
+def cat_list(file, flatchainList):
     '''
-    Given a list of FlatchainTrees, concatenate all of these and write them to a single HDF5 file,
+    Given a list of flatchains, concatenate all of these and write them to a single HDF5 file,
     with optional burn in and thin.
     '''
     #Write this out to the new file
     print("Opening", file)
     hdf5 = h5py.File(file, "w")
-    ftree0 = flatchainTreeList[0]
-    keys = ftree0.flatchains_dict.keys() #list of all possible base keys
+
+    cat = np.concatenate([flatchain.samples for flatchain in flatchainList], axis=0)
+
+    id = flatchainList[0].id
+    param_tuple = flatchainList[0].param_tuple
+
+    dset = hdf5.create_dataset(id, cat.shape, compression='gzip', compression_opts=9)
+    dset[:] = cat
+    dset.attrs["parameters"] = "{}".format(param_tuple)
+    #ftree0 = flatchainTreeList[0]
+    #keys = ftree0.flatchains_dict.keys() #list of all possible base keys
 
     #List of flatchain dicts
-    fchain_dicts = [ftree.flatchains_dict for ftree in flatchainTreeList]
+    #fchain_dicts = [ftree.flatchains_dict for ftree in flatchainTreeList]
 
-    for key in keys:
-        if "region" not in key:
-            dsetkey = key.replace("-", "/")
-            print("\nWriting", dsetkey)
-            params = ftree0.flatchains_dict[key].param_tuple
-            cat = np.concatenate([fchain_dict[key].samples for fchain_dict in fchain_dicts], axis=0)
 
-            dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
-            dset[:] = cat
-            dset.attrs["parameters"] = "{}".format(params)
+
+    # for key in keys:
+    #     if "region" not in key:
+    #         dsetkey = key.replace("-", "/")
+    #         print("\nWriting", dsetkey)
+    #         params = ftree0.flatchains_dict[key].param_tuple
+    #         cat = np.concatenate([fchain_dict[key].samples for fchain_dict in fchain_dicts], axis=0)
+    #
+    #         dset = hdf5.create_dataset(dsetkey, cat.shape, compression='gzip', compression_opts=9)
+    #         dset[:] = cat
+    #         dset.attrs["parameters"] = "{}".format(params)
 
     hdf5.close()
 
 
-def plot(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plot=args.chain,
+def plot(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_plot=args.chain,
          lnprob=args.lnprob, clip_stellar='all', format=".pdf"):
     '''
     Make a bunch of plots to diagnose how the run went.
@@ -419,22 +451,21 @@ def plot(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plo
     matplotlib.rc("font", size=16)
 
     #Navigate the flatchain tree, and each time we encounter a flatchain, plot it.
-    for flatchain in flatchainTree.flatchains:
 
-        if flatchain.id == "stellar" and clip_stellar != "all":
-            flatchain.clip_param(clip_stellar)
+    if flatchain.id == "stellar" and clip_stellar != "all":
+        flatchain.clip_param(clip_stellar)
 
-        params = flatchain.param_tuple
-        samples = flatchain.samples
-        labels = [label_dict.get(key, "unknown") for key in params]
+    params = flatchain.param_tuple
+    samples = flatchain.samples
+    labels = [label_dict.get(key, "unknown") for key in params]
 
-        figure = triangle.corner(samples, labels=labels, quantiles=[0.16, 0.5, 0.84],
-                                 show_titles=True, title_args={"fontsize": 16}, plot_contours=True,
-                                 plot_datapoints=False)
-        figure.savefig(base + flatchain.id + format)
+    figure = triangle.corner(samples, labels=labels, quantiles=[0.16, 0.5, 0.84],
+                             show_titles=True, title_args={"fontsize": 16}, plot_contours=True,
+                             plot_datapoints=False)
+    figure.savefig(base + flatchain.id + format)
 
 
-def plot_paper(flatchainTree, base=args.outdir, triangle_plot=args.triangle, chain_plot=args.chain,
+def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_plot=args.chain,
          lnprob=args.lnprob, clip_stellar='all', format=".pdf"):
     '''
     Make a bunch of plots to diagnose how the run went.
@@ -448,7 +479,10 @@ def plot_paper(flatchainTree, base=args.outdir, triangle_plot=args.triangle, cha
     from matplotlib.ticker import MaxNLocator
 
     #Navigate the flatchain tree, and plot just the stellar parameters
-    flatchain = [flatchain for flatchain in flatchainTree.flatchains if flatchain.id == "stellar"][0]
+    #flatchain = [flatchain for flatchain in flatchainTree.flatchains if flatchain.id == "stellar"][0]
+
+    #Just assume that we're getting the stellar flatchain.
+    assert flatchain.id == "stellar", "Paper plotting mode only available for Stellar parameters at the moment."
 
     if clip_stellar != "all":
         flatchain.clip_param(clip_stellar)
@@ -607,28 +641,41 @@ if args.acor:
 
 #Now that all of the structures have been declared, do the initialization stuff.
 
-if args.dir:
-    #assemble all of the flatchains.hdf5 files from the run* subdirectories into FlatchainTree objects
-    import glob
-    folders = glob.glob("run*")
-    files = [folder + "/flatchains.hdf5" for folder in folders]
+if args.glob:
+    from glob import glob
+    files = glob(args.glob)
+# if args.dir:
+#     #assemble all of the flatchains.hdf5 files from the run* subdirectories into FlatchainTree objects
+#     import glob
+#     folders = glob.glob("run*")
+#     files = [folder + "/flatchains.hdf5" for folder in folders]
 elif args.files:
     files = args.files
 else:
     import sys
-    sys.exit("Must specify either --dir or --files")
+    sys.exit("Must specify either --glob or --files")
 
 #Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
 # directories that do not have a flatchains.hdf5 file
-flatchainTreeList = []
+#Store everything as a flatchainList, not flatchainTreeList
+flatchainList = []
 for file in files:
     try:
-        flatchainTreeList.append(FlatchainTree(file, old=args.old))
+        flatchainList.append(Flatchain.open(file, discard_regions=True))
     except OSError as e:
         print("{} does not exist, skipping. Or error {}".format(file, e))
 
+
+# flatchainTreeList = []
+# for file in files:
+#     try:
+#         flatchainTreeList.append(FlatchainTree(file, old=args.old))
+#
+#     except OSError as e:
+#         print("{} does not exist, skipping. Or error {}".format(file, e))
+
 #Check to see if burn or thin were specified
 if args.burn and args.thin:
-    for ftree in flatchainTreeList:
-        for fchain in ftree.flatchains:
-            fchain.burn_thin(args.burn, args.thin)
+    #for ftree in flatchainTreeList:
+    for fchain in flatchainList:
+        fchain.burn_thin(args.burn, args.thin)
