@@ -71,7 +71,7 @@ region_params:
 region_jump:
     logAmp : 0.03
     mu : 0.5
-    sigma : 5.
+    sigma : 2.
 
 region_priors:
     sigma0: 10. #AA
