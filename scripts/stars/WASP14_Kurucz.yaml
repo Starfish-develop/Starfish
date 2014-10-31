@@ -30,14 +30,17 @@ stellar_params :
 
 fix_logg : 4.29
 
-#Average jump size in each parameter
+#'Optimal' jumps
+#[  2.20390277e+01   1.31771852e-02   6.21451290e-02   1.74904937e-02
+#   2.89393654e-04]
+
 stellar_jump:
-    temp : 4
+    temp : 2
     #logg : 0.01
-    Z : 0.004
-    vsini : 0.03
+    Z : 0.001
+    vsini : 0.06
     vz : 0.01
-    logOmega: 1e-4
+    logOmega: 2.5e-4
 
 #no covariance
 #stellar_jump:
@@ -92,4 +95,4 @@ sigma_clip : 4.
 
 #Burn in time
 burn_in : 3000
-samples : 14000
+samples : 15000
