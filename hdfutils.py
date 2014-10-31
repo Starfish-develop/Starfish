@@ -126,8 +126,10 @@ class Flatchain:
         #Get the first dset
         #id, value = lsthdf5.items()
         ilist = list(hdf5.items())
-        assert len(ilist) == 1, "More than one dataset stored in {}".format(fname)
-        id, dset = ilist[0]
+        if len(ilist) > 1:
+            id, dset = "stellar", hdf5["stellar"]
+        else:
+            id, dset = ilist[0]
 
         param_tuple = dset.attrs["parameters"]
         param_tuple = tuple([param.strip("'() ") for param in param_tuple.split(",")])
@@ -623,8 +625,12 @@ def estimate_covariance(flatchain):
     print(cor)
 
     print("Standard deviation")
-    print(np.sqrt(np.diag(cov)))
+    std_dev = np.sqrt(np.diag(cov))
+    print(std_dev)
 
+    print("'Optimal' jumps")
+    d = samples.shape[1]
+    print(2.38/np.sqrt(d) * std_dev)
 
 
 if args.acor:
