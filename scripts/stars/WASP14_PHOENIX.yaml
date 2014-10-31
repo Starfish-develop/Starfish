@@ -18,9 +18,9 @@ Comments: >
 
 #Nested data structures are allowed
 stellar_params :
-    temp : 6200
+    temp : 6350
     #logg : 3.8
-    Z : -0.50
+    Z : -0.30
     vsini : 5.05
     vz : -4.838
     logOmega: -12.715 #PHOENIX
@@ -80,5 +80,5 @@ region_priors:
 sigma_clip : 4.
 
 #Burn in time
-burn_in : 4000
-samples : 5000
+burn_in : 3000
+samples : 10000
