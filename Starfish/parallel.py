@@ -254,8 +254,11 @@ class OrderModel:
         nuisance_starting = {"cheb": cheb_Starting, "cov": cov_Starting, "regions":{}}
 
         #Because this initialization is happening on the subprocess, I think the random state should be fine.
+        #Update the outdir based upon id
+        self.noutdir = outdir + "{}/{}/".format(self.spectrum_id, self.order)
+
         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov,
-                                       debug=True, outdir=outdir, order=self.order)
+                                       debug=True, outdir=self.noutdir, order=self.order)
         self.p0 = self.sampler.p0
 
         # Udpate the nuisance parameters to the starting values so that we at least have a self.data_mat
@@ -340,7 +343,7 @@ class OrderModel:
 
         # Initialize a new sampler, replacing the old one
         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov,
-                                       debug=True, outdir=outdir, prior_params=prior_params, order=self.order)
+                                       debug=True, outdir=self.noutdir, prior_params=prior_params, order=self.order)
 
         self.p0 = self.sampler.p0
 

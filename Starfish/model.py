@@ -479,7 +479,7 @@ class Sampler(GibbsSampler):
 
         filename = self.outdir + "flatchains.hdf5"
         self.logger.debug("Opening {} for writing HDF5 flatchains".format(filename))
-        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        hdf5 = h5py.File(filename, "w")
         samples = self.flatchain
 
         self.logger.debug("Creating dataset with fname:{}".format(self.fname))
@@ -495,7 +495,7 @@ class Sampler(GibbsSampler):
         #lnprobability is the lnprob at each sample
         filename = self.outdir + "lnprobs.hdf5"
         self.logger.debug("Opening {} for writing HDF5 lnprobs".format(filename))
-        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        hdf5 = h5py.File(filename, "w")
         lnprobs = self.lnprobability
 
         dset = hdf5.create_dataset(self.fname, samples.shape[:1], compression='gzip', compression_opts=9)
@@ -597,7 +597,7 @@ class PSampler(ParallelSampler):
 
         filename = self.outdir + "flatchains.hdf5"
         self.logger.debug("Opening {} for writing HDF5 flatchains".format(filename))
-        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        hdf5 = h5py.File(filename, "w")
         samples = self.flatchain
 
         self.logger.debug("Creating dataset with fname:{}".format(self.fname))
@@ -613,7 +613,7 @@ class PSampler(ParallelSampler):
         #lnprobability is the lnprob at each sample
         filename = self.outdir + "lnprobs.hdf5"
         self.logger.debug("Opening {} for writing HDF5 lnprobs".format(filename))
-        hdf5 = h5py.File(filename, "a") #creates if doesn't exist, otherwise read/write
+        hdf5 = h5py.File(filename, "w") #creates if doesn't exist, otherwise read/write
         lnprobs = self.lnprobability
 
         dset = hdf5.create_dataset(self.fname, samples.shape[:1], compression='gzip', compression_opts=9)
@@ -797,7 +797,8 @@ class NuisanceSampler(Sampler):
         self.model = kwargs.get("OrderModel")
         spectrum_id, order_id = self.model.id
         order = kwargs.get("order", order_id)
-        self.fname = "{}/{}/{}".format(spectrum_id, order, "nuisance")
+        #self.fname = "{}/{}/{}".format(spectrum_id, order, "nuisance")
+        self.fname = "nuisance"
         self.params = None
         self.prior_params = kwargs.get("prior_params", None)
         if self.prior_params:

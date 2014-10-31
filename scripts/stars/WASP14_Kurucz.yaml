@@ -91,5 +91,5 @@ region_priors:
 sigma_clip : 4.
 
 #Burn in time
-burn_in : 1000
-samples : 3000
+burn_in : 3000
+samples : 14000

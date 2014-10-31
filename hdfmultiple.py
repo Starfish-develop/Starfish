@@ -2,4 +2,4 @@
 
 import hdfutils
 
-hdfutils.GR_list(hdfutils.flatchainTreeList)
+hdfutils.GR_list(hdfutils.flatchainList)
