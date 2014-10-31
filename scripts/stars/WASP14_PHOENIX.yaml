@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: WASP14/PHOENIX/21_22_23/region/
+name: WASP14/PHOENIX/21_22_23/
 
 data : [data/WASP14/WASP14-2009-06-14.hdf5]
 outdir : output/
@@ -27,15 +27,17 @@ stellar_params :
 
 fix_logg : 4.29
 
+#Optimal jump size in each parameter
+#[  3.76497828e+01   1.82935783e-02   7.17217754e-02   2.34214442e-02  4.82748623e-04]
+
 #Average jump size in each parameter
 stellar_jump:
-    temp : 5
+    temp : 3.5
     #logg : 0.002
-    Z : 0.005
-    vsini : 0.02
-    vz : 0.01
-    logOmega: 1e-4
-
+    Z : 0.01
+    vsini : 0.07
+    vz : 0.02
+    logOmega: 4e-4
 
 use_cov: False
 stellar_cov:
@@ -81,4 +83,4 @@ sigma_clip : 4.
 
 #Burn in time
 burn_in : 3000
-samples : 10000
+samples : 15000

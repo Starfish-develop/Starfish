@@ -1095,7 +1095,7 @@ enormous leverage for identifying and improving the underlying model systematics
 %linked to that, since there is a popular Herschel HERMES program that will confuse people...
 
 
-\acknowledgments  The authors would like to graciously acknowledge the following people for many helpful discussions and key insights: Gregory M. Green, Kaisey Mandel, Daniel Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship and the Smithsonian Institution. Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. Astropy. JuliaLang. Python/Scikit-learn.\\
+\acknowledgments  The authors would like to graciously acknowledge the following people for many helpful discussions and key insights: Gregory M. Green, Kaisey Mandel, Daniel Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Rebecca Dawson, Tom Loredo and the ExoStat group, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship and the Smithsonian Institution. Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. This research made use of Astropy \citep{astropy13} and the Julia programming language \citep{julia12}.
 
 
 \appendix
@@ -1105,20 +1105,20 @@ enormous leverage for identifying and improving the underlying model systematics
 Interpolation from a library of synthetic spectra is conceptually straightforward, but in the 
 application discussed here there are some subtleties that require detailed consideration.  
 Spectral line formation is a non-linear process, where line shapes are determined by the complex 
-radiative transfer through a stellar atmosphere.  We aim to bypass this non-linear 
-process and predict (through interpolation) the behavior of spectral lines based on pre-computed 
-library spectra with similar physical parameters.  The goal in this Appendix is to describe a 
+radiative transfer through a stellar atmosphere.  Any interpolation process aims to bypass this non-linear 
+process and predict the behavior of spectral lines based on pre-computed 
+library spectra with similar physical parameters.  This appendix describes the 
 procedure by which we propagate an empirical approximation of the {\it uncertainty} in that 
-prediction through the probabilistic framework we have developed.
+prediction--which can be substantial--through the probabilistic framework we have developed.
 
 There are two important factors to consider when interpolating in libraries of model stellar 
-spectra.  First, the flux values in some non-negligible fraction of the spectra do not vary 
+spectra.  First, the flux values in some non-negligible fraction of the spectral pixels do not vary 
 monotonically with changes in the physical parameters that define the library: this helps inform 
 the decision about which functional form of interpolation should be used.  And second, the spectra 
 are usually not Nyquist sampled with respect to the physical parameters that define the library.  
-This unfortunately (but not surprisingly) means that the library is not sampled densely enough in 
+This unfortunate fact means that the library is not sampled densely enough in 
 parameter-space to reconstruct a synthetic spectrum for arbitrary parameters without some 
-information loss.  Given these factors, we choose to develop a spectral ``emulator,'' which, given the information contained in the library of synthesized spectra, seeks to non-deterministically predict the behavior of a spectrum for stellar parameters not sampled by the library. 
+information loss.  Given these factors, we choose to develop a spectral ``emulator,'' which, given the information contained in the library of synthesized spectra and a chosen interpolation point, delivers a probability distribution over the range of possible interpolated spectra. 
 
 Model library spectra, $f_{\lambda}(\{\vt_{\ast}\})$, are stored as (1-dimensional) arrays of flux 
 values, sampled on high resolution wavelength grids (typically $R \gtrsim 100,000$).  In the case 
@@ -1128,7 +1128,17 @@ of interest here, the collections of model parameters $\{\vt_{\ast}\} = [\{T_{\r
 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but the {\sc 
 Phoenix} library has finer coverage in 100\,K increments.  
 
-The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation. We use principal component analysis (PCA) to decompose the synthetic library into a set of ``eigenspectra'' $\varphi$. Following techniques of SLOAN (cite Ivecik 2014). After examining how well the spectra reconstruct the grid, we keep the first $m$ of the eigenspectra, and discard the latter eigenspectra. We keep enough eigenspectra to reconstruct any pixel flux to better than $2\%$, however most pixels are more like $XX\%$. An $N_{\rm pix}$ eigenspectrum $\xi_k$, $k = \{1, 2, \ldots, m\}$. Before we do the PCA operation, however, we first standardize the synthetic library by subtracting the mean spectrum and ``whitening'' the spectra by dividing by the standard deviation in each pixel. First, we select only a subset of the spectra synthetic library which will be relevant to our  The mean spectrum is 
+The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation \citep{habib07, heitmann09}. We chose the principal component basis (PCA) to decompose the synthetic library into a set of ``eigenspectra,'' following the techniques of \citet{ivezic13}. We decide to truncate our basis to the first $m$ of the eigenspectra, where $m$ is decided by the minimum number of eigenspectra required to reproduce any spectrum in the grid to better than 2\% accuracy for all pixels, however the mean pixel error is generally much smaller ($\lesssim 0.5\%$). An $N_{\rm pix}$ eigenspectrum $\xi_k$, $k = \{1, 2, \ldots, m\}$. Before we do the PCA operation, however, we first standardize the synthetic library by subtracting the mean spectrum and ``whitening'' the spectra by dividing by the standard deviation in each pixel. First, we select only a subset of the spectra synthetic library which will be relevant to our  The mean spectrum is 
+
+
+\begin{figure*}[!t]
+  \begin{center}
+  \includegraphics{figs/pca_reconstruct.pdf}
+  \figcaption{A bunch of reconstrcuted.
+\label{fig:pca_reconstruct}}
+  \end{center}
+\end{figure*}
+
 \begin{equation}
   \xi_\mu = \frac{1}{N} \sum_{i = 1}^N f_\lambda(\{\vt_\ast \}^\textrm{grid})
 \end{equation}
@@ -1141,6 +1151,7 @@ We standardize all spectra in the library by subtracting the mean spectrum and d
   \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) = \frac{f_\lambda(\{\vt_\ast \}^\textrm{grid}) - \xi_\mu}{\xi_\sigma}
 \end{equation}
 Then, the eigenspectra are determined from the standardize grid using PCA analysis (see Ivecik, scikit-learn). To speed computation, we first select $M$ subset spectra from the grid. 
+
 
 [For an example of the eigenspectra for Gl51, see figure A1 (left) and reconstruction of a synthetic spectrum at stellar parameters XX (right).]
 

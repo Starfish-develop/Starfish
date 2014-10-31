@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import os
 import numpy as np
-import matplotlib
-#matplotlib.rc("axes", labelsize="large")
+import Starfish.constants as C
+from astropy.table import Table
+from astropy.io import ascii
+
 import triangle
 
 #Base package for all HDF tools
@@ -15,13 +17,13 @@ import argparse
 parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
 parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell "
                                   "expansion.")
+parser.add_argument("--ftype", default="stellar", help="What type of flatchains do we have?")
 #parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored within run* "
 #                                                       "folders in the current directory. Designed to collate runs
 # from a JobArray.")
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
-parser.add_argument("--old", action="store_true", help="Old format flatchains.hdf5 files?")
 
 parser.add_argument("--lnprob", help="The HDF5 file containing the lnprobability chains.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
@@ -45,6 +47,7 @@ parser.add_argument("--acor", action="store_true", help="Calculate the autocorre
 parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
 parser.add_argument("--cov", action="store_true", help="Estimate the covariance between two parameters.")
+parser.add_argument("--ndim", type=int, help="How many dimensions to use for estimating the 'optimal jump'.")
 parser.add_argument("--paper", action="store_true", help="Change the figure plotting options appropriate for the "
                                                          "paper.")
 
@@ -59,7 +62,6 @@ else:
     os.makedirs(args.outdir)
 
 args.outdir += "/"
-
 
 import h5py
 
@@ -76,18 +78,45 @@ label_dict = {"temp":r"$T_{\rm eff}\;[{\rm K}]$", "logg":r"$\log g$", "Z":r"$[{\
               "sigAmp":r"$b$", "logAmp":r"$\log_{10} a_{\rm g}$", "l":r"$l$",
               "h":r"$h$", "loga":r"$\log_{10} a$", "mu":r"$\mu$", "sigma":r"$\sigma$"}
 
+# Region-matching code
 import re
-p = re.compile("r\d\d*", re.IGNORECASE)
+p_cheb = re.compile(".*c\d*", re.IGNORECASE)
+p_region = re.compile("r\d*.*", re.IGNORECASE)
 
-def not_region(str):
+def is_param(str, type):
     '''
-    Return true if this is not a region
+    Return true if the string is of this type of parameter.
     '''
-    m = p.match(str)
-    if m:
-        return False
+    if type == "stellar":
+        if str in C.stellar_set:
+            return True
+        else:
+            return False
+
+    elif type == "cheb":
+        m = p_cheb.match(str)
+        if m:
+            return True
+        else:
+            return False
+
+    elif type == "cov":
+        if str in C.cov_global_parameters:
+            return True
+        else:
+            return False
+
+    elif type == "region":
+        m = p_region.match(str)
+        if m:
+            return True
+        else:
+            return False
+
     else:
-        return True
+        print("Unknown type")
+        return False
+
 
 #Additionally, there should be an object for each flatchain, that stores param_tuple and samples
 class Flatchain:
@@ -113,7 +142,7 @@ class Flatchain:
         self.param_tuple = tuple([self.param_tuple[index] for index in index_arr])
 
     @classmethod
-    def open(cls, fname, discard_regions=True):
+    def open(cls, fname, type="stellar"):
         '''
         Create a flatchain from an HDF5 filepath.
 
@@ -135,11 +164,13 @@ class Flatchain:
         param_tuple = tuple([param.strip("'() ") for param in param_tuple.split(",")])
         samples = dset[:]
 
-        if discard_regions:
-            #If we have regions, then separate them and discard for now.
-            ind = np.array([not_region(param) for param in param_tuple], dtype='bool')
-            param_tuple = tuple([param_tuple[i] for i in range(len(param_tuple)) if ind[i]])
-            samples = samples[:,ind].copy()
+        #Design a function which will take parameter names, a type, and return a boolean array of whether these match
+
+        #If we have regions, then separate them and discard for now.
+        ind = np.array([is_param(param, type) for param in param_tuple], dtype='bool')
+        param_tuple = tuple([param_tuple[i] for i in range(len(param_tuple)) if ind[i]])
+
+        samples = samples[:,ind].copy()
 
         flatchain = cls(id, param_tuple, samples)
         hdf5.close()
@@ -190,154 +221,6 @@ class Flatchain:
         '''
         return (self.param_tuple == other.param_tuple) and (self.shape == other.shape)
 
-class ModelTree:
-    '''
-    Store all of the orders and flatchains for a model
-    '''
-    def __init__(self, id, orderTreeDict=None):
-        self.id = id
-        self.orderTreeDict = orderTreeDict if orderTreeDict is not None else []
-
-    @classmethod
-    def from_dset(cls, base_id, dset):
-        '''
-        Initialize all of the subobjects, if given a dset
-        '''
-        #This should have at least one order.
-        return cls(base_id, {"{}-{}".format(base_id,id):OrderTree.from_dset("{}-{}".format(base_id,id), dset) for
-                             (id, dset) in ((key, dset) for (key, dset) in dset.items() if key.isdigit())})
-
-class OrderTree:
-    '''
-    Store all the information about the order.
-    '''
-    def __init__(self, id, flatchainDict=None):
-        self.id = id
-        self.flatchainDict = flatchainDict if flatchainDict is not None else []
-
-    @classmethod
-    def from_dset(cls, base_id, dset):
-        '''
-        At this level, everything is flat, so initialize the flatchainList.
-        '''
-        return cls(base_id, {"{}-{}".format(base_id, id):Flatchain.from_dset("{}-{}".format(base_id, id), dset) for
-                             (id, dset) in dset.items()})
-
-class FlatchainTree:
-    '''
-    Object defined to wrap a Flatchain structure in order to facilitate combining, burning, etc.
-
-    The Tree will always follow the same structure.
-
-    flatchains.hdf5:
-
-    stellar samples:    stellar
-
-    folder for model:   0
-
-        folder for order: 22
-
-                        cheb
-                        cov
-                        cov_region00
-                        cov_region01
-                        cov_region02
-                        ....
-
-
-        folder for order: 23
-
-                        cheb
-                        cov
-                        cov_region00
-                        cov_region01
-                        cov_region02
-                        ....
-
-    folder for model:   1
-
-
-    '''
-    def __init__(self, file, old=False):
-        #Load everything from the HDF5File into a bunch of Flatchain objects
-        #We will always have the stellar samples
-
-        print("Loading {}".format(file))
-        hdf5 = h5py.File(file, "r")
-
-        self.stellar = Flatchain.from_dset("stellar", hdf5.get("stellar"))
-        self.shape = self.stellar.shape
-
-        if old:
-            self.modelTreeDict = {"0":ModelTree.from_dset("0", hdf5)}
-
-        else:
-            #For each key that is a number, make a model.
-            self.modelTreeDict = {id:ModelTree.from_dset(id, dset) for (id, dset) in ((key, dset) for (key, dset) in hdf5
-                                    .items() if key.isdigit())}
-
-        print("Closing {}".format(file))
-        hdf5.close()
-
-    #How to iterate over all flatchains?
-    @property
-    def flatchains(self):
-        '''
-        Return an iterator over all of the flatchains in order to allow quick clipping of ranges, burn in, and keep.
-        '''
-        yield self.stellar
-        for modelTree in self.modelTreeDict.values():
-            for orderTree in modelTree.orderTreeDict.values():
-                for flatchain in orderTree.flatchainDict.values():
-                    yield flatchain
-
-    @property
-    def flatchains_dict(self):
-        return {fchain.id: fchain for fchain in self.flatchains}
-
-    def clip_range(self, start, end):
-        for flatchain in self.flatchains:
-            flatchain.clip_range(start, end)
-
-    def burn(self, num):
-        '''
-        Burn this many samples from the start of the chain.
-        '''
-        assert num < self.shape[0]
-        for flatchain in self.flatchains:
-            flatchain.burn(num)
-
-    def keep(self, num):
-        '''
-        Keep this many samples from the end of the chain.
-        '''
-        assert num < self.shape[0]
-        for flatchain in self.flatchains:
-            flatchain.keep(num)
-
-    def __eq__(self, other):
-        '''
-        How to match up all the flatchains to each other? Is there a way to sort on id?
-        '''
-        #Get an iterator of ids for self.
-        #Firs compare the stellar chains
-        if not self.stellar == other.stellar:
-            return False
-
-        for model_id, modelTree in self.modelTreeDict.items():
-            otherModelTree = other.modelTreeDict[model_id]
-            for order_id, orderTree in modelTree.orderTreeDict.items():
-                #Compare this orderTree with the orderTree of the other model.
-                otherOrderTree = otherModelTree.orderTreeDict[order_id]
-                #Now compare each of the flatchains by key as long as it doesn't have "region" in the ID
-                for flatchain_id in orderTree.flatchainDict.keys():
-                    if "region" not in flatchain_id:
-                        if not orderTree.flatchainDict[flatchain_id] == otherOrderTree.flatchainDict[flatchain_id]:
-                            return False
-
-        return True
-
-
 def gelman_rubin(samplelist):
     '''
     Given a list of flatchains from separate runs (that already have burn in cut and have been trimmed, if desired),
@@ -378,7 +261,6 @@ def gelman_rubin(samplelist):
     avg_phi_j = np.mean(chains, axis=0, dtype="f8") #average over iterations, now a (m, nparams) array
     #average value of all chains
     avg_phi = np.mean(chains, axis=(0,1), dtype="f8") #average over iterations and chains, now a (nparams,) array
-    print("Average parameter value: {}".format(avg_phi))
 
     B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0, dtype="f8") #now a (nparams,) array
 
@@ -387,15 +269,25 @@ def gelman_rubin(samplelist):
     W = 1./m * np.sum(s2j, axis=0, dtype="f8") #now a (nparams,) arary
 
     var_hat = (n - 1.)/n * W + B/n #still a (nparams,) array
+    std_hat = np.sqrt(var_hat)
 
     R_hat = np.sqrt(var_hat/W) #still a (nparams,) array
 
-    print("std_hat: {}".format(np.sqrt(var_hat)))
+
+    data = Table({   "Value": avg_phi,
+                     "Uncertainty": std_hat},
+                 names=["Value", "Uncertainty"])
+
+    print(data)
+
+    ascii.write(data, sys.stdout, Writer = ascii.Latex, formats={"Value":"%0.3f", "Uncertainty":"%0.3f"}) #
+
+    #print("Average parameter value: {}".format(avg_phi))
+    #print("std_hat: {}".format(np.sqrt(var_hat)))
     print("R_hat: {}".format(R_hat))
 
     if np.any(R_hat >= 1.1):
         print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
-
 
 def GR_list(flatchainList):
     '''
@@ -629,27 +521,17 @@ def estimate_covariance(flatchain):
     print(std_dev)
 
     print("'Optimal' jumps")
-    d = samples.shape[1]
+    if args.ndim:
+        d = args.ndim
+    else:
+        d = samples.shape[1]
     print(2.38/np.sqrt(d) * std_dev)
-
-
-if args.acor:
-    from emcee import autocorr
-    print("Stellar Autocorrelation")
-    acors = autocorr.integrated_time(stellar, axis=0, window=args.acor_window)
-    for param,acor in zip(stellar_tuple, acors):
-        print("{} : {}".format(param, acor))
 
 #Now that all of the structures have been declared, do the initialization stuff.
 
 if args.glob:
     from glob import glob
     files = glob(args.glob)
-# if args.dir:
-#     #assemble all of the flatchains.hdf5 files from the run* subdirectories into FlatchainTree objects
-#     import glob
-#     folders = glob.glob("run*")
-#     files = [folder + "/flatchains.hdf5" for folder in folders]
 elif args.files:
     files = args.files
 else:
@@ -658,25 +540,14 @@ else:
 
 #Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
 # directories that do not have a flatchains.hdf5 file
-#Store everything as a flatchainList, not flatchainTreeList
 flatchainList = []
 for file in files:
     try:
-        flatchainList.append(Flatchain.open(file, discard_regions=True))
+        flatchainList.append(Flatchain.open(file, type=args.ftype))
     except OSError as e:
         print("{} does not exist, skipping. Or error {}".format(file, e))
 
-
-# flatchainTreeList = []
-# for file in files:
-#     try:
-#         flatchainTreeList.append(FlatchainTree(file, old=args.old))
-#
-#     except OSError as e:
-#         print("{} does not exist, skipping. Or error {}".format(file, e))
-
 #Check to see if burn or thin were specified
 if args.burn and args.thin:
-    #for ftree in flatchainTreeList:
     for fchain in flatchainList:
         fchain.burn_thin(args.burn, args.thin)

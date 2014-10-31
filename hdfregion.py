@@ -8,11 +8,14 @@ Works by matching regions within some degree of variance.
 import os
 import numpy as np
 from collections import deque
+from astropy.table import Table
+from astropy.io import ascii
+import sys
 
 import argparse
 parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
-parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored within run* "
-                                                       "folders in the current directory. Designed to collate runs from a JobArray.")
+parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell "
+                                   "expansion.")
 parser.add_argument("-o", "--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
 parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
@@ -37,58 +40,84 @@ else:
 
 args.outdir += "/"
 
-if args.dir:
-    #assemble all of the flatchains.hdf5 files from the run* subdirectories.
-    import glob
-    folders = glob.glob("run*")
-    files = [folder + "/flatchains.hdf5" for folder in folders]
+if args.glob:
+    from glob import glob
+    files = glob(args.glob)
 elif args.files:
-    assert len(args.files) >= 2, "Must provide 2 or more HDF5 files to combine."
     files = args.files
 else:
     import sys
-    sys.exit("Must specify either --dir or --files")
+    sys.exit("Must specify either --glob or --files")
 
-import h5py
+#At this point, files is a list of flatchains.hdf5 files, which contain both cheb, cov, and region parameters.
+
+from hdfutils import Flatchain
+
 #Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
 # directories that do not have a flatchains.hdf5 file
-hdf5list = []
-filelist = []
+flatchainList = []
 for file in files:
     try:
-        hdf5list += [h5py.File(file, "r")["0"]]
-        filelist += [file]
-    except OSError:
-        print("{} does not exist, skipping.".format(file))
+        flatchainList.append(Flatchain.open(file, type="region"))
+    except OSError as e:
+        print("{} does not exist, skipping. Or error {}".format(file, e))
 
-#I think we should separate this by order
+#Now that we have a list of all the nuisance regions, it is our job to break them up into atomic flatchain units of
+# shape (Nsamples, 3), where each one describes r00-, r01-, etc..
 
-#Load all of the samples from the a given order into one giant deque
-allRegions = deque()
+# Assuming these are all in order, can we just do flatchains.reshape(nsamples, 3, -1).T ?
+regionList = []
+for flatchain in flatchainList:
+    samples = flatchain.samples
+    nsamples = samples.shape[0]
+    samples.shape = (-1, nsamples, 3)
+    nregions = samples.shape[0]
+    print("nregions {}".format(nregions))
+    regions = [region for region in samples]
+    regionList += regions
 
-#Maybe we can just select on model 0 for now.
-hdf5 = hdf5list[0]
-orders = [int(key) for key in hdf5.keys() if key != "stellar"]
-orders.sort()
 
-#ordersList is a list of deques that contain the flatchains
-ordersList = [deque() for order in orders]
-
-for hdf5 in hdf5list:
-    for i, order in enumerate(orders):
-        deq = ordersList[i]
-        #figure out list of which regions are in this order
-        regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
-        for key in regionKeys:
-            deq.append(hdf5.get("{}/{}".format(order, key))[:])
+# import h5py
+# #Because we are impatient and want to compute statistics before all the jobs are finished, there may be some
+# # directories that do not have a flatchains.hdf5 file
+# hdf5list = []
+# filelist = []
+# for file in files:
+#     try:
+#         hdf5list += [h5py.File(file, "r")["0"]]
+#         filelist += [file]
+#     except OSError:
+#         print("{} does not exist, skipping.".format(file))
+#
+# #I think we should separate this by order
+#
+# #Load all of the samples from the a given order into one giant deque
+# allRegions = deque()
+#
+# #Maybe we can just select on model 0 for now.
+# hdf5 = hdf5list[0]
+# orders = [int(key) for key in hdf5.keys() if key != "stellar"]
+# orders.sort()
+#
+# #ordersList is a list of deques that contain the flatchains
+# ordersList = [deque() for order in orders]
+#
+# for hdf5 in hdf5list:
+#     for i, order in enumerate(orders):
+#         deq = ordersList[i]
+#         #figure out list of which regions are in this order
+#         regionKeys = [key for key in hdf5["{}".format(order)].keys() if "cov_region" in key]
+#         for key in regionKeys:
+#             deq.append(hdf5.get("{}/{}".format(order, key))[:])
 
 #Maybe before we try grouping all of the regions together, it would be better to simply plot the mean and variance of
 #each region, that way we can see where everything lands?
 
+# Just for plotting purposes
 mus = deque()
 sigmas = deque()
-for flatchain in ordersList[0]:
-    samples = flatchain[:, 1]
+for rsamples in regionList:
+    samples = rsamples[:, 1] #Select the mu value
     mu, sigma = np.mean(samples, dtype="f8"), np.std(samples, dtype="f8")
     mus.append(mu)
     sigmas.append(sigma)
@@ -104,7 +133,7 @@ class Region:
     def __init__(self, flatchain=None):
         self.flatchains = [flatchain] if flatchain is not None else []
         #Assume that these flatchains are shape (Niterations, 3)
-        self.params = ("loga", "mu", "sigma")
+        self.params = ("logAmp", "mu", "sigma")
         global ID
         self.id = ID
         ID += 1
@@ -150,8 +179,13 @@ class Region:
             assert N <= shortest, "Cannot keep more samples than the shortest flatchain."
         else:
             N = shortest
-        print("Keeping last {} samples and thinning by {}".format(N, thin))
         self.flatchains = [flatchain[-N::thin] for flatchain in self.flatchains]
+
+    def cov(self):
+        '''
+        Calculate the covariance matrix of the region
+        '''
+        raise NotImplementedError()
 
     def gelman_rubin(self):
         '''
@@ -189,7 +223,6 @@ class Region:
         avg_phi_j = np.mean(chains, axis=0, dtype="f8") #average over iterations, now a (m, nparams) array
         #average value of all chains
         avg_phi = np.mean(chains, axis=(0,1), dtype="f8") #average over iterations and chains, now a (nparams,) array
-        print("Average parameter value: {}".format(avg_phi))
 
         B = n/(m - 1.0) * np.sum((avg_phi_j - avg_phi)**2, axis=0, dtype="f8") #now a (nparams,) array
 
@@ -201,43 +234,57 @@ class Region:
 
         R_hat = np.sqrt(var_hat/W) #still a (nparams,) array
 
-        print("Between-sequence variance B: {}".format(B))
-        print("Within-sequence variance W: {}".format(W))
-        print("std_hat: {}".format(np.sqrt(var_hat)))
+        std_hat = np.sqrt(var_hat)
+
+        #avg_value, uncertainty, units
+
+        data = Table({
+                "Parameter": ["logAmp", "mu", "sigma"],
+                "Value": avg_phi,
+                "Uncertainty": std_hat,
+                "Units": ["log10(flam)", "AA", "km/s"]},
+                     names=["Parameter", "Value", "Uncertainty", "Units"])
+
+        print(data)
+
+        #ascii.write(data, sys.stdout, Writer = ascii.Latex, formats={"Value":"%0.2f", "Uncertainty":"%0.2f"}) #
+        # latexdict = {
+        # 'tabletype':
+        # 'table*'}))
+
+        #print("Average parameter value: {}".format(avg_phi))
+        #print("std_hat: {}".format(np.sqrt(std_hat)))
         print("R_hat: {}".format(R_hat))
 
         if np.any(R_hat >= 1.1):
             print("You might consider running the chain for longer. Not all R_hats are less than 1.1.")
 
-ordersRegions = [[] for order in orders] #2D list
-for i,flatchain_deque in enumerate(ordersList):
-    #Choose an order
-    orderRegions = ordersRegions[i]
-    #cycle through the deque and either add to current regions or create new ones
-    while flatchain_deque:
-        flatchain = flatchain_deque.pop()
-        #See if this can be added to any of the existing regions
-        added = False
-        for region in orderRegions:
-            added = region.check_and_append(flatchain)
-            if added:
-                break
-        #was unable to add to any pre-existing chains, create new region object
-        if added == False:
-            orderRegions.append(Region(flatchain))
+regionDeque = deque(regionList)
+
+classifiedRegions = []
+while regionDeque:
+    rsamples = regionDeque.pop()
+    #See if this can be added to any of the existing regions
+    added = False
+    for region in classifiedRegions:
+        added = region.check_and_append(rsamples)
+        if added:
+            break
+    # if we get to here, we were unable to add to any pre-existing chains, so create new region object
+    if added == False:
+        classifiedRegions.append(Region(rsamples))
 
 #At this point, we should have a length norders 2D list, each with a list of Region objects.
 #Check to see what are the total mu's we've acquired.
 print("Classified mu's")
-for orderRegions in ordersRegions:
-    for region in orderRegions:
-        print("\n{} +/- {}".format(region.mu, region.std))
+for region in classifiedRegions:
+    print("\n{} +/- {}".format(region.mu, region.std))
 
-        #Burn in/thin region from end
-        region.keep(args.keep, args.thin)
+    #Burn in/thin region from end
+    region.keep(args.keep, args.thin)
 
-        #compute GR statistic
-        region.gelman_rubin()
+    #compute GR statistic
+    region.gelman_rubin()
 
 #concatenate samples into a combined.hdf5 that contains all of the sampled regions.
 
