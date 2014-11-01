@@ -23,8 +23,6 @@ parser.add_argument("--keep", type=int, default=0, help="How many samples to kee
                                                         "the beginning of the chain will be for burn in.")
 parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this factor. E.g., --thin 100 will take "
                                                         "every 100th sample.")
-parser.add_argument("--stellar_params", nargs="*", default="all", help="A list of which stellar parameters to plot, "
-                                                                       "separated by WHITESPACE. Default is to plot all.")
 parser.add_argument("--gelman", action="store_true", help="Compute the Gelman-Rubin convergence statistics.")
 
 args = parser.parse_args()
@@ -65,7 +63,7 @@ regionList = []
 for flatchain in flatchainList:
     samples = flatchain.samples
     nsamples = samples.shape[0]
-    samples.shape = (-1, nsamples, 3)
+    samples = np.transpose(samples.reshape(nsamples, -1, 3), (1, 0, 2))
     nregions = samples.shape[0]
     print("nregions {}".format(nregions))
     regions = [region for region in samples]
@@ -114,6 +112,7 @@ sigmas = deque()
 for rsamples in regionList:
     samples = rsamples[:, 1] #Select the mu value
     mu, sigma = np.mean(samples, dtype="f8"), np.std(samples, dtype="f8")
+    print("{} +/- {}".format(mu, sigma))
     mus.append(mu)
     sigmas.append(sigma)
 
