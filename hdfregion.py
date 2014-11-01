@@ -55,6 +55,8 @@ for file in files:
     except OSError as e:
         print("{} does not exist, skipping. Or error {}".format(file, e))
 
+print("Using a total of {} flatchains".format(len(flatchainList)))
+
 #Now that we have a list of all the nuisance regions, it is our job to break them up into atomic flatchain units of
 # shape (Nsamples, 3), where each one describes r00-, r01-, etc..
 

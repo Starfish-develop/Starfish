@@ -109,6 +109,10 @@ def is_param(str, type):
         else:
             return False
 
+    elif type == "all":
+        # Match all characters
+        return True
+
     else:
         print("Unknown type")
         return False
@@ -542,6 +546,8 @@ for file in files:
         flatchainList.append(Flatchain.open(file, type=args.ftype))
     except OSError as e:
         print("{} does not exist, skipping. Or error {}".format(file, e))
+
+print("Using a total of {} flatchains".format(len(flatchainList)))
 
 #Check to see if burn or thin were specified
 if args.burn and args.thin:
