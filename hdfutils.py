@@ -24,7 +24,6 @@ parser.add_argument("--ftype", default="stellar", help="What type of flatchains 
 # from a JobArray.")
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
-parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
 
 parser.add_argument("--lnprob", help="The HDF5 file containing the lnprobability chains.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
@@ -54,12 +53,8 @@ parser.add_argument("--paper", action="store_true", help="Change the figure plot
 
 args = parser.parse_args()
 
-#Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
-if os.path.exists(args.outdir):
-    if not args.clobber:
-        import sys
-        sys.exit("Error: --outdir already exists and --clobber is not set. Exiting.")
-else:
+#Check to see if outdir exists.
+if not os.path.exists(args.outdir):
     os.makedirs(args.outdir)
 
 args.outdir += "/"
