@@ -1052,7 +1052,7 @@ already-established fitting tools (e.g., {\tt SME}).  To demonstrate how it is u
 the surface parameters of main-sequence stars with mid-F and mid-M spectral types from high-S/N 
 optical and near-infrared data, with reference to pre-computed model libraries 
 (Sect.~\ref{sec:examples}).  The source code developed here is open and freely available for use: 
-see \url{http://github.com/iancze/StellarSpectra}.
+see \url{http://github.com/iancze/Starfish}.
 
 The novelty of employing this kind of likelihood function in the spectroscopic inference problem is 
 that the treatment of data--model mismatches (in essence, the fit quality) is explicitly built into 
@@ -1128,17 +1128,15 @@ of interest here, the collections of model parameters $\{\vt_{\ast}\} = [\{T_{\r
 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but the {\sc 
 Phoenix} library has finer coverage in 100\,K increments.  
 
-The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation \citep{habib07, heitmann09}. We chose the principal component basis (PCA) to decompose the synthetic library into a set of ``eigenspectra,'' following the techniques of \citet{ivezic13}. We decide to truncate our basis to the first $m$ of the eigenspectra, where $m$ is decided by the minimum number of eigenspectra required to reproduce any spectrum in the grid to better than 2\% accuracy for all pixels, however the mean pixel error is generally much smaller ($\lesssim 0.5\%$). An $N_{\rm pix}$ eigenspectrum $\xi_k$, $k = \{1, 2, \ldots, m\}$. Before we do the PCA operation, however, we first standardize the synthetic library by subtracting the mean spectrum and ``whitening'' the spectra by dividing by the standard deviation in each pixel. First, we select only a subset of the spectra synthetic library which will be relevant to our  The mean spectrum is 
-
-
 \begin{figure*}[!t]
   \begin{center}
   \includegraphics{figs/pca_reconstruct.pdf}
-  \figcaption{A bunch of reconstrcuted.
+  \figcaption{\emph{top} : The mean spectrum, standard deviation spectrum, and five eigenspectra that form the basis of the \textsc{Phoenix} synthetic library used to model Gl51. \emph{bottom}: The original synthetic spectrum from the \textsc{Phoenix} library compared with a spectrum reconstructed from a linear combination of the eigenspectra using Eqn~\ref{eqn:reconstruct} with the weights listed in the figure.
 \label{fig:pca_reconstruct}}
   \end{center}
 \end{figure*}
 
+The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation \citep{habib07, heitmann09}. We chose the principal component basis (PCA) to decompose the synthetic library into a set of ``eigenspectra,'' following the techniques of \citet{ivezic13}. Prior to the PCA decomposition, we first identify a subset of $M$ synthetic spectra which will be relevant to the star at hand. We then standardize the synthetic library by first subtracting off the mean spectrum and then ``whiten'' the spectra by dividing by the standard deviation measured in each pixel across the grid. The mean spectrum is 
 \begin{equation}
   \xi_\mu = \frac{1}{N} \sum_{i = 1}^N f_\lambda(\{\vt_\ast \}^\textrm{grid})
 \end{equation}
@@ -1146,25 +1144,22 @@ and the standard deviation spectrum is
 \begin{equation}
   \xi_\sigma = \sqrt{\frac{1}{N} \sum_{i=1}^N \bigl [ f_\lambda(\{\vt_\ast \}^\textrm{grid}) - \xi_\mu \bigr]^2 } 
 \end{equation}
-We standardize all spectra in the library by subtracting the mean spectrum and dividing by the standard deviation spectrum.
+All spectra in the library are then standardized by subtracting the mean spectrum and dividing by the standard deviation spectrum
 \begin{equation}
   \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) = \frac{f_\lambda(\{\vt_\ast \}^\textrm{grid}) - \xi_\mu}{\xi_\sigma}
 \end{equation}
-Then, the eigenspectra are determined from the standardize grid using PCA analysis (see Ivecik, scikit-learn). To speed computation, we first select $M$ subset spectra from the grid. 
+Then, the eigenspectra are computed from the standardize grid using PCA analysis (\cite{ivezic13}). We decide to truncate our basis to the first $m$ of the eigenspectra, where $m$ is decided by the minimum number of eigenspectra required to reproduce any spectrum in the grid to better than 2\% accuracy for all pixels; however the mean pixel error is generally much smaller than this ($\lesssim 0.5\%$). We denote a single $N_{\rm pix}$ eigenspectrum as $\xi_k$, with principal component index $k = \{1, 2, \ldots, m\}$. As an example, the eigenspectra basis computed for Gl51 using the \textsc{Phoenix} library is shown in Fig~\ref{fig:pca_reconstruct}, top panel.
 
-
-[For an example of the eigenspectra for Gl51, see figure A1 (left) and reconstruction of a synthetic spectrum at stellar parameters XX (right).]
-
-Using the PCA basis, we can lossily reconstruct any spectrum from the library by a linear combination of the eigenspectra
+Using the PCA basis, we can lossily reconstruct any spectrum from the library with a linear combination of the eigenspectra
 \begin{equation}
   f_\lambda(\{\vt_\ast \}^\textrm{grid}) \approx \xi_\mu + \xi_\sigma \sum_{k=1}^m w_k(\{\vt_\ast \}^\textrm{grid}) \xi_k
   \label{eqn:reconstruct}
 \end{equation}
-where $w_k$ is the weight of a given eigenspectrum, $k$. This weight is a three dimensional scalar function, which depends on the stellar parameters $\vt_\ast$. We can determine the weights at the grid points in the library by taking the dot product of the standardized synthetic spectrum with each of the eigenspectra. For a given eigenspectrum $\xi_k$, the weight is 
+where $w_k$ is the weight of a given eigenspectrum, $k$. This weight is a three dimensional scalar function which depends on the stellar parameters $\vt_\ast$. We can determine the weights at the grid points in the library by taking the dot product of the standardized synthetic spectrum with each of the eigenspectra. The weight for a given eigenspectrum $\xi_k$ is 
 \begin{equation}
   w_k(\{\vt_\ast \}^\textrm{grid}) = \sum_\lambda \widetilde{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) \xi_k
 \end{equation}
-These weights are generally a smooth function of stellar parameters. To simplify the notation, we can write the weights in a length-$m$ column vector
+which is generally a smooth function of stellar parameters. To simplify the notation, we can write the weights in a length-$m$ column vector
 \begin{equation}
   \mathbf{w} = 
   \begin{bmatrix}
@@ -1181,11 +1176,13 @@ and horizontally concatenate the eigenspectra into a matrix with $N_{\rm pix}$ r
     \xi_1 & \xi_2 & \cdots & \xi_m \\
   \end{bmatrix}
 \end{equation}
-Therefore we can rewrite Equation~\ref{eqn:reconstruct} as
+Then we can rewrite Equation~\ref{eqn:reconstruct} as
 \begin{equation}
   f_\lambda(\{\vt_\ast \}^\textrm{grid}) \approx \xi_\mu + \xi_\sigma I_{N_{\rm pix}} \mathbf{\Xi} \mathbf{w}
 \end{equation}
-Where $I_{N_{\rm pix}}$ is an $N_{\rm pix}$ by $N_{\rm pix}$ identity matrix. To summarize, thus far we have decomposed the spectra in the synthetic library into a principal component basis, which allows us to lossily reconstruct any spectrum in the synthetic library as a weighted linear combination of $m$ eigenspectra. The weight corresponding to each eigenspectrum is a relatively-smooth three-dimensional scalar function of the stellar parameters. Therefore, to interpolate a spectrum from the synthetic library for a value of stellar parameters which is not in the spectral library, we must interpolate the value of the weights to an off-grid value. In practice, it might be possible to use a traditional interpolation scheme such as spline interpolation to interpolate the weights directly. However, we found that with high-signal to noise spectra (e.g., Gl51 is S/N $> 400$), the error in any given interpolated representation of the spectrum could constitute a significant portion of the uncertainty budget. Therefore, we decide to develop a Bayesian spectral emulator (cite Habib, Heitmann) which allows us to propagate the uncertainty in interpolation forward to the likelihood calculation. First, we describe how we use a Gaussian process to model the interpolation of the weights then we marginalize over all possible interpolations to arrive at a modified likelihood function. 
+Where $I_{N_{\rm pix}}$ is an $N_{\rm pix}$ by $N_{\rm pix}$ identity matrix. To recapitulate thus far, we have decomposed the spectra in the synthetic library into a principal component basis, allowing us to lossily reconstruct any spectrum in the synthetic library as a weighted linear combination of $m$ eigenspectra. The weight corresponding to each eigenspectrum is a moderately-smooth scalar function of the three stellar parameters. Therefore, to create a spectrum corresponding to a value of stellar parameters which is not in the spectral library, we must interpolate the weights to this new value. In practice, it might be possible to use a traditional interpolation scheme such as spline interpolation to interpolate the weights directly. However, we found that with high-signal to noise spectra (e.g., Gl51 is S/N $> 400$), the error in any given interpolated representation of the spectrum could constitute a significant portion of the uncertainty budget. This, combined with the Nyquist undersampling of the synthetic grid caused behavior where stellar parameters corresponding to a grid point in the synthetic library might be preferentially favored and bias the results, even after empirically accounting for interpolation error by doing ``drop-out'' interpolation tests. [This is more of a reason to use PCA vs. regular spectra, right?]
+
+Therefore, we decide to develop a Bayesian spectral emulator (cite Habib, Heitmann) which allows us to propagate the uncertainty in interpolation forward to the likelihood calculation. First, we describe how we use a Gaussian process to model the interpolation of the weights then we marginalize over all possible interpolations to arrive at a modified likelihood function. 
 
 In Section XX, we used the formalism of Gaussian processes to develop a sophisticated correlated noise model for the data likelihood, which include contributions from a ``global'' covariance kernel to describe the moderate-amplitude correlations present throughout the spectral residuals and several ``local'' covariance kernels to address the highly correlated but-localized spectral regions of the residuals due to pathological differences in the data spectrum and synthetic spectrum. Now, we use a separate Gaussian process in a slightly-different manner, in order to serve as an interpolating function for the weights. This is using a Gaussian process for prediction, given the values of the weights at several known locations (the values of stellar parameters at the grid points) and some assumed properties of the unknown functional form of the weights, what are the most probable values of the weights at stellar parameters in between the grid points? This is similar to drawing random values from the covariance matrix in Section XX given covariance matrices filled in by covariance kernels. Drawing from one giant Gaussian. Only now, we are drawing from a giant Gaussian conditioned on several points, which are the weights at the grid point locations.
 
