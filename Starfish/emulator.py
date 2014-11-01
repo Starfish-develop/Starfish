@@ -266,7 +266,6 @@ class WeightEmulator:
         self.mu = None
         self.sig = None
 
-
     @property
     def emulator_params(self):
         #return np.concatenate((np.log10(self.lambda_p), self.lambda_w, self.rho_w))
@@ -317,11 +316,6 @@ class WeightEmulator:
         If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
         combination from MCMC samples.
         '''
-        if self.samples is not None:
-            self.emulator_params = self.samples[np.random.choice(self.indexes)]
-            if not args:
-                #Reset V12, V22, since we also changed emulator paramaters.
-                self.params = self._params
 
         if args:
             params, *junk = args
@@ -330,7 +324,6 @@ class WeightEmulator:
         if self.V12 is None:
             print("No parameters are set, yet. Must set parameters first.")
             return
-
 
         return np.random.multivariate_normal(self.mu, self.sig)
 
