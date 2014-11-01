@@ -4,6 +4,7 @@ import numpy as np
 import Starfish.constants as C
 from astropy.table import Table
 from astropy.io import ascii
+import sys
 
 import triangle
 
