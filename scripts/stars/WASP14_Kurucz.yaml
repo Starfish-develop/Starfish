@@ -72,7 +72,7 @@ cov_params :
     l : 7.58
 
 cov_jump :
-    sigAmp : 0.01
+    sigAmp : 0.025
     logAmp : 0.01
     l : 0.25
 
@@ -81,9 +81,9 @@ region_params:
     sigma: 7.
 
 region_jump:
-    logAmp : 0.03
+    logAmp : 0.13
     mu : 0.01
-    sigma : 0.05
+    sigma : 0.7
 
 region_priors:
     sigma0: 0.5 #AA
