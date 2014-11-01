@@ -18,7 +18,6 @@ parser.add_argument("--glob", help="Do something on this glob. Must be given as 
                                    "expansion.")
 parser.add_argument("-o", "--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--files", nargs="+", help="The HDF5 files containing the MCMC samples, separated by whitespace.")
-parser.add_argument("--clobber", action="store_true", help="Overwrite existing files?")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
 parser.add_argument("--keep", type=int, default=0, help="How many samples to keep from the end of the chain, "
                                                         "the beginning of the chain will be for burn in.")
@@ -30,12 +29,8 @@ parser.add_argument("--gelman", action="store_true", help="Compute the Gelman-Ru
 
 args = parser.parse_args()
 
-#Check to see if outdir exists. If --clobber, overwrite, otherwise exit.
-if os.path.exists(args.outdir):
-    if not args.clobber:
-        import sys
-        sys.exit("Error: --outdir already exists and --clobber is not set. Exiting.")
-else:
+#Check to see if outdir exists.
+if not os.path.exists(args.outdir):
     os.makedirs(args.outdir)
 
 args.outdir += "/"
