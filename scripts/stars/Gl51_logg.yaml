@@ -1,6 +1,6 @@
 #YAML comments are written just like in Python
 
-name: Gl51/PHOENIX/RA/region/
+name: Gl51/
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
