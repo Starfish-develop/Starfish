@@ -83,4 +83,5 @@ sigma_clip : 4.
 
 #Burn in time
 burn_in : 2000
-samples : 13000
+nuisance_burn : 5000
+samples : 15000
