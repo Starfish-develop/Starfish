@@ -82,7 +82,7 @@ region_params:
 
 region_jump:
     logAmp : 0.13
-    mu : 0.01
+    mu : 0.001
     sigma : 0.7
 
 region_priors:
@@ -95,4 +95,5 @@ sigma_clip : 4.
 
 #Burn in time
 burn_in : 3000
+nuisance_burn : 5000
 samples : 15000
