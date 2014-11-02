@@ -48,7 +48,7 @@ stellar_cov:
     factor : 0.02
 
 cheb_degree: 4
-cheb_jump : 5e-4
+cheb_jump : 2e-4
 
 no_cov : False
 
@@ -58,9 +58,9 @@ cov_params :
     l : 10.3
 
 cov_jump :
-    sigAmp : 0.025
-    logAmp : 0.01
-    l : 0.15
+    sigAmp : 0.015
+    logAmp : 0.005
+    l : 0.10
 
 no_region: False
 
@@ -69,9 +69,9 @@ region_params:
     sigma: 7.
 
 region_jump:
-    logAmp : 0.03
-    mu : 0.002
-    sigma : 0.2
+    logAmp : 0.03 #km/s
+    mu : 0.001
+    sigma : 0.15 #km/s
 
 region_priors:
     sigma0: 0.5   #AA
@@ -82,5 +82,5 @@ region_priors:
 sigma_clip : 4.
 
 #Burn in time
-burn_in : 3000
-samples : 15000
+burn_in : 2000
+samples : 13000
