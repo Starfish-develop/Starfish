@@ -352,6 +352,10 @@ class OrderModel:
         self.update_nuisance(starting_dict)
         self.lnprob = self.evaluate()
 
+        #To speed up convergence, try just doing a bunch of nuisance runs
+        print("Doing nuisance burn-in for {} samples".format(config["nuisance_burn"]))
+        self.independent_sample(config["nuisance_burn"])
+
     def get_lnprob(self, *args):
         '''
         Called from within StellarSampler.sample, to query the children processes for the current value of lnprob.
