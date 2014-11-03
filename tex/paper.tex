@@ -1,5 +1,5 @@
 %\documentclass[preprint]{aastex} 
-\documentclass[iop,floatfix,twocolappendix]{emulateapj} 
+\documentclass[iop,floatfix,numberedappendix,twocolappendix]{emulateapj} 
 
 \usepackage[backref,breaklinks,colorlinks,urlcolor=blue,citecolor=blue,linkcolor=blue]{hyperref}
 \usepackage[all]{hypcap}
@@ -176,8 +176,8 @@ highlighted above.  Employing a non-trivial covariance matrix parameterized by b
 (stationary) and local (non-stationary) Gaussian process kernels, we are able to account for 
 residual pixel-to-pixel correlations that arise when comparing observed spectra to intrinsically 
 imperfect models.  This approach minimizes the potential for bias, efficiently propagates 
-systematic uncertainties into the parameter inferences, and ultimately can serve as tool for using
-observations to guide substantial improvements in the models themselves.  An overview of the 
+systematic uncertainties into the parameter inferences, and ultimately can serve as a tool for 
+using observations to guide substantial improvements in the models themselves.  An overview of the 
 methodology of this approach is provided in Section \ref{sec:method}, including the covariance 
 matrix formalism.  Some tests and example applications (for a high resolution optical spectrum of 
 an F star, and a medium-resolution near-infrared spectrum of a mid-M star) of the method are 
@@ -203,17 +203,18 @@ methodology is generic (and could be used for the composite spectra of unresolve
 galaxies, etc.).  
 
 The remainder of this Section describes the mechanics of this modeling framework.  First, a model 
-spectrum is generated for a given set of physical parameters (Section \ref{subsec:synthetic}), and 
-then post-processed to mimic reality using a set of observational and practical nuisance parameters 
-(Section \ref{subsec:postprocess}).  Next, a direct, pixel-by-pixel comparison between the data and 
-model spectra is made with a prescribed likelihood function and a parametric treatment of the 
-covariances between pixel residuals (Section \ref{subsec:likelihood}).  That process is iterated 
-under the guise of hierarchical Markov Chain Monte Carlo (MCMC) simulations to numerically explore 
-the posterior probability density of the model conditioned on the data, and thereby to determine 
-constraints on the parameters of interest (Section \ref{subsec:MCMC}).  Along the way, these 
-procedures are illustrated with real observations of the high resolution optical spectrum from a 
-nearby F star.  That specific application, along with some alternative demonstrations of the 
-method, are discussed in more detail in Section \ref{sec:examples}.
+spectrum is generated for a given set of physical parameters (Section \ref{subsec:synthetic}; 
+Appendix~\ref{sec:Appendix}), and then post-processed to mimic reality using a set of observational 
+and practical nuisance parameters (Section \ref{subsec:postprocess}).  Next, a direct, 
+pixel-by-pixel comparison between the data and model spectra is made with a prescribed likelihood 
+function and a parametric treatment of the covariances between pixel residuals (Section 
+\ref{subsec:likelihood}).  That process is iterated under the guise of hierarchical Markov Chain 
+Monte Carlo (MCMC) simulations to numerically explore the posterior probability density of the 
+model conditioned on the data, and thereby to determine constraints on the parameters of interest 
+(Section \ref{subsec:MCMC}).  Along the way, these procedures are illustrated with observations of 
+the high resolution optical spectrum from a nearby F star.  That specific application, along with 
+some alternative demonstrations of the method, are discussed in more detail in Section 
+\ref{sec:examples}.
 
 
 \subsection{Generating a Model Spectrum \label{subsec:synthetic}}
@@ -253,9 +254,9 @@ is critical.  In practice, a simple tri-linear interpolation is suitably fast, b
 non-negligible level of uncertainty.  These interpolation uncertainties can be empirically 
 estimated by performing the operation in Eq.~\ref{eqn:interp} across a $\{\vt_{\ast}\}^{\rm grid}$ 
 grid point, and then comparing the interpolated spectrum with the corresponding library spectrum 
-\citep[see also][]{husser12}.  We have developed this approach to propagate the interpolation 
-uncertainties into the likelihood calculations, as described briefly in 
-Section~\ref{subsec:likelihood} and elaborated in the Appendix.
+\citep[see also][]{husser12}.  To suitably propagate the interpolation uncertainties into the 
+likelihood calculations, we employ a Bayesian emulation technique that is described in detail in 
+Appendix \ref{sec:Appendix}.
 
 
 \subsection{Post-Processing} \label{subsec:postprocess}
@@ -289,8 +290,8 @@ using a convolution in velocity-space,\footnote{In practice, these convolutions 
 multiplications in Fourier-space to better preserve spectral information \citep[cf.,][]{tonry79}; 
 the mathematical formalism is presented for clarity.}
 \begin{eqnarray} \label{eqn:broadening}
-\flam(\vt_{\ast}, \sigma_v, v\sin{i}, v_z) &=& \flam(\vt_{\ast}) \otimes \varphi_v \\
-                                           &=& \flam(\vt_{\ast}) \otimes \mathcal{F}_v^{\rm inst} \otimes \mathcal{F}_v^{\rm rot} \otimes \mathcal{F}_v^{\rm dop}, \nonumber
+\flam(\vt_{\ast}, \sigma_v, v\sin{i}, v_z) &=& \flam(\vt_{\ast}) \ast \varphi_v \\
+                                           &=& \flam(\vt_{\ast}) \ast \mathcal{F}_v^{\rm inst} \ast \mathcal{F}_v^{\rm rot} \ast \mathcal{F}_v^{\rm dop}, \nonumber
 \end{eqnarray} 
 and then re-sampled onto the discrete wavelengths corresponding to each data pixel, 
 \begin{equation} \label{eqn:resampling}
@@ -371,7 +372,7 @@ orders, each denoted with index $o$, the model spectrum can be decomposed into t
 \vM(\vT, \cheb) &=& \{ \vM_o(\vT) \times \mathsf{P}_o \} \\
                 &=& \{ \vM_o(\vT) \times \sum_n c_o^{(n)} \, T_o^{(n)} \}, \nonumber
 \end{eqnarray}
-where $T^{(n)}$ is the $n^{\rm th}$ degree Chebyshev function.  The $n \times N_{\rm ord}$ 
+where $T^{(n)}$ is an $n^{\rm th}$ degree Chebyshev function.  The $n \times N_{\rm ord}$ 
 coefficients are considered a set of nuisance (hyper-)parameters, $\cheb = [\{c_o^{(0)}, c_o^{(1)}, 
 \ldots, c_o^{(n-1)} \}]$.  With judicious priors, we can ensure that the unintended treatment of 
 real spectral features (e.g., molecular bands) as residual calibration artifacts is negligible.  
@@ -479,12 +480,12 @@ A variety of kernels have been used in the field of Gaussian processes to parame
 covariant structure \citep[e.g.,][]{rasmussen05}.  Here, we adopt the commonly-employed \matern\ 
 kernel with $\nu = 3/2$,
 \begin{equation}
-  \Kglobal_{ij}(\vp_{{\mathsf C}, g}) = a_{\rm g} \left(1 + \frac{\sqrt{3}\, r_{ij}}{\ell} \right ) \exp 
+  \Kglobal_{ij}(\vp_{{\mathsf C}, {\rm g}}) = a_{\rm g} \left(1 + \frac{\sqrt{3}\, r_{ij}}{\ell} \right ) \exp 
    \left (- \frac{\sqrt{3}\, r_{ij}}{\ell} \right ),
    \label{eqn:global}
 \end{equation}
-where the (hyper-)parameters $\vp_{{\mathsf C}, g} = [a_g, \ell]$ include an amplitude ($a_g$) and 
-scale ($\ell$).  To ensure that $\vC$ remains a relatively sparse matrix that 
+where the (hyper-)parameters $\vp_{{\mathsf C}, {\rm g}} = [a_{\rm g}, \ell]$ include an amplitude 
+($a_{\rm g}$) and scale ($\ell$).  To ensure that $\vC$ remains a relatively sparse matrix that 
 enables computational expendiency, we employ a Hann window function
 \begin{equation}
   w_{ij}^{\rm g} \,(r_0) = \left \{ 
@@ -495,8 +496,8 @@ enables computational expendiency, we employ a Hann window function
   \right .
   \label{eqn:Hann}
 \end{equation}
-as a taper.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the 
-scale (we set $r_0 = 4\ell$).  
+as a taper.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the scale (we 
+set $r_0 = 4\ell$).  
 
 
 \subsubsection{Local Covariance Structure} \label{subsec:local_covariance}
@@ -710,27 +711,22 @@ that a given local kernel is no longer required, that kernel amplitude will be d
 and represent a negligible contribution to $\vC$; in effect, the model will act as if the kernel 
 were deleted automatically.}
 
-The procedure outlined above can be a significant computational challenge.  A
-typical data spectrum has $N_{\rm pix} > \mathcal{O}(10^3)$, and therefore the
-many repeated evaluations of the matrix product $\vR^{\trans} \vC^{-1} \vR$ in
-the likelihood calculation can be numerically expensive.  However, because
-$\vC$ is a symmetric, positive semi-definite matrix, we can employ Cholesky
-factorization to optimize the evaluation of the matrix product ($\vR^{\trans}
-\vC^{-1} \vR$) and avoid the direct calculation of the matrix inverse
-($\vC^{-1}$) itself.  For echelle spectra with multiple orders or multiple
-spectra of the same object, taken with different instruments, the nuisance
-parameters for each chunk of spectrum are independent from the other chunks. This
-means that the computationally intensive steps of generating a model spectrum
-for a specific wavelength range and evaluating the likelihood can be
-parallelized. The only segment of the code that needs to be synchronized is the
-MCMC proposal of stellar parameters, which are shared between all chunks of the
-spectrum. Because all of the computationally expensive steps can be
-parallelized, this algorithm can be massively parallelized on a cluster,
-enabling simultaneous inference for wide spectral ranges at high resolution or
-multiple spectral datasets acquired with different instruments. To sample this
-model, we extend the Metropolis-Hastings sampler included in the {\tt emcee}
-package \citep{foreman-mackey13} to function within a parallelized blocked
-Gibbs sampler.\footnote{\url{https://github.com/iancze/emcee}}\\
+This procedure can be a significant computational challenge.  A typical data spectrum has $N_{\rm 
+pix} > \mathcal{O}(10^3)$, and therefore the many evaluations of the matrix product $\vR^{\trans} 
+\vC^{-1} \vR$ in the likelihood calculation can be numerically expensive.  However, because $\vC$ 
+is a symmetric, positive semi-definite matrix, we can employ Cholesky factorization to optimize the 
+evaluation of the matrix product and avoid the direct calculation of the matrix inversion 
+($\vC^{-1}$).  For multi-order echelle spectra or multiple spectra of the same target (perhaps 
+taken with different instruments), the nuisance parameters for each segment of the spectrum are 
+independent. This means that the computationally intensive steps of generating a model spectrum
+for a specific wavelength range and evaluating the likelihood can be parallelized. The only segment 
+of the code that needs to be synchronized is the MCMC proposal of stellar parameters, which are 
+shared between all chunks of the spectrum.  The massive parallelization of this algorithm on a 
+computer cluster therefore enables the simultaneous inference of interesting parameters over wide 
+spectral ranges at high resolution, or from multiple datasets.  To sample the posteriors in this 
+mode, we extend the Metropolis-Hastings sampler included in the {\tt emcee} package 
+\citep{foreman-mackey13} to function within a parallelized blocked Gibbs 
+sampler.\footnote{See \url{https://github.com/iancze/emcee}.}\\
 
 
 \section{Demonstrations} \label{sec:examples}
@@ -781,11 +777,11 @@ procedure in this field).
 Given the decision to employ a spectral library to generate models (Sect.~\ref{subsec:synthetic}), 
 a direct comparison of the \citeauthor{torres12}~{\tt SPC} result with our framework is most 
 relevant.  Using the same TRES spectral orders, the {\sc CfA/Kurucz} library, and a 
-$\delta$-function prior on $\log g$ (at 4.29), we infer parameters that are consistent with the 
-{\tt SPC} approach; see Table~\ref{table:Kurucz}.  Figure~\ref{fig:Kurucz_residuals} demonstrates 
-the quality of our approach in reproducing the WASP-14 spectrum and, especially significant, the 
-structure of the residuals.  Figure~\ref{fig:Kurucz_posterior} shows some marginal projections of 
-the posterior-space, highlighting key parameter degeneracies.  
+$\delta$-function prior on $\log g$ (at 4.29), we infer parameters that are roughly consistent with 
+the {\tt SPC} approach; see Table~\ref{table:Kurucz}.  Figure~\ref{fig:Kurucz_residuals} 
+demonstrates the quality of our approach in reproducing the WASP-14 spectrum and, especially 
+significant, the structure of the residuals.  Figure~\ref{fig:Kurucz_posterior} shows marginal 
+projections of the posterior-space, highlighting key parameter degeneracies.  
 
 \begin{figure*}[!t]
 \includegraphics{figs/residuals_Kurucz_logg.pdf}
@@ -816,7 +812,9 @@ $A_V$                          & 0        & 0 (fixed) & 0 & 0 (fixed)
 \tablenotetext{a}{Small differences in the rotational broadening between the two libraries are
 expected, since they assume different micro- and macro-turbulence behavior in the stellar
 atmospheres.}
-\tablenotetext{b}{For the spectral emulator (Appendix~\ref{sec:Appendix}) the spectra are scaled such that the average flux is unity, rather than given in units of flux at the stellar surface, so this value is an unknown multiple of $R^2/d^2$.}
+\tablenotetext{b}{For the spectral emulator (Appendix~\ref{sec:Appendix}), the models are scaled to 
+an average flux of unity, rather than flux at the stellar surface; the quoted values are unknown 
+multiples of $R^2/d^2$.}
 \tablecomments{The quoted values represent the ``best-fit", the peak of the marginal posterior 
 distributions for each parameter.  The quoted uncertainties correspond to the 68.3\%\ 
 ($\sim$1\,$\sigma$) confidence intervals.  Expanded lists of the inferred values and uncertainties 
@@ -835,7 +833,7 @@ reference.  \label{fig:Kurucz_posterior} }
 \end{figure}
 
 It is worthwhile to comment on the inferred parameter uncertainties.  In this specific example, 
-some experimentation with restricted forms of the covariance matrix confirm that the uncertainties 
+some experimentation with restricted forms of the covariance matrix confirms that the uncertainties 
 of the interesting parameters have roughly equal contributions from trivial (Poisson) noise, grid 
 interpolation errors, and a non-trivial global covariance term.\footnote{Note that the {\sc 
 CfA/Kurucz} library has been specifically well-tuned for stars like WASP-14, by careful variation 
@@ -903,19 +901,19 @@ enveloped in a parametric treatment of the local covariance structure.  In effec
 the large residuals with a suite of individual covariance kernels, with parameters that identify 
 and appropriately down-weight imperfect model spectral lines in a self-consistent manner.
 
-Aside from the structure of the covariance matrix, there is also a moderate difference between the 
+Aside from the structure of the covariance matrix, there is also a modest difference between the 
 posterior distributions of the stellar parameters inferred using the {\sc Phoenix} and {\sc 
 CfA/Kurucz} libraries: see Table~\ref{table:Kurucz} and compare Figures~\ref{fig:Kurucz_posterior} 
 and \ref{fig:PHOENIX_posterior}.  The {\sc Phoenix} models find a systematically cooler temperature 
-(by $\sim$75\,K) and lower metallicity than inferred from the {\sc 
-CfA/Kurucz} models.  Because our framework explicitly mitigates the potential for posterior bias 
-from imperfect matches between data and models, we can safely conclude that these apparent 
-discrepancies are intrinsic to the different input physics of the model libraries.\footnote{It is 
-worth noting that these differences are not a manifestation of the stringent prior on surface 
-gravity.  When the spectra are modeled with $\log g$ unconstrained, the posteriors for both 
-libraries shift, but their respective discrepancies actually increase slightly.}  Such a comparison 
-serves as a stark reminder that incomplete and/or over-simplified physical prescriptions remain the 
-most significant source of systematic uncertainty in estimates of fundamental stellar parameters.
+(by $\sim$75\,K) and lower metallicity than the {\sc CfA/Kurucz} models.  Because our framework 
+explicitly mitigates the potential for posterior bias from imperfect matches between data and 
+models, these apparent discrepancies must be intrinsic to the different input physics of the model 
+libraries.\footnote{It is worth noting that these differences are not a manifestation of the 
+stringent prior on surface gravity.  When the spectra are modeled with $\log g$ unconstrained, the 
+posteriors for both libraries shift, but their respective discrepancies actually increase 
+slightly.}  Such a comparison serves as a stark reminder that incomplete and/or over-simplified 
+physical prescriptions remain the most significant source of systematic uncertainty in estimates of 
+fundamental stellar parameters.
 
 \begin{figure*}[!htb]
   \includegraphics{figs/residuals_Gl51_logg.pdf}
@@ -963,7 +961,7 @@ on its consistency with the data.  The modeling framework that we have construct
 exactly that.
 
 As a point of reference, \citet{rojas-ayala12} used a $K$-band spectrum at similar resolution to 
-the SPEX data to estimate the basic Gl~51 parameters using an index technique.  They measured 
+the SPEX data to estimate the basic Gl~51 parameters using an indexing technique.  They measured 
 equivalent widths for the 2.205\,$\mu$m \ion{Na}{1} doublet and 2.263\,$\mu$m \ion{Ca}{1} triplet, 
 along with a pseudo-continuum index defined over three narrow passbands, 2.070--2.090, 
 2.235--2.255, and 2.360--2.380\,$\mu$m (see their Fig.~2 for a useful visualization), designed to 
@@ -1090,65 +1088,97 @@ library using only observations, this combined machine-learning approach would n
 physical anchoring for the key physical parameters, since they are reflected in the spectra based 
 on the physical assumptions in the original models.  This kind of large-scale analysis holds great 
 promise in the (ongoing) era of large, homogeneous high resolution spectroscopic datasets (e.g., 
-like those being collected in programs like the APOGEE and HERMES surveys \citep{nidever12, zucker12}), since they provide enormous leverage for identifying and improving the underlying model systematics. \\
+like those being collected in programs like the APOGEE and HERMES surveys; \citealt{nidever12,
+zucker12}), since they provide enormous leverage for identifying and improving the underlying model 
+systematics. \\
 
-\acknowledgments  The authors would like to graciously acknowledge the following people for many helpful discussions and key insights: Gregory M. Green, Kaisey Mandel, Daniel Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Rebecca Dawson, Tom Loredo and the ExoStat group, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship and the Smithsonian Institution. Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}. This research made use of Astropy \citep{astropy13} and the Julia programming language \citep{julia12}.
+\acknowledgments  The authors would like to acknowledge the following people for many 
+extraordinarily helpful discussions and key insights: Gregory M.~Green, Kaisey Mandel, Daniel 
+Foreman-Mackey, John Johnson and the ExoLab, Daniel Eisenstein, Rebekah Dawson, Tom Loredo and the 
+ExoStat group, Allyson Bieryla, and Maxwell Moe.  IC was supported by the NSF Graduate Fellowship 
+and the Smithsonian Institution.  Figures \ref{fig:Kurucz_posterior}, \ref{fig:PHOENIX_posterior}, 
+and \ref{fig:Gl51_posterior} were generated with \texttt{triangle.py} \citep{foreman-mackey14}.  
+This research made extensive use of Astropy \citep{astropy13} and the Julia programming language 
+\citep{julia12}.
 
 
 \appendix
 
-\section{Spectral Emulator} \label{sec:Appendix}
+\section{Spectral Emulator for Interpolation} \label{sec:Appendix}
 
-Interpolation from a library of synthetic spectra is a conceptually straightforward process, but in the 
-application discussed here there are some subtleties that require detailed consideration.  
-Spectral line formation is a non-linear process, where line shapes are determined by complex 
-radiative transfer through a stellar atmosphere.  Any interpolation process aims to bypass this non-linear 
-process and predict the behavior of spectral lines at intermediate points based on pre-computed 
-library spectra with similar physical parameters.  This appendix describes the 
-procedure by which we propagate an empirical approximation of the {\it uncertainty} in that 
-prediction--which can be substantial--through the probabilistic framework we have developed.
+Interpolation from a library of synthetic spectra is conceptually straightforward, but in the 
+application being considered here there are some subtleties that necessitate a more sophisticated 
+approach.  Spectral line formation is a non-linear process, where line shapes are determined by 
+complex radiative transfer through a stellar atmosphere.  Any interpolation process aims to bypass 
+this non-linear process and predict the behavior of many different spectral lines for an arbitrary 
+set of parameters based on a pre-computed set of library spectra with similar (neighboring) 
+parameters.  In this Appendix, we describe the procedure through which we propagate an empirical 
+approximation of the {\it uncertainty} in that prediction -- which can be substantial -- into and 
+through the probabilistic inference framework we have developed.
 
-There are two important factors to consider when interpolating libraries of model stellar 
-spectra.  First, the flux values in some non-negligible fraction of the spectral pixels do not vary 
-monotonically with changes in the physical parameters that define the library: this helps inform 
-the decision about which functional form of interpolation should be used.  And second, the spectra 
-are usually not Nyquist sampled with respect to the physical parameters that define the library.  
-This unfortunate fact means that the library is not sampled densely enough in 
-parameter-space to reconstruct a synthetic spectrum for arbitrary parameters without some 
-information loss.  Given these factors, we choose to develop a spectral ``emulator,'' which, given the information contained in the library of synthesized spectra and a chosen interpolation point, delivers a probability distribution over the range of possible interpolated spectra. 
+There are two important factors to consider when interpolating libraries of model stellar spectra.  
+First, the fluxes in a non-negligible fraction of the spectral pixels do not vary monotonically 
+with changes in the physical parameters that define the library, $\vt_{\ast}$: this helps inform 
+the decision about which functional form of interpolation should be used.  Second, the spectra 
+are usually not Nyquist sampled with respect to $\vt_{\ast}$.  Unfortunately, this fact means that 
+the library is not sampled densely enough in parameter-space to reconstruct a synthetic spectrum 
+for arbitrary parameters without some information loss.  Given these factors, we choose to develop 
+a spectral ``emulator'' to aid in the interpolation.  Given the information contained in 
+the spectral library and an arbitrary desired $\vt_{\ast}$, this emulator delivers a probability 
+distribution representing the range of possible interpolated spectra. 
 
-Model library spectra are stored as (1-dimensional) arrays of flux values,
-sampled on high resolution wavelength grids (typically $R \gtrsim 100,000$).
-In the case of interest here, the collections of model parameters
-$\{\vt_{\ast}\}^\textrm{grid} = [\{T_{\rm eff}, \log g,  \Z \}]$ define the
-dimensions of the library grid; the full library
-$f_{\lambda}(\{\vt_{\ast}\}^\textrm{grid})$ is therefore encapsulated in a
-4-dimensional array.  Both the libraries used here have grid spacings of 0.5
-dex in $\log g$ and 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by
-250\,K in $T_{\rm eff}$, but the {\sc Phoenix} library has finer coverage in
-100\,K increments.  
+Model library spectra are stored as (1-dimensional) arrays of fluxes, sampled on high resolution 
+wavelength grids.  In the case of interest here, the sets of model parameters 
+$\{\vt_{\ast}\}^\textrm{grid} = [\{T_{\rm eff}, \log g,  \Z \}]$ define the dimensions of the 
+library grid.  The full spectral library, $f_{\lambda}(\{\vt_{\ast}\}^\textrm{grid})$, is therefore 
+encapsulated in a 4-dimensional array.  The libraries used here have grid spacings of 0.5\,dex in 
+$\log g$ and 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but 
+the {\sc Phoenix} library has finer coverage in 100\,K increments.  
 
 \begin{figure*}[!t]
   \begin{center}
   \includegraphics{figs/pca_reconstruct.pdf}
-  \figcaption{ (\emph{top}) The mean spectrum, standard deviation spectrum, and five eigenspectra that form the basis of the \textsc{Phoenix} synthetic library used to model Gl51, generated using a subset of the \textsc{Phoenix} grid parameters space most relevant for M dwarfs. (\emph{bottom}) The original synthetic spectrum from the \textsc{Phoenix} library compared with a spectrum reconstructed from a linear combination of the eigenspectra using Eqn~\ref{eqn:reconstruct} with the weights listed in the figure.
-\label{fig:pca_reconstruct}}
+  \vspace{-0.6cm}
+  \figcaption{ (\emph{top}) The mean spectrum, standard deviation spectrum, and five eigenspectra 
+that form the basis of the \textsc{Phoenix} synthetic library used to model Gl~51, generated using 
+a subset of the parameter-space most relevant for M dwarfs.  (\emph{bottom}) The original synthetic 
+spectrum from the \textsc{Phoenix} library compared with a spectrum reconstructed from a linear 
+combination of the derived eigenspectra using Eqn~\ref{eqn:reconstruct} (with the weights $w_k$ 
+listed in the top panel figure).  \label{fig:pca_reconstruct}}
   \end{center}
 \end{figure*}
 
-The first step in designing an emulator is to decompose the spectral library into an appropriate basis for emulation \citep{habib07, heitmann09}. We chose the principal component basis (PCA) to decompose the synthetic library into a set of ``eigenspectra,'' following the techniques of \citet{ivezic13}. Prior to the PCA decomposition, we first isolate a subset of the library (containing $M$ spectra) with parameter values that will be most relevant to the star at hand. We then standardize these spectra by first subtracting off the mean spectrum and then ``whiten'' the spectra by dividing by the standard deviation measured in each pixel across the grid. The mean spectrum is 
+The first step in designing a spectral emulator is to break down the library into an appropriate 
+basis \citep{habib07, heitmann09}.  We chose the principal component basis to decompose the library 
+into a set of ``eigenspectra", following the techniques of \citet{ivezic13}.  Prior to this 
+decomposition, we isolate a subset of the library (containing $M$ spectra) with parameter values 
+that will be most relevant to the target being considered (e.g., for Gl~51, this means considering 
+only effective temperatures below $\sim$3800\,K).  We then standardize these spectra by subtracting 
+off their mean spectrum and then ``whitening" them by dividing off the standard deviation spectrum 
+measured in each pixel across the grid.  The mean spectrum is 
 \begin{equation}
   \xi_\mu = \frac{1}{M} \sum_{i = 1}^M f_\lambda(\{\vt_\ast \}^\textrm{grid}_i)
 \end{equation}
 and the standard deviation spectrum is
 \begin{equation}
-  \xi_\sigma = \sqrt{\frac{1}{M} \sum_{i=1}^M \bigl [ f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) - \xi_\mu \bigr]^2 } 
+  \xi_\sigma = \sqrt{\frac{1}{M} \sum_{i=1}^M \bigl [ f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) - \xi_\mu \bigr]^2 }, 
 \end{equation}
-where $\{\vt_\ast \}^\textrm{grid}$ denotes the full collection of the $M$ pairings of stellar parameters sampled in the spectral library and $\{\vt_\ast \}^\textrm{grid}_i$ denotes a single set of stellar parameters drawn from this collection. All spectra in the library are then standardized by subtracting the mean spectrum and dividing by the standard deviation spectrum
+where $\{\vt_\ast \}^\textrm{grid}$ denotes the full collection of the $M$ sets of stellar 
+parameters under consideration in the library and $\{\vt_\ast \}^\textrm{grid}_i$ denotes a single 
+set of those parameters drawn from this collection.  In effect, all library spectra are 
+standardized by subtracting the mean spectrum and dividing by the standard deviation spectrum
 \begin{equation}
-  \hat{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) = \frac{f_\lambda(\{\vt_\ast \}^\textrm{grid}) - \xi_\mu}{\xi_\sigma}
+  \hat{f}_\lambda(\{\vt_\ast \}^\textrm{grid}) = \frac{f_\lambda(\{\vt_\ast \}^\textrm{grid}) - \xi_\mu}{\xi_\sigma}.
 \end{equation}
-Then, the eigenspectra are computed from the standardized grid using PCA analysis (\cite{ivezic13}). We decide to truncate our basis to the first $m$ eigenspectra, where $m$ is decided by the minimum number of eigenspectra required to reproduce any spectrum in the grid to better than 2\% accuracy for all pixels; the mean pixel error is generally much smaller than this ($\lesssim 0.5\%$). We denote a single length $N_{\rm pix}$ eigenspectrum as $\xi_k$, with principal component index $k = \{1, 2, \ldots, m\}$. For example, the eigenspectra basis computed for Gl51 using the \textsc{Phoenix} library is shown in Fig~\ref{fig:pca_reconstruct}, top panel.
+
+The eigenspectra are computed from this standardized grid using principal component analysis 
+\citep[PCA;][]{ivezic13}.  We decided to truncate our basis to the first $m$ eigenspectra, where 
+$m$ is decided by the minimum number of eigenspectra required to reproduce any spectrum in the grid 
+to better than 2\% accuracy for all pixels (the mean pixel error is generally much smaller than 
+this, $\lesssim 0.5\%$).  We denote a single $N_{\rm pix}$-dimensional eigenspectrum as $\xi_k$, 
+with principal component index $k = \{1, 2, \ldots, m\}$.  As an example, the eigenspectra basis 
+computed for Gl~51 using the \textsc{Phoenix} library is shown in the top panel of 
+Figure~\ref{fig:pca_reconstruct}.
 
 \begin{figure*}[!t]
 \begin{center}
@@ -1159,16 +1189,23 @@ Then, the eigenspectra are computed from the standardized grid using PCA analysi
 \end{center}
 \end{figure*}
 
-Using the principal component basis, we can lossily reconstruct any spectrum from the library with a linear combination of the eigenspectra
+Using the principal component basis, we can lossily reconstruct any spectrum from the library with 
+a linear combination of the eigenspectra
+% Is "lossily" really a word?  If so, wtf does it mean?
 \begin{equation}
-  f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \approx \xi_\mu + \xi_\sigma \sum_{k=1}^m w_k(\{\vt_\ast \}^\textrm{grid}_i) \xi_k
+  f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \approx \xi_\mu + \xi_\sigma \sum_{k=1}^m w_k(\{\vt_\ast \}^\textrm{grid}_i) \, \xi_k
   \label{eqn:reconstruct}
 \end{equation}
-where $w_k$ is the weight of a given eigenspectrum, $k$. This weight is a three dimensional scalar function which depends on the stellar parameters $\vt_\ast$. We can determine the weight at any grid point in the library by taking the dot product of the standardized synthetic spectrum with the eigenspectrum  
+where $w_k$ is the weight of the $k^{\rm th}$ eigenspectrum.  These weights are 3-dimensional 
+scalar functions that depend on the stellar parameters $\vt_\ast$.  These weights, which are 
+generally smooth functions of the stellar parameters (see the left panel of 
+Figure~\ref{fig:GP_interp}), can be determined at any grid point in the library by taking the dot 
+product of the standardized synthetic spectrum with the eigenspectrum  
 \begin{equation}
-  w_k(\{\vt_\ast \}^\textrm{grid}_i) = \sum_\lambda \hat{f}_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \xi_k
+  w_k(\{\vt_\ast \}^\textrm{grid}_i) = \sum_\lambda \hat{f}_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \, \xi_k.
 \end{equation}
-and is generally a smooth function of stellar parameters (see Figure~\ref{fig:GP_interp}, left panel). To simplify notation, we can write the collection of eigenspectra weights in a length-$m$ column vector
+To simplify notation, we can write the collection of eigenspectra weights in a length-$m$ column 
+vector
 \begin{equation}
   \mathbf{w}(\vt_\ast) = 
   \begin{bmatrix}
@@ -1179,45 +1216,83 @@ and is generally a smooth function of stellar parameters (see Figure~\ref{fig:GP
   \end{bmatrix}
 \end{equation}
 and horizontally concatenate the eigenspectra into a matrix with $N_{\rm pix}$ rows and $m$ columns
+% Christ, you know your paper's a mess when you start throwing around capital xi's.
 \begin{equation}
   \mathbf{\Xi} = 
   \begin{bmatrix}
     \xi_1 & \xi_2 & \cdots & \xi_m \\
   \end{bmatrix} .
 \end{equation}
-Then, we can rewrite Equation~\ref{eqn:reconstruct} as
+Then, we can rewrite Eq.~(\ref{eqn:reconstruct}) as
 \begin{equation}
-  f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \approx \xi_\mu + \xi_\sigma I_{N_{\rm pix}} \mathbf{\Xi} \mathbf{w}(\{\vt_\ast \}^\textrm{grid}_i)
+  f_\lambda(\{\vt_\ast \}^\textrm{grid}_i) \approx \xi_\mu + \xi_\sigma \, \mathsf{I}_{N_{\rm pix}} \, \mathbf{\Xi} \, \mathbf{w}(\{\vt_\ast \}^\textrm{grid}_i)
   \label{eqn:reconstruct2}
 \end{equation}
-where $I_{N_{\rm pix}}$ is an ($N_{\rm pix}, N_{\rm pix}$) identity matrix. 
+where $\mathsf{I}_{N_{\rm pix}}$ is an $N_{\rm pix} \times N_{\rm pix}$ identity matrix. 
 
-To recapitulate, we have decomposed the spectra in the synthetic library into a principal component basis, allowing us to lossily reconstruct any spectrum in the synthetic library as a weighted linear combination of $m$ eigenspectra. The weight corresponding to each eigenspectrum is a moderately-smooth scalar function of the three stellar parameters. Therefore, to create a spectrum corresponding to a value of stellar parameters which is not in the spectral library, we must interpolate the weights to this new value. In practice, it may be possible to use a traditional interpolation scheme such as spline interpolation to interpolate the weights directly. However, we found that with high-signal to noise spectra (e.g., Gl51 is S/N $> 400$), the error in any given interpolated representation of the spectrum can constitute a significant portion of the uncertainty budget. This, combined with the Nyquist undersampling of the synthetic grid can cause artificial ``peaking'' of the posterior near grid points in the synthetic library, because the interpolated spectrum is not as good as the raw spectrum at the grid point. Even explicitly accounting for interpolation error by doing ``drop-out'' interpolation tests and empricially propagating it forward did not relieve the peaking problem. We address this problem by using a Gaussian process to encapsulate the range of possible interpolated spectra. 
+To recapitulate, the framework described above can be used to decompose the synthetic spectra in a 
+model library into a principal component basis, allowing us to lossily reconstruct any spectrum in 
+the library as a (weighted) linear combination of $m$ eigenspectra.  The weights corresponding to 
+each eigenspectrum are moderately-smooth scalar functions of the three stellar parameters, 
+$\vt_{\ast}$.  Therefore, to create a spectrum corresponding to an arbitrary set of these 
+parameters that is not in the spectral library, we must interpolate the weights to this new set.  
+In practice, it may be possible to use a traditional scheme like spline interpolation to do this 
+directly.  However, we found that with sensitive spectra (e.g., for Gl~51 the S/N is $>$400), the 
+uncertainty in the interpolated representation of the spectrum can constitute a significant portion 
+of the total uncertainty budget.  This, combined with the under-sampling of the synthetic grid can 
+cause artificial ``peaking" of the posterior near grid points in the synthetic library, because the 
+interpolated spectrum is not as good as the raw spectrum at the grid point.  Even explicitly 
+accounting for interpolation error by doing ``drop-out" interpolation tests and empricially 
+propagating it forward does not relieve this ``peaking" issue.  So instead, we address this problem 
+by employing a Gaussian process to model the interpolation of the eigenspectra weights over 
+$\vt_{\ast}$, thereby encapsulating the range of possible interpolated spectra. 
 
-Now, we describe the Gaussian process used for modelling the eigenspectra weights as a function of stellar parameters. In Section~\ref{sec:method}, we used the formalism of Gaussian processes to develop a sophisticated correlated noise model for the data likelihood, which include contributions from a ``global'' covariance kernel to describe the moderate-amplitude correlations present throughout the spectral residuals and several ``local'' covariance kernels to address the highly correlated but-localized spectral residuals originating from pathological errors in the synthetic spectrum.  We now use a separate Gaussian process to serve as an interpolating function for the weights. Because each eigenspectrum weight is modelled independently, there is a new Gaussian process ($\mathcal{GP}$) for each eigenspectrum. For a single eigenspectrum $k$, we denote the collection of $w_k(\{\vt_\ast \}^\textrm{grid}_i)$ evaluated at all the spectra in the synthetic library as $\mathbf{w}_k^\textrm{grid}$. The Gaussian process treats $\mathbf{w}_k$ as a collection of random variables which are drawn from a single joint multi-variate Gaussian distribution \citep{rasmussen05},
+Each weight is modeled independently, so there is a new Gaussian process for each eigenspectrum.  
+For a single eigenspectrum with index $k$, we denote the collection of 
+$w_k(\{\vt_\ast \}^\textrm{grid}_i)$ evaluated for all the spectra in the library as 
+$\mathbf{w}_k^\textrm{grid}$.  The Gaussian process treats $\mathbf{w}_k$ as a collection of random 
+variables drawn from a joint multi-variate Gaussian distribution 
+\citep{rasmussen05},
 \begin{equation}
-  \mathbf{w}_k^\textrm{grid} \sim \mathcal{N} \left ( \mathbf{0}, \mathbf{\Sigma}_k^\textrm{grid} \right )
+  \mathbf{w}_k^\textrm{grid} \sim \mathcal{N} \left ( \mathbf{0}, \mathbf{\Sigma}_k^\textrm{grid} \right ),
 \end{equation}
-The covariance matrix of this multi-variate Gaussian distribution is described by a covariance kernel $\mathcal{K}_\textrm{SE}$. Rather than the \matern\ kernel used in Section~\ref{sec:method}, we elect to use a three dimensional squared-exponential covariance kernel
-\begin{multline}
-  \mathcal{K}_\textrm{SE}(\vt_{\ast, i}, \vt_{\ast, j} | a_\textrm{SE}, l_{T_\textrm{eff}},  l_{\log g}, l_{\Z}) = \\
-  a^2 \exp \left ( - \frac{(T_{\textrm{eff}_i} - T_{\textrm{eff}_j})^2}{2 l_{T_\textrm{eff}}^2 }  \right )
-  \exp \left (-\frac{(\log g_i - \log g_j)^2}{2 l_{\log g}^2} \right ) \times \\
-  \exp \left ( -\frac{ (\Z_i - \Z_j)^2}{2 l_{\Z}^2} \right )
-\end{multline}
-This kernel is in contrast to the \matern\ kernel used in Section~\ref{sec:method}, which produces a more jagged Gaussian process reminiscent of the spectral residuals. The squared exponential kernel produces a smooth functional form which closely matches the behavior of the eigenspectra weights (Fig~\ref{fig:GP_interp}, left panel). Then the ($M,M$) covariance matrix is 
+with $\mathbf{\Sigma}_k^{\rm grid}$ denoting the covariances.  The kernel that describes the 
+covariance matrix for this distribution is assumed to be a 3-dimensional squared exponential,
+\begin{eqnarray}
+  \mathcal{K}(\vt_i, \vt_j | \phi_{\rm int} ) &=& a_{\rm int}^2 \exp \left [ - \frac{(T_{\textrm{eff}_i} - T_{\textrm{eff}_j})^2}{2 \, \ell_{T_\textrm{eff}}^2 } \right] \nonumber \\
+  & & \times \exp \left [-\frac{(\log g_i - \log g_j)^2}{2 \, \ell_{\log g}^2} \right ] \\
+  & & \times \exp \left [ -\frac{ (\Z_i - \Z_j)^2}{2 \, \ell_{\Z}^2} \right ] \nonumber,
+\end{eqnarray}
+with hyper-parameters $\phi_{\rm int} = \{a_{\rm int}$, $\ell_{T_{\rm eff}}$, $\ell_{\log g}$, 
+$\ell_{\Z}$\} representing an amplitude and length scale for each dimension of $\vt_{\ast}$.  
+Unlike the \matern\ kernel used in Section~\ref{sec:method} (which produces a more structured 
+behavior reminiscent of the spectral residuals), this squared exponential kernel has a smooth 
+functional form that better represents the behavior of the eigenspectra weights across the library 
+grid, as demonstrated in Figure~\ref{fig:GP_interp}.  The $M\times M$-dimensional covariance matrix 
+is 
 \begin{equation}
-\mathbf{\Sigma}_k^\textrm{grid} = \mathcal{K}_\textrm{SE}( \{\vt_\ast \}^\textrm{grid}, \{\vt_\ast \}^\textrm{grid})
+\mathbf{\Sigma}_k^\textrm{grid} = \mathcal{K}( \{\vt_\ast \}^\textrm{grid}, \{\vt_\ast \}^\textrm{grid} | \, \phi_{\rm int}),
 \end{equation}
-which represents the evaluation of the covariance kernel for all pairings of grid point stellar parameters, and the conditional dependence on the kernel hyperparameters is implied.
+the evaluation of the covariance kernel for all pairings of stellar parameters at library 
+gridpoints.
 
-The optimal parameters for the hyperparameters of the squared exponential are given by the multi-variate Gaussian probability distribution, which is called the marginal likelihood function or ``evidence'' for the weights \citep{rasmussen05},
+The optimal values for the hyperparameters $\phi_{\rm int}$ are given by the multi-variate Gaussian 
+probability distribution, called the marginal likelihood function or ``evidence" for the weights 
+\citep{rasmussen05},
 \begin{equation}
-  p(\mathbf{w}_k^\textrm{grid} | \mathbf{\Sigma}_k^\textrm{grid} ) = \mathcal{N}\left (\mathbf{w}_k^\textrm{grid} \left | \; \mathbf{0}, \mathbf{\Sigma}_k^\textrm{grid} \right . \right )
+  p(\mathbf{w}_k^\textrm{grid} | \mathbf{\Sigma}_k^\textrm{grid} ) = \mathcal{N}\left (\mathbf{w}_k^\textrm{grid} \left | \; \mathbf{0}, \mathbf{\Sigma}_k^\textrm{grid} \right . \right ).
 \end{equation}
-Because $\mathbf{\Sigma}_k^\textrm{grid}$ is defined by $\mathcal{K}_\textrm{SE}$ and its hyperparameters, this likelihood function is equivalent to $p(\mathbf{w}_k^\textrm{grid} |\; a_\textrm{SE}, l_{T_\textrm{eff}},  l_{\log g}, l_{\Z})$. By multiplying this with a suitable prior over $a_\textrm{SE}$ and $l$, we arrive at a posterior distribution for the hyperparameters of the Gaussian process. For computational efficiency, we optimize the hyperparameters by finding the peak of the posterior distribution with a downhill gradient algorithm and then consider the hyperparameters fixed.
+Because $\mathbf{\Sigma}_k^\textrm{grid}$ is defined by the kernel $\mathcal{K}$ and its associated 
+hyperparameters, this likelihood function is equivalent to $p(\mathbf{w}_k^\textrm{grid} |\; 
+a_\textrm{int}, \ell_{T_\textrm{eff}},  \ell_{\log g}, \ell_{\Z})$.  By multiplying this with a 
+suitable prior over $a_\textrm{int}$ and $\ell$, we can construct a posterior distribution for 
+$\phi_{\rm int}$.  For computational efficiency, we optimize the hyperparameters by finding the 
+peak of the posterior distribution with a downhill gradient algorithm and then consider 
+$\phi_{\rm int}$ fixed.
 
-Now the Gaussian process is specified and we can use it to predict the values of the weights at a new set of stellar parameters $\vt_\ast$ by considering them drawn from joint distribution 
+Now the Gaussian process is fully specified and can be used to predict the values of the weights at 
+any arbitrary set of stellar parameters $\vt_\ast$ by considering them drawn from the joint 
+distribution 
 \begin{equation}
   \begin{bmatrix}
     \mathbf{w}_k^\textrm{grid}\\
@@ -1226,35 +1301,52 @@ Now the Gaussian process is specified and we can use it to predict the values of
   \mathcal{N} \left (
   \mathbf{0},
   \begin{bmatrix}
-  \mathbf{\Sigma}_k^\textrm{grid} & \mathcal{K}_\textrm{SE}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast) \\
-  \mathcal{K}_\textrm{SE}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) & \mathcal{K}_\textrm{SE}(\vt_\ast,\vt_\ast)
+  \mathbf{\Sigma}_k^\textrm{grid} & \mathcal{K}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast) \\
+  \mathcal{K}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) & \mathcal{K}(\vt_\ast,\vt_\ast)
   \end{bmatrix}
   \right )
 \end{equation}
-where $\mathcal{K}_\textrm{SE}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast)$ represents a length $M$ column vector where $\mathcal{K}_\textrm{SE}$ is evaluated pairwise with all values in $\{\vt_\ast \}^\textrm{grid}$ and the proposed value of $\vt_\ast$. This vector is stacked horizontally next to  $\mathbf{\Sigma}^\textrm{grid}$, and its transpose is stacked vertically underneath $\mathbf{\Sigma}^\textrm{grid}$. The combination of all of these products results in an augmented covariance matrix of size ($M + 1, M + 1$). The probability distribution of $w_k(\vt_\ast)$ is given by the conditional Gaussian distribution \citep{rasmussen05}
+where $\mathcal{K}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast)$ represents a length-$M$ column vector 
+evaluated pairwise with all values in $\{\vt_\ast \}^\textrm{grid}$ and the proposed value of 
+$\vt_\ast$.  This vector is stacked horizontally next to $\mathbf{\Sigma}^\textrm{grid}$, and its 
+transpose is stacked vertically underneath $\mathbf{\Sigma}^\textrm{grid}$.  The combination of all 
+these products results in an augmented covariance matrix of size ($M + 1, M + 1$).  The probability 
+distribution of $w_k(\vt_\ast)$ is given by the conditional Gaussian distribution 
+\citep{rasmussen05}
 \begin{equation}
-  p(w_k |\; \{\vt_\ast \}^\textrm{grid}, \mathbf{w}_k^\textrm{grid}, \vt_\ast) =  \mathcal{N} \left ( w_k \Bigl | \Bigr . \,  \mu_k , \sigma_k \right )
+  p(w_k |\; \{\vt_\ast \}^\textrm{grid}, \mathbf{w}_k^\textrm{grid}, \vt_\ast) =  \mathcal{N} \left ( w_k \Bigl | \Bigr . \,  \mu_k , \sigma_k \right ),
  \label{eqn:conditional_gp}
 \end{equation}
 where
 \begin{equation}
- \mu_k =   \mathcal{K}_\textrm{SE}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) \mathbf{\Sigma}^{\textrm{grid}, -1} \mathbf{w}_k^\textrm{grid}
+ \mu_k =   \mathcal{K}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) (\mathbf{\Sigma}^{\textrm{grid}})^{-1} \mathbf{w}_k^\textrm{grid}
 \end{equation}
-\begin{multline}
-  \sigma_k = \mathcal{K}_\textrm{SE}(\vt_\ast,\vt_\ast) - \\
-  \mathcal{K}_\textrm{SE}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) \mathbf{\Sigma}^{\textrm{grid}, -1} \mathcal{K}_\textrm{SE}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast)
-\end{multline}
+and 
+\begin{eqnarray}
+  \sigma_k &=& \mathcal{K}(\vt_\ast,\vt_\ast) - \\
+  & & \mathcal{K}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) (\mathbf{\Sigma}^{\textrm{grid}})^{-1} \mathcal{K}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast) \nonumber.
+\end{eqnarray}
+% Should one of these be transposed?  
 
-Although this equation is complex, the interpretation is straightforward: the probability distribution of $w_k$ is a univariate Gaussian distribution whose mean and variance are a function of $\vt_\ast$, conditional upon the (fixed) values of $\mathbf{w}_k^\textrm{grid}$ and the squared exponential hyperparameters (see Figure~\ref{fig:GP_interp}, right panel).
+Though the notation is complex, the interpretation is straightforward: the probability distribution 
+of $w_k$ is a univariate Gaussian distribution whose mean and variance are a function of 
+$\vt_\ast$, conditional upon the (fixed) values of $\mathbf{w}_k^\textrm{grid}$ and the squared 
+exponential hyperparameters (an example is shown in Figure~\ref{fig:GP_interp}, right panel).
 
-If we desired an actual value of the interpolated weight, for example to reconstruct a model spectrum, we could simply draw a Gaussian random variable from the probability distribution in Eqn~\ref{eqn:conditional_gp}. However, because we now know the probability distribution of the weight as a function of $\vt_\ast$, we can rewrite our data likelihood function (Eqn~\ref{eqn:lnlikelihood}) in such a way that it is possible to analytically marginalize over all possible values of $w_k$, and thus all probable spectral interpolations. 
+If we desired an actual value of the interpolated weight, for example to reconstruct a model spectrum, we could simply draw a Gaussian random variable from the probability distribution in 
+Eq.~(\ref{eqn:conditional_gp}).  However, because we now know the probability distribution of the 
+weight as a function of $\vt_\ast$, we can rewrite our data likelihood function 
+(Eq.~\ref{eqn:lnlikelihood}) in such a way that it is possible to analytically marginalize over all 
+possible values of $w_k$, and thus all probable spectral interpolations. 
 
-Next, we consider all $m$ of the Gaussian processes describing the weight for each eigenspectra collectively. For a given value of $\vt_\ast$, these Gaussian processes deliver a collection of $m$ one-dimensional Gaussian probability distributions. Because we have modelled each $w_k$ independently, the joint probability of the vector of weights $\mathbf{w}$ is simply a multidimensional Gaussian with only the diagonal elements filled
-\begin{equation}
-  p(\mathbf{w} |\, \vt_\ast) = \mathcal{N} \left ( \mathbf{w} \left | \right . \mathbf{\mu}_\mathbf{w}, \mathbf{\Sigma}_\mathbf{w} \right )
-\end{equation}
-\begin{equation}
-  p(\mathbf{w} |\, \vt_\ast) = \mathcal{N} \left ( \mathbf{w} \left | 
+Next, we consider the combined $m$ Gaussian processes that describe the weights for each 
+eigenspectrum collectively.  For a given $\vt_\ast$, these Gaussian processes deliver a collection 
+of $m$ one-dimensional Gaussian probability distributions.  Because we have modeled each $w_k$ 
+independently, the joint probability of the vector of weights $\mathbf{w}$ is simply a 
+multidimensional Gaussian matrix with only the diagonal elements populated,
+\begin{eqnarray} \label{eqn:weight_conditional}
+  p(\mathbf{w} |\, \vt_\ast) &=& \mathcal{N} \left ( \mathbf{w} \left | \right . \mathbf{\mu}_\mathbf{w}, \mathbf{\Sigma}_\mathbf{w} \right ) \\ \nonumber
+  & = & \mathcal{N} \left ( \mathbf{w} \left | 
   \begin{bmatrix}
     \mu_1 \\
     \vdots \\
@@ -1266,40 +1358,59 @@ Next, we consider all $m$ of the Gaussian processes describing the weight for ea
     0 & \ldots & \sigma_m^2 \\
   \end{bmatrix}
   \right .
-  \right)
-  \label{eqn:weight_conditional}
-\end{equation}
+  \right).
+\end{eqnarray}
 
-So far, we have presented the reconstruction of a spectrum as a linear combination of the eigenspectra of the synthetic library (Figure~\ref{fig:pca_reconstruct}). In practice, however, the reconstructed spectrum must be further post-processed to match the observational parameters ($\vt_{\rm obs}$) of the data spectrum by applying convolutions for instrumental broadening, stellar rotation broadening, and Doppler shift, and then lastly re-sampling the spectrum to the exact pixels of the CCD (Section~\ref{subsec:postprocess}). Fortunately, because convolution is a linear operation, we can first post-process the raw eigenspectra according to $\vt_{\rm obs}$, and then represent the reconstructed spectrum as a linear combination of these modified eigenspectra without loss of information. Unfortunately, the Doppler shift and resampling operations are not linear operations, and there will be some loss of information when trying to approximate them in this manner. However, we find that in practice when the synthetic spectra are oversampled relative to the instrument resolution by a reasonable factor, the flux error due to resampling is smaller than 0.2\% across all pixels , and thus any effect is negligible. For notational compactness, we let $\widetilde{\xi}_\mu$, $\widetilde{\xi}_\sigma$, and $\widetilde{\mathbf{\Xi}}$ represent the post-processed eigenspectra, with an implied dependence on the current values of the observational parameters ($\vt_\textrm{obs}$) and the polynomial nuisance parameters $(\phi_\mathsf{P})$. Now, the model spectrum is specified conditional on the vector of eigenspectra weights as 
+Up until this point, we have described the reconstruction of a spectrum as a linear combination of 
+the eigenspectra that characterize the synthetic library (Figure~\ref{fig:pca_reconstruct}).  But 
+in practice, that reconstructed spectrum must be further post-processed as detailed in 
+Section~\ref{subsec:postprocess}.  Fortunately, because convolution is a linear operation, we can 
+first post-process the raw eigenspectra according to $\vt_{\rm obs}$, and then represent the 
+reconstructed spectrum as a linear combination of these modified eigenspectra without loss of 
+information.  Unfortunately, the Doppler shift and resampling operations are not linear operations, 
+and there will be some loss of information when trying to approximate them in this manner.  
+However, we find that in practice when the synthetic spectra are oversampled relative to the 
+instrument resolution by a reasonable factor, the flux error due to resampling is smaller than 
+0.2\%\ across all pixels, and thus any effect of that information loss is negligible.  For 
+notational compactness, we let $\widetilde{\xi}_\mu$, $\widetilde{\xi}_\sigma$, and 
+$\widetilde{\mathbf{\Xi}}$ represent the post-processed eigenspectra, with an implied dependence on 
+the current values of the observational parameters ($\vt_\textrm{obs}$) and the polynomial nuisance 
+parameters $(\phi_\mathsf{P})$.  Now, the model spectrum is specified conditional on the vector of 
+eigenspectra weights as 
 \begin{equation}
   \mathsf{M} \bigl | \bigr . \,\mathbf{w} = \widetilde{\xi}_\mu + \mathbf{X} \mathbf{w}
 \end{equation}
 where 
 \begin{equation}
-  \mathbf{X} = \widetilde{\xi}_\sigma I_{N_{\rm pix}} \widetilde{\mathbf{\Xi}}
+  \mathbf{X} = \widetilde{\xi}_\sigma I_{N_{\rm pix}} \widetilde{\mathbf{\Xi}}.
 \end{equation}
 Because the Gaussian process describes a probability distribution of the weights, we now have a probability distribution of possible (interpolated) models
 \begin{equation}
   p(\mathsf{M} |\, \mathbf{w}) = p( \mathbf{w} |\, \vt_\ast)
 \end{equation}
-and the likelihood function (Eqn~\ref{eqn:likelihood}) is specified conditional on the weights
+and the likelihood function (Eq.~\ref{eqn:likelihood}) is specified conditional on the weights,
 \begin{equation}
   p( \mathsf{D} |\, \mathsf{M}) = p( \mathsf{D} |\, \mathbf{w}) = 
-  \mathcal{N} \left ( \mathsf{D} |\, \widetilde{\xi}_\mu + \mathbf{X} \mathbf{w} , \mathsf{C} \right )
+  \mathcal{N} \left ( \mathsf{D} |\, \widetilde{\xi}_\mu + \mathbf{X} \mathbf{w} , \mathsf{C} \right ).
   \label{eqn:likelihood_conditional}
 \end{equation}
 
-The final task of designing the spectral emulator is to combine this data likelihood function with the posterior distribution of the eigenspectra weights (Eqn~\ref{eqn:weight_conditional}) and then marginalize over the weights
+The final task of designing the spectral emulator is to combine this data likelihood function with the posterior distribution of the eigenspectra weights (Eq.~\ref{eqn:weight_conditional}) and then marginalize over the weights
 \begin{equation}
   p(\mathsf{D} | \vt_\ast) = \int p(\mathsf{D} | \mathbf{w}) p( \mathbf{w} | \vt_\ast) d \mathbf{w}
   \label{eqn:marginal}
 \end{equation}
-such that we are left with a modified posterior distribution of the data that incorporates the range of probable interpolation values for the model. To perform this multidimensional integral, we use a convenient lemma found in \citet[Appendix A]{gelman13}: if the probability distributions of $\mathbf{w}$ and $\mathsf{D} | \mathbf{w}$ are specified conditionally as in Eqns~\ref{eqn:weight_conditional} and \ref{eqn:likelihood_conditional}, respectively, then the marginal distribution (Eqn~\ref{eqn:marginal}) is
+such that we are left with a modified posterior distribution of the data that incorporates the 
+range of probable interpolation values for the model.  To perform this multidimensional integral, 
+we use a convenient lemma found in \citet[their Appendix A]{gelman13}: if the probability 
+distributions of $\mathbf{w}$ and $\mathsf{D} | \mathbf{w}$ are specified conditionally as in 
+Eq.~\ref{eqn:weight_conditional} and \ref{eqn:likelihood_conditional}, respectively, then the 
+marginal distribution (Eq.~\ref{eqn:marginal}) is
 \begin{equation}
-  p(\mathsf{D} | \vt_\ast, \vt_\textrm{obs}, \mathbf{\Phi}) = \mathcal{N} \left ( \mathsf{D} \bigl | \bigr .\, \widetilde{\xi}_\mu + \mathbf{X} \mathbf{\mu}_\mathbf{w}, \mathbf{X} \mathbf{\Sigma}_\mathbf{w} \mathbf{X}^T + \mathsf{C} \right)
+  p(\mathsf{D} | \vt_\ast, \vt_\textrm{obs}, \mathbf{\Phi}) = \mathcal{N} \left ( \mathsf{D} \bigl | \bigr .\, \widetilde{\xi}_\mu + \mathbf{X} \mathbf{\mu}_\mathbf{w}, \mathbf{X} \mathbf{\Sigma}_\mathbf{w} \mathbf{X}^T + \mathsf{C} \right),
 \end{equation}
-where the dependence on the model parameters is now made explicit.
-We can couch this modified likelihood function in the form of Eqn~\ref{eqn:lnlikelihood} by rewriting
+where the dependence on the model parameters is now made explicit.  We can couch this modified 
+likelihood function in the form of Eqn~\ref{eqn:lnlikelihood} by rewriting
 \begin{equation}
   \mathsf{M}^\prime = \widetilde{\xi}_\mu + \mathbf{X} \mathbf{\mu}_\mathbf{w}
 \end{equation}
@@ -1309,7 +1420,9 @@ We can couch this modified likelihood function in the form of Eqn~\ref{eqn:lnlik
 \begin{equation}
   \mathsf{C}^\prime = \mathbf{X} \mathbf{\Sigma}_\mathbf{w} \mathbf{X}^T + \mathsf{C}
 \end{equation}
-where $\mathsf{M}^\prime$ can be thought of as the ``mean model spectrum'' given the model parameters, and the covariance matrix has been modified to account for the various probable manifestations of the model spectrum about the mean spectrum.
+where $\mathsf{M}^\prime$ can be thought of as the ``mean model spectrum" given the model 
+parameters, and the covariance matrix has been modified to account for the various probable 
+manifestations of the model spectrum about that mean spectrum.
 
 \bibliographystyle{yahapj}
 \bibliography{stellarspectra}
