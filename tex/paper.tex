@@ -582,11 +582,11 @@ reproducing all the key residual features.  \label{fig:matrix}}
 \subsubsection{Composite Covariance Matrix}
 
 We can now compute the covariance matrix employed in the likelihood calculation 
-(Eq.~\ref{eqn:lnlikelihood}) as the linear combination of the trivial pixel-by-pixel noise matrix, 
-an interpolation error kernel ($\mathcal{K}^{\rm int}$; see the Appendix), and the global and local 
-kernels discussed above, 
+(Eq.~\ref{eqn:lnlikelihood}) as the linear combination of the trivial pixel-by-pixel noise matrix 
+and the global and local kernels discussed above,\footnote{See the Appendix for a modification of 
+the likelihood function that incorporates interpolation uncertainty.} 
 \begin{equation}
-\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + \mathcal{K}_{ij}^{\rm int} + w_{ij} \, \Kglobal_{ij}(\vp_{{\mathsf C}, g}) + 
+\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + w_{ij} \, \Kglobal_{ij}(\vp_{{\mathsf C}, g}) + 
                   \Klocal_{ij}(\vp_{{\mathsf C}, l}), 
 \end{equation}
 with (hyper-)parameters $\cov = [\vp_{{\mathsf C}, g}, \vp_{{\mathsf C}, l}]$.  The factor $b$ is 
