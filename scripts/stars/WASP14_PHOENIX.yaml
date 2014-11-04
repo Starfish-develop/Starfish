@@ -32,7 +32,7 @@ fix_logg : 4.29
 
 #Average jump size in each parameter
 stellar_jump:
-    temp : 3.5
+    temp : 7
     #logg : 0.002
     Z : 0.01
     vsini : 0.07
@@ -70,7 +70,7 @@ region_params:
 
 region_jump:
     logAmp : 0.03 #km/s
-    mu : 0.001
+    mu : 0.0015
     sigma : 0.15 #km/s
 
 region_priors:
@@ -84,4 +84,4 @@ sigma_clip : 4.
 #Burn in time
 burn_in : 2000
 nuisance_burn : 5000
-samples : 15000
+samples : 50000
