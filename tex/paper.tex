@@ -801,12 +801,12 @@ kernels are not required.  \label{fig:Kurucz_residuals}}
 \tablecaption{\label{table:Kurucz}Inferred Parameters for WASP-14}
 \tablehead{\colhead{Parameter} & \multicolumn{2}{c}{{\sc CfA/Kurucz}} & \multicolumn{2}{c}{{\sc Phoenix}}}
 \startdata
-$T_{\rm eff}$ (K) & 6424     & 19                      &  6354   & 39        \\
+$T_{\rm eff}$ (K) & 6424     & 19                      &  6349   & 20        \\
 $\log g$      & 4.29     & 0 (fixed)               &  4.29   & 0 (fixed) \\
-$\Z$          & -0.26    & 0.01                    & -0.30  & 0.02     \\
+$\Z$          & -0.26    & 0.01                    & -0.31  & 0.02     \\
 $v \sin i$ ($\kms$)\tablenotemark{a}   & 4.47 & 0.06       &  5.09   & 0.06      \\
 $v_z$ ($\kms$)        & -4.60    & 0.02                    & -4.86   & 0.02      \\
-$\log \Omega$\tablenotemark{b} & -12.7180 & 0.0004 & -12.717 & 0.0007 \\
+$\log \Omega$\tablenotemark{b} & -12.7180 & 0.0004 & -12.717 & 0.001 \\
 $A_V$                          & 0        & 0 (fixed) & 0 & 0 (fixed)
 \enddata
 \tablenotetext{a}{Small differences in the rotational broadening between the two libraries are
@@ -1020,8 +1020,6 @@ of these outliers.  For example, one might employ hybrid kernels (like the produ
 exponential and a \matern\ kernel) or empirically-motivated parametric shapes (e.g., a saw-tooth 
 pattern) to provide a better representation than a simple Gaussian feature.  \\
 
-
-
 \section{Discussion} \label{sec:discussion}
 
 Astronomers exploit spectroscopy to retrieve physical information about their targets.  Ideally, 
@@ -1142,7 +1140,8 @@ the {\sc Phoenix} library has finer coverage in 100\,K increments.
   \figcaption{ (\emph{top}) The mean spectrum, standard deviation spectrum, and five eigenspectra 
 that form the basis of the \textsc{Phoenix} synthetic library used to model Gl~51, generated using 
 a subset of the parameter-space most relevant for M dwarfs.  (\emph{bottom}) The original synthetic 
-spectrum from the \textsc{Phoenix} library compared with a spectrum reconstructed from a linear 
+spectrum from the \textsc{Phoenix} library ($\vt_\ast = [T_\textrm{eff} = 3000\,\textrm{K}, \log g =
+  5.0\,\textrm{dex}, \Z = 0.0\, \textrm{dex}]$) compared with a spectrum reconstructed from a linear 
 combination of the derived eigenspectra using Eqn~\ref{eqn:reconstruct} (with the weights $w_k$ 
 listed in the top panel figure).  \label{fig:pca_reconstruct}}
   \end{center}
@@ -1326,7 +1325,6 @@ and
   \sigma_k &=& \mathcal{K}(\vt_\ast,\vt_\ast) - \\
   & & \mathcal{K}(\vt_\ast, \{\vt_\ast \}^\textrm{grid}) (\mathbf{\Sigma}^{\textrm{grid}})^{-1} \mathcal{K}( \{\vt_\ast \}^\textrm{grid}, \vt_\ast) \nonumber.
 \end{eqnarray}
-% Should one of these be transposed?  
 
 Though the notation is complex, the interpretation is straightforward: the probability distribution 
 of $w_k$ is a univariate Gaussian distribution whose mean and variance are a function of 
