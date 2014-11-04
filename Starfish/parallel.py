@@ -704,7 +704,7 @@ def main():
     # import sys; sys.exit()
 
     mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting, cov=stellar_MH_cov,
-                               outdir=outdir, debug=True, fix_logg=config["fix_logg"])
+                               outdir=outdir, debug=True, fix_logg=fix_logg)
 
     mySampler.run_mcmc(mySampler.p0, config['burn_in'])
     #mySampler.reset()

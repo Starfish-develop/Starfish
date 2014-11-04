@@ -50,6 +50,8 @@ parser.add_argument("--cov", action="store_true", help="Estimate the covariance 
 parser.add_argument("--ndim", type=int, help="How many dimensions to use for estimating the 'optimal jump'.")
 parser.add_argument("--paper", action="store_true", help="Change the figure plotting options appropriate for the "
                                                          "paper.")
+parser.add_argument("--replicate", action="store_true", help="Repeat the (converged) chains for the paper plot to "
+                                                             "fill in the appearance of the histogram.")
 
 args = parser.parse_args()
 
@@ -383,6 +385,11 @@ def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_p
 
     params = flatchain.param_tuple
     samples = flatchain.samples
+
+    if args.replicate:
+        #Concatenate the samples a few times
+        samples = np.vstack([samples for i in range(30)])
+
     labels = [label_dict.get(key, "unknown") for key in params]
 
     K = len(labels)
@@ -392,7 +399,7 @@ def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_p
                              show_titles=False, title_args={"fontsize": 8}, plot_contours=True,
                              plot_datapoints=False, fig=fig)
     if K == 3:
-        figure.subplots_adjust(left=0.13, right=0.87, top=0.95, bottom=0.15)
+        figure.subplots_adjust(left=0.13, right=0.87, top=0.95, bottom=0.16)
     if K == 4:
         figure.subplots_adjust(left=0.13, right=0.87, top=0.95, bottom=0.15)
 
@@ -410,9 +417,15 @@ def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_p
     if K == 3:
         #Yaxis
         for ax in axes[:, 0]:
-            ax.yaxis.set_label_coords(-0.38, 0.5)
+            ax.yaxis.set_label_coords(-0.40, 0.5)
         for ax in axes[-1, :]:
-            ax.xaxis.set_label_coords(0.5, -0.34)
+            ax.xaxis.set_label_coords(0.5, -0.39)
+
+        for ax in axes[:, 1]:
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=4, prune='lower'))
+
+        axes[1, 0].yaxis.set_major_locator(MaxNLocator(nbins=5))
+
 
     figure.savefig(base + flatchain.id + format)
 

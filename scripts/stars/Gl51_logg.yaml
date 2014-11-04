@@ -45,6 +45,7 @@ stellar_cov:
 #If this is declared, you should comment out logg from the stellar_params and stellar_jump
 #fix_logg: 5.0
 
+
 cheb_degree : 8 #actually how many coefficients to include, so c0 + c1 + c2 + c3 is degree 4
 
 #Average jump size in each coefficient
