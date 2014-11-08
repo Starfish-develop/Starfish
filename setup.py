@@ -8,7 +8,6 @@ import ez_setup
 ez_setup.use_setuptools()
 
 from setuptools import setup, Extension
-setup
 
 try:
     from Cython.Distutils import build_ext
@@ -59,7 +58,7 @@ if __name__=="__main__":
                 "Topic :: Scientific/Engineering :: Astronomy",
                 "Topic :: Scientific/Engineering :: Physics"
             ],
-            install_requires = ['numpy', 'scipy', 'h5py', 'astropy', 'cython', 'scikit-learn'],
+            install_requires = ['numpy', 'scipy', 'cython', 'scikit-learn'],
             maintainer = "Ian Czekala",
             maintainer_email = "iancze@gmail.com",
             cmdclass = {'build_ext' :build_ext},
