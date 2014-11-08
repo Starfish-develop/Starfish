@@ -1,0 +1,6 @@
+cython
+numpy
+scipy
+h5py
+scikit-learn
+astropy
