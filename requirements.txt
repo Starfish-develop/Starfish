@@ -1,6 +1,6 @@
-cython
 numpy
 scipy
-h5py
+cython
 scikit-learn
 astropy
+h5py
