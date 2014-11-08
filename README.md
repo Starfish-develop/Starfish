@@ -1,8 +1,12 @@
 # Starfish
 
+[![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
+[![Documentation Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://readthedocs.org/projects/starfish/?badge=latest)
+
 Robustly determine stellar parameters using high resolution spectral models. 
 
 Splash website: http://iancze.github.io/Starfish/
+
 Documentation: http://starfish.readthedocs.org/en/latest/
 
 Copyright Ian Czekala 2013, 2014
@@ -18,9 +22,9 @@ this code in your own research, please email me and I can help you get started.
 
 *Starfish* has several dependencies, however most of them should be satisfied by an up-to-date  
 scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution]
-(https://store.continuum.io/cshop/anaconda/) and updating to python 3.x. This code makes no attempt to work on the 
-python 2.x series, and I doubt it will if you try. This package has only been tested on Linux, although it should 
-work fine on Mac OSX and Windows provided you can install the dependencies.
+(https://store.continuum.io/cshop/anaconda/) and updating to python 3.3 or greater. This code makes no attempt to work
+on the python 2.x series, and I doubt it will if you try. This package has only been tested on Linux, 
+although it should work fine on Mac OSX and Windows provided you can install the dependencies.
 
 Starfish requires the following Python packages:
 
@@ -32,8 +36,8 @@ Starfish requires the following Python packages:
 * cython
 * pyyaml
 
-Unless you actively maintain your scientific python distribution, I recommend installing the Anaconda python 3.x 
-distribution, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages
+Unless you actively maintain your scientific python distribution, I recommend installing the Anaconda python 3.3 or 
+greater distribution, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages
 can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
 
 To make sure you are running the correct version of python, start a python interpreter via the system shell and you 
