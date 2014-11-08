@@ -72,7 +72,7 @@ if you are on a machine where you do not have administrator privileges, you can 
 
     pip install Starfish --user
     
-To test that you've properly installed *Starfish*, try doing the following inside of Python interpreter session
+To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
 
     >>> import Starfish
 
