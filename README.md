@@ -1,6 +1,9 @@
 # Starfish
 
-Robustly determine stellar parameters using high resolution spectral models.
+Robustly determine stellar parameters using high resolution spectral models. 
+
+Splash website: http://iancze.github.io/Starfish/
+Documentation: http://starfish.readthedocs.org/en/latest/
 
 Copyright Ian Czekala 2013, 2014
 
