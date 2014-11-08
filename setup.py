@@ -87,3 +87,11 @@ if __name__=="__main__":
 
 #Now I compile with
 #OPT="-DDYNAMIC_ANNOTATIONS_ENABLED=1 -DNDEBUG -g -fwrapv -O3" CFLAGS="-march=x86-64 -mtune=generic -O2 -pipe -fstack-protector --param=ssp-buffer-size=4" python setup.py build_ext --inplace
+
+# Installation of SuiteSparse
+
+#    python setup.py build_ext --inplace -Lmydir/lib -Imydir/include
+
+#If you want to try using my SuiteSparse directories on the CfA CF network,
+
+#python setup.py build_ext --inplace -L/pool/scout0/.build/lib -I/pool/scout0/.build/include
