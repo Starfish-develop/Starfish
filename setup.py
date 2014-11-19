@@ -2,7 +2,7 @@
 
 import sys
 if sys.version < '3.3':
-    sys.exit('Error: Python 3.3 or greater required for Starfish')
+    sys.exit('Error: Python 3.3 or greater required for Starfish (using {})'.format(sys.version))
 
 import ez_setup
 ez_setup.use_setuptools()
