@@ -31,7 +31,7 @@ install:
     - sudo apt-get install -qq
 
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
-    # - source activate test
+    - source activate test
 
     - conda install --yes numpy=$NUMPY_VERSION scipy Cython h5py scikit-learn nose
 
