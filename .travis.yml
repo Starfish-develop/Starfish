@@ -32,7 +32,7 @@ install:
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
 
-    - conda install --yes numpy=$NUMPY_VERSION scipy Cython h5py scikit-learn nose
+    - conda install --yes numpy=$NUMPY_VERSION scipy matplotlib Cython h5py scikit-learn astropy pyyaml nose
 
     #- CXX=g++ python setup.py build_ext --inplace
     - python setup.py build_ext --inplace
