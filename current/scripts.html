@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Scripts &mdash; Starfish 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Starfish 1.0 documentation" href="index.html" />
+    <link rel="prev" title="Model" href="model.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="Model"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Starfish 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="scripts">
+<h1>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h1>
+<p>StellarSpectra is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
+data.</p>
+<p>You may want to add the following location to your <cite>PATH</cite> in order to make frequent use of these scripts.</p>
+<div class="section" id="hdf5-scripts">
+<h2>HDF5 Scripts<a class="headerlink" href="#hdf5-scripts" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>hdfcat.py</li>
+<li>hdfplot.py</li>
+</ul>
+<div class="section" id="hdfcat-py">
+<h3>hdfcat.py<a class="headerlink" href="#hdfcat-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is used to concatenate the samples from multiple MCMC runs. The output must be stored in the same formats,
+but it is primarily for concatenating the samples for the stellar parameters and order parameters, but notably <em>not</em>
+the region lists and parameters. This is designed to enable parallel runs of the algorithm but then combine all of
+the parameters into one HDF5 file for use with <cite>hdfplot.py</cite></p>
+</div>
+<div class="section" id="hdfplot-py">
+<h3>hdfplot.py<a class="headerlink" href="#hdfplot-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to plot the chain data contained in a single HDF5 file. As of now, you can select which
+stellar parameters you wish to provide in the triangle plot. This is designed to make custom plots <em>after</em> the run, such
+that you can play around with intercomparing parameters and making it look good for the paper or presentation.</p>
+<p>Functionality that&#8217;s coming: ability to select/truncate samples from the beginning/end of the run.</p>
+</div>
+<div class="section" id="hdfinterplot-py">
+<h3>hdfinterplot.py<a class="headerlink" href="#hdfinterplot-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to plot the different chains for single parameters. It hasn&#8217;t been written yet.</p>
+</div>
+</div>
+<div class="section" id="plotting-scripts">
+<h2>Plotting Scripts<a class="headerlink" href="#plotting-scripts" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>plotly_model.py</li>
+</ul>
+<div class="section" id="plotly-model-py">
+<h3>plotly_model.py<a class="headerlink" href="#plotly-model-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to visualize an individual order. Designed to be run both as a command line script and
+as an importable function that returns a url.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Scripts</a><ul>
+<li><a class="reference internal" href="#hdf5-scripts">HDF5 Scripts</a><ul>
+<li><a class="reference internal" href="#hdfcat-py">hdfcat.py</a></li>
+<li><a class="reference internal" href="#hdfplot-py">hdfplot.py</a></li>
+<li><a class="reference internal" href="#hdfinterplot-py">hdfinterplot.py</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#plotting-scripts">Plotting Scripts</a><ul>
+<li><a class="reference internal" href="#plotly-model-py">plotly_model.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="model.html"
+                        title="previous chapter">Model</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/scripts.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="Model"
+             >previous</a> |</li>
+        <li><a href="index.html">Starfish 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013-14, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

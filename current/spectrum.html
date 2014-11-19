@@ -1,0 +1,687 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Spectrum &mdash; Starfish 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Starfish 1.0 documentation" href="index.html" />
+    <link rel="next" title="Grid Tools" href="grid_tools.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="grid_tools.html" title="Grid Tools"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Starfish 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-Starfish.spectrum">
+<span id="spectrum"></span><h1>Spectrum<a class="headerlink" href="#module-Starfish.spectrum" title="Permalink to this headline">¶</a></h1>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">synopsis:</th><td class="field-body">A package with many different spectra objects for easy manipulation</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="xref py py-mod docutils literal"><span class="pre">spectrum</span></tt> is a package containing many different specrum objects. It defines many useful objects
+that may be used in the <tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> package and the <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt> package.</p>
+<div class="section" id="full-featured-spectrum-objects">
+<h2>Full-featured spectrum objects<a class="headerlink" href="#full-featured-spectrum-objects" title="Permalink to this headline">¶</a></h2>
+<p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
+while being robust to check and handle errors.</p>
+<p class="graphviz">
+<img src="_images/inheritance-600d78f1cf0234eb6b3d5d757e0fcf8ae4f17310.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<map id="inheritance2074dcef86" name="inheritance2074dcef86">
+<area shape="rect" id="node1" href="#Starfish.spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,305,31"/>
+<area shape="rect" id="node3" href="#Starfish.spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="353,5,513,31"/>
+<area shape="rect" id="node2" href="#Starfish.spectrum.BaseSpectrum" title="The base spectrum object, designed to be inherited." alt="" coords="5,5,123,31"/>
+</map>
+</p>
+<dl class="class">
+<dt id="Starfish.spectrum.BaseSpectrum">
+<em class="property">class </em><tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">BaseSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#BaseSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.BaseSpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>The base spectrum object, designed to be inherited.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wl</strong> (<em>np.array</em>) &#8211; wavelength array</li>
+<li><strong>fl</strong> (<em>np.array</em>) &#8211; flux array, must be the same shape as <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt></li>
+<li><strong>unit</strong> &#8211; flux unit (<tt class="docutils literal"><span class="pre">f_lam</span></tt>, or <tt class="docutils literal"><span class="pre">f_nu</span></tt>)</li>
+<li><strong>air</strong> (<em>bool</em>) &#8211; is wavelength array measured in air?</li>
+<li><strong>metadata</strong> &#8211; any extra metadata associated with the spectrum</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="Starfish.spectrum.BaseSpectrum.convert_units">
+<tt class="descname">convert_units</tt><big>(</big><em>unit='f_nu'</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#BaseSpectrum.convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.BaseSpectrum.convert_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert between f_lam and f_nu. If <tt class="xref py py-attr docutils literal"><span class="pre">unit</span></tt> == <tt class="xref py py-attr docutils literal"><span class="pre">self.unit</span></tt>, do nothing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>unit</strong> (<em>string</em>) &#8211; flux unit to convert to</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises AssertionError:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if unit is not <tt class="docutils literal"><span class="pre">&quot;f_lam&quot;</span></tt> or <tt class="docutils literal"><span class="pre">&quot;f_nu&quot;</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.BaseSpectrum.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#BaseSpectrum.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.BaseSpectrum.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>return a copy of the spectrum</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.BaseSpectrum.save">
+<tt class="descname">save</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#BaseSpectrum.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.BaseSpectrum.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the spectrum as a 2D numpy array. wl = arr[0,:], fl = arr[1,:]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; filename</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Starfish.spectrum.Base1DSpectrum">
+<em class="property">class </em><tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">Base1DSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#Base1DSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.Base1DSpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>The base one-dimensional spectrum object, designed to be initialized with a generic spectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wl</strong> (<em>np.array</em>) &#8211; wavelength array</li>
+<li><strong>fl</strong> (<em>np.array</em>) &#8211; flux array</li>
+<li><strong>unit</strong> &#8211; flux unit (<tt class="docutils literal"><span class="pre">f_lam</span></tt>, or <tt class="docutils literal"><span class="pre">f_nu</span></tt>)</li>
+<li><strong>air</strong> (<em>bool</em>) &#8211; is wavelength array measured in air?</li>
+<li><strong>metadata</strong> &#8211; any extra metadata associated with the spectrum</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Initialization sorts the wl array to make sure all points are sequential and unique.</p>
+<dl class="method">
+<dt id="Starfish.spectrum.Base1DSpectrum.calculate_log_lam_grid">
+<tt class="descname">calculate_log_lam_grid</tt><big>(</big><em>min=True</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#Base1DSpectrum.calculate_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.Base1DSpectrum.calculate_log_lam_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine the minimum spacing and create a log lambda grid that satisfies the sampling requirements. This assumes
+that the input spectrum has already been properly oversampled.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">wl_dict containing a log lam wl and header keywords.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.Base1DSpectrum.resample_to_grid">
+<tt class="descname">resample_to_grid</tt><big>(</big><em>grid</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#Base1DSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.Base1DSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample the spectrum to a new grid. Update <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt> and <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>grid</strong> (<em>np.array</em>) &#8211; the new wavelength grid to resample/rebin to</li>
+<li><strong>integrate</strong> (<em>bool</em>) &#8211; rebin instead of resample?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.Base1DSpectrum.to_LogLambda">
+<tt class="descname">to_LogLambda</tt><big>(</big><em>min_vc</em>, <em>instrument=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#Base1DSpectrum.to_LogLambda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.Base1DSpectrum.to_LogLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new spectrum that is <a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum" title="Starfish.spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>min_vc</strong> (<em>float</em>) &#8211; The maximum spacing allowed</li>
+<li><strong>instrument</strong> &#8211; <tt class="xref py py-obj docutils literal"><span class="pre">Instrument</span></tt> object to transfer wl_ranges for truncation.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="log-lambda-spectrum">
+<h3>Log Lambda spectrum<a class="headerlink" href="#log-lambda-spectrum" title="Permalink to this headline">¶</a></h3>
+<p>A spectrum spaced linear in log lambda has equal-velocity pixels, meaning that</p>
+<div class="math">
+\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda}\]</div>
+<p>A log lambda spectrum is defined by the WCS keywords <strong>CDELT1</strong>, <strong>CRVAL1</strong>, and <strong>NAXIS1</strong>. They are related to the
+physical wavelengths by the following relationship</p>
+<div class="math">
+\[\lambda = 10^{{\rm CRVAL1} + {\rm CDELT1} \times i}\]</div>
+<p>where <span class="math">\(i\)</span> is the pixel index, with <span class="math">\(i = 0\)</span> referring to the first pixel
+and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last pixel.</p>
+<p>The wavelength array and header keywords are often stored in a <tt class="docutils literal"><span class="pre">wl_dict</span></tt> dictionary, which looks like
+<tt class="docutils literal"><span class="pre">{&quot;wl&quot;:wl,</span> <span class="pre">&quot;CRVAL1&quot;:CRVAL1,</span> <span class="pre">&quot;CDELT1&quot;:CDELT1,</span> <span class="pre">&quot;NAXIS1&quot;:NAXIS1}</span></tt>.</p>
+<p>These keywords are related to various wavelengths by</p>
+<div class="math">
+\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda} = 10^{\rm CDELT1} - 1\]</div>
+<div class="math">
+\[{\rm CDELT1} = \log_{10} \left ( \frac{v}{c} + 1 \right )\]</div>
+<div class="math">
+\[{\rm CRVAL1} = \log_{10} ( \lambda_{\rm start})\]</div>
+<dl class="data">
+<dt id="Starfish.spectrum.log_lam_kws">
+<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">log_lam_kws</tt><a class="headerlink" href="#Starfish.spectrum.log_lam_kws" title="Permalink to this definition">¶</a></dt>
+<dd><p>The parameters that define a log lambda spectrum. This set is use to validate input. By default these are set to</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Starfish.spectrum.create_log_lam_grid">
+<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>wl_start=3000.0</em>, <em>wl_end=13000.0</em>, <em>min_wl=None</em>, <em>min_vc=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a log lambda spaced grid with <tt class="docutils literal"><span class="pre">N_points</span></tt> equal to a power of 2 for ease of FFT.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>wl_start</strong> (<em>float</em>) &#8211; starting wavelength (inclusive)</li>
+<li><strong>wl_end</strong> (<em>float</em>) &#8211; ending wavelength (inclusive)</li>
+<li><strong>min_wl</strong> (<em>(delta_wl, wl)</em>) &#8211; wavelength spacing at a specific wavelength</li>
+<li><strong>min_vc</strong> (<em>float</em>) &#8211; tightest spacing</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a wavelength dictionary containing the specified properties.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">wl_dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Takes the finer of min_WL or min_vc if both specified</p>
+</dd></dl>
+
+<p>The <a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum" title="Starfish.spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a> is more of a workhorse than the previously defined spectra. Because it is regularly spaced
+in velocity, it is easier to perform convolution and downsampling operations.</p>
+<dl class="class">
+<dt id="Starfish.spectrum.LogLambdaSpectrum">
+<em class="property">class </em><tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">LogLambdaSpectrum</tt><big>(</big><em>wl</em>, <em>fl</em>, <em>unit='f_lam'</em>, <em>air=True</em>, <em>metadata=None</em>, <em>oversampling=3.5</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>A spectrum that has log lambda spaced wavelengths.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wl</strong> (<em>np.array</em>) &#8211; wavelength array</li>
+<li><strong>fl</strong> (<em>np.array</em>) &#8211; flux array</li>
+<li><strong>unit</strong> &#8211; flux unit (<tt class="docutils literal"><span class="pre">f_lam</span></tt>, or <tt class="docutils literal"><span class="pre">f_nu</span></tt>)</li>
+<li><strong>air</strong> (<em>bool</em>) &#8211; is wavelength array measured in air?</li>
+<li><strong>metadata</strong> &#8211; any extra metadata associated with the spectrum</li>
+<li><strong>oversampling</strong> (<em>float</em>) &#8211; how many samples fit across the <tt class="xref py py-attr docutils literal"><span class="pre">FWHM</span></tt></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>All of the class methods modify <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt> and <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt> in place.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Because of the difficulty of keeping track of convolution, you only get to do
+{<a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum.instrument_convolve" title="Starfish.spectrum.LogLambdaSpectrum.instrument_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_convolve()</span></tt></a>, <a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum.stellar_convolve" title="Starfish.spectrum.LogLambdaSpectrum.stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">stellar_convolve()</span></tt></a>} or
+<a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve"><tt class="xref py py-meth docutils literal"><span class="pre">instrument_and_stellar_convolve()</span></tt></a> once.</p>
+</div>
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.convolve_with_gaussian">
+<tt class="descname">convolve_with_gaussian</tt><big>(</big><em>FWHM</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.convolve_with_gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.convolve_with_gaussian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convolve the spectrum with a Gaussian of FWHM</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>FWHM</strong> (<em>float (km/s)</em>) &#8211; the FWHM of the Gaussian kernel</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">
+<tt class="descname">instrument_and_stellar_convolve</tt><big>(</big><em>instrument</em>, <em>vsini</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.instrument_and_stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform both instrumental and stellar broadening on the spectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>instrument</strong> &#8211; the <tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object containing the instrumental profile</li>
+<li><strong>vsini</strong> (<em>float (km/s)</em>) &#8211; projected rotational speed of star</li>
+<li><strong>integrate</strong> &#8211; integrate to counts/pixel? <tt class="xref py py-attr docutils literal"><span class="pre">downsample</span></tt> must not be None</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.instrument_convolve">
+<tt class="descname">instrument_convolve</tt><big>(</big><em>instrument</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.instrument_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.instrument_convolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convolve the spectrum with an instrumental profile.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>instrument</strong> &#8211; the <tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object containing the instrumental profile</li>
+<li><strong>integrate</strong> &#8211; integrate to counts/pixel? <tt class="xref py py-attr docutils literal"><span class="pre">downsample</span></tt> must not be None</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.resample_to_grid">
+<tt class="descname">resample_to_grid</tt><big>(</big><em>wl_dict</em>, <em>integrate=False</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.resample_to_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.resample_to_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample/interate the spectrum to a new log lambda grid.
+Updates the <tt class="xref py py-attr docutils literal"><span class="pre">wl</span></tt>, <tt class="xref py py-attr docutils literal"><span class="pre">fl</span></tt>, and log_lam_kws in the <tt class="xref py py-attr docutils literal"><span class="pre">metadata</span></tt>. This method is slightly
+different than <a class="reference internal" href="#Starfish.spectrum.Base1DSpectrum.resample_to_grid" title="Starfish.spectrum.Base1DSpectrum.resample_to_grid"><tt class="xref py py-meth docutils literal"><span class="pre">Base1DSpectrum.resample_to_grid()</span></tt></a> since it uses <tt class="xref py py-attr docutils literal"><span class="pre">wl_dict</span></tt> to ensure that the spectrum
+remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_points</span></tt> is a power of 2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wl_dict</strong> (<em>dict</em>) &#8211; dictionary of log lam wavelength properties to resample to</li>
+<li><strong>integrate</strong> (<em>bool</em>) &#8211; integrate flux to counts/pixel?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Assumes that new wl grid does not violate any sampling rules and updates header values.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.stellar_convolve">
+<tt class="descname">stellar_convolve</tt><big>(</big><em>vsini</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.stellar_convolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.stellar_convolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Broaden spectrum due to stellar rotation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vsini</strong> (<em>float (km/s)</em>) &#8211; projected rotational speed of star</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.LogLambdaSpectrum.write_to_FITS">
+<tt class="descname">write_to_FITS</tt><big>(</big><em>out_unit</em>, <em>filename</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#LogLambdaSpectrum.write_to_FITS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.LogLambdaSpectrum.write_to_FITS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a LogLambdaSpectrum to a FITS file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_unit</strong> (<em>string</em>) &#8211; <cite>f_lam</cite>, <cite>f_nu</cite>, <cite>f_nu_log</cite>, or <cite>counts/pix</cite></li>
+<li><strong>filename</strong> (<em>string</em>) &#8211; output filename</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Depending on the <cite>out_unit</cite>, the spectrum may be converted.</p>
+<ul class="simple">
+<li><cite>f_lam</cite>: keep flux units the same</li>
+<li><cite>f_nu</cite>: convert flux to ergs/s/cm^2/Hz</li>
+<li><cite>f_nu_log</cite>: convert flux to ergs/s/cm^2/log(Hz)</li>
+<li><cite>counts/pix</cite>: integrate spectrum to counts/pixel</li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="fast-spectrum-objects">
+<h2>Fast spectrum objects<a class="headerlink" href="#fast-spectrum-objects" title="Permalink to this headline">¶</a></h2>
+<p>These spectra assume many properties of the data and are built for speedy comparions via <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt></p>
+<dl class="class">
+<dt id="Starfish.spectrum.DataSpectrum">
+<em class="property">class </em><tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">DataSpectrum</tt><big>(</big><em>wls</em>, <em>fls</em>, <em>sigmas</em>, <em>masks=None</em>, <em>orders='all'</em>, <em>name=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#DataSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.DataSpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object to manipulate the data spectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wls</strong> (<em>1D or 2D np.array</em>) &#8211; wavelength (in AA)</li>
+<li><strong>fls</strong> (<em>1D or 2D np.array</em>) &#8211; flux (in f_lam)</li>
+<li><strong>sigmas</strong> (<em>1D or 2D np.array</em>) &#8211; Poisson noise (in f_lam)</li>
+<li><strong>masks</strong> (<em>1D or 2D np.array of boolean values</em>) &#8211; Mask to blot out bad pixels or emission regions.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>If the wl, fl, are provided as 1D arrays (say for a single order), they will be converted to 2D arrays with length 1
+in the 0-axis.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For now, the DataSpectrum wls, fls, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.</p>
+</div>
+<dl class="method">
+<dt id="Starfish.spectrum.DataSpectrum.add_mask">
+<tt class="descname">add_mask</tt><big>(</big><em>new_mask</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#DataSpectrum.add_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.DataSpectrum.add_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a mask with the same self.shape, update self.masks to include the union with this new mask.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="Starfish.spectrum.DataSpectrum.open">
+<em class="property">classmethod </em><tt class="descname">open</tt><big>(</big><em>file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#DataSpectrum.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.DataSpectrum.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a spectrum from a directory link pointing to HDF5 output from EchelleTools processing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>base_file</strong> (<em>string</em>) &#8211; HDF5 file containing files on disk.</li>
+<li><strong>orders</strong> (<em>np.array of indexes</em>) &#8211; Which orders should we be fitting?</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">DataSpectrum</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="Starfish.spectrum.DataSpectrum.open_npy">
+<em class="property">classmethod </em><tt class="descname">open_npy</tt><big>(</big><em>base_file</em>, <em>orders='all'</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#DataSpectrum.open_npy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.DataSpectrum.open_npy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a spectrum from a directory link pointing to .npy output from EchelleTools processing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>base_file</strong> (<em>string</em>) &#8211; base path name to be appended with &#8221;.wls.npy&#8221;, &#8221;.fls.npy&#8221;, &#8221;.sigmas.npy&#8221;, and &#8221;.masks.npy&#8221; to load files from disk.</li>
+<li><strong>orders</strong> (<em>np.array of indexes</em>) &#8211; Which orders should we be fitting?</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">DataSpectrum</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Starfish.spectrum.ModelSpectrum">
+<em class="property">class </em><tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">ModelSpectrum</tt><big>(</big><em>Emulator</em>, <em>DataSpectrum</em>, <em>instrument</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>A 1D synthetic spectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>interpolator</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.ModelInterpolator</span></tt>) &#8211; object to query stellar parameters</li>
+<li><strong>instrument</strong> (<tt class="xref py py-obj docutils literal"><span class="pre">grid_tools.Instrument</span></tt> object describing wavelength range and instrumental profile) &#8211; Which instrument is this a model for?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>We essentially want to preserve two capabilities.</p>
+<ol class="arabic simple">
+<li>Sample in all &#8220;stellar parameters&#8221; at once</li>
+<li>Sample in only the easy &#8220;post-processing&#8221; parameters, like ff and v_z to speed the burn-in process.</li>
+</ol>
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.downsample">
+<tt class="descname">downsample</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.downsample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.downsample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns fls:</th><td class="field-body">the downsampled fluxes that has the same shape as DataSpectrum.fls</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.revert_flux">
+<tt class="descname">revert_flux</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.revert_flux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.revert_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>If a MH proposal was rejected, revert the downsampled flux to it&#8217;s last value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_Av">
+<tt class="descname">update_Av</tt><big>(</big><em>Av</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_Av"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_Av" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the extinction parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Av</strong> (<em>float (magnitudes)</em>) &#8211; The optical extinction parameter.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_all">
+<tt class="descname">update_all</tt><big>(</big><em>params</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update all of the stellar parameters</p>
+<p>Give parameters as a dict and choose the params to update.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_grid_params">
+<tt class="descname">update_grid_params</tt><big>(</big><em>weights</em>, <em>grid_params</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_grid_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_grid_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Private method to update just those stellar parameters. Designed to be used as part of update_all.
+ASSUMES that grid is log-linear spaced and already instrument-convolved</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>grid_params</strong> (<em>dict</em>) &#8211; grid parameters, including alpha or not.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_logOmega">
+<tt class="descname">update_logOmega</tt><big>(</big><em>logOmega</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_logOmega"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_logOmega" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span>, which multiplies the model spectrum to be the same scale as the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Omega</strong> (<em>float</em>) &#8211; &#8216;flux factor&#8217; parameter, <span class="math">\(\Omega = R^2/d^2\)</span></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_vsini">
+<tt class="descname">update_vsini</tt><big>(</big><em>vsini</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_vsini"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_vsini" title="Permalink to this definition">¶</a></dt>
+<dd><p>Private method to update just the vsini kernel. Designed to be used as part of update_all
+<em>after</em> the grid_params have been updated using _update_grid_params_approx.
+ASSUMES that the grid is log-linear spaced and already instrument-convolved</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vsini</strong> (<em>float (km/s)</em>) &#8211; projected stellar rotation velocity</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Starfish.spectrum.ModelSpectrum.update_vz">
+<tt class="descname">update_vz</tt><big>(</big><em>vz</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#ModelSpectrum.update_vz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.ModelSpectrum.update_vz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the radial velocity parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vz</strong> (<em>float (km/s)</em>) &#8211; The radial velocity parameter. Positive means redshift and negative means blueshift.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Spectrum</a><ul>
+<li><a class="reference internal" href="#full-featured-spectrum-objects">Full-featured spectrum objects</a><ul>
+<li><a class="reference internal" href="#log-lambda-spectrum">Log Lambda spectrum</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fast-spectrum-objects">Fast spectrum objects</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quickstart.html"
+                        title="previous chapter">Quickstart</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="grid_tools.html"
+                        title="next chapter">Grid Tools</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/spectrum.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="grid_tools.html" title="Grid Tools"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="quickstart.html" title="Quickstart"
+             >previous</a> |</li>
+        <li><a href="index.html">Starfish 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013-14, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

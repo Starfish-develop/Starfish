@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>StellarSpectra.constants &mdash; Starfish 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Starfish 1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Starfish 1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for StellarSpectra.constants</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="c">##################################################</span>
+<span class="c"># Constants</span>
+<span class="c">##################################################</span>
+<span class="n">c_ang</span> <span class="o">=</span> <span class="mf">2.99792458e18</span> <span class="c">#A s^-1</span>
+<span class="n">c_kms</span> <span class="o">=</span> <span class="mf">2.99792458e5</span> <span class="c">#km s^-1</span>
+
+<span class="c">#n @ 3000: 1.0002915686329712</span>
+<span class="c">#n @ 6000: 1.0002769832562917</span>
+<span class="c">#n @ 8000: 1.0002750477973053</span>
+
+<span class="n">n_air</span> <span class="o">=</span> <span class="mf">1.000277</span>
+<span class="n">c_ang_air</span> <span class="o">=</span> <span class="n">c_ang</span><span class="o">/</span><span class="n">n_air</span>
+<span class="n">c_kms_air</span> <span class="o">=</span> <span class="n">c_kms</span><span class="o">/</span><span class="n">n_air</span>
+
+<span class="n">h</span> <span class="o">=</span> <span class="mf">6.6260755e-27</span> <span class="c">#erg s</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="mf">6.67259e-8</span> <span class="c">#cm3 g-1 s-2</span>
+<span class="n">M_sun</span> <span class="o">=</span> <span class="mf">1.99e33</span> <span class="c">#g</span>
+<span class="n">R_sun</span> <span class="o">=</span> <span class="mf">6.955e10</span> <span class="c">#cm</span>
+<span class="n">pc</span> <span class="o">=</span> <span class="mf">3.0856776e18</span> <span class="c">#cm</span>
+<span class="n">AU</span> <span class="o">=</span> <span class="mf">1.4959787066e13</span> <span class="c">#cm</span>
+
+<span class="n">L_sun</span> <span class="o">=</span> <span class="mf">3.839e33</span> <span class="c">#erg/s</span>
+<span class="n">R_sun</span> <span class="o">=</span> <span class="mf">6.955e10</span> <span class="c">#cm</span>
+<span class="n">F_sun</span> <span class="o">=</span> <span class="n">L_sun</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">R_sun</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="c">#bolometric flux of the Sun measured at the surface</span>
+
+
+<span class="n">grid_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;temp&quot;</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">)</span> <span class="c">#Allowed grid parameters</span>
+<span class="n">grid_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">grid_parameters</span><span class="p">)</span>
+
+<span class="n">pp_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;vsini&quot;</span><span class="p">,</span> <span class="s">&quot;FWHM&quot;</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">,</span> <span class="s">&quot;Av&quot;</span><span class="p">,</span> <span class="s">&quot;logOmega&quot;</span><span class="p">)</span> <span class="c">#Allowed &quot;post processing parameters&quot;</span>
+<span class="n">pp_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">pp_parameters</span><span class="p">)</span>
+
+<span class="n">stellar_parameters</span> <span class="o">=</span> <span class="n">grid_parameters</span> <span class="o">+</span> <span class="n">pp_parameters</span>
+<span class="n">stellar_set</span> <span class="o">=</span> <span class="n">grid_set</span> <span class="o">|</span> <span class="n">pp_set</span> <span class="c">#the union of grid_parameters and pp_parameters</span>
+
+
+<span class="c">#Dictionary of allowed variables with default values</span>
+<span class="n">var_default</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">5800</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">4.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;vsini&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;FWHM&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;vz&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;Av&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span> <span class="s">&quot;logOmega&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">}</span>
+
+<span class="n">cov_global_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;sigAmp&quot;</span><span class="p">,</span> <span class="s">&quot;logAmp&quot;</span><span class="p">,</span> <span class="s">&quot;l&quot;</span><span class="p">)</span>
+<span class="n">cov_region_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;h&quot;</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">,</span> <span class="s">&quot;mu&quot;</span><span class="p">,</span> <span class="s">&quot;sigma&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">dictkeys_to_tuple</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Helper function to convert a dictionary of starting stellar parameters to a tuple list</span>
+
+<span class="sd">    :param keys: keys to sort into a tuple</span>
+<span class="sd">    :type keys: dict.keys() view</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">tup</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">stellar_parameters</span><span class="p">:</span>
+        <span class="c">#check if param is in keys, if so, add to the tuple</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">tup</span> <span class="o">+=</span> <span class="p">(</span><span class="n">param</span><span class="p">,)</span>
+
+    <span class="k">return</span> <span class="n">tup</span>
+
+<span class="k">def</span> <span class="nf">dictkeys_to_cov_global_tuple</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Helper function to convert a dictionary of starting stellar parameters to a tuple list</span>
+
+<span class="sd">    :param keys: keys to sort into a tuple</span>
+<span class="sd">    :type keys: dict.keys() view</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">tup</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">cov_global_parameters</span><span class="p">:</span>
+        <span class="c">#check if param is in keys, if so, add to the tuple</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">tup</span> <span class="o">+=</span> <span class="p">(</span><span class="n">param</span><span class="p">,)</span>
+
+    <span class="k">return</span> <span class="n">tup</span>
+
+<span class="k">def</span> <span class="nf">dictkeys_to_cov_region_tuple</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Helper function to convert a dictionary of starting stellar parameters to a tuple list</span>
+
+<span class="sd">    :param keys: keys to sort into a tuple</span>
+<span class="sd">    :type keys: dict.keys() view</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">tup</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">cov_region_parameters</span><span class="p">:</span>
+        <span class="c">#check if param is in keys, if so, add to the tuple</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">tup</span> <span class="o">+=</span> <span class="p">(</span><span class="n">param</span><span class="p">,)</span>
+
+    <span class="k">return</span> <span class="n">tup</span>
+
+<span class="k">def</span> <span class="nf">dict_to_tuple</span><span class="p">(</span><span class="n">mydict</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Take a parameter dictionary and convert it to a tuple in the standard order.</span>
+
+<span class="sd">    :param mydict: input parameter dictionary</span>
+<span class="sd">    :type mydict: dict</span>
+<span class="sd">    :returns: sorted tuple which always includes *alpha*</span>
+<span class="sd">    :rtype: 4-tuple</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="s">&quot;alpha&quot;</span> <span class="ow">in</span> <span class="n">mydict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">tup</span> <span class="o">=</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;logg&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Z&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tup</span> <span class="o">=</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;temp&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;logg&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Z&#39;</span><span class="p">],</span> <span class="n">C</span><span class="o">.</span><span class="n">var_default</span><span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="s">&quot;FWHM&quot;</span> <span class="ow">in</span> <span class="n">mydict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">tup2</span> <span class="o">=</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;vsini&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;FWHM&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;vz&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Av&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Omega&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tup2</span> <span class="o">=</span> <span class="p">(</span><span class="n">mydict</span><span class="p">[</span><span class="s">&quot;vsini&quot;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;vz&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Av&#39;</span><span class="p">],</span> <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;Omega&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">tup</span> <span class="o">+</span> <span class="n">tup2</span>
+
+
+<span class="k">class</span> <span class="nc">ModelError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Raised when Model parameters cannot be found in the grid.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+
+<div class="viewcode-block" id="GridError"><a class="viewcode-back" href="../../grid_tools.html#StellarSpectra.constants.GridError">[docs]</a><span class="k">class</span> <span class="nc">GridError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Raised when a spectrum cannot be found in the grid.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+</div>
+<div class="viewcode-block" id="InterpolationError"><a class="viewcode-back" href="../../grid_tools.html#StellarSpectra.constants.InterpolationError">[docs]</a><span class="k">class</span> <span class="nc">InterpolationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Raised when the :obj:`Interpolator` or :obj:`IndexInterpolator` cannot properly interpolate a spectrum,</span>
+<span class="sd">    usually grid bounds.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+</div>
+<span class="k">class</span> <span class="nc">RegionError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Raised when a RegionCovarianceMatrix cannot be instantiated.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Starfish 1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013-14, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
