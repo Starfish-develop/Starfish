@@ -31,7 +31,6 @@ print("imported Starfish version {}".format(version))
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
-#sys.path.insert(0, os.path.abspath('grid_tools.py'))
 
 # -- General configuration -----------------------------------------------------
 
