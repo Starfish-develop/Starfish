@@ -1,20 +1,18 @@
 # Starfish
 
 [![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
-[![Documentation Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://readthedocs.org/projects/starfish/?badge=latest)
 
 Robustly determine stellar parameters using high resolution spectral models. 
 
 Splash website: http://iancze.github.io/Starfish/
 
-Documentation: http://starfish.readthedocs.org/en/latest/
+Documentation: http://iancze.github.io/Starfish/current/index.html
 
 Copyright Ian Czekala 2013, 2014
 
 `iczekala@cfa.harvard.edu`
 
-**Documentation** for this package is available at ReadTheDocs (under construction). If you wish to use 
-this code in your own research, please email me and I can help you get started.
+If you wish to use this code in your own research, please email me and I can help you get started.
 
 **Citation**: if you use this code in your research, please cite Czekala et al. 2014.
 
@@ -36,9 +34,10 @@ Starfish requires the following Python packages:
 * cython
 * pyyaml
 
-Unless you actively maintain your scientific python distribution, I recommend installing the Anaconda python 3.3 or 
-greater distribution, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages
-can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
+Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda 
+distribution with python 3.3 or greater , obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these
+required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package 
+you want to install.
 
 To make sure you are running the correct version of python, start a python interpreter via the system shell and you 
 should see something similar
