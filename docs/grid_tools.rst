@@ -2,7 +2,7 @@
 Grid Tools
 ==========
 
-.. py:module:: StellarSpectra.grid_tools
+.. py:module:: Starfish.grid_tools
    :synopsis: A package to manipulate synthetic stellar spectra
 
 :mod: `grid_tools` is a package to manipulate synthetic stellar spectra. It defines many useful functions and objects
@@ -14,7 +14,7 @@ Module level methods
 These methods are meant to be used for low-level access to spectral libraries.
 Generally there is only a small amount of error checking.
 
-.. automodule:: StellarSpectra.grid_tools
+.. automodule:: Starfish.grid_tools
    :members: resample_and_convolve, load_BTSettl, load_flux_full, chunk_list
 
 .. autofunction:: idl_float
@@ -291,6 +291,6 @@ For example, to process all of the PHOENIX spectra into FITS files suitable for 
 Exceptions
 ==========
 
-.. autoexception:: StellarSpectra.constants.GridError
+.. autoexception:: Starfish.constants.GridError
 
-.. autoexception:: StellarSpectra.constants.InterpolationError
+.. autoexception:: Starfish.constants.InterpolationError

@@ -2,7 +2,7 @@
 Spectrum
 ========
 
-.. py:module:: StellarSpectra.spectrum
+.. py:module:: Starfish.spectrum
 :synopsis: A package with many different spectra objects for easy manipulation
 
 :mod:`spectrum` is a package containing many different specrum objects. It defines many useful objects
