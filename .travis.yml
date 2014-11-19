@@ -33,10 +33,10 @@ install:
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     # - source activate test
 
-    - conda install --yes numpy=$NUMPY_VERSION scipy Cython h5py scikit-learn
+    - conda install --yes numpy=$NUMPY_VERSION scipy Cython h5py scikit-learn nose
 
     #- CXX=g++ python setup.py build_ext --inplace
     python setupy.py build_ext --inplace
 
-#script:
-#    - nosetests -v
+script:
+    - nosetests -v
