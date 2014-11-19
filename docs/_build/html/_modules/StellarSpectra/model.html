@@ -1,0 +1,1972 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>StellarSpectra.model &mdash; Starfish 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Starfish 1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Starfish 1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for StellarSpectra.model</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">emcee</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">constants</span> <span class="k">as</span> <span class="n">C</span>
+<span class="kn">from</span> <span class="nn">.grid_tools</span> <span class="kn">import</span> <span class="n">Interpolator</span>
+<span class="kn">from</span> <span class="nn">.spectrum</span> <span class="kn">import</span> <span class="n">ModelSpectrum</span><span class="p">,</span> <span class="n">ChebyshevSpectrum</span><span class="p">,</span> <span class="n">ModelSpectrumHighAccuracy</span>
+<span class="kn">from</span> <span class="nn">.covariance</span> <span class="kn">import</span> <span class="n">CovarianceMatrix</span> <span class="c">#from StellarSpectra.spectrum import CovarianceMatrix #pure Python</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+
+<span class="k">def</span> <span class="nf">plot_walkers</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">ndim</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">):</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&quot;Sample number&quot;</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ModelEncoder"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelEncoder">[docs]</a><span class="k">class</span> <span class="nc">ModelEncoder</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Designed to serialize an instance of o=Model() to JSON</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c">#We turn Model into a hierarchical dictionary, which will serialize to JSON</span>
+
+            <span class="n">mydict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;stellar_tuple&quot;</span><span class="p">:</span><span class="n">o</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="s">&quot;cheb_tuple&quot;</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">cheb_tuple</span><span class="p">,</span> <span class="s">&quot;cov_tuple&quot;</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">cov_tuple</span><span class="p">,</span>
+            <span class="s">&quot;region_tuple&quot;</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">region_tuple</span><span class="p">,</span> <span class="s">&quot;stellar_params&quot;</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">stellar_params</span><span class="p">,</span> <span class="s">&quot;orders&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+
+            <span class="c">#Determine the list of orders</span>
+            <span class="n">orders</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">orders</span>
+
+            <span class="c">#for each order, then instantiate an order dictionary</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">order</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">orders</span><span class="p">):</span>
+                <span class="c">#Will eventually be mydict[&#39;orders&#39;] = {&quot;22&quot;:order_dict, &quot;23:order_dict, ...}</span>
+                <span class="n">order_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">order_model</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">order_dict</span><span class="p">[</span><span class="s">&quot;cheb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">order_model</span><span class="o">.</span><span class="n">cheb_params</span>
+                <span class="n">order_dict</span><span class="p">[</span><span class="s">&quot;global_cov&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">order_model</span><span class="o">.</span><span class="n">global_cov_params</span>
+
+                <span class="c">#Now determine if we need to add any regions</span>
+                <span class="n">order_dict</span><span class="p">[</span><span class="s">&quot;regions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">order_model</span><span class="o">.</span><span class="n">get_regions_dict</span><span class="p">()</span>
+
+                <span class="n">mydict</span><span class="p">[</span><span class="s">&#39;orders&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="nb">str</span><span class="p">(</span><span class="n">order</span><span class="p">):</span> <span class="n">order_dict</span><span class="p">})</span>
+
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mydict</span>
+        <span class="c"># Let the base class default method raise the TypeError, if there is one</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Container class to create and bring together all of the relevant data and models to aid in evaulation.</span>
+
+<span class="sd">    :param DataSpectrum: the data to fit</span>
+<span class="sd">    :type DataSpectrum: :obj:`spectrum.DataSpectrum` object</span>
+<span class="sd">    :param Instrument: the instrument with which the data was acquired</span>
+<span class="sd">    :type Instrument: :obj:`grid_tools.Instrument` object</span>
+<span class="sd">    :param HDF5Interface: the interface to the synthetic stellar library</span>
+<span class="sd">    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object</span>
+<span class="sd">    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.Interpolator`` is trilinear.</span>
+<span class="sd">    :type stellar_tuple: tuple</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Model.from_json"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Model.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Instantiate from a JSON file.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c">#Determine tuples from the JSON output</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c">#Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple</span>
+        <span class="n">stellar_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_tuple&#39;</span><span class="p">])</span>
+        <span class="n">cheb_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;cheb_tuple&#39;</span><span class="p">])</span>
+        <span class="n">cov_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;cov_tuple&#39;</span><span class="p">])</span>
+        <span class="n">region_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;region_tuple&#39;</span><span class="p">])</span>
+
+        <span class="c">#Initialize the Model object</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="o">=</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">cheb_tuple</span><span class="o">=</span><span class="n">cheb_tuple</span><span class="p">,</span>
+                      <span class="n">cov_tuple</span><span class="o">=</span><span class="n">cov_tuple</span><span class="p">,</span> <span class="n">region_tuple</span><span class="o">=</span><span class="n">region_tuple</span><span class="p">)</span>
+
+        <span class="c">#Update all of the parameters so covariance matrix uploads</span>
+        <span class="c">#1) update stellar parameters</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">update_Model</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_params&#39;</span><span class="p">])</span>
+
+        <span class="c">#2) Figure out how many orders, and for each order</span>
+        <span class="n">orders_dict</span> <span class="o">=</span> <span class="n">read</span><span class="p">[</span><span class="s">&quot;orders&quot;</span><span class="p">]</span>
+        <span class="c">#print(&quot;orders_dict is&quot;, orders_dict)</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">orders_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="n">orders</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">orders</span><span class="p">):</span>
+            <span class="n">order_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">order_dict</span> <span class="o">=</span> <span class="n">orders_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">order</span><span class="p">)]</span>
+            <span class="c">#print(&quot;order_dict is&quot;, order_dict)</span>
+            <span class="c">#2.1) update cheb and global cov parametersorder_dict = orders_dict[order]</span>
+            <span class="n">order_model</span><span class="o">.</span><span class="n">update_Cheb</span><span class="p">(</span><span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;cheb&#39;</span><span class="p">])</span>
+            <span class="n">order_model</span><span class="o">.</span><span class="n">update_Cov</span><span class="p">(</span><span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;global_cov&#39;</span><span class="p">])</span>
+
+            <span class="c">#2.2) instantiate and create all regions, if any exist</span>
+            <span class="n">regions_dict</span> <span class="o">=</span> <span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;regions&#39;</span><span class="p">]</span>
+            <span class="n">regions</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">regions_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+            <span class="n">regions</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">regions_dict</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c">#Create regions, otherwise skip</span>
+                <span class="n">CovMatrix</span> <span class="o">=</span> <span class="n">order_model</span><span class="o">.</span><span class="n">CovarianceMatrix</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">region</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">regions</span><span class="p">):</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s">&quot;creating region &quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span> <span class="n">regions_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)])</span>
+                    <span class="n">CovMatrix</span><span class="o">.</span><span class="n">create_region</span><span class="p">(</span><span class="n">regions_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)])</span>
+
+        <span class="c">#Now update the stellar model again so it accounts for the Chebyshevs when downsampling</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">update_Model</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_params&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">model</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">cheb_tuple</span><span class="p">,</span> <span class="n">cov_tuple</span><span class="p">,</span> <span class="n">region_tuple</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span> <span class="o">=</span> <span class="n">stellar_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cheb_tuple</span> <span class="o">=</span> <span class="n">cheb_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span> <span class="o">=</span> <span class="n">cov_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_tuple</span> <span class="o">=</span> <span class="n">region_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">orders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c">#Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.</span>
+        <span class="k">if</span> <span class="s">&#39;alpha&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">Interpolator</span><span class="p">(</span><span class="n">HDF5Interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">trilinear</span><span class="o">=</span><span class="n">trilinear</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span> <span class="o">=</span> <span class="n">ModelSpectrum</span><span class="p">(</span><span class="n">myInterpolator</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c">#Now create a a list which contains an OrderModel for each order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">OrderModels</span> <span class="o">=</span> <span class="p">[</span><span class="n">OrderModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">zip_stellar_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Cheb_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cheb_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Cov_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Region_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">update_Model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span> <span class="o">=</span> <span class="n">params</span>
+
+<div class="viewcode-block" id="Model.get_data"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Model.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a DataSpectrum object.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span>
+
+
+</div>
+<div class="viewcode-block" id="Model.evaluate"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Model.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Compare the different data and models.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...</span>
+
+        <span class="n">lnps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="c">#Correct the warp of the model using the ChebyshevSpectrum</span>
+            <span class="c"># model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]</span>
+
+            <span class="c">#Evaluate using the current CovarianceMatrix</span>
+            <span class="c"># lnps[i] = self.OrderModels[i].evaluate(model_fl)</span>
+            <span class="n">lnps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lnps</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Model.to_json"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Model.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;model.json&quot;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Write all of the available parameters to a JSON file so that we may go back and re-create the model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="n">fname</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">cls</span><span class="o">=</span><span class="n">ModelEncoder</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</div></div>
+<div class="viewcode-block" id="ModelHighAccuracy"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelHighAccuracy">[docs]</a><span class="k">class</span> <span class="nc">ModelHighAccuracy</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This is for testing purposes.</span>
+<span class="sd">    Container class to create and bring together all of the relevant data and models to aid in evaulation.</span>
+
+<span class="sd">    :param DataSpectrum: the data to fit</span>
+<span class="sd">    :type DataSpectrum: :obj:`spectrum.DataSpectrum` object</span>
+<span class="sd">    :param Instrument: the instrument with which the data was acquired</span>
+<span class="sd">    :type Instrument: :obj:`grid_tools.Instrument` object</span>
+<span class="sd">    :param HDF5Interface: the interface to the synthetic stellar library</span>
+<span class="sd">    :type HDF5Interface: :obj:`grid_tools.HDF5Interface` object</span>
+<span class="sd">    :param stellar_tuple: describes the order of parameters. If ``alpha`` is missing, :obj:``grid_tools.Interpolator`` is trilinear.</span>
+<span class="sd">    :type stellar_tuple: tuple</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ModelHighAccuracy.from_json"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelHighAccuracy.from_json">[docs]</a>    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Instantiate from a JSON file.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c">#Determine tuples from the JSON output</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c">#Read DataSpectrum, Instrument, HDF5Interface, stellar_tuple, cov_tuple, and region_tuple</span>
+        <span class="n">stellar_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_tuple&#39;</span><span class="p">])</span>
+        <span class="n">cheb_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;cheb_tuple&#39;</span><span class="p">])</span>
+        <span class="n">cov_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;cov_tuple&#39;</span><span class="p">])</span>
+        <span class="n">region_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;region_tuple&#39;</span><span class="p">])</span>
+
+        <span class="c">#Initialize the Model object</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="o">=</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">cheb_tuple</span><span class="o">=</span><span class="n">cheb_tuple</span><span class="p">,</span>
+                    <span class="n">cov_tuple</span><span class="o">=</span><span class="n">cov_tuple</span><span class="p">,</span> <span class="n">region_tuple</span><span class="o">=</span><span class="n">region_tuple</span><span class="p">)</span>
+
+        <span class="c">#Update all of the parameters so covariance matrix uploads</span>
+        <span class="c">#1) update stellar parameters</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">update_Model</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_params&#39;</span><span class="p">])</span>
+
+        <span class="c">#2) Figure out how many orders, and for each order</span>
+        <span class="n">orders_dict</span> <span class="o">=</span> <span class="n">read</span><span class="p">[</span><span class="s">&quot;orders&quot;</span><span class="p">]</span>
+        <span class="c">#print(&quot;orders_dict is&quot;, orders_dict)</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">orders_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="n">orders</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">orders</span><span class="p">):</span>
+            <span class="n">order_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">order_dict</span> <span class="o">=</span> <span class="n">orders_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">order</span><span class="p">)]</span>
+            <span class="c">#print(&quot;order_dict is&quot;, order_dict)</span>
+            <span class="c">#2.1) update cheb and global cov parametersorder_dict = orders_dict[order]</span>
+            <span class="n">order_model</span><span class="o">.</span><span class="n">update_Cheb</span><span class="p">(</span><span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;cheb&#39;</span><span class="p">])</span>
+            <span class="n">order_model</span><span class="o">.</span><span class="n">update_Cov</span><span class="p">(</span><span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;global_cov&#39;</span><span class="p">])</span>
+
+            <span class="c">#2.2) instantiate and create all regions, if any exist</span>
+            <span class="n">regions_dict</span> <span class="o">=</span> <span class="n">order_dict</span><span class="p">[</span><span class="s">&#39;regions&#39;</span><span class="p">]</span>
+            <span class="n">regions</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">regions_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+            <span class="n">regions</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">regions_dict</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c">#Create regions, otherwise skip</span>
+                <span class="n">CovMatrix</span> <span class="o">=</span> <span class="n">order_model</span><span class="o">.</span><span class="n">CovarianceMatrix</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">region</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">regions</span><span class="p">):</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s">&quot;creating region &quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span> <span class="n">regions_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)])</span>
+                    <span class="n">CovMatrix</span><span class="o">.</span><span class="n">create_region</span><span class="p">(</span><span class="n">regions_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)])</span>
+
+        <span class="c">#Now update the stellar model again so it accounts for the Chebyshevs when downsampling</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">update_Model</span><span class="p">(</span><span class="n">read</span><span class="p">[</span><span class="s">&#39;stellar_params&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">model</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">HDF5Interface</span><span class="p">,</span> <span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">cheb_tuple</span><span class="p">,</span> <span class="n">cov_tuple</span><span class="p">,</span> <span class="n">region_tuple</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span> <span class="o">=</span> <span class="n">stellar_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cheb_tuple</span> <span class="o">=</span> <span class="n">cheb_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span> <span class="o">=</span> <span class="n">cov_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_tuple</span> <span class="o">=</span> <span class="n">region_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">orders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c">#Determine whether `alpha` is in the `stellar_tuple`, then choose trilinear.</span>
+        <span class="k">if</span> <span class="s">&#39;alpha&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trilinear</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">myInterpolator</span> <span class="o">=</span> <span class="n">Interpolator</span><span class="p">(</span><span class="n">HDF5Interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">trilinear</span><span class="o">=</span><span class="n">trilinear</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span> <span class="o">=</span> <span class="n">ModelSpectrumHighAccuracy</span><span class="p">(</span><span class="n">myInterpolator</span><span class="p">,</span> <span class="n">Instrument</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c">#Now create a a list which contains an OrderModel for each order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">OrderModels</span> <span class="o">=</span> <span class="p">[</span><span class="n">OrderModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">zip_stellar_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stellar_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Cheb_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cheb_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Cov_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">zip_Region_p</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region_tuple</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">update_Model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">update_all</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stellar_params</span> <span class="o">=</span> <span class="n">params</span>
+
+<div class="viewcode-block" id="ModelHighAccuracy.get_data"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelHighAccuracy.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a DataSpectrum object.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span>
+
+
+</div>
+<div class="viewcode-block" id="ModelHighAccuracy.evaluate"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelHighAccuracy.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Compare the different data and models.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...</span>
+
+        <span class="n">lnps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">,))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norders</span><span class="p">):</span>
+            <span class="c">#Correct the warp of the model using the ChebyshevSpectrum</span>
+            <span class="c"># model_fl = self.OrderModels[i].ChebyshevSpectrum.k * self.ModelSpectrum.downsampled_fls[i]</span>
+
+            <span class="c">#Evaluate using the current CovarianceMatrix</span>
+            <span class="c"># lnps[i] = self.OrderModels[i].evaluate(model_fl)</span>
+            <span class="n">lnps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lnps</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="ModelHighAccuracy.to_json"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ModelHighAccuracy.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;model.json&quot;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Write all of the available parameters to a JSON file so that we may go back and re-create the model.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="n">fname</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">cls</span><span class="o">=</span><span class="n">ModelEncoder</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+</div></div>
+<span class="k">class</span> <span class="nc">OrderModel</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ModelSpectrum</span><span class="p">,</span> <span class="n">DataSpectrum</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Creating OrderModel {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span> <span class="o">=</span> <span class="n">DataSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">wls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">fls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span> <span class="o">=</span> <span class="n">ModelSpectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span> <span class="o">=</span> <span class="n">ChebyshevSpectrum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span> <span class="o">=</span> <span class="n">CovarianceMatrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataSpectrum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_cov_params</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cheb_params</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c">#We can expose the RegionMatrices from the self.CovarianceMatrix, or keep track as they are added</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_Cheb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cheb_params</span> <span class="o">=</span> <span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">get_Cheb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span>
+
+    <span class="k">def</span> <span class="nf">update_Cov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">update_global</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_cov_params</span> <span class="o">=</span> <span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">get_Cov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">cholmod_to_scipy_sparse</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_regions_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">get_regions_dict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_residuals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">model_fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fl</span> <span class="o">-</span> <span class="n">model_fl</span>
+
+    <span class="k">def</span> <span class="nf">evaluate_region_logic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c">#calculate the current amplitude of the global_covariance noise</span>
+        <span class="n">global_amp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">get_amp</span><span class="p">()</span>
+
+        <span class="c">#array that specifies whether any given pixel is covered by a region.</span>
+        <span class="n">covered</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">get_region_coverage</span><span class="p">()</span>
+
+        <span class="n">residuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_residuals</span><span class="p">()</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">residuals</span><span class="p">)</span>
+        <span class="c">#For each residual, calculate the abs_distance from the median</span>
+        <span class="n">abs_distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">residuals</span> <span class="o">-</span> <span class="n">median</span><span class="p">)</span>
+
+        <span class="c">#Sort the list in decreasing order of abs_dist</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">abs_distances</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="n">abs_dist</span> <span class="o">=</span> <span class="n">abs_distances</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">abs_dist</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">global_amp</span><span class="p">:</span>
+            <span class="c">#we have reached below the 3 sigma limit, no new regions instantiated</span>
+                <span class="k">return</span> <span class="bp">None</span>
+
+            <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wl</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;At wl={:.3f}, residual={}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">abs_dist</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">covered</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">wl</span>
+
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Compare the different data and models.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#Incorporate priors using self.ModelSpectrum.params, self.ChebyshevSpectrum.c0s, cns, self.CovarianceMatrix.params, etc...</span>
+
+        <span class="n">model_fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ChebyshevSpectrum</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ModelSpectrum</span><span class="o">.</span><span class="n">downsampled_fls</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="c">#CovarianceMatrix will do the lnprob math without priors</span>
+        <span class="n">lnp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model_fl</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lnp</span>
+
+<div class="viewcode-block" id="Sampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Sampler">[docs]</a><span class="k">class</span> <span class="nc">Sampler</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Helper class designed to be overwritten for StellarSampler, ChebSampler, CovSampler.C</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">order_index</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="c">#Each subclass will have to overwrite how it parses the param_dict into the correct order</span>
+        <span class="c">#and sets the param_tuple</span>
+
+        <span class="c">#SUBCLASS OVERWRITE HERE to create self.param_tuple</span>
+
+        <span class="c">#SUBCLASS here to write self.lnprob</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">starting_param_dict</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">order_index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">MHSampler</span><span class="p">(</span><span class="n">MH_cov</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lnprob</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">MHSampler</span><span class="p">(</span><span class="n">MH_cov</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lnprob</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">order_index</span><span class="p">,))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Reset {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Sampling {} for {} iterations: &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">,</span> <span class="n">iterations</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;running for {} iterations&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">))</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos_trio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">rstate0</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;completed in {:.2f} seconds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Sampler.burn_in"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Sampler.burn_in">[docs]</a>    <span class="k">def</span> <span class="nf">burn_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        For consistencies&#39;s sake w/ MegaSampler</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">iterations</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Sampler.write"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Sampler.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Write all of the relevant output to an HDF file.</span>
+
+<span class="sd">        flatchain</span>
+<span class="sd">        acceptance fraction</span>
+<span class="sd">        tuple parameters as an attribute in the header from self.param_tuple</span>
+
+<span class="sd">        The actual HDF5 file is structured as follows</span>
+
+<span class="sd">        /</span>
+<span class="sd">        stellar parameters.flatchain</span>
+<span class="sd">        00/</span>
+<span class="sd">        ...</span>
+<span class="sd">        22/</span>
+<span class="sd">        23/</span>
+<span class="sd">            global_cov.flatchain</span>
+<span class="sd">            regions/</span>
+<span class="sd">                region1.flatchain</span>
+
+<span class="sd">        Everything can be saved in the dataset self.fname</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="s">&quot;flatchains.hdf5&quot;</span>
+        <span class="n">hdf5</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">)</span> <span class="c">#creates if doesn&#39;t exist, otherwise read/write</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">flatchain</span>
+
+        <span class="n">dset</span> <span class="o">=</span> <span class="n">hdf5</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s">&#39;gzip&#39;</span><span class="p">,</span> <span class="n">compression_opts</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+        <span class="n">dset</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">samples</span>
+        <span class="n">dset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s">&quot;parameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">)</span>
+        <span class="n">dset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s">&quot;acceptance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">)</span>
+
+        <span class="n">hdf5</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Sampler.plot"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.Sampler.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Generate the relevant plots once the sampling is done.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="kn">import</span> <span class="nn">triangle</span>
+
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">flatchain</span>
+        <span class="n">figure</span> <span class="o">=</span> <span class="n">triangle</span><span class="o">.</span><span class="n">corner</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.84</span><span class="p">],</span>
+                                 <span class="n">show_titles</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">title_args</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;fontsize&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">})</span>
+        <span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">+</span> <span class="s">&quot;_triangle.png&quot;</span><span class="p">)</span>
+
+        <span class="n">plot_walkers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">+</span> <span class="s">&quot;_chain_pos.png&quot;</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">figure</span><span class="p">)</span>
+
+
+</div>
+    <span class="k">def</span> <span class="nf">acceptance_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span>
+</div>
+<div class="viewcode-block" id="StellarSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.StellarSampler">[docs]</a><span class="k">class</span> <span class="nc">StellarSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating stellar parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;stellar&quot;</span><span class="p">):</span>
+        <span class="c">#Parse param_dict to determine which parameters are present as a subset of stellar parameters, then set self.param_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">dictkeys_to_tuple</span><span class="p">(</span><span class="n">starting_param_dict</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">lnprob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zip_stellar_p</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">update_Model</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="c">#This also updates downsampled_fls</span>
+            <span class="c">#For order in myModel, do evaluate, and sum the results.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">:</span>
+            <span class="c">#print(&quot;Stellar returning -np.inf&quot;)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+</div>
+<div class="viewcode-block" id="ChebSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.ChebSampler">[docs]</a><span class="k">class</span> <span class="nc">ChebSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating Chebyshev parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">order_index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;cheb&quot;</span><span class="p">):</span>
+        <span class="c">#Overwrite the Sampler init method to take ranges for c0, c1, c2, c3 etc... that are the same for each order.</span>
+        <span class="c">#From a simple param dict, create a more complex param_dict</span>
+
+        <span class="c">#Then set param_tuple</span>
+        <span class="c">#For now it is just set manually</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;logc0&quot;</span><span class="p">,</span> <span class="s">&quot;c1&quot;</span><span class="p">,</span> <span class="s">&quot;c2&quot;</span><span class="p">,</span> <span class="s">&quot;c3&quot;</span><span class="p">)</span>
+        <span class="c">#self.param_tuple = (&quot;c1&quot;, &quot;c2&quot;, &quot;c3&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_index</span> <span class="o">=</span> <span class="n">order_index</span>
+
+        <span class="c"># outdir = &quot;{}{}/&quot;.format(outdir, model.orders[self.order_index])</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s">&quot;{}/{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">],</span> <span class="n">fname</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">lnprob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zip_Cheb_p</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">update_Cheb</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="CovGlobalSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.CovGlobalSampler">[docs]</a><span class="k">class</span> <span class="nc">CovGlobalSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating GlobalCovarianceMatrix parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">order_index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;cov&quot;</span><span class="p">):</span>
+        <span class="c">#Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">dictkeys_to_cov_global_tuple</span><span class="p">(</span><span class="n">starting_param_dict</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_index</span> <span class="o">=</span> <span class="n">order_index</span>
+        <span class="c"># outdir = &quot;{}{}/&quot;.format(outdir, model.orders[self.order_index])</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s">&quot;{}/{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">],</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">lnprob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zip_Cov_p</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s">&quot;l&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">update_Cov</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+</div>
+<div class="viewcode-block" id="CovRegionSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.CovRegionSampler">[docs]</a><span class="k">class</span> <span class="nc">CovRegionSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Subclass of Sampler for evaluating RegionCovarianceMatrix parameters.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">order_index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">region_index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;cov_region&quot;</span><span class="p">):</span>
+        <span class="c">#Parse param_dict to determine which parameters are present as a subset of parameters, then set self.param_tuple</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_tuple</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;h&quot;</span><span class="p">,</span> <span class="s">&quot;loga&quot;</span><span class="p">,</span> <span class="s">&quot;mu&quot;</span><span class="p">,</span> <span class="s">&quot;sigma&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_index</span> <span class="o">=</span> <span class="n">order_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_index</span> <span class="o">=</span> <span class="n">region_index</span>
+        <span class="n">fname</span> <span class="o">+=</span> <span class="s">&quot;{:0&gt;2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region_index</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CovMatrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">CovarianceMatrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CovMatrix</span><span class="o">.</span><span class="n">create_region</span><span class="p">(</span><span class="n">starting_param_dict</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Created new Region sampler with region_index {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region_index</span><span class="p">))</span>
+
+
+    <span class="k">def</span> <span class="nf">lnprob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zip_Region_p</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">CovMatrix</span><span class="o">.</span><span class="n">update_region</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region_index</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">ModelError</span><span class="p">,</span> <span class="n">C</span><span class="o">.</span><span class="n">RegionError</span><span class="p">):</span>
+             <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</div>
+<div class="viewcode-block" id="RegionsSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.RegionsSampler">[docs]</a><span class="k">class</span> <span class="nc">RegionsSampler</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The point of this sampler is to do all the region sampling for a specific order.</span>
+
+<span class="sd">    It must also be able to create new samplers.</span>
+
+<span class="sd">    There will be a list of RegionSamplers, one for each region. This keys into the specific region properly.</span>
+
+<span class="sd">    There will also be some logic that at the beginning of each iteration of the OrderSampler decides</span>
+<span class="sd">    how to manage the RegionSamplerList.</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c">#TODO: subclass RegionsSampler from MegaSampler</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">MH_cov</span><span class="p">,</span> <span class="n">default_param_dict</span><span class="o">=</span><span class="p">{</span><span class="s">&quot;h&quot;</span><span class="p">:</span><span class="mf">0.1</span><span class="p">,</span> <span class="s">&quot;loga&quot;</span><span class="p">:</span><span class="o">-</span><span class="mf">14.2</span><span class="p">,</span> <span class="s">&quot;sigma&quot;</span><span class="p">:</span><span class="mf">0.1</span><span class="p">},</span> <span class="n">max_regions</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+                 <span class="n">order_index</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>  <span class="n">outdir</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s">&quot;cov_region&quot;</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MH_cov</span> <span class="o">=</span> <span class="n">MH_cov</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_param_dict</span> <span class="o">=</span> <span class="n">default_param_dict</span> <span class="c">#this is everything but mu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_index</span> <span class="o">=</span> <span class="n">order_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">OrderModels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cadence</span> <span class="o">=</span> <span class="mi">4</span> <span class="c">#samples to devote to each region before moving on to the next</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logic_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logic_overflow</span> <span class="o">=</span> <span class="mi">5</span> <span class="c">#how many times must RegionsSampler come up in the rotation before we evaluate some logic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_regions</span> <span class="o">=</span> <span class="n">max_regions</span>
+        <span class="c">#to decide if more or fewer RegionSampler&#39;s are needed?</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="o">=</span> <span class="p">[]</span> <span class="c">#we will add to this list as we instantiate more RegionSampler&#39;s</span>
+        <span class="c"># outdir = &quot;{}{}/&quot;.format(outdir, model.orders[self.order_index])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s">&quot;{}/{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">orders</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">],</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
+
+    <span class="k">def</span> <span class="nf">evaluate_region_logic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">order_model</span><span class="o">.</span><span class="n">evaluate_region_logic</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">create_region_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+        <span class="c">#mu is the location just returned by evaluate_region_logic(). Therefore we wish to instantiate a new RegionSampler</span>
+        <span class="c">#Create a new region in the model at this location, create a new sampler to sample it.</span>
+
+        <span class="c">#copy and update default_param_dict to include the new value of mu</span>
+        <span class="n">starting_param_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_param_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">starting_param_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s">&quot;mu&quot;</span><span class="p">:</span><span class="n">mu</span><span class="p">})</span>
+        <span class="n">region_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span> <span class="c">#region_index is one more than the current amount of regions</span>
+
+        <span class="n">newSampler</span> <span class="o">=</span> <span class="n">CovRegionSampler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MH_cov</span><span class="p">,</span> <span class="n">starting_param_dict</span><span class="p">,</span> <span class="n">order_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">,</span>
+                                      <span class="n">region_index</span><span class="o">=</span><span class="n">region_index</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newSampler</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
+            <span class="n">sampler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;Reset RegionsSampler for order {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order_index</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="RegionsSampler.burn_in"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.RegionsSampler.burn_in">[docs]</a>    <span class="k">def</span> <span class="nf">burn_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        For consistencies&#39;s sake w/ MegaSampler</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">iterations</span><span class="p">)</span>
+
+</div>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logic_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logic_counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logic_overflow</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_regions</span><span class="p">):</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_region_logic</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">mu</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_region_sampler</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;Sampling region {} for {} iterations: &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">region_index</span><span class="p">,</span> <span class="n">iterations</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">sampler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cadence</span><span class="p">)</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;completed in {:.2f} seconds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
+            <span class="n">sampler</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
+            <span class="n">sampler</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">acceptance_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)):</span>
+            <span class="k">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="MegaSampler"><a class="viewcode-back" href="../../model.html#StellarSpectra.model.MegaSampler">[docs]</a><span class="k">class</span> <span class="nc">MegaSampler</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    One Sampler to rule them all</span>
+
+<span class="sd">    :param samplers: the various Sampler objects to sample</span>
+<span class="sd">    :type samplers: list or tuple of :obj:`model.Sampler`s</span>
+<span class="sd">    :param cadence: of sub-iterations per iteration</span>
+<span class="sd">    :type cadence: list or tuple</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">burnInCadence</span><span class="p">,</span> <span class="n">cadence</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="o">=</span> <span class="n">samplers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burnInCadence</span> <span class="o">=</span> <span class="n">burnInCadence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cadence</span> <span class="o">=</span> <span class="n">cadence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_dump</span> <span class="o">=</span> <span class="mi">10</span> <span class="c">#Number of times to dump to output</span>
+
+    <span class="k">def</span> <span class="nf">burn_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n\n</span><span class="s">Megasampler on burn in iteration {} of {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+                <span class="c">#self.samplers[j].run(self.burnInCadence[j])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">burn_in</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">burnInCadence</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="c">#Choose 10 random numbers for which to dump output</span>
+        <span class="n">dump_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_dump</span><span class="p">,))</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;Will dump output on iterations&quot;</span><span class="p">,</span> <span class="n">dump_indexes</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n\n</span><span class="s">Megasampler on iteration {} of {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">iterations</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cadence</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dump_indexes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s">&quot;model{:0&gt;2}.json&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">acceptance_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsamplers</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">())</span>
+
+
+
+<span class="c">#grids = {&quot;PHOENIX&quot;: {&#39;T_points&#39;: np.array(</span>
+<span class="c">#    [2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 4000, 4100, 4200,</span>
+<span class="c">#     4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,</span>
+<span class="c">#     6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,</span>
+<span class="c">#     9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),</span>
+<span class="c">#                     &#39;logg_points&#39;: np.arange(0.0, 6.1, 0.5), &#39;Z_points&#39;: np.array([-1., -0.5, 0.0, 0.5, 1.0])},</span>
+<span class="c">#                     #&#39;alpha_points&#39;: np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},</span>
+<span class="c">#         &quot;kurucz&quot;: {&#39;T_points&#39;: np.arange(3500, 9751, 250),</span>
+<span class="c">#                    &#39;logg_points&#39;: np.arange(1.0, 5.1, 0.5), &#39;Z_points&#39;: np.array([-0.5, 0.0, 0.5])},</span>
+<span class="c">#         &quot;BTSettl&quot;: {&#39;T_points&#39;: np.arange(3000, 7001, 100), &#39;logg_points&#39;: np.arange(2.5, 5.6, 0.5),</span>
+<span class="c">#                     &#39;Z_points&#39;: np.array([-0.5, 0.0, 0.5])}}</span>
+<span class="c">#</span>
+<span class="c">#base = os.path.dirname(__file__) + &quot;/&quot;</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##if config[&#39;grid&#39;] == &#39;PHOENIX&#39;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/PHOENIX_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_PHOENIX_2kms_air.hdf5&quot;</span>
+<span class="c">##elif config[&#39;grid&#39;] == &quot;kurucz&quot;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/kurucz_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_kurucz_2kms_air.hdf5&quot;</span>
+<span class="c">##elif config[&#39;grid&#39;] == &#39;BTSettl&#39;:</span>
+<span class="c">##    wave_grid = np.load(base + &quot;wave_grids/PHOENIX_2kms_air.npy&quot;)</span>
+<span class="c">##    LIB_filename = &quot;libraries/LIB_BTSettl_2kms_air.hdf5&quot;</span>
+<span class="c">#</span>
+<span class="c">#grid = grids[config[&#39;grid&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#T_points = grid[&#39;T_points&#39;]</span>
+<span class="c">#logg_points = grid[&#39;logg_points&#39;]</span>
+<span class="c">#Z_points = grid[&#39;Z_points&#39;]</span>
+<span class="c">##alpha_points = grid[&#39;alpha_points&#39;]</span>
+<span class="c">#</span>
+<span class="c">##Limit grid size to relevant region</span>
+<span class="c">#grid_params = config[&#39;grid_params&#39;]</span>
+<span class="c">#</span>
+<span class="c">#T_low, T_high = grid_params[&#39;temp_range&#39;]</span>
+<span class="c">#T_ind = (T_points &gt;= T_low) &amp; (T_points &lt;= T_high)</span>
+<span class="c">#T_points = T_points[T_ind]</span>
+<span class="c">#T_arg = np.where(T_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">#g_low, g_high = grid_params[&#39;logg_range&#39;]</span>
+<span class="c">#logg_ind = (logg_points &gt;= g_low) &amp; (logg_points &lt;= g_high)</span>
+<span class="c">#logg_points = logg_points[logg_ind]</span>
+<span class="c">#logg_arg = np.where(logg_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">#Z_low, Z_high = grid_params[&#39;Z_range&#39;]</span>
+<span class="c">#Z_ind = (Z_points &gt;= Z_low) &amp; (Z_points &lt;= Z_high)</span>
+<span class="c">#Z_points = Z_points[Z_ind]</span>
+<span class="c">#Z_arg = np.where(Z_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">##A_low, A_high = grid_params[&#39;alpha_range&#39;]</span>
+<span class="c">##A_ind = (alpha_points &gt;= A_low) &amp; (alpha_points &lt;= A_high)</span>
+<span class="c">##A_points = alpha_points[A_ind]</span>
+<span class="c">##A_arg = np.where(A_ind)[0]</span>
+<span class="c">#</span>
+<span class="c">##Will want to use pgutil.get_data http://docs.python.org/2/library/pkgutil.html</span>
+<span class="c">##http://stackoverflow.com/questions/10935127/way-to-access-resource-files-in-python</span>
+<span class="c">#</span>
+<span class="c">##Load the data to fit</span>
+<span class="c">##database = base + &#39;data/&#39; + config[&#39;dataset&#39;]</span>
+<span class="c">##wls = np.load(database + &quot;.wls.npy&quot;)</span>
+<span class="c">##fls = np.load(database + &quot;.fls.npy&quot;)</span>
+<span class="c">##sigmas = np.load(database + &quot;.sigma.npy&quot;)</span>
+<span class="c">##masks = np.load(database + &quot;.mask.npy&quot;)</span>
+<span class="c">#</span>
+<span class="c">##orders = np.array(config[&#39;orders&#39;])</span>
+<span class="c">##norder = len(orders)</span>
+<span class="c">#</span>
+<span class="c">##Truncate the data to include only those orders you wish to fit</span>
+<span class="c">##wls = wls[orders]</span>
+<span class="c">##fls = fls[orders]</span>
+<span class="c">##sigmas = sigmas[orders]</span>
+<span class="c">##masks = masks[orders]</span>
+<span class="c">#</span>
+<span class="c">##sigma for Gaussian priors on nuisance coefficients</span>
+<span class="c">##sigmac = config[&#39;sigmac&#39;]</span>
+<span class="c">##sigmac0 = config[&#39;sigmac0&#39;]</span>
+<span class="c">##</span>
+<span class="c">##wr = config[&#39;walker_ranges&#39;]</span>
+<span class="c">##</span>
+<span class="c">##len_wl = len(wls[0])</span>
+<span class="c">##</span>
+<span class="c">##wl_buffer = 5.0 #Angstroms on either side, to account for velocity shifts</span>
+<span class="c">##wl_min = wls[0, 0] - wl_buffer</span>
+<span class="c">##wl_max = wls[-1, -1] + wl_buffer</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">## Truncate wave_grid and red_grid to include only the regions necessary for fitting the specified orders.</span>
+<span class="c">## but do it in such a way that it is a power of 2 to speed up the FFT</span>
+<span class="c">#</span>
+<span class="c">##len_wg = len(wave_grid)</span>
+<span class="c">##</span>
+<span class="c">##len_data = np.sum((wave_grid &gt; wl_min) &amp; (wave_grid &lt; wl_max))</span>
+<span class="c">##</span>
+<span class="c">##if len_data &lt; (len_wg / 16):</span>
+<span class="c">##    chunk = int(len_wg / 16)</span>
+<span class="c">##elif len_data &lt; (len_wg / 8):</span>
+<span class="c">##    chunk = int(len_wg / 8)</span>
+<span class="c">##elif len_data &lt; (len_wg / 4):</span>
+<span class="c">##    chunk = int(len_wg / 4)</span>
+<span class="c">##elif len_data &lt; (len_wg / 2):</span>
+<span class="c">##    chunk = int(len_wg / 2)</span>
+<span class="c">##else:</span>
+<span class="c">##    use the  full spectrum</span>
+<span class="c">#    #chunk = len_wg</span>
+<span class="c">#    #ind = np.ones_like(wave_grid, dtype=&#39;bool&#39;)</span>
+<span class="c">##</span>
+<span class="c">##if chunk &lt; len_wg:</span>
+<span class="c">##    ind_wg = np.arange(len_wg)</span>
+<span class="c">##    Determine if the data region is closer to the start or end of the wave_grid</span>
+<span class="c">#    #if (wl_min - wave_grid[0]) &lt; (wave_grid[-1] - wl_max):</span>
+<span class="c">#    #    the data region is closer to the start</span>
+<span class="c">#    #    find starting index</span>
+<span class="c">#    #    start at index corresponding to wl_min and go chunk forward</span>
+<span class="c">#        #start_ind = np.argwhere(wave_grid &gt; wl_min)[0][0]</span>
+<span class="c">#        #end_ind = start_ind + chunk</span>
+<span class="c">#        #ind = (ind_wg &gt;= start_ind) &amp; (ind_wg &lt; end_ind)</span>
+<span class="c">#    #</span>
+<span class="c">#    #else:</span>
+<span class="c">#    #    the data region is closer to the finish</span>
+<span class="c">#        # start at index corresponding to wl_max and go chunk backward</span>
+<span class="c">#        #end_ind = np.argwhere(wave_grid &lt; wl_max)[-1][0]</span>
+<span class="c">#        #start_ind = end_ind - chunk</span>
+<span class="c">#        #ind = (ind_wg &gt; start_ind) &amp; (ind_wg &lt;= end_ind)</span>
+<span class="c">#</span>
+<span class="c">##wave_grid = wave_grid[ind]</span>
+<span class="c">##red_grid = np.load(base + &#39;red_grid.npy&#39;)[ind]</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def load_hdf5_spectrum(temp, logg, Z, grid_name, LIB_filename):</span>
+<span class="c">#    &#39;&#39;&#39;Load a spectrum (nearest in grid point) from the specified HDF5 library and return it without interpolation.</span>
+<span class="c">#    User should check that the loading message is the same as the one they specified.&#39;&#39;&#39;</span>
+<span class="c">#    grid = grids[grid_name]</span>
+<span class="c">#    T_points = grid[&#39;T_points&#39;]</span>
+<span class="c">#    lenT = len(T_points)</span>
+<span class="c">#</span>
+<span class="c">#    logg_points = grid[&#39;logg_points&#39;]</span>
+<span class="c">#    lenG = len(logg_points)</span>
+<span class="c">#</span>
+<span class="c">#    Z_points = grid[&#39;Z_points&#39;]</span>
+<span class="c">#    lenZ = len(Z_points)</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;nearest&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;nearest&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;nearest&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    T = int(T_intp(temp))</span>
+<span class="c">#    G = int(logg_intp(logg))</span>
+<span class="c">#    Z = int(Z_intp(Z))</span>
+<span class="c">#    print(&quot;Loading&quot;, T_points[T], logg_points[G], Z_points[Z], grid_name)</span>
+<span class="c">#    f = LIB[T, G, Z]</span>
+<span class="c">#    return f</span>
+<span class="c">#</span>
+<span class="c">#def quadlinear_interpolator():</span>
+<span class="c">#    &#39;&#39;&#39;Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.&#39;&#39;&#39;</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    #Load only those indexes we want into a grid in memory</span>
+<span class="c">#    grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, A_arg[0]:A_arg[-1] + 1, ind] #weird syntax because</span>
+<span class="c">#    #sequence indexing is not supported for more than one axis in h5py</span>
+<span class="c">#    lenT, lenG, lenZ, lenA, lenF = grid.shape</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;linear&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;linear&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;linear&#39;)</span>
+<span class="c">#    A_intp = interp1d(alpha_points, np.arange(lenA), kind=&#39;linear&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fluxes = np.empty((16, lenF))</span>
+<span class="c">#    zeros = np.zeros(lenF)</span>
+<span class="c">#</span>
+<span class="c">#    def intp_func(temp, logg, Z, alpha):</span>
+<span class="c">#        if (logg &lt; g_low) or (logg &gt; g_high) or (temp &lt; T_low) or (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high)\</span>
+<span class="c">#            or (alpha &lt; A_low) or (alpha &gt; A_high):</span>
+<span class="c">#            return zeros</span>
+<span class="c">#        else:</span>
+<span class="c">#            &#39;&#39;&#39;Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/&#39;&#39;&#39;</span>
+<span class="c">#            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z), A_intp(alpha)))</span>
+<span class="c">#            ui = np.ceil(indexes) #upper cube vertices</span>
+<span class="c">#            li = np.floor(indexes) #lower cube vertices</span>
+<span class="c">#            #print(li,ui)</span>
+<span class="c">#            w, x, y, z = (indexes - li) #range between 0 - 1</span>
+<span class="c">#            wu, xu, yu, zu = ui</span>
+<span class="c">#            wl, xl, yl, zl = li</span>
+<span class="c">#            fluxes[:] = np.array([</span>
+<span class="c">#                grid[wl, xl, yl, zl],</span>
+<span class="c">#                grid[wu, xl, yl, zl],</span>
+<span class="c">#                grid[wl, xu, yl, zl],</span>
+<span class="c">#                grid[wl, xl, yu, zl],</span>
+<span class="c">#                grid[wu, xl, yu, zl],</span>
+<span class="c">#                grid[wl, xu, yu, zl],</span>
+<span class="c">#                grid[wu, xu, yl, zl],</span>
+<span class="c">#                grid[wu, xu, yu, zl],</span>
+<span class="c">#                grid[wl, xl, yl, zu],</span>
+<span class="c">#                grid[wu, xl, yl, zu],</span>
+<span class="c">#                grid[wl, xu, yl, zu],</span>
+<span class="c">#                grid[wl, xl, yu, zu],</span>
+<span class="c">#                grid[wu, xl, yu, zu],</span>
+<span class="c">#                grid[wl, xu, yu, zu],</span>
+<span class="c">#                grid[wu, xu, yl, zu],</span>
+<span class="c">#                grid[wu, xu, yu, zu],</span>
+<span class="c">#                ])</span>
+<span class="c">#</span>
+<span class="c">#            weights = np.array([</span>
+<span class="c">#                (1 - w) * (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                w * (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - w) * x * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - w) * (1 - x) * y * (1 - z),</span>
+<span class="c">#                w * (1 - x) * y * (1 - z),</span>
+<span class="c">#                (1 - w) * x * y * (1 - z),</span>
+<span class="c">#                w * x * (1 - y) * (1 - z),</span>
+<span class="c">#                w * x * y * (1 - z),</span>
+<span class="c">#                (1 - w) * (1 - x) * (1 - y) * z,</span>
+<span class="c">#                w * (1 - x) * (1 - y) * z,</span>
+<span class="c">#                (1 - w) * x * (1 - y) * z,</span>
+<span class="c">#                (1 - w) * (1 - x) * y * z,</span>
+<span class="c">#                w * (1 - x) * y * z,</span>
+<span class="c">#                (1 - w) * x * y * z,</span>
+<span class="c">#                w * x * (1 - y) * z,</span>
+<span class="c">#                w * x * y * z])</span>
+<span class="c">#</span>
+<span class="c">#            #print(weights)</span>
+<span class="c">#            #print(np.sum(weights))</span>
+<span class="c">#</span>
+<span class="c">#            return np.average(fluxes, axis=0, weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#    return intp_func</span>
+<span class="c">#</span>
+<span class="c">#def trilinear_interpolator():</span>
+<span class="c">#    &#39;&#39;&#39;Return a function that will take temp, logg, Z as arguments and do trilinear interpolation on it.&#39;&#39;&#39;</span>
+<span class="c">#    fhdf5 = h5py.File(LIB_filename, &#39;r&#39;)</span>
+<span class="c">#    LIB = fhdf5[&#39;LIB&#39;]</span>
+<span class="c">#</span>
+<span class="c">#    #Load only those indexes we want into a grid in memory</span>
+<span class="c">#    grid = LIB[T_arg[0]:T_arg[-1] + 1, logg_arg[0]:logg_arg[-1] + 1, Z_arg[0]:Z_arg[-1] + 1, ind] #weird syntax because</span>
+<span class="c">#    #sequence indexing is not supported for more than one axis in h5py</span>
+<span class="c">#    lenT, lenG, lenZ, lenF = grid.shape</span>
+<span class="c">#</span>
+<span class="c">#    #Create index interpolators</span>
+<span class="c">#    T_intp = interp1d(T_points, np.arange(lenT), kind=&#39;linear&#39;)</span>
+<span class="c">#    logg_intp = interp1d(logg_points, np.arange(lenG), kind=&#39;linear&#39;)</span>
+<span class="c">#    Z_intp = interp1d(Z_points, np.arange(lenZ), kind=&#39;linear&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    fluxes = np.empty((8, lenF))</span>
+<span class="c">#    zeros = np.zeros(lenF)</span>
+<span class="c">#</span>
+<span class="c">#    def intp_func(temp, logg, Z):</span>
+<span class="c">#        if (logg &lt; g_low) or (logg &gt; g_high) or (temp &lt; T_low) or (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high):</span>
+<span class="c">#            return zeros</span>
+<span class="c">#        else:</span>
+<span class="c">#            &#39;&#39;&#39;Following trilinear interpolation scheme from http://paulbourke.net/miscellaneous/interpolation/&#39;&#39;&#39;</span>
+<span class="c">#            indexes = np.array((T_intp(temp), logg_intp(logg), Z_intp(Z)))</span>
+<span class="c">#            ui = np.ceil(indexes) #upper cube vertices</span>
+<span class="c">#            li = np.floor(indexes) #lower cube vertices</span>
+<span class="c">#            #print(li,ui)</span>
+<span class="c">#            x, y, z = (indexes - li) #range between 0 - 1</span>
+<span class="c">#            xu, yu, zu = ui</span>
+<span class="c">#            xl, yl, zl = li</span>
+<span class="c">#            fluxes[:] = np.array([</span>
+<span class="c">#                grid[xl, yl, zl],</span>
+<span class="c">#                grid[xu, yl, zl],</span>
+<span class="c">#                grid[xl, yu, zl],</span>
+<span class="c">#                grid[xl, yl, zu],</span>
+<span class="c">#                grid[xu, yl, zu],</span>
+<span class="c">#                grid[xl, yu, zu],</span>
+<span class="c">#                grid[xu, yu, zl],</span>
+<span class="c">#                grid[xu, yu, zu]])</span>
+<span class="c">#</span>
+<span class="c">#            weights = np.array([</span>
+<span class="c">#                (1 - x) * (1 - y) * (1 - z),</span>
+<span class="c">#                x * (1 - y) * (1 - z),</span>
+<span class="c">#                (1 - x) * y * (1 - z),</span>
+<span class="c">#                (1 - x) * (1 - y) * z,</span>
+<span class="c">#                x * (1 - y) * z,</span>
+<span class="c">#                (1 - x) * y * z,</span>
+<span class="c">#                x * y * (1 - z),</span>
+<span class="c">#                x * y * z])</span>
+<span class="c">#</span>
+<span class="c">#            #print(weights)</span>
+<span class="c">#            #print(np.sum(weights))</span>
+<span class="c">#</span>
+<span class="c">#            return np.average(fluxes, axis=0, weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#    return intp_func</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##flux = trilinear_interpolator()</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Stellar Broadening</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">#def karray(center, width, res):</span>
+<span class="c">#    &#39;&#39;&#39;Creates a kernel array with an odd number of elements, the central element centered at `center` and spanning</span>
+<span class="c">#    out to +/- width in steps of resolution. Works similar to arange in that it may or may not get all the way to the</span>
+<span class="c">#    edge.&#39;&#39;&#39;</span>
+<span class="c">#    neg = np.arange(center - res, center - width, -res)[::-1]</span>
+<span class="c">#    pos = np.arange(center, center + width, res)</span>
+<span class="c">#    kar = np.concatenate([neg, pos])</span>
+<span class="c">#    return kar</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def vsini_ang(lam0, vsini, dlam=0.01, epsilon=0.6):</span>
+<span class="c">#    &#39;&#39;&#39;vsini in km/s. Epsilon is the limb-darkening coefficient, typically 0.6. Formulation uses Eqn 18.14 from Gray,</span>
+<span class="c">#    The Observation and Analysis of Stellar Photospheres, 3rd Edition.&#39;&#39;&#39;</span>
+<span class="c">#    lamL = vsini * 1e13 * lam0 / C.c_ang</span>
+<span class="c">#    lam = karray(0, lamL, dlam)</span>
+<span class="c">#    c1 = 2. * (1 - epsilon) / (np.pi * lamL * (1 - epsilon / 3.))</span>
+<span class="c">#    c2 = epsilon / (2. * lamL * (1 - epsilon / 3.))</span>
+<span class="c">#    series = c1 * np.sqrt(1. - (lam / lamL) ** 2) + c2 * (1. - (lam / lamL) ** 2) ** 2</span>
+<span class="c">#    return series / np.sum(series)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def G(s, vL):</span>
+<span class="c">#    &#39;&#39;&#39;vL in km/s. Gray pg 475&#39;&#39;&#39;</span>
+<span class="c">#    if s != 0:</span>
+<span class="c">#        ub = 2. * np.pi * vL * s</span>
+<span class="c">#        return j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    else:</span>
+<span class="c">#        return 1.</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Radial Velocity Shift</span>
+<span class="c">###################################################</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def shift_vz(lam_source, vz):</span>
+<span class="c">#    &#39;&#39;&#39;Given the source wavelength, lam_sounce, return the observed wavelength based upon a radial velocity vz in</span>
+<span class="c">#    km/s. Negative velocities are towards the observer (blueshift).&#39;&#39;&#39;</span>
+<span class="c">#    lam_observe = lam_source * np.sqrt((C.c_kms + vz) / (C.c_kms - vz))</span>
+<span class="c">#    #TODO: when applied to full spectrum, this sqrt is repeated</span>
+<span class="c">#    return lam_observe</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##def shift_TRES(vz, wls=wls):</span>
+<span class="c">##    wlsz = shift_vz(wls, vz)</span>
+<span class="c">##    return wlsz</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##TRES Instrument Broadening</span>
+<span class="c">###################################################</span>
+<span class="c">#@np.vectorize</span>
+<span class="c">#def gauss_kernel(dlam, lam0, V=6.8):</span>
+<span class="c">#    &#39;&#39;&#39;V is the FWHM in km/s. lam0 is the central wavelength in A&#39;&#39;&#39;</span>
+<span class="c">#    sigma = V / 2.355 * 1e13 #A/s</span>
+<span class="c">#    return np.exp(- (C.c_ang * dlam / lam0) ** 2 / (2. * sigma ** 2))</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def gauss_series(dlam, lam0, V=6.8):</span>
+<span class="c">#    &#39;&#39;&#39;sampled from +/- 3sigma at dlam. V is the FWHM in km/s&#39;&#39;&#39;</span>
+<span class="c">#    sigma_l = V / (2.355 * C.c_kms) * lam0 # sigma in AA (lambda)</span>
+<span class="c">#    wl = karray(0., 6 * sigma_l, dlam) # Gaussian kernel stretching +/- 6 sigma in lambda (AA)</span>
+<span class="c">#    gk = gauss_kernel(wl, lam0, V)</span>
+<span class="c">#    return gk / np.sum(gk)</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">##Downsample to TRES bins</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">#ones = np.ones((10,))</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def downsample(w_m, f_m, w_TRES):</span>
+<span class="c">#    out_flux = np.zeros_like(w_TRES)</span>
+<span class="c">#    len_mod = len(w_m)</span>
+<span class="c">#</span>
+<span class="c">#    #Determine the TRES bin edges</span>
+<span class="c">#    len_TRES = len(w_TRES)</span>
+<span class="c">#    edges = np.empty((len_TRES + 1,))</span>
+<span class="c">#    difs = np.diff(w_TRES) / 2.</span>
+<span class="c">#    edges[1:-1] = w_TRES[:-1] + difs</span>
+<span class="c">#    edges[0] = w_TRES[0] - difs[0]</span>
+<span class="c">#    edges[-1] = w_TRES[-1] + difs[-1]</span>
+<span class="c">#</span>
+<span class="c">#    #Determine PHOENIX bin edges</span>
+<span class="c">#    Pedges = np.empty((len_mod + 1,))</span>
+<span class="c">#    Pdifs = np.diff(w_m) / 2.</span>
+<span class="c">#    Pedges[1:-1] = w_m[:-1] + Pdifs</span>
+<span class="c">#    Pedges[0] = w_m[0] - Pdifs[0]</span>
+<span class="c">#    Pedges[-1] = w_m[-1] + Pdifs[-1]</span>
+<span class="c">#</span>
+<span class="c">#    i_start = np.argwhere((edges[0] &lt; Pedges))[0][</span>
+<span class="c">#                  0] - 1 #return the first starting index for the model wavelength edges array (Pedges)</span>
+<span class="c">#</span>
+<span class="c">#    edges_i = 1</span>
+<span class="c">#    left_weight = (Pedges[i_start + 1] - edges[0]) / (Pedges[i_start + 1] - Pedges[i_start])</span>
+<span class="c">#</span>
+<span class="c">#    for i in range(len_mod + 1):</span>
+<span class="c">#</span>
+<span class="c">#        if Pedges[i] &gt; edges[edges_i]:</span>
+<span class="c">#            right_weight = (edges[edges_i] - Pedges[i - 1]) / (Pedges[i] - Pedges[i - 1])</span>
+<span class="c">#            weights = ones[:(i - i_start)].copy()</span>
+<span class="c">#            weights[0] = left_weight</span>
+<span class="c">#            weights[-1] = right_weight</span>
+<span class="c">#</span>
+<span class="c">#            out_flux[edges_i - 1] = np.average(f_m[i_start:i], weights=weights)</span>
+<span class="c">#</span>
+<span class="c">#            edges_i += 1</span>
+<span class="c">#            i_start = i - 1</span>
+<span class="c">#            left_weight = 1. - right_weight</span>
+<span class="c">#            if edges_i &gt; len_TRES:</span>
+<span class="c">#                break</span>
+<span class="c">#    return out_flux</span>
+<span class="c">#</span>
+<span class="c">###################################################</span>
+<span class="c">## Models</span>
+<span class="c">###################################################</span>
+<span class="c">#</span>
+<span class="c">##def old_model(wlsz, temp, logg, vsini, flux_factor):</span>
+<span class="c">##    &#39;&#39;&#39;Does the vsini and TRES broadening using convolution rather than Fourier tricks</span>
+<span class="c">##    Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">##    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">##    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">##    #wlsz has length norders</span>
+<span class="c">##</span>
+<span class="c">##    #M = M * M_sun #g</span>
+<span class="c">##    #R = R * R_sun #cm</span>
+<span class="c">##    #d = d * pc #cm</span>
+<span class="c">##</span>
+<span class="c">##    #logg = np.log10(G * M / R**2)</span>
+<span class="c">##    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">##</span>
+<span class="c">##    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">##    f_full = flux_factor * flux(temp, logg)</span>
+<span class="c">##</span>
+<span class="c">##    model_flux = np.zeros_like(wlsz)</span>
+<span class="c">##    #Cycle through all the orders in the echelle spectrum</span>
+<span class="c">##    #might be able to np.vectorize this</span>
+<span class="c">##    for i, wlz in enumerate(wlsz):</span>
+<span class="c">##        #print(&quot;Processing order %s&quot; % (orders[i]+1,))</span>
+<span class="c">##</span>
+<span class="c">##        #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra</span>
+<span class="c">##        # 5 angstroms to be sure.</span>
+<span class="c">##        ind = (w_full &gt; (wlz[0] - 5.)) &amp; (w_full &lt; (wlz[-1] + 5.))</span>
+<span class="c">##        w = w_full[ind]</span>
+<span class="c">##        f = f_full[ind]</span>
+
+<span class="c">##        from scipy.ndimage.filters import convolve</span>
+<span class="c">##        #convolve with stellar broadening (sb)</span>
+<span class="c">##        k = vsini_ang(np.mean(wlz), vsini) # stellar rotation kernel centered at order</span>
+<span class="c">##        f_sb = convolve(f, k)</span>
+<span class="c">##</span>
+<span class="c">##        dlam = w[1] - w[0] # spacing of model points for TRES resolution kernel</span>
+<span class="c">##</span>
+<span class="c">##        #convolve with filter to resolution of TRES</span>
+<span class="c">##        filt = gauss_series(dlam, lam0=np.mean(wlz))</span>
+<span class="c">##        f_TRES = convolve(f_sb, filt)</span>
+<span class="c">##</span>
+<span class="c">##        #downsample to TRES bins</span>
+<span class="c">##        dsamp = downsample(w, f_TRES, wlz)</span>
+<span class="c">##        #red = dsamp/deredden(wlz,Av,mags=False)</span>
+<span class="c">##</span>
+<span class="c">##        #If the redenning interpolation is taking a while here, we could save the points for a given redenning and</span>
+<span class="c">##        # simply multiply each again</span>
+<span class="c">##</span>
+<span class="c">##        model_flux[i] = dsamp</span>
+<span class="c">##</span>
+<span class="c">##    #Only returns the fluxes, because the wlz is actually the TRES wavelength vector</span>
+<span class="c">##    return model_flux</span>
+<span class="c">#</span>
+<span class="c">##Constant for all models</span>
+<span class="c">##ss = np.fft.fftfreq(len(wave_grid), d=2.) #2km/s spacing for wave_grid</span>
+<span class="c">##</span>
+<span class="c">##f_full = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##FF = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##blended = pyfftw.n_byte_align_empty(chunk, 16, &#39;complex128&#39;)</span>
+<span class="c">##blended_real = pyfftw.n_byte_align_empty(chunk, 16, &quot;float64&quot;)</span>
+<span class="c">##fft_object = pyfftw.FFTW(f_full, FF)</span>
+<span class="c">##ifft_object = pyfftw.FFTW(FF, blended, direction=&#39;FFTW_BACKWARD&#39;)</span>
+<span class="c">#</span>
+<span class="c">#def model(wlsz, temp, logg, Z, vsini, Av, flux_factor):</span>
+<span class="c">#    &#39;&#39;&#39;Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">#    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">#    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">#    #wlsz has length norders</span>
+<span class="c">#</span>
+<span class="c">#    #M = M * M_sun #g</span>
+<span class="c">#    #R = R * R_sun #cm</span>
+<span class="c">#    #d = d * pc #cm</span>
+<span class="c">#</span>
+<span class="c">#    #logg = np.log10(G * M / R**2)</span>
+<span class="c">#    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">#</span>
+<span class="c">#    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">#    f_full[:] = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#    #f_full = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#    #Take FFT of f_grid</span>
+<span class="c">#    #FF = fft(f_full)</span>
+<span class="c">#    fft_object()</span>
+<span class="c">#</span>
+<span class="c">#    ss[0] = 0.01 #junk so we don&#39;t get a divide by zero error</span>
+<span class="c">#    ub = 2. * np.pi * vsini * ss</span>
+<span class="c">#    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    #set zeroth frequency to 1 separately (DC term)</span>
+<span class="c">#    sb[0] = 1.</span>
+<span class="c">#</span>
+<span class="c">#    FF[:] *= sb #institute velocity taper</span>
+<span class="c">#    #FF *= sb</span>
+<span class="c">#</span>
+<span class="c">#    #do ifft</span>
+<span class="c">#    ifft_object()</span>
+<span class="c">#    #blended_real = np.abs(ifft(FF))</span>
+<span class="c">#</span>
+<span class="c">#    blended_real[:] = np.abs(blended) #remove tiny complex component</span>
+<span class="c">#</span>
+<span class="c">#    #redden spectrum</span>
+<span class="c">#    red = blended_real / 10 ** (0.4 * Av * red_grid)</span>
+<span class="c">#    #red = blended_real</span>
+<span class="c">#</span>
+<span class="c">#    #do synthetic photometry to compare to points</span>
+<span class="c">#</span>
+<span class="c">#    f = InterpolatedUnivariateSpline(wave_grid, red)</span>
+<span class="c">#    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels</span>
+<span class="c">#    result = np.reshape(fresult, (norder, -1))</span>
+<span class="c">#    del f</span>
+<span class="c">#    gc.collect() #necessary to prevent memory leak!</span>
+<span class="c">#    return result</span>
+<span class="c">#</span>
+<span class="c">#def model_alpha(wlsz, temp, logg, Z, alpha, vsini, Av, flux_factor):</span>
+<span class="c">#    &#39;&#39;&#39;Given parameters, return the model, exactly sliced to match the format of the echelle spectra in `efile`.</span>
+<span class="c">#    `temp` is effective temperature of photosphere. vsini in km/s. vz is radial velocity, negative values imply</span>
+<span class="c">#    blueshift. Assumes M, R are in solar units, and that d is in parsecs&#39;&#39;&#39;</span>
+<span class="c">#    #wlsz has length norders</span>
+<span class="c">#</span>
+<span class="c">#    #M = M * M_sun #g</span>
+<span class="c">#    #R = R * R_sun #cm</span>
+<span class="c">#    #d = d * pc #cm</span>
+<span class="c">#</span>
+<span class="c">#    #logg = np.log10(G * M / R**2)</span>
+<span class="c">#    #flux_factor = R**2/d**2 #prefactor by which to multiply model flux (at surface of star) to get recieved TRES flux</span>
+<span class="c">#</span>
+<span class="c">#    #Loads the ENTIRE spectrum, not limited to a specific order</span>
+<span class="c">#    f_full[:] = flux_factor * flux(temp, logg, Z, alpha)</span>
+<span class="c">#    #f_full = flux_factor * flux(temp, logg, Z)</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#    #Take FFT of f_grid</span>
+<span class="c">#    #FF = fft(f_full)</span>
+<span class="c">#    fft_object()</span>
+<span class="c">#</span>
+<span class="c">#    ss[0] = 0.01 #junk so we don&#39;t get a divide by zero error</span>
+<span class="c">#    ub = 2. * np.pi * vsini * ss</span>
+<span class="c">#    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)</span>
+<span class="c">#    #set zeroth frequency to 1 separately (DC term)</span>
+<span class="c">#    sb[0] = 1.</span>
+<span class="c">#</span>
+<span class="c">#    FF[:] *= sb #institute velocity taper</span>
+<span class="c">#    #FF *= sb</span>
+<span class="c">#</span>
+<span class="c">#    #do ifft</span>
+<span class="c">#    ifft_object()</span>
+<span class="c">#    #blended_real = np.abs(ifft(FF))</span>
+<span class="c">#</span>
+<span class="c">#    blended_real[:] = np.abs(blended) #remove tiny complex component</span>
+<span class="c">#</span>
+<span class="c">#    #redden spectrum</span>
+<span class="c">#    red = blended_real / 10 ** (0.4 * Av * red_grid)</span>
+<span class="c">#    #red = blended_real</span>
+<span class="c">#</span>
+<span class="c">#    #do synthetic photometry to compare to points</span>
+<span class="c">#</span>
+<span class="c">#    f = InterpolatedUnivariateSpline(wave_grid, red)</span>
+<span class="c">#    fresult = f(wlsz.flatten()) #do spline interpolation to TRES pixels</span>
+<span class="c">#    result = np.reshape(fresult, (norder, -1))</span>
+<span class="c">#    del f</span>
+<span class="c">#    gc.collect() #necessary to prevent memory leak!</span>
+<span class="c">#    return result</span>
+<span class="c">#</span>
+<span class="c">#def model_partI():</span>
+<span class="c">#    &#39;&#39;&#39;Take care of temp, logg, Z, vsini&#39;&#39;&#39;</span>
+<span class="c">#    pass</span>
+<span class="c">#</span>
+<span class="c">#def model_partII():</span>
+<span class="c">#    &#39;&#39;&#39;Take care of vz, Av, flux_factor&#39;&#39;&#39;</span>
+<span class="c">#    pass</span>
+<span class="c">#</span>
+<span class="c">#def draw_cheb_vectors(p):</span>
+<span class="c">#    &#39;&#39;&#39;This function is only worthwhile in the lnprob_XXX_marg cases, and is used to generate samples of the nuisance</span>
+<span class="c">#    parameters that have already been marginalized over analytically. This means we wish to draw samples from the</span>
+<span class="c">#    un-marginalized probability function. Doing that analytically is tough, but there is no reason emcee can&#39;t help us</span>
+<span class="c">#     out. Intake a set of stellar parameters, run emcee to determine the nuisance parameters. Returns the many</span>
+<span class="c">#     samples from the posterior.&#39;&#39;&#39;</span>
+<span class="c">#</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;):</span>
+<span class="c">#        print(&quot;Mini chain not designed to work on un-marginalized function&quot;)</span>
+<span class="c">#        return 0</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;) or (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;):</span>
+<span class="c">#        #Appropriately translate the parameter chain into something that can be split up for each order.</span>
+<span class="c">#        if (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;):</span>
+<span class="c">#            print(&quot;Not implemented yet&quot;)</span>
+<span class="c">#            return 0</span>
+<span class="c">#        if (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;):</span>
+<span class="c">#            lnprob_mini = lnprob_lognormal_nuis_func(p)</span>
+<span class="c">#</span>
+<span class="c">#            #sample cns with emcee</span>
+<span class="c">#            ndim = (config[&#39;ncoeff&#39;] - 1) * norder</span>
+<span class="c">#            nwalkers = 4 * ndim</span>
+<span class="c">#            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_mini)</span>
+<span class="c">#            p0 = np.random.uniform(low=wr[&#39;cs&#39;][0], high=wr[&#39;cs&#39;][1], size=(nwalkers, ndim))</span>
+<span class="c">#            pos, prob, state = sampler.run_mcmc(p0, 1000)</span>
+<span class="c">#            sampler.reset()</span>
+<span class="c">#            print(&quot;Burned in cheb mini-chain&quot;)</span>
+<span class="c">#            sampler.run_mcmc(pos, 500, rstate0=state)</span>
+<span class="c">#            flatchain = sampler.flatchain</span>
+<span class="c">#            return flatchain</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def model_p(p):</span>
+<span class="c">#    &#39;&#39;&#39;Post processing routine that can take all parameter values and return the model.</span>
+<span class="c">#    Actual sampling does not require the use of this method since it is slow. Returns flatchain.&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#    fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#    coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#</span>
+<span class="c">#    if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;) \</span>
+<span class="c">#        or (config[&#39;lnprob&#39;] == &#39;lnprob_mixed&#39;):</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        #print(&quot;Tc.shape&quot;,Tc.shape)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;,k.shape)</span>
+<span class="c">#        #print(&quot;fmods.shape&quot;,fmods.shape)</span>
+<span class="c">#        refluxed = k * fmods</span>
+<span class="c">#        return [wlsz, refluxed, k, None]</span>
+<span class="c">#</span>
+<span class="c">#    if config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;:</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#</span>
+<span class="c">#        #get flatchain</span>
+<span class="c">#        flatchain = draw_cheb_vectors(p)</span>
+<span class="c">#</span>
+<span class="c">#        #get random k vector</span>
+<span class="c">#        ind = np.random.choice(np.arange(len(flatchain)))</span>
+<span class="c">#        cns = flatchain[ind]</span>
+<span class="c">#        cns.shape = ((norder, -1))</span>
+<span class="c">#</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        refluxed = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        return [wlsz, refluxed, k, flatchain]</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##xs = np.arange(len_wl)</span>
+<span class="c">##T0 = np.ones_like(xs)</span>
+<span class="c">##Ch1 = Ch([0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T1 = Ch1(xs)</span>
+<span class="c">##Ch2 = Ch([0, 0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T2 = Ch2(xs)</span>
+<span class="c">##Ch3 = Ch([0, 0, 0, 1], domain=[0, len_wl - 1])</span>
+<span class="c">##T3 = Ch3(xs)</span>
+<span class="c">##</span>
+<span class="c">##if (config[&#39;lnprob&#39;] == &quot;lnprob_gaussian&quot;) or (config[&#39;lnprob&#39;] == &#39;lnprob_gaussian_marg&#39;):</span>
+<span class="c">##    T = np.array([T0, T1, T2, T3])</span>
+<span class="c">##    TT = np.einsum(&quot;in,jn-&gt;ijn&quot;, T, T)</span>
+<span class="c">##    mu = np.array([1, 0, 0, 0])</span>
+<span class="c">##    D = sigmac ** (-2) * np.eye(4)</span>
+<span class="c">##    Dmu = np.einsum(&quot;ij,j-&gt;j&quot;, D, mu)</span>
+<span class="c">##    muDmu = np.einsum(&quot;j,j-&gt;&quot;, mu, Dmu)</span>
+<span class="c">##</span>
+<span class="c">##if (config[&#39;lnprob&#39;] == &quot;lnprob_lognormal&quot;) or (config[&#39;lnprob&#39;] == &#39;lnprob_lognormal_marg&#39;) \</span>
+<span class="c">##    or (config[&#39;lnprob&#39;] == &#39;lnprob_mixed&#39;):</span>
+<span class="c">##    T = np.array([T1, T2, T3])</span>
+<span class="c">##    TT = np.einsum(&quot;in,jn-&gt;ijn&quot;, T, T)</span>
+<span class="c">##    mu = np.array([0, 0, 0])</span>
+<span class="c">##    D = sigmac ** (-2) * np.eye(3)</span>
+<span class="c">##    Dmu = np.einsum(&quot;ij,j-&gt;j&quot;, D, mu)</span>
+<span class="c">##    muDmu = np.einsum(&quot;j,j-&gt;&quot;, mu, Dmu)</span>
+<span class="c">#</span>
+<span class="c">#############################################################</span>
+<span class="c">## Various lnprob functions</span>
+<span class="c">#############################################################</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_gaussian_marg(p):</span>
+<span class="c">#    &#39;&#39;&#39;New lnprob, no nuisance coeffs&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths to output spectra to.</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks #mask all the bad model points</span>
+<span class="c">#</span>
+<span class="c">#        a = fmods ** 2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#        detA = np.array(list(map(np.linalg.det, Ap)))</span>
+<span class="c">#        invA = np.array(list(map(np.linalg.inv, Ap)))</span>
+<span class="c">#</span>
+<span class="c">#        b = fmods * fls / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 * fls ** 2 / sigmas ** 2 * masks</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        invAB = np.einsum(&quot;ijk,ik-&gt;ij&quot;, invA, Bp)</span>
+<span class="c">#        BAB = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, invAB)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(0.5 * np.log((2. * np.pi) ** norder / detA) + 0.5 * BAB + Gp)</span>
+<span class="c">#</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #This does correctly unpack the coefficients into c0s, cns by order 11/17/13</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        Ac = np.einsum(&quot;ijk,ik-&gt;ij&quot;, Ap, cns)</span>
+<span class="c">#        cAc = np.einsum(&quot;ij,ij-&gt;i&quot;, cns, Ac)</span>
+<span class="c">#        Bc = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, cns)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(</span>
+<span class="c">#            np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s) ** 2 / (2 * sigmac0 ** 2))</span>
+<span class="c">#</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal_nuis_func(p):</span>
+<span class="c">#    &#39;&#39;&#39;Used for sampling the lnprob_lognormal at a fixed p for the cns.&#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (Z &lt; Z_low) or (Z &gt; Z_high) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#    def nuis_func(cns):</span>
+<span class="c">#        &#39;&#39;&#39;input as flat array&#39;&#39;&#39;</span>
+<span class="c">#        cns.shape = (norder, -1)</span>
+<span class="c">#        Ac = np.einsum(&quot;ijk,ik-&gt;ij&quot;, Ap, cns)</span>
+<span class="c">#        cAc = np.einsum(&quot;ij,ij-&gt;i&quot;, cns, Ac)</span>
+<span class="c">#        Bc = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, cns)</span>
+<span class="c">#        lnp = np.sum(-0.5 * cAc + Bc + Gp) + np.sum(</span>
+<span class="c">#            np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - np.log(c0s) ** 2 / (2 * sigmac0 ** 2))</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#    return nuis_func</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#mu_temp = 6462</span>
+<span class="c">#sigma_temp = 400</span>
+<span class="c">#mu_logg = 4.29</span>
+<span class="c">#sigma_logg = 0.0001</span>
+<span class="c">#mu_Z = -0.13</span>
+<span class="c">#sigma_Z = 0.7</span>
+<span class="c">#mu_vsini = 3.5</span>
+<span class="c">#sigma_vsini = 0.9</span>
+<span class="c">#mu_Av = 0.0</span>
+<span class="c">#sigma_Av = 0.01</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_lognormal_marg(p):</span>
+<span class="c">#    &#39;&#39;&#39;Sample only in c0&#39;s  &#39;&#39;&#39;</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) * masks</span>
+<span class="c">#</span>
+<span class="c">#        c0s = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        fdfmc0 = np.einsum(&#39;i,ij-&gt;ij&#39;, c0s, fmods * fls)</span>
+<span class="c">#        fm2c2 = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s ** 2, fmods ** 2)</span>
+<span class="c">#</span>
+<span class="c">#        a = fm2c2 / sigmas ** 2</span>
+<span class="c">#        A = np.einsum(&quot;in,jkn-&gt;ijk&quot;, a, TT)</span>
+<span class="c">#        Ap = A + D</span>
+<span class="c">#        detA = np.array(list(map(np.linalg.det, Ap)))</span>
+<span class="c">#        invA = np.array(list(map(np.linalg.inv, Ap)))</span>
+<span class="c">#</span>
+<span class="c">#        b = (-fm2c2 + fdfmc0) / sigmas ** 2</span>
+<span class="c">#        B = np.einsum(&quot;in,jn-&gt;ij&quot;, b, T)</span>
+<span class="c">#        Bp = B + Dmu</span>
+<span class="c">#</span>
+<span class="c">#        g = -0.5 / sigmas ** 2 * (fm2c2 - 2 * fdfmc0 + masks * fls ** 2)</span>
+<span class="c">#        G = np.einsum(&quot;ij-&gt;i&quot;, g)</span>
+<span class="c">#        Gp = G - 0.5 * muDmu</span>
+<span class="c">#</span>
+<span class="c">#        invAB = np.einsum(&quot;ijk,ik-&gt;ij&quot;, invA, Bp)</span>
+<span class="c">#        BAB = np.einsum(&quot;ij,ij-&gt;i&quot;, Bp, invAB)</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(0.5 * np.log((2. * np.pi) ** norder / detA) + 0.5 * BAB + Gp) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * (temp - mu_temp) ** 2 / sigma_temp ** 2 - 0.5 * (logg - mu_logg) ** 2 / sigma_logg ** 2 \</span>
+<span class="c">#              - 0.5 * (Z - mu_Z) ** 2 / sigma_Z ** 2 - 0.5 * (vsini - mu_vsini) ** 2 / sigma_vsini \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">##A = 0.4</span>
+<span class="c">##var_G = (1.5 * sigmas) ** 2</span>
+<span class="c">##sigma_E = 3.0 * sigmas</span>
+<span class="c">##</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_mixed_exp(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #print(&quot;c0s.shape&quot;, c0s.shape)</span>
+<span class="c">#        #print(&quot;cns.shape&quot;, cns.shape)</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        #now create polynomials for each order, and multiply through fls</span>
+<span class="c">#        #print(&quot;T.shape&quot;, T.shape)</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;, k.shape)</span>
+<span class="c">#        kf = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(np.log(np.exp(-0.5 * (fls - kf) ** 2 / var_G) + A * np.exp(- np.abs(fls - kf) / sigma_E))) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * np.sum(cns ** 2 / sigmac ** 2) \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \</span>
+<span class="c">#        #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini</span>
+<span class="c">#        return lnp</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_mixed(p):</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or (temp &gt; T_high) \</span>
+<span class="c">#        or (Z &lt; Z_low) or (Z &gt; Z_high) or (flux_factor &lt;= 0) or (Av &lt; 0):</span>
+<span class="c">#        #if the call is outside of the loaded grid.</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms - vz) / (C.c_kms + vz))</span>
+<span class="c">#        fmods = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        # reshape to (norders, 4)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        c0s = coefs_arr[:, 0] #length norders</span>
+<span class="c">#        cns = coefs_arr[:, 1:] #shape (norders, 3)</span>
+<span class="c">#        #print(&quot;c0s.shape&quot;, c0s.shape)</span>
+<span class="c">#        #print(&quot;cns.shape&quot;, cns.shape)</span>
+<span class="c">#</span>
+<span class="c">#        #If any c0s are less than 0, return -np.inf</span>
+<span class="c">#        if np.any((c0s &lt; 0)):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#</span>
+<span class="c">#        #now create polynomials for each order, and multiply through fls</span>
+<span class="c">#        #print(&quot;T.shape&quot;, T.shape)</span>
+<span class="c">#        Tc = np.einsum(&quot;jk,ij-&gt;ik&quot;, T, cns)</span>
+<span class="c">#        k = np.einsum(&quot;i,ij-&gt;ij&quot;, c0s, 1 + Tc)</span>
+<span class="c">#        #print(&quot;k.shape&quot;, k.shape)</span>
+<span class="c">#        kf = k * fmods</span>
+<span class="c">#</span>
+<span class="c">#        R = (fls - kf)/sigmas</span>
+<span class="c">#</span>
+<span class="c">#        lnp = np.sum(np.log((1 - np.exp(-0.5 * R**2))/R**2)) \</span>
+<span class="c">#              + np.sum(np.log(1 / (c0s * sigmac0 * np.sqrt(2. * np.pi))) - 0.5 * np.log(c0s) ** 2 / sigmac0 ** 2) \</span>
+<span class="c">#              - 0.5 * np.sum(cns ** 2 / sigmac ** 2) \</span>
+<span class="c">#              - 0.5 * (Av - mu_Av) ** 2 / sigma_Av</span>
+<span class="c">#        #- 0.5 * (temp - mu_temp)**2/sigma_temp**2 - 0.5 * (logg - mu_logg)**2/sigma_logg**2 \</span>
+<span class="c">#        #- 0.5 * (Z - mu_Z)**2/sigma_Z**2 - 0.5 * (vsini - mu_vsini)**2/sigma_vsini</span>
+<span class="c">#        if np.isnan(lnp):</span>
+<span class="c">#            return -np.inf</span>
+<span class="c">#        else:</span>
+<span class="c">#            return lnp</span>
+<span class="c">#</span>
+<span class="c">#def wrap_lnprob(lnprob, temp, logg, z, vsini):</span>
+<span class="c">#    &#39;&#39;&#39;Return a lnprob function that keeps these parameters fixed&#39;&#39;&#39;</span>
+<span class="c">#    def func_lnprob(p):</span>
+<span class="c">#        &#39;&#39;&#39;This lnprob only takes vz, Av, fluxfactor, + nuisance coeffs&#39;&#39;&#39;</span>
+<span class="c">#</span>
+<span class="c">#        #Ideally, this does all the FFT transforming.</span>
+<span class="c">#</span>
+<span class="c">#        pnew = np.hstack((np.array([temp, logg, z, vsini]), p))</span>
+<span class="c">#        return lnprob(pnew)</span>
+<span class="c">#    return func_lnprob</span>
+<span class="c">#</span>
+<span class="c">#def lnprob_classic(p):</span>
+<span class="c">#    &#39;&#39;&#39;p is the parameter vector, contains both theta_s and theta_n&#39;&#39;&#39;</span>
+<span class="c">#    #print(p)</span>
+<span class="c">#    temp, logg, Z, vsini, vz, Av, flux_factor = p[:config[&#39;nparams&#39;]]</span>
+<span class="c">#    if (logg &lt; g_low) or (logg &gt; g_high) or (vsini &lt; 0) or (temp &lt; T_low) or \</span>
+<span class="c">#            (temp &gt; T_high) or (np.abs(Z) &gt;= 0.5) or (Av &lt; 0):</span>
+<span class="c">#        return -np.inf</span>
+<span class="c">#    else:</span>
+<span class="c">#        coefs = p[config[&#39;nparams&#39;]:]</span>
+<span class="c">#        #print(coefs)</span>
+<span class="c">#        coefs_arr = coefs.reshape(len(orders), -1)</span>
+<span class="c">#        print(coefs_arr)</span>
+<span class="c">#</span>
+<span class="c">#        #shift TRES wavelengths</span>
+<span class="c">#        wlsz = wls * np.sqrt((C.c_kms + vz) / (C.c_kms - vz))</span>
+<span class="c">#</span>
+<span class="c">#        flsc = data(coefs_arr, wlsz, fls)</span>
+<span class="c">#</span>
+<span class="c">#        fs = model(wlsz, temp, logg, Z, vsini, Av, flux_factor)</span>
+<span class="c">#</span>
+<span class="c">#        chi2 = np.sum(((flsc - fs) / sigmas) ** 2)</span>
+<span class="c">#        L = -0.5 * chi2</span>
+<span class="c">#        #prior = - np.sum((coefs_arr[:,2])**2/0.1) - np.sum((coefs_arr[:,[1,3,4]]**2/0.01))</span>
+<span class="c">#        prior = 0</span>
+<span class="c">#        return L + prior</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def degrade_flux(wl, w, f_full):</span>
+<span class="c">#    vsini = 40.</span>
+<span class="c">#    #Limit huge file to the necessary order. Even at 4000 ang, 1 angstrom corresponds to 75 km/s. Add in an extra 5</span>
+<span class="c">#    # angstroms to be sure.</span>
+<span class="c">#    ind = (w_full &gt; (wl[0] - 5.)) &amp; (w_full &lt; (wl[-1] + 5.))</span>
+<span class="c">#    w = w_full[ind]</span>
+<span class="c">#    f = f_full[ind]</span>
+<span class="c">#    #convolve with stellar broadening (sb)</span>
+<span class="c">#    k = vsini_ang(np.mean(wl), vsini) #stellar rotation kernel centered at order</span>
+<span class="c">#    f_sb = convolve(f, k)</span>
+<span class="c">#</span>
+<span class="c">#    dlam = w[1] - w[0] #spacing of model points for TRES resolution kernel</span>
+<span class="c">#</span>
+<span class="c">#    #convolve with filter to resolution of TRES</span>
+<span class="c">#    filt = gauss_series(dlam, lam0=np.mean(wl))</span>
+<span class="c">#    f_TRES = convolve(f_sb, filt)</span>
+<span class="c">#</span>
+<span class="c">#    #downsample to TRES bins</span>
+<span class="c">#    dsamp = downsample(w, f_TRES, wl)</span>
+<span class="c">#</span>
+<span class="c">#    return dsamp</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def data(coefs_arr, wls, fls):</span>
+<span class="c">#    &#39;&#39;&#39;coeff is a (norders, npoly) shape array&#39;&#39;&#39;</span>
+<span class="c">#    flsc = np.zeros_like(fls)</span>
+<span class="c">#    for i, coefs in enumerate(coefs_arr):</span>
+<span class="c">#        #do this to keep constant fixed at 1</span>
+<span class="c">#        flsc[i] = Ch(np.append([1], coefs), domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]</span>
+<span class="c">#        #do this to allow tweaks to each order</span>
+<span class="c">#        #flsc[i] = Ch(coefs, domain=[wls[i][0], wls[i][-1]])(wls[i]) * fls[i]</span>
+<span class="c">#    return flsc</span>
+<span class="c">#</span>
+<span class="c">#</span>
+<span class="c">#def generate_fake_data(SNR, temp, logg, Z, vsini, vz, Av, flux_factor):</span>
+<span class="c">#    import os</span>
+<span class="c">#</span>
+<span class="c">#    &#39;&#39;&#39;Generate an echelle-like spectrum to test method. SNR is quoted per-resolution element,</span>
+<span class="c">#    and so is converted to per-pixel via the formula on 10/31/13. The sigma is created at the Poisson level only.&#39;&#39;&#39;</span>
+<span class="c">#    SNR_pix = SNR / 1.65 #convert to per-pixel for TRES</span>
+<span class="c">#</span>
+<span class="c">#    #use LkCa15 wl grid, shifted</span>
+<span class="c">#    LkCa15_wls = np.load(&#39;data/LkCa15/LkCa15_2013-10-13_09h37m31s_cb.flux.spec.wls.npy&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    #When running this, also need to set config[&#39;orders&#39;] = all</span>
+<span class="c">#    wlsz = shift_TRES(vz, wls=LkCa15_wls)</span>
+<span class="c">#    fls_fake = model(wlsz, temp, logg, Z, vsini, Av, flux_factor) #create flux on a shifted grid</span>
+<span class="c">#    sigmas = fls_fake / SNR_pix</span>
+<span class="c">#</span>
+<span class="c">#    print(&quot;Generated data with SNR:{SNR:}, temp:{temp:}, logg:{logg:}, Z:{Z:}, &quot;</span>
+<span class="c">#          &quot;vsini:{vsini:}, vz: {vz:}, Av:{Av:}, flux-factor:{ff:}&quot;.format(SNR=SNR, temp=temp,</span>
+<span class="c">#                                                                          logg=logg, Z=Z, vsini=vsini, vz=vz, Av=Av,</span>
+<span class="c">#                                                                          ff=flux_factor))</span>
+<span class="c">#</span>
+<span class="c">#    #func = lambda x: np.random.normal(loc=0,scale=x)</span>
+<span class="c">#    #noise = np.array(list(map(func,sigmas)))</span>
+<span class="c">#    noise = np.random.normal(loc=0, scale=sigmas, size=fls_fake.shape)</span>
+<span class="c">#    fls_noise = fls_fake + noise</span>
+<span class="c">#    mask = np.ones_like(fls_noise, dtype=&#39;bool&#39;)</span>
+<span class="c">#</span>
+<span class="c">#    basedir = &#39;data/Fake/%.0f/&#39; % SNR #create in a subfolder that has the SNR labelled</span>
+<span class="c">#    #Create necessary output directories using os.mkdir, if it does not exist</span>
+<span class="c">#    if not os.path.exists(basedir):</span>
+<span class="c">#        os.mkdir(basedir)</span>
+<span class="c">#        print(&quot;Created output directory&quot;, basedir)</span>
+<span class="c">#    else:</span>
+<span class="c">#        print(basedir, &quot;already exists, overwriting.&quot;)</span>
+<span class="c">#    base = basedir + &#39;Fake&#39;</span>
+<span class="c">#    np.save(base + &#39;.wls.npy&#39;, LkCa15_wls) #write original, unshifted grid</span>
+<span class="c">#    np.save(base + &#39;.fls.npy&#39;, fls_noise)</span>
+<span class="c">#    np.save(base + &#39;.true.fls.npy&#39;, fls_fake)</span>
+<span class="c">#    np.save(base + &#39;.sigma.npy&#39;, noise)</span>
+<span class="c">#    np.save(base + &#39;.mask.npy&#39;, mask)</span>
+
+<span class="c">#@profile</span></div>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Starting main of model&quot;</span><span class="p">)</span>
+
+    <span class="k">pass</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Starfish 1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013-14, Ian Czekala.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+<map id="inheritance81448a7240" name="inheritance81448a7240">
+<area shape="rect" id="node1" title="BTSettl grid interface." alt="" coords="190,5,341,30"/>
+<area shape="rect" id="node2" href="#StellarSpectra.grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="6,54,135,79"/>
+<area shape="rect" id="node3" title="Kurucz grid interface." alt="" coords="192,54,339,79"/>
+<area shape="rect" id="node4" href="#StellarSpectra.grid_tools.PHOENIXGridInterface" title="An Interface to the PHOENIX/Husser synthetic library." alt="" coords="185,103,346,129"/>
+</map>
