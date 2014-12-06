@@ -66,6 +66,9 @@
 \newcommand{\hili}[1]{ \textcolor{green}{#1}}
 \newcommand{\ctext}[1]{ \textcolor{blue}{\% #1}}
 
+\hyphenation{ExoLab}
+\hyphenation{ExoStat}
+
 \shorttitle{Robust Spectroscopic Inference}
 \shortauthors{Czekala et al.}
 
@@ -141,8 +144,8 @@ spectral resolution, the velocity content of a spectrum can convey crucial infor
 rotation ($v \sin i$) and kinematics (e.g., association with a cluster or companion through the
 radial velocity, $v_z$).  While many fields benefit from the spectroscopic measurements of these
 stellar properties, they are of acute interest to the exoplanet community.  There, all estimates of
-the planet properties are made {\it relative} to the host properties (e.g., the planet-to-host mass
-function or radius {\it ratio} is constrained with the radial velocity or transit techniques,
+the planet properties are made {\it relative} to the host properties (e.g., the planet-to-host
+radius {\it ratio} or mass function is constrained with the radial velocity or transit techniques,
 respectively).  Moreover, essential clues to the planet formation process are encapsulated in the
 dependences of planet frequency on host mass \citep[e.g.,][]{johnson07,howard10} and metallicity
 \citep[e.g.,][]{fischer05,buchhave14}.   
@@ -273,10 +276,10 @@ interpolated spectrum, we design a Bayesian spectral emulator, which we describe
 Appendix \ref{sec:Appendix}. Rather than delivering a single interpolated spectrum for a given
 $\vt_\ast$, the emulator delivers a probability distribution over a set of possible interpolated
 spectra. By marginalizing over all of the possible interpolated models, we can modify the likelihood
-function (introduced in Section~\ref{subsec:likelihood}) to account for the interpolation uncertainty. For
-simplicity, however, we now proceed as if we used linear interpolation from a synthetic library to
-generate model spectra and that the error introduced by this process is negligible, since the
-following concepts are applicable regardless of the interpolation method. 
+function (introduced in Section~\ref{subsec:likelihood}) to account for the interpolation
+uncertainty. However, since the following concepts are applicable regardless of the interpolation
+method, for simplicity we now proceed as if we were using linear interpolation to generate model spectra
+and assume that the error introduced by this process is negligible. 
 
 \subsection{Post-Processing} \label{subsec:postprocess}
 
@@ -286,7 +289,7 @@ effects that become important in comparisons with real data.  Therefore, a certa
 post-processing is required before assessing the model quality.  We treat that post-processing in 
 two stages: the first deals with an additional set of ``observational" parameters, $\vt_{\rm obs}$, 
 that incorporate dynamical effects, geometry, and the relative location of the target, while the 
-second employs a suite of nuisance parameters ($\vp$) designed to mitigate an imperfect 
+second employs a suite of nuisance parameters $\vp$ designed to mitigate an imperfect 
 data calibration.
 
 We can further divide $\vt_{\rm obs}$ into those parameters that impact the model primarily in the 
@@ -351,16 +354,6 @@ are then applied as
 with simplified notation such that $\vT \equiv [\vt_{\ast}, \,\, \vt_{\rm obs}]$, 
 where $\vt_{\rm obs} = [\sigma_v, v\sin{i}, v_z, \Omega, A_V]$.
 
-\begin{figure}[b!]
-\includegraphics{figs/chebyshev.pdf}
-\vspace{-0.75cm}
-\figcaption{A demonstration of our treatment for residual calibration mismatches.  The observed 
-spectra at the overlap of two echelle orders ({\it top}) have slightly ($\sim$1--3\%) discrepant 
-shapes.  By using Chebyshev polynomials ({\it middle, top}) one can correct for that mismatch by
-adjusting the data ({\it middle, bottom}); instead, in practice we equivalently distort the model
-by these polynomials ({\it bottom}) such that the model remains linear in the Chebyshev coefficients
-(Eq.~\ref{eqn:chebyshev}).  \label{fig:chebyshev}}
-\end{figure}
 
 The procedure so far, summarized in Eq.~\ref{eqn:interp}--\ref{eqn:scaling}, is composed of 
 straightforward operations demanded by practical astronomical and computing issues.  If the data 
@@ -377,8 +370,19 @@ will corrupt the inferences of these parameters.  Moreover, in practice this app
 since defining an appropriate polynomial becomes difficult in cases where the spectral line density 
 is high (e.g., molecular bands for cool stars).  
 
+\begin{figure}[t!]
+\includegraphics{figs/chebyshev.pdf}
+\vspace{-0.75cm}
+\figcaption{A demonstration of our treatment for residual calibration mismatches.  The observed 
+spectra at the overlap of two echelle orders ({\it top}) have slightly ($\sim$1--3\%) discrepant 
+shapes.  By using Chebyshev polynomials ({\it middle, top}) one can correct for that mismatch by
+adjusting the data ({\it middle, bottom}); instead, in practice we equivalently distort the model
+by these polynomials ({\it bottom}) such that the model remains linear in the Chebyshev coefficients
+(Eq.~\ref{eqn:chebyshev}).  \label{fig:chebyshev}}
+\end{figure}
+
 We employ an analogous, but more rigorous, approach to deal with this issue, cast {\it internally}
-to the modeling framework to propagate the uncertainties introduced by additional degrees of freedom
+within the modeling framework to propagate the uncertainties introduced by additional degrees of freedom
 in the model.  Deviations in the spectral shape introduced by calibration residuals are treated as
 explicit contributions to the model spectrum, enabling an exploration of the distribution of
 possible ``tweaks" to the calibration that can be compartmentalized into a set of nuisance
@@ -402,6 +406,7 @@ unity.  For data with a single spectral order, this means simply setting $c^{(0)
 multiple order case, we assign $c^{(0)} = 1$ in an arbitrary order as an anchor, but permit the 
 $c^{(0)}$ in other orders to be different.   
 
+\vspace{1cm}
 
 \subsection{Model Evaluation} \label{subsec:likelihood}
 
@@ -418,9 +423,11 @@ p(\vD|\vM) =  \frac{1}{[(2 \pi)^{N_{\rm pix}} \det(\vC)]^{1/2}} \exp\left ( -\fr
    \vR^\trans \vC^{-1} \vR \right )
    \label{eqn:likelihood}
 \end{equation}
-that penalizes models which yield larger residuals and explicitly allows for covariances in the 
-residual spectrum through the $N_{\rm pix} \times N_{\rm pix}$ matrix $\vC$.  For practical 
-reasons, the log-likelihood is used as the quality metric, where
+that penalizes models which yield larger residuals and explicitly allows for covariances in the
+residual spectrum through the $N_{\rm pix} \times N_{\rm pix}$ matrix $\vC$\footnote{When using a
+spectral emulator to interpolate model spectra, this matrix will be further modified to account
+for the propagated interpolation uncertainty (Appendix \ref{sec:Appendix}, Eq.~\ref{eqn:modC})}.
+For practical reasons, the log-likelihood is used as the quality metric, where
 \begin{equation}
   \ln{p(\vD | \vM)} = -\frac{1}{2} \left( \vR^\trans \vC^{-1} \vR + \ln{\det{\vC}} + N_{\rm pix} \ln{2\pi} \right).
   \label{eqn:lnlikelihood}
@@ -453,10 +460,10 @@ modeled spectral feature will create a correlated residual that spans multiple p
 demonstrated practically through the autocorrelation of $\vR$: a slight model mismatch will produce 
 correlated residuals over a characteristic scale similar to the instrumental broadening kernel 
 width ($\sigma_v$).  Figure \ref{fig:class0} highlights a specific example of these correlated 
-residuals in real data; a significant autocorrelation signal is found on a $\sim$5 pixel scale, 
+residuals in real data; a significant autocorrelation signal is found on an $\sim$8 pixel scale, 
 corresponding to the 6.8\,km s$^{-1}$ FWHM of $\mathcal{F}_v^{\rm inst}$.  
 
-\begin{figure}[!htb]
+\begin{figure}[!t]
 \begin{center}
   \includegraphics{residuals_23.pdf}
   \includegraphics{class0_residuals.pdf}
@@ -499,15 +506,22 @@ A variety of kernels have been used in the field of Gaussian processes to parame
 covariant structure \citep[e.g.,][]{rasmussen05}.  Here, we adopt the commonly-employed \matern\ 
 kernel with $\nu = 3/2$,
 \begin{equation}
-  \Kglobal_{ij}(\vp_{{\mathsf C}, {\rm g}}) = a_{\rm g} \left(1 + \frac{\sqrt{3}\, r_{ij}}{\ell} \right ) \exp 
+  \Kglobal_{ij}(\vp_{{\mathsf C}, {\rm G}}) = a_{\rm G} \left(1 + \frac{\sqrt{3}\, r_{ij}}{\ell} \right ) \exp 
    \left (- \frac{\sqrt{3}\, r_{ij}}{\ell} \right ),
    \label{eqn:global}
 \end{equation}
-where the hyperparameters $\vp_{{\mathsf C}, {\rm g}} = [a_{\rm g}, \ell]$ include an amplitude 
-($a_{\rm g}$) and scale ($\ell$).  To ensure that $\vC$ remains a relatively sparse matrix that 
-enables computational expediency, we employ a Hann window function
+where the hyperparameters $\vp_{{\mathsf C}, {\rm G}} = [a_{\rm G}, \ell]$ include an amplitude
+($a_{\rm G}$) and scale ($\ell$). We distinguish the kernel parameters from other parameters in the
+model by labelling them hyperparameters. Because a Gaussian process describes a population of
+functions that can be generated by random draws from the covariance matrix, the covariance kernel
+parameters are truly part of a hierarchical model. In our case, the functions described by these
+hyperparameters are actually the many different realizations of covariant residuals that result from
+a spectral fit. For an example of the Gaussian process kernel and the population of covariant
+residual ``noise'' that could be generated from it, see Figure~\ref{fig:matrix}.
+To ensure that $\vC$ remains a relatively sparse matrix that enables computational expediency, we
+employ a Hann window function
 \begin{equation}
-  w_{ij}^{\rm G} \,(r_0) = \left \{ 
+  w_{ij} \,(r_0) = \left \{ 
     \begin{array}{cc}
     \frac{1}{2} + \frac{1}{2} \cos \left(\frac{\pi r_{ij}}{r_0} \right) & r_{ij} \le r_0 \\
     0 & r_{ij} > r_0 \\
@@ -515,9 +529,29 @@ enables computational expediency, we employ a Hann window function
   \right .
   \label{eqn:Hann}
 \end{equation}
-as a taper.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the scale (we 
+to taper the kernel.  The truncation distance $r_0$ can be fixed to a reasonable multiple of the scale (we 
 set $r_0 = 4\ell$).  
 
+\begin{figure*}[!htb]
+\begin{center}
+\includegraphics[scale=1.05]{figs/matrix_compilation.pdf}
+\figcaption{A decomposition of the modeling procedure, explicitly highlighting the roles of the 
+various contributions to the covariance matrix.  The top panels show a typical comparison between 
+the data and model spectrum, along with the associated residual spectrum.  The subsequent panels 
+focus on the illustrative region shaded in grey.  The left column of panels show the corresponding 
+region of the covariance matrix $\vC$, decomposed into its primary contributions: from top to 
+bottom, the trivial noise matrix, then combined with the global covariance kernel, and finally 
+including an appropriate local covariance kernel.  In the right column, we show the zoomed-in 
+residual spectrum ({\it black}) along with example random draws from the subsets of $\vC$ exhibited 
+to the left.  The shaded contours ({\it orange}) represent the 1, 2, and 3\,$\sigma$ dispersions of 
+an ensemble of 200 random draws from $\vC$.  Note that the trivial noise matrix ($\delta_{ij} 
+\sigma_i$) poorly reproduces both the scale and structure of the residual spectrum.  The addition 
+of a global kernel ($\mathcal{K}^\textrm{G}$) more closely approximates the structure and amplitude of 
+the residuals, but misses the outlier line at 5202.2\,\AA.  Including a local kernel 
+($\mathcal{K}^\textrm{L}$) at that location results in a covariance structure that does an excellent job 
+reproducing all the key residual features.  \label{fig:matrix}}
+\end{center}
+\end{figure*}
 
 \subsubsection{Local Covariance Structure} \label{subsec:local_covariance}
 
@@ -544,17 +578,30 @@ residual regions can be written
 such that the full local covariance kernel composed of a sequence of residual regions is the linear 
 combination,
 \begin{equation} \label{eqn:klocal}
-  \Klocal_{ij}(\vp_{{\mathsf C},l}) = \sum_k w^k_{ij} \, \mathcal{K}^{\textrm{L},k}_{ij},
+  \Klocal_{ij}(\vp_{{\mathsf C},L}) = \sum_k^N w^k_{ij} \, \mathcal{K}^{\textrm{L},k}_{ij},
 \end{equation}
-with a set of hyperparameters $\vp_{{\mathsf C},\textrm{L}} = [\{a_k, \mu_k, \sigma_k\}]$.  Note that we 
-again taper the kernels with Hann windows (Eq.~\ref{eqn:Hann}) to ensure a sparse covariance 
-matrix; in this case, the truncation distance $r_0$ can be set to some multiple of the width 
-parameter (e.g., $r_0 = 4\sigma_k$).  In effect, these kernels systematically down-weight the 
-influence of strong residuals in the likelihood calculation, mitigating any potential bias they 
-might induce on inferences of the interesting parameters ($\vT$).  This acts like a robust, 
-flexible, and unbiased method for (correlated) outlier rejection that preserves the integrity of 
-the probabilistic framework (as opposed to the common manual or threshold-based techniques of 
-clipping or masking).  
+with a set of hyperparameters $\vp_{{\mathsf C},\textrm{L}} = [\{a_1, \mu_1, \sigma_1, \ldots, a_N,
+\mu_N, \sigma_N\}]$.  Note that we again taper the kernels with Hann windows (Eq.~\ref{eqn:Hann}) to ensure
+a sparse covariance matrix; in this case, the truncation distance $r_0$ can be set to some multiple
+of the width parameter (e.g., $r_0 = 4\sigma_k$).  In effect, these kernels systematically
+down-weight the influence of strong residuals in the likelihood calculation, mitigating any
+potential bias they might induce on inferences of the interesting parameters ($\vT$).  This acts
+like a robust, flexible, and unbiased method for (correlated) outlier rejection that preserves the
+integrity of the probabilistic framework (as opposed to the common manual or threshold-based
+techniques of masking or clipping). 
+
+Alternatively, one can also think of adding in this Gaussian component to the covariance matrix as
+being equivalent to marginalizing over the existence of an outlier spectral line with a prior on the
+line strength that is strictly Gaussian, where adjusting the hyperparameters of the local kernel
+changes the prior on the strength and shape of the outlier residual. We find that once such a local
+kernel is instantiated at the location of an outlier spectral line, the inference on the stellar
+parameters ($\vT$) is moderately robust to the precise values of the kernel parameters. This means
+that the marginalization over outlier lines can be performed at minimal computational cost, since
+MCMC iterations which would otherwise be spent exploring the parameter space of the local kernel
+hyperparameters are largely unnecessary if one is only interested in the stellar parameters. For
+completeness, however, the local kernel hyperparameters of the spectral fits presented in
+Section~\ref{sec:examples} are allowed to float and explored simultaneously with the other stellar
+and nuisance parameters.
 
 \begin{figure}[!t]
 \begin{center}
@@ -576,36 +623,14 @@ positive and negative residuals or a pronounced mismatch over a relatively large
 This phenomenologically different local covariance behavior can still be treated in this framework 
 if an appropriate kernel morphology is adopted. 
 
-\begin{figure*}[!htb]
-\begin{center}
-\includegraphics[scale=1.05]{figs/matrix_compilation.pdf}
-\figcaption{A decomposition of the modeling procedure, explicitly highlighting the roles of the 
-various contributions to the covariance matrix.  The top panels show a typical comparison between 
-the data and model spectrum, along with the associated residual spectrum.  The subsequent panels 
-focus on the illustrative region shaded in grey.  The left column of panels show the corresponding 
-region of the covariance matrix $\vC$, decomposed into its primary contributions: from top to 
-bottom, the trivial noise matrix, then combined with the global covariance kernel, and finally 
-including an appropriate local covariance kernel.  In the right column, we show the zoomed-in 
-residual spectrum ({\it black}) along with example random draws from the subsets of $\vC$ exhibited 
-to the left.  The shaded contours ({\it orange}) represent the 1, 2, and 3\,$\sigma$ dispersions of 
-an ensemble of 200 random draws from $\vC$.  Note that the trivial noise matrix ($\delta_{ij} 
-\sigma_i$) poorly reproduces both the scale and structure of the residual spectrum.  The addition 
-of a global kernel ($\mathcal{K}^\textrm{G}$) more closely approximates the structure and amplitude of 
-the residuals, but misses the outlier line at 5202.2\,\AA.  Including a local kernel 
-($\mathcal{K}^\textrm{L}$) at that location results in a covariance structure that does an excellent job 
-reproducing all the key residual features.  \label{fig:matrix}}
-\end{center}
-\end{figure*}
-
-
 \subsubsection{Composite Covariance Matrix}
 
 We can now compute the covariance matrix employed in the likelihood calculation 
 (Eq.~\ref{eqn:lnlikelihood}) as the linear combination of the trivial pixel-by-pixel noise matrix 
 and the global and local kernels discussed above, 
 \begin{equation}
-\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + w_{ij} \, \Kglobal_{ij}(\vp_{{\mathsf C}, g}) + 
-                  \Klocal_{ij}(\vp_{{\mathsf C}, l}), 
+\vC_{ij}(\cov)  = b \, \delta_{ij} \, \sigma_i + w_{ij} \, \Kglobal_{ij}(\vp_{{\mathsf C}, G}) + 
+                  \Klocal_{ij}(\vp_{{\mathsf C}, L}), 
 \end{equation}
 with hyperparameters $\cov = [\vp_{{\mathsf C}, \textrm{G}}, \vp_{{\mathsf C}, \textrm{L}}]$.  The factor $b$ is 
 a parameter that scales up the Poisson noise in each pixel by a constant factor to account for 
@@ -616,8 +641,7 @@ determined), then there are $4N_{\rm loc}+2$ elements in the set of covariance h
 $\cov$.  
 
 Figure \ref{fig:matrix} provides a graphical illustration of how the kernels that comprise the 
-covariance matrix are able to reproduce the structure present in a typical residual spectrum (for 
-the sake of clarity, the interpolation error kernel is discussed separately, in the Appendix).  
+covariance matrix are able to reproduce the structure present in a typical residual spectrum.  
 
 
 \subsection{Priors} \label{subsec:priors}
@@ -629,6 +653,21 @@ conservative, we generally recommend assigning uniform priors on $\vT$, such tha
 is flat over the spectral library grid (and zero elsewhere) and $p(\vt_{\rm obs})$ is flat if 
 $\vt_{\rm obs} \ge 0$ (i.e., for physically meaningful values).  
 
+\begin{figure}[!b]
+  \includegraphics{figs/PGM.pdf}
+  \figcaption{A probabilistic graphical model representing how the parameters of the model are
+    combined to forward model a spectrum.  When interpolating models using a spectral emulator
+    (Appendix \ref{sec:Appendix}), the stellar parameters ($\vt_\ast$) determine the weights
+    ($\mathbf{w}$) of the eigenspectra ($\mathbf{\Xi}$), which are modified according to the
+    observational parameters ($\vt_\textrm{obs}$) and polynomial parameters ($\cheb$). Together,
+    these parameters specify the model spectrum ($\vM$). If one uses linear interpolation instead of
+    a spectral emulator, then there would be no intermediate nodes for $\mathbf{w}$ and $\mathbf{\Xi}$. The structure
+    of the covariance matrix, which is included in the likelihood function, is determined by the
+    covariance hyperparameters ($\cov$). Together, the model spectrum and the covariance matrix
+    predict the resulting dataset ($\vD$).
+\label{fig:PGM}}
+\end{figure}
+
 For (early type) stars with a clear continuum, it makes sense to assume flat priors on the 
 polynomial parameters $\cheb$.  However, if information about the accuracy of the calibration is 
 available (e.g., from observations of multiple spectrophotometric standards), it is possible to 
@@ -639,31 +678,27 @@ some judicious tapering of the priors (such that high-$n$ coefficients are const
 may be required to ensure that broad spectroscopic features are not absorbed into the polynomial 
 (see Section~\ref{sec:examples}). 
 
-We suggest assuming uniform priors on the global kernel parameters.  For the local kernels, we 
-typically adopt flat priors for the amplitudes and means \{$a_k$, $\mu_k$\}, but construct a 
-specialized prior for the widths \{$\sigma_k$\} that is flat below the instrumental broadening 
-width (when $\sigma_k < \sigma_v$) and has a rapid (logistic) taper to zero at larger values.  This 
-form is designed to prevent the local kernels from diffusing to large $\sigma_k$ and low $a_k$,
-since such behavior is better treated by the global kernel.  
-
-\begin{figure}[!htb]
-  \includegraphics{figs/PGM.pdf}
-  \figcaption{ Probabilistic graphical model.
-\label{fig:PGM}}
-\end{figure}
+We suggest assuming uniform priors on the global kernel parameters.  For the local kernels, we
+typically adopt flat priors for the amplitudes and means \{$a_k$, $\mu_k$\}, but construct a
+specialized prior for the widths \{$\sigma_k$\} that is flat below the combined broadening width
+(when $\sigma_k$ is less than the FWHM of $\varphi$) and has a rapid (logistic) taper to zero at
+larger values.  This form is designed to prevent the local kernels from diffusing to large
+$\sigma_k$ and low $a_k$, since such behavior is better treated by the global kernel.  
 
 \subsection{Exploring the Posterior} \label{subsec:MCMC}
 
-The inference problem developed here has a natural hierarchical structure between the collections 
-of ``interesting" parameters, $\vT = [\vt_{\ast}, \vt_{\rm obs}]$, and ``nuisance" hyperparameters, 
-$\vP = [\cheb, \cov]$.  To explore the posterior distribution of the model conditioned on the data
+The inference problem developed here has a natural structure between the collections of
+``interesting" parameters, $\vT = [\vt_{\ast}, \vt_{\rm obs}]$, the nuisance calibration parameters
+$\cheb$, and the covariance hyperparameters $\cov$. The conditional dependencies of these parameters
+are shown graphically in Figure~\ref{fig:PGM}. To explore the posterior distribution of the model
+conditioned on the data
 \begin{equation} 
-p(\vT, \vP | \vD) \propto p(\vD | \vT, \vP) \, p(\vT, \vP)
+p(\vT, \cheb, \cov | \vD) \propto p(\vD | \vT, \cheb, \cov) \, p(\vT, \cheb, \cov)
 \label{eqn:post}
 \end{equation}
 for this type of structure, it is convenient to use MCMC simulations with a blocked Gibbs 
 sampler coupled to the Metropolis-Hastings algorithm.  To summarize, this procedure works by 
-sampling in a subset of parameters (with Metropolis-Hastings) conditioned on the current (fixed) 
+sampling in a subset of parameters (with Metropolis-Hastings parameter proposals) conditioned on the current (fixed) 
 values of the other parameters; after each iteration, the Gibbs sampler then updates the values of 
 the sampled parameter subset and then cycles through all the (previously fixed) different parameter 
 subsets in the same way (for a more nuanced mathematical description of the process, see Chapter 11 
@@ -671,34 +706,21 @@ of \citealt{gelman13}).  A step-by-step prescription follows, where the $i^{\rm 
 iteration of the Gibbs sampler is indexed with a superscript: \\
 
 \noindent (1) Initialize the parameters.  One might set $\vT^0$ based on estimates in the 
-literature or scaling behaviors, and make simple assumptions about $\vP^0$.  Here, we set the 
+literature or scaling behaviors, and make simple assumptions about $\cheb^0$.  Here, we set the 
 Chebyshev coefficients ($\cheb^0$) so that the polynomials are constant ($c_o^{(0)} = 1$,  
 $c_o^{(>0)} = 0$, $\forall$ $o$) and assume only the trivial noise spectrum and interpolation error 
 kernel contribute to the covariance matrix ($\cov^0 = 0$).  \\
 
-\noindent (2) Start the $i^{\rm th}$ (where $i \in [1,N_G]$) iteration of the Gibbs sampler.  For 
-each iteration of the Metropolis-Hastings algorithm, sample in the interesting parameters $\vT$ to 
-evaluate the posterior (Eq.~\ref{eqn:post}) following the framework laid out in Sections 
-\ref{subsec:likelihood} and \ref{subsec:priors}.  This represents a ``slice" through the posterior 
-space conditioned on the nuisance parameters being held fixed ($\vP = \vP^{i-1}$).  Then update the 
-interesting parameters $\vT^{i-1} \rightarrow \vT^i$. \\
+\noindent (2) Start the $i^{\rm th}$ iteration of the Gibbs sampler.  For
+each iteration of the Metropolis-Hastings algorithm, sample in the interesting parameters $\vT$ to
+evaluate the posterior (Eq.~\ref{eqn:post}) following the framework laid out in Sections
+\ref{subsec:likelihood} and \ref{subsec:priors}.  This represents a ``slice" through the posterior
+space conditioned on the other parameters being held fixed ($\cheb = \cheb^{i-1}$ and $\cov =
+\cov^{i-1}$).  Then update $\vT^{i-1} \rightarrow \vT^i$. \\
 
-\noindent (3) Cycle through and update the nuisance parameters, $\vP^{i-1} \rightarrow \vP^i$.  For 
-each spectral order,   
-
-\begin{enumerate}[(a)]
-\item Sample in the polynomial coefficients $\cheb$ along a subset of the posterior space where 
-$\vT^i$ and $\cov^{i-1}$ are fixed.  Update the coefficients, $\cheb^{i-1} \rightarrow \cheb^i$.  
-
-\item Sample in the global (stationary) kernel parameters, $\vp_{{\mathsf C},g} = [a_g, \ell]$, 
-with $\vT^i$, $\cheb^i$, and the local kernel parameters, $\vp_{{\mathsf C}, l}^{i-1}$, fixed.  
-Update $\vp_{{\mathsf C}, g}^{i-1} \rightarrow \vp_{{\mathsf C}, g}^i$.
-
-\item If any local (non-stationary) kernels have been instantiated (see below), sample in their 
-hyperparameters $\vp_{{\mathsf C},l}$ with $\vT^i$, $\cheb^i$, and $\vp_{{\mathsf C}, g}^i$ fixed.  
-Update the local kernel parameters $\vp_{{\mathsf C}, k}^{i-1} \rightarrow \vp_{{\mathsf C}, k}^i$. 
-
-\end{enumerate}
+\noindent (3) For each spectral order, sample in the polynomial parameters $\cheb$ and covariance
+hyperparameters $\cov$, conditioned on the other parameters being held fixed $\vT^i = \vT^{i-1}$.
+Then update $\cheb^{i-1} \rightarrow \cheb^i$ and $\cov^{i-1} \rightarrow \cov^i$. \\
 
 \noindent (4) Return to Step~(2) and iterate.  After a burn-in period, periodically pause the Gibbs 
 sampler and compute the Gelman-Rubin convergence diagnostic, $\hat{R}$ \citep[][their 
@@ -708,7 +730,7 @@ Eq.~11.4]{gelman13}.  Break the loop if $\hat{R} \, < \, 1.1$.  \\
 convergence diagnostics to ensure that all of the chains have reached the same global maximum in 
 the posterior probability distribution. \\
 
-In Step~(3c), local covariance kernels are instantiated into the model according to the following 
+In Step~(3), local covariance kernels are instantiated into the model according to the following 
 procedure.  First, an ``average" residual spectrum is generated by combining $\sim$500 residual 
 spectra that were stored during a burn-in period using only the global kernels (prior to this 
 storage, the Markov chain is thinned to account for autocorrelation of the posterior samples).  
@@ -761,7 +783,7 @@ example shown throughout Section \ref{sec:method}, using a high resolution optic
 ($\sim$5000-5400\,\AA) spectrum of the F5 dwarf main sequence star (and transiting exoplanet host) 
 WASP-14 \citep{joshi09,torres12}.  This spectrum is interpreted in the context of two different 
 synthetic model libraries: a custom modification of the \citet{castelli04} models designed and 
-empirically calibrated to reproduce well the optical spectrum around the \ion{Mg}{1}\,b triplet at 
+empirically calibrated to accurately reproduce the optical spectrum around the \ion{Mg}{1}\,b triplet at 
 $\sim$5100\,\AA\ for Sun-like stars (used in {\tt SPC}; hereafter the {\sc CfA/Kurucz} library), 
 and the most recent incarnation of the {\sc Phoenix} library \citep{husser13}.  The second 
 example uses a medium resolution near-infrared ($\sim$2.0-2.4\,$\mu$m) spectrum of the M5 dwarf 
@@ -974,7 +996,7 @@ calibrated spectrum.  At 2.1\,$\mu$m, the S/N is $\sim$400 per resolution elemen
 Modeling late-type stellar atmosphere structures and their spectra is considerably more complex 
 than for Sun-like stars, due to lingering uncertainties in the atmosphere physics and molecular 
 opacities.  Especially confounding is the presence of complex condensates (clouds) at the coolest 
-temperatures \citep{allard13}, making it considerably more challenging to determine (sub-)stellar 
+temperatures \citep{allard13}, making it considerably more challenging to determine (sub-) stellar 
 properties \citep{rajpurohit14}.  Various approaches have been taken to infer the key parameters in 
 the face of these difficulties, including iteratively masking regions with poor spectral agreement 
 \citep[e.g.,][]{mann13}.  Astutely, \citeauthor{mann13}~note that such a scheme may exclude 
@@ -1131,6 +1153,20 @@ the Smithsonian Institution.  Figure~\ref{fig:PGM} was generated with
 
 \section{Spectral Emulator for Interpolation} \label{sec:Appendix}
 
+\begin{figure*}[!htb]
+  \begin{center}
+  \includegraphics{figs/pca_reconstruct.pdf}
+  \vspace{-0.6cm}
+  \figcaption{ (\emph{top}) The mean spectrum, standard deviation spectrum, and five eigenspectra 
+that form the basis of the \textsc{Phoenix} synthetic library used to model Gl~51, generated using 
+a subset of the parameter-space most relevant for M dwarfs.  (\emph{bottom}) The original synthetic 
+spectrum from the \textsc{Phoenix} library ($\vt_\ast = [T_\textrm{eff} = 3000\,\textrm{K}, \log g =
+  5.0\,\textrm{dex}, \Z = 0.0\, \textrm{dex}]$) compared with a spectrum reconstructed from a linear 
+combination of the derived eigenspectra using Eqn~\ref{eqn:reconstruct} (with the weights $w_k$ 
+listed in the top panel figure).  \label{fig:pca_reconstruct}}
+  \end{center}
+\end{figure*}
+
 Interpolation from a library of synthetic spectra is conceptually straightforward, but in the 
 application being considered here there are some subtleties that necessitate a more sophisticated 
 approach.  Spectral line formation is a non-linear process, where line shapes are determined by 
@@ -1160,20 +1196,6 @@ encapsulated in a 4-dimensional array.  The libraries used here have grid spacin
 $\log g$ and 0.5 dex in $\Z$; the {\sc CfA/Kurucz} library steps by 250\,K in $T_{\rm eff}$, but 
 the {\sc Phoenix} library has finer coverage in 100\,K increments.  
 
-\begin{figure*}[!t]
-  \begin{center}
-  \includegraphics{figs/pca_reconstruct.pdf}
-  \vspace{-0.6cm}
-  \figcaption{ (\emph{top}) The mean spectrum, standard deviation spectrum, and five eigenspectra 
-that form the basis of the \textsc{Phoenix} synthetic library used to model Gl~51, generated using 
-a subset of the parameter-space most relevant for M dwarfs.  (\emph{bottom}) The original synthetic 
-spectrum from the \textsc{Phoenix} library ($\vt_\ast = [T_\textrm{eff} = 3000\,\textrm{K}, \log g =
-  5.0\,\textrm{dex}, \Z = 0.0\, \textrm{dex}]$) compared with a spectrum reconstructed from a linear 
-combination of the derived eigenspectra using Eqn~\ref{eqn:reconstruct} (with the weights $w_k$ 
-listed in the top panel figure).  \label{fig:pca_reconstruct}}
-  \end{center}
-\end{figure*}
-
 The first step in designing a spectral emulator is to break down the library into an appropriate 
 basis \citep{habib07, heitmann09}.  We chose the principal component basis to decompose the library 
 into a set of ``eigenspectra", following the techniques of \citet{ivezic13}.  Prior to this 
@@ -1192,7 +1214,7 @@ and the standard deviation spectrum is
 where $\{\vt_\ast \}^\textrm{grid}$ denotes the full collection of the $M$ sets of stellar 
 parameters under consideration in the library and $\{\vt_\ast \}^\textrm{grid}_i$ denotes a single 
 set of those parameters drawn from this collection. Both $\xi_\mu$ and $\xi_\sigma$ are
-vectors with length $N_\textrm{pix}$, the same size as any
+vectors with length $N_\textrm{pix}$, the same size as a
 raw synthetic spectrum ($f_\lambda$). In effect, all library spectra are 
 standardized by subtracting the mean spectrum and dividing by the standard deviation spectrum
 \begin{equation}
@@ -1237,7 +1259,7 @@ a linear combination of the eigenspectra
   \label{eqn:reconstruct}
 \end{equation}
 where $w_k$ is the weight of the $k^{\rm th}$ eigenspectrum.  These weights are 3-dimensional 
-scalar functions that depend on the stellar parameters $\vt_\ast$.  These weights, which are 
+scalar functions that depend on the stellar parameters $\vt_\ast$.  The weights, which are 
 generally smooth functions of the stellar parameters (see the left panel of 
 Figure~\ref{fig:GP_interp}), can be determined at any grid point in the library by taking the dot 
 product of the standardized synthetic spectrum with the eigenspectrum  
@@ -1271,7 +1293,7 @@ Then, we can rewrite Eq.~(\ref{eqn:reconstruct}) as
 where $\mathsf{I}_{N_{\rm pix}}$ is an $N_{\rm pix} \times N_{\rm pix}$ identity matrix. 
 
 To recapitulate, the framework described above can be used to decompose the synthetic spectra in a 
-model library into a principal component basis, allowing us to lossily reconstruct any spectrum in 
+model library into a principal component basis, allowing us to reconstruct any spectrum in 
 the library as a (weighted) linear combination of $m$ eigenspectra.  The weights corresponding to 
 each eigenspectrum are moderately-smooth scalar functions of the three stellar parameters, 
 $\vt_{\ast}$.  Therefore, to create a spectrum corresponding to an arbitrary set of these 
@@ -1299,7 +1321,7 @@ variables drawn from a joint multi-variate Gaussian distribution
 with $\mathbf{\Sigma}_k^{\rm grid}$ denoting the covariances.  The kernel that describes the 
 covariance matrix for this distribution is assumed to be a 3-dimensional squared exponential,
 \begin{eqnarray}
-  \mathcal{K}(\vt_i, \vt_j | \phi_{\rm int} ) &=& a_{\rm int}^2 \exp \left [ - \frac{(T_{\textrm{eff}_i} - T_{\textrm{eff}_j})^2}{2 \, \ell_{T_\textrm{eff}}^2 } \right] \nonumber \\
+  \mathcal{K}(\vt_{\ast, i}, \vt_{\ast, j} | \phi_{\rm int} ) &=& a_{\rm int}^2 \exp \left [ - \frac{(T_{\textrm{eff}_i} - T_{\textrm{eff}_j})^2}{2 \, \ell_{T_\textrm{eff}}^2 } \right] \nonumber \\
   & & \times \exp \left [-\frac{(\log g_i - \log g_j)^2}{2 \, \ell_{\log g}^2} \right ] \\
   & & \times \exp \left [ -\frac{ (\Z_i - \Z_j)^2}{2 \, \ell_{\Z}^2} \right ] \nonumber,
 \end{eqnarray}
@@ -1458,6 +1480,7 @@ likelihood function in the form of Eqn~\ref{eqn:lnlikelihood} by rewriting
 \end{equation}
 \begin{equation}
   \mathsf{C}^\prime = \mathbf{X} \mathbf{\Sigma}_\mathbf{w} \mathbf{X}^T + \mathsf{C}
+  \label{eqn:modC}
 \end{equation}
 where $\mathsf{M}^\prime$ can be thought of as the ``mean model spectrum" given the model 
 parameters, and the covariance matrix has been modified to account for the various probable 
