@@ -1,0 +1,158 @@
+*~
+*.swp
+
+*.pyc
+
+docs/_build/
+libraries
+output
+
+#Cython build files
+build/
+dist/
+StellarSpectra/covariance.c
+StellarSpectra/covariance.cpython-34m.so
+
+#Python install files
+StellarSpectra.egg-info/
+
+#Profile output
+prof
+
+#HPC runs
+run
+
+#Coverage output
+.coverage*
+htmlcov/
+
+*.fits
+
+#LaTeX files
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.log
+*.out
+*Notes.bib
+*.fdb_latexmk
+*.fls
+paper.pdf
+
+#Pycharm
+.idea*
+.directory
+
+#IPython
+*.ipynb_checkpoints*
+*-checkpoint.ipynb
+
+# Created by http://www.gitignore.io
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+
+### IPythonNotebook ###
+# Temporary data
+.ipynb_checkpoints/
+
+
+### LaTeX ###
+*.acn
+*.acr
+*.alg
+*.aux
+*.bbl
+*.blg
+*.brf
+*.dvi
+*.fdb_latexmk
+*.glg
+*.glo
+*.gls
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.log
+*.lot
+*.maf
+*.mtc
+*.mtc0
+*.nav
+*.nlo
+*.out
+*.pdfsync
+*.ps
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdy
+*.tdo
+
+*stellarspectra.bib\~*
+
+### vim ###
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
