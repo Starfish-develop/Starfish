@@ -1,0 +1,229 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Scripts &mdash; Starfish 1.0 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
+        <link rel="prev" title="Model" href="model.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> Starfish</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#downloading-the-program-data">Downloading the program data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-the-parameter-script">Creating the parameter script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#echelle-orders">Echelle orders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#covariance-matrices">Covariance matrices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#module-level-methods">Module level methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#grid-interfaces">Grid Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-interfaces">HDF5 creators and interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#fits-creator">FITS creator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hdf5-scripts">HDF5 Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plotting-scripts">Plotting Scripts</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Starfish</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Scripts</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/scripts.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="scripts">
+<h1>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h1>
+<p>StellarSpectra is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
+data.</p>
+<p>You may want to add the following location to your <cite>PATH</cite> in order to make frequent use of these scripts.</p>
+<div class="section" id="hdf5-scripts">
+<h2>HDF5 Scripts<a class="headerlink" href="#hdf5-scripts" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>hdfcat.py</li>
+<li>hdfplot.py</li>
+</ul>
+<div class="section" id="hdfcat-py">
+<h3>hdfcat.py<a class="headerlink" href="#hdfcat-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is used to concatenate the samples from multiple MCMC runs. The output must be stored in the same formats,
+but it is primarily for concatenating the samples for the stellar parameters and order parameters, but notably <em>not</em>
+the region lists and parameters. This is designed to enable parallel runs of the algorithm but then combine all of
+the parameters into one HDF5 file for use with <cite>hdfplot.py</cite></p>
+</div>
+<div class="section" id="hdfplot-py">
+<h3>hdfplot.py<a class="headerlink" href="#hdfplot-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to plot the chain data contained in a single HDF5 file. As of now, you can select which
+stellar parameters you wish to provide in the triangle plot. This is designed to make custom plots <em>after</em> the run, such
+that you can play around with intercomparing parameters and making it look good for the paper or presentation.</p>
+<p>Functionality that&#8217;s coming: ability to select/truncate samples from the beginning/end of the run.</p>
+</div>
+<div class="section" id="hdfinterplot-py">
+<h3>hdfinterplot.py<a class="headerlink" href="#hdfinterplot-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to plot the different chains for single parameters. It hasn&#8217;t been written yet.</p>
+</div>
+</div>
+<div class="section" id="plotting-scripts">
+<h2>Plotting Scripts<a class="headerlink" href="#plotting-scripts" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>plotly_model.py</li>
+</ul>
+<div class="section" id="plotly-model-py">
+<h3>plotly_model.py<a class="headerlink" href="#plotly-model-py" title="Permalink to this headline">¶</a></h3>
+<p>This script is designed to visualize an individual order. Designed to be run both as a command line script and
+as an importable function that returns a url.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="model.html" class="btn btn-neutral" title="Model"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2013-14, Ian Czekala.
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
