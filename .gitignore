@@ -6,3 +6,6 @@ run
 build
 dist
 docs
+Starfish
+__pycache__
+*~
