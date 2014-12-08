@@ -1,0 +1,8 @@
+*.egg-info
+libraries
+output
+prof
+run
+build
+dist
+docs
