@@ -1,6 +1,0 @@
-<map id="inheritance81448a7240" name="inheritance81448a7240">
-<area shape="rect" id="node1" href="#Starfish.grid_tools.BTSettlGridInterface" title="BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the individual files of the BTSettl grid do not" alt="" coords="188,5,339,31"/>
-<area shape="rect" id="node2" href="#Starfish.grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="5,55,135,80"/>
-<area shape="rect" id="node3" href="#Starfish.grid_tools.KuruczGridInterface" title="Kurucz grid interface." alt="" coords="190,55,337,80"/>
-<area shape="rect" id="node4" href="#Starfish.grid_tools.PHOENIXGridInterface" title="An Interface to the PHOENIX/Husser synthetic library." alt="" coords="183,104,344,129"/>
-</map>

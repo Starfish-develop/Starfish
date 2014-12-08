@@ -1,6 +1,0 @@
-<map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
-<area shape="rect" id="node1" href="#Starfish.grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="5,55,97,80"/>
-<area shape="rect" id="node2" href="#Starfish.grid_tools.KPNO" title="KNPO Instrument" alt="" coords="145,5,217,31"/>
-<area shape="rect" id="node3" href="#Starfish.grid_tools.Reticon" title="Reticon Instrument" alt="" coords="145,55,217,80"/>
-<area shape="rect" id="node4" href="#Starfish.grid_tools.TRES" title="TRES instrument" alt="" coords="145,104,217,129"/>
-</map>

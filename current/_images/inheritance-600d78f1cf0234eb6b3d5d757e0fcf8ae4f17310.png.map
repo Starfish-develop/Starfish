@@ -1,5 +1,0 @@
-<map id="inheritance2074dcef86" name="inheritance2074dcef86">
-<area shape="rect" id="node1" href="#Starfish.spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,305,31"/>
-<area shape="rect" id="node3" href="#Starfish.spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="353,5,513,31"/>
-<area shape="rect" id="node2" href="#Starfish.spectrum.BaseSpectrum" title="The base spectrum object, designed to be inherited." alt="" coords="5,5,123,31"/>
-</map>
