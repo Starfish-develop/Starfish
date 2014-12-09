@@ -428,6 +428,7 @@ def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_p
 
 
     figure.savefig(base + flatchain.id + format)
+    figure.savefig(base + flatchain.id + ".svg")
 
 def plot_walkers(filename, samples, lnprobs=None, start=0, end=-1, labels=None):
     import matplotlib.pyplot as plt
