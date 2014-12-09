@@ -40,10 +40,10 @@
 
         </div>
         <div class="col-md-8">
-          <h1 class="featurette-heading text-center">Starfish</h1>
+          <h1 class="featurette-heading text-center" style="color:#fff">Starfish</h1>
           <h2 class="featurette-heading text-center"> a tool for robust spectroscopic inference</h2>
           <div style="vertical-align:bottom" class="pull-right">
-            <p class="featurette-heading" style="display:inline-block;" >by <a href="http://iancze.github.io" style="color:#CCDBE6;">Ian Czekala</a> and collaborators</p>
+            <p class="featurette-heading" style="display:inline-block;" >by <a href="http://iancze.github.io" style="color:#fff;">Ian Czekala</a> and collaborators</p>
             <a href="http://iancze.github.io"><img src="img/ian_czekala.jpg" class="img-circle" width=80px/></a>
           </div>
         </div>
@@ -71,8 +71,7 @@
         <p>Our paper recently appeared on astro-ph!</p>
       </div>
     </div>
-    <hr class="featurette-divider"/>
-    <div class="row">
+    <div class="row" style="margin-top:20px;">
       <p class="text-center">If you use this code in your own research, please cite <em>Czekala et al. 15.</em></p>
     </div>
   </div>
@@ -81,7 +80,13 @@
   <hr class="featurette-divider"/>
   <div class="container">
     <div class="row">
-      Show the general spectrum here, for orientation.
+      <div class="col-md-4">
+        <h2>Spectral fits</h2>
+        High resolution spectrum, generally full optical range, moderate to high signal-to-noise.
+      </div>
+      <div class="col-md-8">
+        Show the general spectrum here, for orientation.
+      </div>
     </div>
     <hr class="featurette-divider" />
     <div class="row">
@@ -98,13 +103,13 @@
       </div>
 
       <div class="col-md-6">
-        <img src="img/class0_residuals.svg" class="center-block" width=100%/>
-        <img src="img/class0_autocorrelation.svg" class="center-block" width=100%/>
+        <img src="img/class0_residuals.svg" class="center-block img-responsive" />
+        <img src="img/class0_autocorrelation.svg" class="center-block img-responsive"/>
       </div>
 
-
-
     </div>
+
+    <hr class="featurette-divider" />
 
     <div class="row">
       <div class="col-md-6">
@@ -117,9 +122,9 @@
         <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
         </p>
       </div>
-      
+
       <div class="col-md-6">
-        <img src="img/badlines.svg" class="center-block img-responsive" width=100%/>
+        <img src="img/badlines.svg" class="center-block img-responsive"/>
       </div>
 
     </div>
@@ -132,13 +137,26 @@
 
       Show some Math-jax with the likelihood function.
     </div>
+    <hr class="featurette-divider" />
+    <div class="row">
+      <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=750px/>
+    </div>
 
+    <hr class="featurette-divider" />
+    <div class="row">
+      <img src="img/residuals_Gl51_logg.svg" class="center-block img-responsive" height=350px />
+    </div>
 
-      <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=100%/>
-      <img src="img/residuals_Gl51_logg.svg" class="center-block"/>
+    <hr class="featurette-divider" />
+    <div class="row">
+      <img src="img/stellar_triangle.svg" class="center-block img-responsive" height=450px />
+    </div>
 
+    <hr class="featurette-divider" />
+    <div class="row">
       Spectral emulator
-      <img src="img/pca_reconstruct.svg" class="center-block"/>
+      <img src="img/pca_reconstruct.svg" class="center-block" />
+    </div>
 
   </div>
 
