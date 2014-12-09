@@ -79,8 +79,68 @@
   </div>
 
   <hr class="featurette-divider"/>
+  <div class="container">
+    <div class="row">
+      Show the general spectrum here, for orientation.
+    </div>
+    <hr class="featurette-divider" />
+    <div class="row">
 
-  <img src="img/matrix_compilation.svg" class="center-block"/>
+      <div class="col-md-6">
+        <h2>Fitting many lines</h2>
+        <p>
+          is tough.
+        </p>
+        <p> <strong>near</strong>: Even some of the better fitting lines will still have ignificant correlation in the residuals.
+        </p>
+        <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
+        </p>
+      </div>
+
+      <div class="col-md-6">
+        <img src="img/class0_residuals.svg" class="center-block" width=100%/>
+        <img src="img/class0_autocorrelation.svg" class="center-block" width=100%/>
+      </div>
+
+
+
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h2>Fitting many lines</h2>
+        <p>
+          is tough.
+        </p>
+        <p> <strong>near</strong>: Even some of the better fitting lines will still have ignificant correlation in the residuals.
+        </p>
+        <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
+        </p>
+      </div>
+      
+      <div class="col-md-6">
+        <img src="img/badlines.svg" class="center-block img-responsive" width=100%/>
+      </div>
+
+    </div>
+
+    <hr class="featurette-divider" />
+
+    <div class="row">
+      <p>Derive a likelihood function which accounts for covariances in the residuals. Then, parameterize this covariance using a Gaussian process covariance kernel. </p>
+      <p> We can design kernels which account for the broad-scale, <em>globally</em> covariant residuals as well as the local covariance</p>
+
+      Show some Math-jax with the likelihood function.
+    </div>
+
+
+      <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=100%/>
+      <img src="img/residuals_Gl51_logg.svg" class="center-block"/>
+
+      Spectral emulator
+      <img src="img/pca_reconstruct.svg" class="center-block"/>
+
+  </div>
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
