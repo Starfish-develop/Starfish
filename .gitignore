@@ -1,11 +1,9 @@
-*.egg-info
-libraries
-output
-prof
-run
+_site
+.sass-cache
+docs
 build
 dist
-docs
-Starfish
-__pycache__
+*.egg-info
+Starfish 
 *~
+__pycache__
