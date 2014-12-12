@@ -46,7 +46,7 @@
           <h2 class="featurette-heading text-center"> a tool for robust spectroscopic inference</h2>
           <div style="vertical-align:bottom" class="pull-right">
             <p class="featurette-heading" style="display:inline-block;" >by <a href="http://iancze.github.io" style="color:#fff;">Ian Czekala</a> and collaborators</p>
-            <a href="http://iancze.github.io"><img src="img/ian_czekala.jpg" class="img-circle" width=80px/></a>
+            <a href="http://iancze.github.io"><img src="img/ian_czekala_small.jpg" class="img-circle" /></a>
           </div>
         </div>
       </div>
@@ -82,13 +82,14 @@
   <hr class="featurette-divider"/>
   <div class="container">
     <div class="row">
-      <div class="col-md-4">
-        <h2>Spectral fits</h2>
-        High resolution spectrum, generally full optical range, moderate to high signal-to-noise.
-      </div>
-      <div class="col-md-8">
-        Show the general spectrum here, for orientation.
-      </div>
+      <h2>A general purpose code for spectroscopic inference</h2>
+      <p>We are now fortunate enough to live in an age of astrophysics where high quality model spectra exist for a variety of astronomical sources, at high spectral resolution and over a wide spectral range. In addition, many high-throughput spectrographs deliver spectra to be taken with high sensitivity and large spectral range.
+
+        Therefore, it makes sense to leverage both of these assets by using as large of a spectral range as possible when deciding which model spectrum "fits best," moving beyond the practice of fitting just a few well-chosen spectral lines (e.g., Fe lines, Na lines) to fitting the <em>entire spectrum at once</em>.</p>
+      <p>Unfortunately, there are several complicating issues that become acute when fitting a large spectral range. Principally, at high resolution and high sensitivty, model systematics will dominate the noise budget. This is due to  uncertanities in the atomic constants and physical processes that produce spectra, as well as particular differences in the parameters of the star (for example differences in individual elemental abundances). Proceeding with a simple figure of merit function, like a simple \( \chi^2 \) fit, can lead to biased answers with drastically underestimated uncertainties on parameter estimates. </p>
+      <p>We address these problems by accounting for the covariant residual structure that can result from a model-to-data fit in this regime. Using some of the machinery developed by the field of Gaussian processes, we can parameterize the covariant structure both due to general line mis-matches as well as specific "outlier" spectral lines due to pathological errors.
+      </p>
+
     </div>
     <hr class="featurette-divider" />
     <div class="row">
