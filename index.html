@@ -18,6 +18,8 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/main.css">
     <!-- Google analytics tracking code -->
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
     <script>        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
@@ -135,7 +137,8 @@
       <p>Derive a likelihood function which accounts for covariances in the residuals. Then, parameterize this covariance using a Gaussian process covariance kernel. </p>
       <p> We can design kernels which account for the broad-scale, <em>globally</em> covariant residuals as well as the local covariance</p>
 
-      Show some Math-jax with the likelihood function.
+      <p> $$ p (\mathsf{D} | \mathsf{M} ) = \frac{1}{\left [ (2 \pi)^N \det(\mathsf{C}) \right ]^{1/2}} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$ </p>
+
     </div>
     <hr class="featurette-divider" />
     <div class="row">
