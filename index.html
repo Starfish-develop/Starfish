@@ -43,7 +43,7 @@
         </div>
         <div class="col-md-8">
           <h1 class="featurette-heading text-center" style="color:#fff">Starfish</h1>
-          <h2 class="featurette-heading text-center"> a tool for robust spectroscopic inference</h2>
+          <h2 class="featurette-heading text-center"> tools for robust spectroscopic inference</h2>
           <div style="vertical-align:bottom" class="pull-right">
             <p class="featurette-heading" style="display:inline-block;" >by <a href="http://iancze.github.io" style="color:#fff;">Ian Czekala</a> and collaborators</p>
             <a href="http://iancze.github.io"><img src="img/ian_czekala_small.jpg" class="img-circle" /></a>
@@ -82,24 +82,32 @@
   <hr class="featurette-divider"/>
   <div class="container">
     <div class="row">
-      <h2>A general purpose code for spectroscopic inference</h2>
-      <p>We are now fortunate enough to live in an age of astrophysics where high quality model spectra exist for a variety of astronomical sources, at high spectral resolution and over a wide spectral range. In addition, many high-throughput spectrographs deliver spectra to be taken with high sensitivity and large spectral range.
-
-        Therefore, it makes sense to leverage both of these assets by using as large of a spectral range as possible when deciding which model spectrum "fits best," moving beyond the practice of fitting just a few well-chosen spectral lines (e.g., Fe lines, Na lines) to fitting the <em>entire spectrum at once</em>.</p>
-      <p>Unfortunately, there are several complicating issues that become acute when fitting a large spectral range. Principally, at high resolution and high sensitivty, model systematics will dominate the noise budget. This is due to  uncertanities in the atomic constants and physical processes that produce spectra, as well as particular differences in the parameters of the star (for example differences in individual elemental abundances). Proceeding with a simple figure of merit function, like a simple \( \chi^2 \) fit, can lead to biased answers with drastically underestimated uncertainties on parameter estimates. </p>
-      <p>We address these problems by accounting for the covariant residual structure that can result from a model-to-data fit in this regime. Using some of the machinery developed by the field of Gaussian processes, we can parameterize the covariant structure both due to general line mis-matches as well as specific "outlier" spectral lines due to pathological errors.
+      <h2>Deriving physical parameters from astronomical spectra</h2>
+      <p><span class="lead">Consider the following scenario </span> An astronomer returns from a successful observing trip with many high signal-to-noise, high resolution stellar spectra on her trusty USB thumbdrive. If she was observing at the type of echelle spectrograph common to most modern observatories, chances are that her data span a significant spectral range, perhaps the full optical (3700 to 9000 angstroms), or the full near-infrared (0.7 to 5 microns). Now that she's back at her home institution, she sets herself to the task of determining the stellar properties of her targets.</p>
+      <p>She is an expert in the many existing well-tested techniques for determining stellar properties, such as <em>MOOG</em>, <em>SME</em>, and <em>SPC</em>. But the fact that these use only a small portion of her data—several well-chosen lines like Fe and Na (albeit <em>very</em> well chosen)—has stubbornly persisted in the back of her mind.</p>
+      <p>At the same time, the astronomer has been paying attention to the steady increasing availability of high quality synthetic spectra, produced by a variety of groups around the world. These libraries span a large range of the stellar parameters she cares about (effective temperature, surface gravity, and metallicity) with a tremendous spectral range from the UV to the near-infrared—fully covering her dataset. She wonders, "instead of choosing a subset of lines to study, what if I use these synthetic libraries to fit <em>all of my data</em>?"</p>
+      <p> <span class="lead">She knows that it's not quite so simple </span> as just fitting more spectral range, however. She knows that even though the synthetic spectral libraries are generally high quality and remarkable in their scope, it is still very hard to produce perfect synthetic spectra. This is primarily due to innacuracies in atomic and molecular constants that are difficult to measure in the lab, making it difficult to ensure that all spectral lines are accurate over a wide range of both stellar parameters and spectral range. The highest quality libraries tend to achieve their precision by focusing on a "sweet spot" of stellar parameters, generally near those of the Sun, and by choosing a limited spectral range, where atomic constants can be meticulously vetted for accuracy. The astronomer also knows that some of her stars may have non-solar ratios of elemental abundances, a behavior that is not captured by the limited set of adjustable parameters that specify a spectrum in a synthetic library. She's tried fitting the full spectrum of her stars using a simple \( \chi^2 \) likelihood function, but she knows that ignoring these effects will lead to parameter estimates that are biased and have unrealistically small uncertainties. She wonders, "How can I fit my entire spectrum but avoid these pitfalls?"
       </p>
+
+      <h2>Introducing Starfish: a general purpose framework for robust spectroscopic inference</h2>
+      <p>We've developed a framework for spectroscopic inference that fulfills the astronomer's dream of using <em>all of the data</em>, called <em>Starfish</em>. Our statistical framework attempts to overcome many of the difficulties that the astronomer noted. Principally, at high resolution and high sensitivty, <a href="#general_outliers">model systematics</a>—such as innaccuracies in the <a href="#specific_outliers">strengths of particular lines</a>—will dominate the noise budget. Ignoring these systematics and proceeding with a simple figure of merit function, like \( \chi^2 \), can lead to biased answers with drastically underestimated uncertainties on parameter estimates.</p>
+      <p>We address these problems by accounting for the covariant structure of the residuals that can result from fitting models to data in this regime. Using some of the <a href="#covariance_kernels">machinery</a> developed by the field of Gaussian processes, we can parameterize the covariant structure both due to general line mis-matches as well as specific "outlier" spectral lines due to pathological errors in the atomic and molecular line databases.
+      </p>
+      <p>
+      <span class="lead">Besides alleiviating the problem</span> of systematic bias and spectral line outliers when <a href="#triangle">inferring stellar parameters</a>, this approach has many added benefits. By <em>forward-modelling</em> the data, we put the problem of spectroscopic inference on true probabilistic footing. Rather than iterating in an open loop between stellar spectroscopists and stellar modellers, whereby knowledege about the accuracies of line fits is communicated post-mortem, a probabilistic inference framework like Starfish delivers posterior distributions over the <a href="#residuals">locations and strengths</a> of outlier spectral lines. Combined with a suite of stellar spectra spanning a range of stellar parameters and a tunable list of atomic and molecular constants, a probabilistic framework like this provides a way to close the loop on improving both the stellar models and the stellar parameters inferred from them by comparing models to data <em>directly</em>, rather than mediating through a series of fits to individual lines.
+    </p>
+    <p>
+      Lastly, using a forward model means that uncertainties about other non-stellar parameters, such as flux-calibration or interstellar redenning, can be built into the model and propogated forward. In a future version of <em>Starfish</em> we aim to include a parameterization for the accretion veiling continuum of young T Tauri stars.
+    </p>
 
     </div>
     <hr class="featurette-divider" />
     <div class="row">
 
       <div class="col-md-6">
+        <a name="general_outliers"></a>
         <h2>Fitting many lines</h2>
-        <p>
-          is tough.
-        </p>
-        <p> <strong>near</strong>: Even some of the better fitting lines will still have ignificant correlation in the residuals.
+        <p> <strong>near</strong>: A comparison between Even some of the better fitting lines will still have ignificant correlation in the residuals.
         </p>
         <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
         </p>
@@ -115,6 +123,7 @@
     <hr class="featurette-divider" />
 
     <div class="row">
+      <a name="specific_outliers"></a>
       <div class="col-md-6">
         <h2>Fitting many lines</h2>
         <p>
@@ -143,16 +152,21 @@
     </div>
     <hr class="featurette-divider" />
     <div class="row">
+      <a name="covariance_kernels"></a>
+      <p>Parameterizing the covariance with covariance kernels.
+      </p>
       <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=750px/>
     </div>
 
     <hr class="featurette-divider" />
     <div class="row">
+      <a name="residuals"></a>
       <img src="img/residuals_Gl51_logg.svg" class="center-block img-responsive" height=350px />
     </div>
 
     <hr class="featurette-divider" />
     <div class="row">
+      <a name="triangle"></a>
       <img src="img/stellar_triangle.svg" class="center-block img-responsive" height=450px />
     </div>
 
