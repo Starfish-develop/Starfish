@@ -106,14 +106,18 @@
 
       <div class="col-md-6">
         <a name="general_outliers"></a>
-        <h2>Fitting many lines</h2>
-        <p> <strong>near</strong>: A comparison between Even some of the better fitting lines will still have ignificant correlation in the residuals.
+        <h2>Fitting many lines at once</h2>
+        <p>Here is a general example of what can happen when one attempts to fit data with synthetic spectra over a wide spectral range. This is an optical spectrum of WASP-14, an F star hosting a transiting exoplanet.</p>
+        <p> <strong>top</strong>: A comparison of the data and a typical model fit, along with the corresponding residual spectrum. Notice that this residual spectrum does not look like pure white noise.
         </p>
-        <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
+        <p> <strong>middle</strong>: A zoomed view of the gray band in the top panel, highlighting the mildly covariant residual structure that is produced by slight mismatches between the data and model spectra.
+        </p>
+        <p><strong>bottom</strong>: The autocorrelation of the residual spectrum. Notice the substantial autocorrelation signal for offsets of 8 pixels or fewer, demonstrating clearly that the residuals are not well described by white (Poisson) noise alone.
         </p>
       </div>
 
       <div class="col-md-6">
+        <img src="img/residuals_23.svg" class="center-block img-responsive" />
         <img src="img/class0_residuals.svg" class="center-block img-responsive" />
         <img src="img/class0_autocorrelation.svg" class="center-block img-responsive"/>
       </div>
@@ -125,48 +129,51 @@
     <div class="row">
       <a name="specific_outliers"></a>
       <div class="col-md-6">
-        <h2>Fitting many lines</h2>
+        <h2>Spectral line outliers</h2>
         <p>
-          is tough.
-        </p>
-        <p> <strong>near</strong>: Even some of the better fitting lines will still have ignificant correlation in the residuals.
-        </p>
-        <p> <strong>far</strong>: Alternatively, there will likely be lines that have incorrect atomic constants.
+        Here is a specific example of individual lines that are strongly discrepant from the data. There is substantial localized strucuture in the residuals due to "outlier" spectral lines in the model library. For any specific line, there might exist a set of model parameters that will improve the match with the data, but there is no single set of model parameters that will properly fit all of the lines at once.
         </p>
       </div>
 
       <div class="col-md-6">
         <img src="img/badlines.svg" class="center-block img-responsive"/>
       </div>
-
     </div>
 
     <hr class="featurette-divider" />
 
     <div class="row">
-      <p>Derive a likelihood function which accounts for covariances in the residuals. Then, parameterize this covariance using a Gaussian process covariance kernel. </p>
-      <p> We can design kernels which account for the broad-scale, <em>globally</em> covariant residuals as well as the local covariance</p>
-
+      <h2>Model the covariance</h2>
+      <p>In order to account for the covariant residual structure which results from model systematics, we derive a likelihood function with a non-trivial covariance matrix, which maps the covariances between pixels. </p>
       <p> $$ p (\mathsf{D} | \mathsf{M} ) = \frac{1}{\left [ (2 \pi)^N \det(\mathsf{C}) \right ]^{1/2}} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$ </p>
-
-    </div>
-    <hr class="featurette-divider" />
-    <div class="row">
       <a name="covariance_kernels"></a>
-      <p>Parameterizing the covariance with covariance kernels.
+      <p> We then parameterize this covariance matrix \( \mathsf{C} \) using Gaussian process <strong>covariance kernels</strong>. This procedure is demonstrated in the following figure through the following decomposition of how the Gaussian process kernels contribute to the covariance matrix.
       </p>
+
       <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=750px/>
+
+      <p><strong>top panel</strong>: a typical comparison between the data and model spectra, along with the associated residual spectrum. The subsequent rows focus on the illustrative region shaded in grey.</p>
+      <p>The <strong>left column</strong> of panels shows the corresponding region of the covariance matrix \( \mathsf{C} \), decomposed into its primary contributions: <em>(top row)</em> the trivial noise matrix using just Poisson errors \(\delta_{ij} \sigma_i \), <em>(middle row)</em> the trivial matrix combined with a "global" covariance kernel \( \mathcal{K}^\textrm{G}\), and <em>(bottom row)</em> these matrices combined with a "local" covariance kernel \( \mathcal{K}^\textrm{L}\) to account for an outlier spectral line.
+      </p>
+      <p>The <strong>right column</strong> of panels shows the zoomed-in residual spectrum with example random draws from the covariance matrix to the left. The shaded contours in orange represent the 1, 2, and 3 sigma dispersions of an ensemble of 200 random draws from the covariance matrix. Note that the trivial covariance matrix <em>(top row)</em> poorly reproduces both the scale and structure of the residual spectrum. The addition of a global kernel <em>(middle row)</em> more closely approximates the structure and amplitude of the residuals, but misses the outlier line at 5202.5 angstroms. Including a local kernel at that location <em>(bottom row)</em> results in a covariance matrix that does an excellent job of reproducing all the key residual features.
+      </p>
     </div>
 
     <hr class="featurette-divider" />
     <div class="row">
+      <h2>Spectroscopic inference</h2>
       <a name="residuals"></a>
+      <p>
+        The parameters for the local kernels describing the spectral outliers are determined self-consistently. This means that the influence of these lines on the fit are appropriately downweighted. 
+      </p>
+
       <img src="img/residuals_Gl51_logg.svg" class="center-block img-responsive" height=350px />
     </div>
 
     <hr class="featurette-divider" />
     <div class="row">
       <a name="triangle"></a>
+      <h2> Robust stellar parameters </h2>
       <img src="img/stellar_triangle.svg" class="center-block img-responsive" height=450px />
     </div>
 
