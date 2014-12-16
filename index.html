@@ -65,21 +65,21 @@
   <div class="featurette-panel">
   <div class="container">
     <div class="row">
-      <div class="col-md-3"/>
-        <p><a class="btn btn-primary" href="https://github.com/iancze/Starfish" role="button">Download and Install &raquo;</a></p>
-        <p>Starfish is written in Python. The code is open source and actively developed on Github</p>
+      <div class="col-md-3">
+        <p><a class="btn btn-success" href="" role="button">Read the paper &raquo;</a></p>
+        <p>Our paper just appeared on astro-ph!</p>
+      </div>
+      <div class="col-md-3">
+        <p><a class="btn btn-primary" href="http://iancze.github.io/exostat/" role="button">View the presentation &raquo;</a></p>
+        <p>An introduction about spectroscopic inference and the problems Starfish solves</p>
       </div>
       <div class="col-md-3">
         <p><a class="btn btn-primary" href="current/index.html" role="button">Read the documentation &raquo;</a></p>
-        <p>Getting started examples as well as general documentation</p>
+        <p>Instructions and examples!</p>
       </div>
-      <div class="col-md-3">
-        <p><a class="btn btn-default" href="" role="button">View the presentation &raquo;</a></p>
-        <p>An introductory presentation about spectroscopic inference and why one might like to use Starfish</p>
-      </div>
-      <div class="col-md-3">
-        <p><a class="btn btn-default" href="" role="button">Read the paper &raquo;</a></p>
-        <p>Our paper recently appeared on astro-ph!</p>
+      <div class="col-md-3"/>
+        <p><a class="btn btn-primary" href="https://github.com/iancze/Starfish" role="button">Download and Install &raquo;</a></p>
+        <p>Starfish is written in Python. The code is open source and actively developed on Github.</p>
       </div>
     </div>
     <div class="row" style="margin-top:20px;">
@@ -95,20 +95,20 @@
       <div class="col-md-12">
       <h2>Deriving physical parameters from astronomical spectra</h2>
       <p><span class="lead">Consider the following scenario:</span> An astronomer returns from a successful observing trip with many high signal-to-noise, high resolution stellar spectra on her trusty USB thumbdrive. If she was observing with the type of echelle spectrograph common to most modern observatories, chances are that her data span a significant spectral range, perhaps the full optical (3700 to 9000 angstroms) or the full near-infrared (0.7 to 5 microns). Now that she's back at her home institution, she sets herself to the task of determining the stellar properties of her targets.</p>
-      <p>She is an expert in the many existing well-tested techniques for determining stellar properties, such as <em>MOOG</em> and <em>SME</em>. But the fact that these use only a small portion of her data—several well-chosen lines like Fe and Na—has stubbornly persisted in the back of her mind.</p>
-      <p>At the same time, the astronomer has been paying attention to the steady increasing availability of high quality synthetic spectra, produced by a variety of groups around the world. These libraries span a large range of the stellar parameters she cares about (effective temperature, surface gravity, and metallicity) with a tremendous spectral coverage from the UV to the near-infrared—fully covering her dataset. She wonders, "instead of choosing a subset of lines to study, what if I use these synthetic libraries to fit <em>all of my data</em>?"</p>
+      <p>She is an expert in the many existing well-tested techniques for determining stellar properties, such as <a href="http://www.as.utexas.edu/~chris/moog.html">MOOG</a> and <a href="http://www.stsci.edu/~valenti/sme.html">SME</a>. But the fact that these use only a small portion of her data—several well-chosen lines like Fe and Na—has stubbornly persisted in the back of her mind.</p>
+      <p>At the same time, the astronomer has been paying attention to the steady increase in availability of high quality synthetic spectra, produced by a variety of groups around the world. These libraries span a large range of the stellar parameters she cares about (effective temperature, surface gravity, and metallicity) with a tremendous spectral coverage from the UV to the near-infrared—fully covering her dataset. She wonders, "instead of choosing a subset of lines to study, what if I use these synthetic libraries to fit <em>all of my data</em>?"</p>
       <p> <span class="lead">She knows that it's not quite so simple </span> as just fitting more spectral range, however. She knows that even though the synthetic spectral libraries are generally high quality and quite remarkable in their scope, it is still very hard to produce perfect synthetic spectra. This is primarily due to inaccuracies in atomic and molecular constants that are difficult to measure in the lab, making it difficult to ensure that all spectral lines are accurate over a wide swath of both stellar parameters and spectral range. The highest quality libraries tend to achieve their precision by focusing on a "sweet spot" of stellar parameters near those of the Sun, and by choosing a limited spectral range, where atomic constants can be meticulously vetted for accuracy. The astronomer also knows that some of her stars may have non-solar ratios of elemental abundances, a behavior that is not captured by the limited set of adjustable parameters that specify a spectrum in a synthetic library. She's tried fitting the full spectrum of her stars using a simple \( \chi^2 \) likelihood function, but she knows that ignoring these effects will lead to parameter estimates that are biased and have unrealistically small uncertainties. She wonders, "How can I fit my entire spectrum but avoid these pitfalls?"
       </p>
 
       <h2>Introducing <em>Starfish</em>: a general purpose framework for robust spectroscopic inference</h2>
-      <p>We have developed a framework for spectroscopic inference that fulfills the astronomer's dream of using <em>all of the data</em>, called <em>Starfish</em>. Our statistical framework attempts to overcome many of the difficulties that the astronomer noted. Principally, at high resolution and high sensitivity, <a href="#general_outliers">model systematics</a>—such as inaccuracies in the <a href="#specific_outliers">strengths of particular lines</a>—will dominate the noise budget. Ignoring these systematics and proceeding with a simple figure of merit function, like \( \chi^2 \), can lead to biased answers with drastically underestimated uncertainties on parameter estimates.</p>
+      <p>We have developed a framework for spectroscopic inference that fulfills the astronomer's dream of using <em>all of the data</em>, called <em>Starfish</em>. Our statistical framework attempts to overcome many of the difficulties that the astronomer noted. Principally, at high resolution and high sensitivity, <a href="#general_outliers">model systematics</a>—such as inaccuracies in the <a href="#specific_outliers">strengths of particular lines</a>—will dominate the noise budget.</p>
       <p>We address these problems by accounting for the covariant structure of the residuals that can result from fitting models to data in this high signal-to-noise, high spectral resolution regime. Using some of the <a href="#covariance_kernels">machinery</a> developed by the field of Gaussian processes, we can parameterize the covariant structure both due to general line mis-matches as well as specific "outlier" spectral lines due to pathological errors in the atomic and molecular line databases.
       </p>
       <p>
-      <span class="lead">Besides alleviating the problem</span> of systematic bias and spectral line outliers when <a href="#triangle">inferring stellar parameters</a>, this approach has many added benefits. By <em>forward-modeling</em> the data spectrum, we put the problem of spectroscopic inference on true probabilistic footing. Rather than iterating in an open loop between stellar spectroscopists and stellar modelers, whereby knowledge about the accuracies of line fits is communicated post-mortem, a probabilistic inference framework like Starfish delivers posterior distributions over the <a href="#residuals">locations and strengths</a> of outlier spectral lines. Combined with a suite of stellar spectra spanning a range of stellar parameters and a tunable list of atomic and molecular constants, a probabilistic framework like this provides a way to close the loop on improving both the stellar models and the stellar parameters inferred from them by comparing models to data <em>directly</em>, rather than mediating through a series of fits to individual lines.
+      <span class="lead">Besides alleviating the problem</span> of systematic bias and spectral line outliers when <a href="#triangle">inferring stellar parameters</a>, this approach has many added benefits. By <em>forward-modeling</em> the data spectrum, we put the problem of spectroscopic inference on true probabilistic footing. Rather than iterating in an open loop between stellar spectroscopists and stellar modelers, whereby knowledge about the accuracies of line fits is communicated post-mortem, a probabilistic inference framework like Starfish delivers posterior distributions over the <a href="#residuals">locations and strengths</a> of outlier spectral lines. Combined with a suite of stellar spectra spanning a range of stellar parameters and a tunable list of atomic and molecular constants, a probabilistic framework like this provides a way to close the loop on improving both the stellar models and the stellar parameters inferred from them by comparing models to data <em>directly</em>, rather than mediating through a series of fits to selected spectral lines.
     </p>
     <p>
-      Lastly, using a forward model means that uncertainties about other non-stellar parameters, such as flux-calibration or interstellar reddening, can be built into the model and propagated forward. In a future version of <em>Starfish</em> we aim to include a parameterization for the accretion veiling continuum of young T Tauri stars.
+      Lastly, using a forward model means that uncertainties about other non-stellar parameters, such as flux-calibration or interstellar reddening, can be built into the model and propagated forward. In a future version of <em>Starfish</em> we aim to include a parameterization for the accretion continuum that "veils" the spectra of young T Tauri stars.
     </p>
     </div>
     </div>
@@ -193,13 +193,13 @@
       <p><em>Starfish</em> uses Markov Chain Monte Carlo (MCMC) to explore the full posterior probability distribution of the stellar parameters, including the noise parameters which describe the covariance of the residuals. By fitting all of the parameters simultaneously, we can be more confident that we have properly accounted for our uncertainty in these other parameters.
       </p>
       <p>
-        <strong>top</strong> A K-band SPEX spectrum of Gl 51 (an M5 dwarf) fit with a PHOENIX spectroscopic model. While the general agreement of the spectrum is excellent, the strength of the Na and Ca lines is underpredicted (also noted by Rojas-Ayala et al. 2012).</p>
+        <strong>top</strong> A K-band SPEX spectrum of Gl 51 (an M5 dwarf) fit with a <a href="http://phoenix.astro.physik.uni-goettingen.de/">PHOENIX</a> spectroscopic model. While the general agreement of the spectrum is excellent, the strength of the Na and Ca lines is underpredicted (also noted by <a href="http://adsabs.harvard.edu/abs/2012ApJ...748...93R">Rojas-Ayala et al. 2012</a>).</p>
         <p>
         <strong>bottom</strong> The residual spectrum from this fit along with orange shading contours representing the distributions of a large number of random draws from the covariance matrix (showing 1, 2, and 3 sigma).</p>
         <img src="img/residuals_Gl51_logg.svg" class="center-block img-responsive" height=350px />
 
         <p>
-        Notice how the outlier spectral line features are consistently identified and downweighted by the local covariance kernels. Because the parameters for the local kernels describing the spectral outliers are determined self-consistently along with the stellar parameters, we can be more confident that the influence of these outlier lines on the spectral fit is appropriately downweighted. This weighting approach is in contrast to a more traditional "sigma-clipping" procedure, which would discard these points from the fit. As noted by Mann et al. 2013, some mildly discrepant spectral regions actually contain significant spectral information about the stellar parameters, perhaps more information than spectral regions that are in excellent agreement with the data. Rather than simply discarding these discrepant regions, the appropriate step is then to determine the weighting by which these spectral regions should contribute to the total likelihood. These local kernels provide exactly such a weighting mechanism.
+        Notice how the outlier spectral line features are consistently identified and downweighted by the local covariance kernels. Because the parameters for the local kernels describing the spectral outliers are determined self-consistently along with the stellar parameters, we can be more confident that the influence of these outlier lines on the spectral fit is appropriately downweighted. This weighting approach is in contrast to a more traditional "sigma-clipping" procedure, which would discard these points from the fit. As noted by <a href="http://adsabs.harvard.edu/abs/2013ApJ...779..188M">Mann et al. 2013</a>, some mildly discrepant spectral regions actually contain significant spectral information about the stellar parameters, perhaps more information than spectral regions that are in excellent agreement with the data. Rather than simply discarding these discrepant regions, the appropriate step is then to determine the weighting by which these spectral regions should contribute to the total likelihood. These local kernels provide exactly such a weighting mechanism.
       </p>
     </div>
     </div>
@@ -226,7 +226,7 @@
         <p>For spectra with very high signal to noise, interpolation error from the synthetic library may constitute a significant portion of the noise budget. This error is due to the fact that stellar spectral synthesis is an inherently non-linear process requiring complex model atmospheres and radiative transfer. Unfortunately, we are not (yet) in an age where synthetic spectral synthesis over a large spectral range is fast enough to use within a MCMC call. Therefore, it is necessary to approximate an interpolated spectrum based upon spectra with similar stellar properties.
         </p>
         <p>
-          Following the techniques of Habib et al. 2007, we design a <em>spectral emulator</em>, which, rather than interpolating spectra, delivers a probability distribution over all probable interpolate spectra. Using this probability distribution, we can in our likelihood function analytically marginalize over all probable spectral interpolations, in effect forward propagating any uncertainty introduced by the interpolation process.
+          Following the techniques of <a href="http://adsabs.harvard.edu/abs/2007PhRvD..76h3503H">Habib et al. 2007</a>, we design a <em>spectral emulator</em>, which, rather than interpolating spectra, delivers a probability distribution over all probable interpolate spectra. Using this probability distribution, we can in our likelihood function analytically marginalize over all probable spectral interpolations, in effect forward propagating any uncertainty introduced by the interpolation process.
         </p>
         <img src="img/pca_reconstruct.svg" class="center-block img-responsive"
         <p>
