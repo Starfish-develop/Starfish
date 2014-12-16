@@ -17,6 +17,15 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/main.css">
+
+    <!-- MathJax linebreaking allowed -->
+    <!--<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      "HTML-CSS": { linebreaks: { automatic: true } },
+      SVG: { linebreaks: { automatic: true } }
+    });
+  </script> -->
+
     <!-- Google analytics tracking code -->
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
@@ -161,7 +170,7 @@
       <div class="col-md-12">
       <h2>Model the covariance</h2>
       <p>In order to account for the covariant residual structure which results from model systematics, we derive a likelihood function with a non-trivial covariance matrix, which maps the covariances between pixels. </p>
-      <!-- <p> $$ p (\mathsf{D} | \mathsf{M} ) = \frac{1}{\left [ (2 \pi)^N \det(\mathsf{C}) \right ]^{1/2}} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$ </p> -->
+      <p>$$ p (\mathsf{D} | \mathsf{M} ) \propto \left |\det(\mathsf{C}) \right |^{-1/2} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$</p>
       <a name="covariance_kernels"></a>
       <p> We then parameterize this covariance matrix \( \mathsf{C} \) using Gaussian process <strong>covariance kernels</strong>. This procedure is demonstrated in the following figure through the following decomposition of how the Gaussian process kernels contribute to the covariance matrix.
       </p>
@@ -237,8 +246,8 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
   <script src="../js/bootstrap.min.js"></script>
   <script type="text/javascript">
-  $('#contact').popover();
-  $('#contact').blur();
+  $("#likelihood").css("font-size", "75%");
+
   </script>
   </body>
 </html>
