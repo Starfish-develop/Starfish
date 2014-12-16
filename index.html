@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>Starfish Spectroscopic Inference</title>
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width", initial-scale=1>
 
     <!-- N.B. /css or /img will go to iancze.github.io/css, while
     css/main.css or img/ian_czekala.jpg will go to iancze.github.io/Starfish/css -->
@@ -79,13 +79,14 @@
   </div>
   </div>
 
-  <hr class="featurette-divider"/>
+
   <div class="container">
+    <hr class="featurette-divider"/>
     <div class="row">
       <div class="col-md-12">
       <h2>Deriving physical parameters from astronomical spectra</h2>
       <p><span class="lead">Consider the following scenario:</span> An astronomer returns from a successful observing trip with many high signal-to-noise, high resolution stellar spectra on her trusty USB thumbdrive. If she was observing at the type of echelle spectrograph common to most modern observatories, chances are that her data span a significant spectral range, perhaps the full optical (3700 to 9000 angstroms) or the full near-infrared (0.7 to 5 microns). Now that she's back at her home institution, she sets herself to the task of determining the stellar properties of her targets.</p>
-      <p>She is an expert in the many existing well-tested techniques for determining stellar properties, such as <em>MOOG</em>, <em>SME</em>, and <em>SPC</em>. But the fact that these use only a small portion of her data—several well-chosen lines like Fe and Na—has stubbornly persisted in the back of her mind.</p>
+      <p>She is an expert in the many existing well-tested techniques for determining stellar properties, such as <em>MOOG</em> and <em>SME</em>. But the fact that these use only a small portion of her data—several well-chosen lines like Fe and Na—has stubbornly persisted in the back of her mind.</p>
       <p>At the same time, the astronomer has been paying attention to the steady increasing availability of high quality synthetic spectra, produced by a variety of groups around the world. These libraries span a large range of the stellar parameters she cares about (effective temperature, surface gravity, and metallicity) with a tremendous spectral range from the UV to the near-infrared—fully covering her dataset. She wonders, "instead of choosing a subset of lines to study, what if I use these synthetic libraries to fit <em>all of my data</em>?"</p>
       <p> <span class="lead">She knows that it's not quite so simple </span> as just fitting more spectral range, however. She knows that even though the synthetic spectral libraries are generally high quality and quite remarkable in their scope, it is still very hard to produce perfect synthetic spectra. This is primarily due to innacuracies in atomic and molecular constants that are difficult to measure in the lab, making it difficult to ensure that all spectral lines are accurate over a wide range of both stellar parameters and spectral range. The highest quality libraries tend to achieve their precision by focusing on a "sweet spot" of stellar parameters, generally near those of the Sun, and by choosing a limited spectral range, where atomic constants can be meticulously vetted for accuracy. The astronomer also knows that some of her stars may have non-solar ratios of elemental abundances, a behavior that is not captured by the limited set of adjustable parameters that specify a spectrum in a synthetic library. She's tried fitting the full spectrum of her stars using a simple \( \chi^2 \) likelihood function, but she knows that ignoring these effects will lead to parameter estimates that are biased and have unrealistically small uncertainties. She wonders, "How can I fit my entire spectrum but avoid these pitfalls?"
       </p>
@@ -160,7 +161,7 @@
       <div class="col-md-12">
       <h2>Model the covariance</h2>
       <p>In order to account for the covariant residual structure which results from model systematics, we derive a likelihood function with a non-trivial covariance matrix, which maps the covariances between pixels. </p>
-      <p> $$ p (\mathsf{D} | \mathsf{M} ) = \frac{1}{\left [ (2 \pi)^N \det(\mathsf{C}) \right ]^{1/2}} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$ </p>
+      <!-- <p> $$ p (\mathsf{D} | \mathsf{M} ) = \frac{1}{\left [ (2 \pi)^N \det(\mathsf{C}) \right ]^{1/2}} \exp \left (- \frac{1}{2} \mathsf{R}^T \mathsf{C}^{-1} \mathsf{R} \right ) $$ </p> -->
       <a name="covariance_kernels"></a>
       <p> We then parameterize this covariance matrix \( \mathsf{C} \) using Gaussian process <strong>covariance kernels</strong>. This procedure is demonstrated in the following figure through the following decomposition of how the Gaussian process kernels contribute to the covariance matrix.
       </p>
