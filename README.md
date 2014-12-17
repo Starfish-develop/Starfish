@@ -53,38 +53,7 @@ If your shell says Python 2.x, try using the `python3` command instead of `pytho
 
 ## Installation
 
-There are at least two ways to install *Starfish* on your machine
-
-* via `pip` [Recommended]
-* via `git` and github [For latest updates]
-
-### pip
-
-`pip` is the Python package installer. If you installed Python via the Anaconda distribution,
-you should have `pip` installed. At the system shell, type
-
-    pip install Starfish
-
-Depending on your machine, you may need administrator privileges,
-
-    sudo pip install Starfish
-
-if you are on a machine where you do not have administrator privileges, you can do
-
-    pip install Starfish --user
-
-To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
-
-    >>> import Starfish
-
-If you see a blank line, then the package successfully installed. If you see any errors, then something went wrong.
-
-### Github
-
-Because this code is being actively developed as I add new features, I have separated development versions and
-stable versions on the github repository. If you are a first-time user of the code, I recommend using the latest stable
-version via `pip`. If you would like to be involved in the development of *Starfish*,
-or would like to use one of the features in development, I recommend installing via the github repository.
+For now, we recommended building *Starfish* from source on your machine. Soon there will be an option to install via `pip`.
 
 First, if you have not already done so, create a github [user account](https://github.com/) and
 [install git](http://git-scm.com/downloads) on your computer.
@@ -106,14 +75,19 @@ You should now be done. Once the package has stablized, the `develop` command ma
 
     $ sudo python setup.py install
 
+To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
+
+    >>> import Starfish
+
+    If you see a blank line, then the package successfully installed. If you see any errors, then something went wrong and please file an [issue](https://github.com/iancze/Starfish/issues).
+
 
 ## Spectral libraries
 
-In order to use *Starfish*, you will need a spectral library with resolution comparable or in excess of that of the
-spectrograph which acquired your data.
+In order to use *Starfish*, you will need a spectral library with resolution comparable or in excess of that of the spectrograph which acquired your data.
 
-## Coming Soon
+## Features in development**
 
-Benchmark tests. How long does it take to fit an `Npix`, `Norder` spectrum, with `Nregions` each?
-
-**Features in development**
+* Extinction laws
+* accretion continuum from veiling
+* Moon contamination of spectra
