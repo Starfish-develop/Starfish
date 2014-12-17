@@ -15,7 +15,10 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.5 r10040"
-   sodipodi:docname="matrix_compilation.svg">
+   sodipodi:docname="matrix_compilation.svg"
+   inkscape:export-filename="/home/ian/Grad/Research/Stars/Starfish/img/matrix_compilation.png"
+   inkscape:export-xdpi="142.86"
+   inkscape:export-ydpi="142.86">
   <defs
      id="defs4">
     <clipPath
@@ -30047,16 +30050,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="739.82252"
-     inkscape:cy="358.07471"
+     inkscape:zoom="1.4"
+     inkscape:cx="574.58002"
+     inkscape:cy="274.13513"
      inkscape:document-units="in"
      inkscape:current-layer="g9330"
      showgrid="true"
      units="in"
      inkscape:window-width="1920"
      inkscape:window-height="1025"
-     inkscape:window-x="-3"
+     inkscape:window-x="1277"
      inkscape:window-y="-3"
      inkscape:window-maximized="1"
      showguides="true"
@@ -30101,7 +30104,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
