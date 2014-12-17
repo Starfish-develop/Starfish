@@ -175,7 +175,11 @@
       <p> We then parameterize this covariance matrix \( \mathsf{C} \) using Gaussian process <strong>covariance kernels</strong>. This procedure is demonstrated in the following figure through the following decomposition of how the Gaussian process kernels contribute to the covariance matrix.
       </p>
 
-      <img src="img/matrix_compilation.svg" class="center-block img-responsive" width=750px/>
+      <object type="image/svg+xml" data="img/matrix_compilation.svg" class="center-block img-responsive" width=750px>
+        <img src="img/matrix_compilation.svg.png" alt="Covariance Matrix"/>
+      </object>
+
+      <!-- <svg src="img/matrix_compilation.svg" class="center-block img-responsive" width=750px/> -->
 
       <p><strong>top panel</strong>: a typical comparison between the data and model spectra, along with the associated residual spectrum. The subsequent rows focus on the illustrative region shaded in gray.</p>
       <p>The <strong>left column</strong> of panels shows the corresponding region of the covariance matrix \( \mathsf{C} \), decomposed into its primary contributions: <em>(top row)</em> the trivial noise matrix using just Poisson errors \(\delta_{ij} \sigma_i \), <em>(middle row)</em> the trivial matrix combined with a "global" covariance kernel \( \mathcal{K}^\textrm{G}\), and <em>(bottom row)</em> these matrices combined with a "local" covariance kernel \( \mathcal{K}^\textrm{L}\) to account for an outlier spectral line.
