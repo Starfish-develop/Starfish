@@ -1,7 +1,0 @@
-temp = 5900
-logg = 3.5
-Z = 0.0
-vsini = 5.0
-Av = 0.0
-vz = 2.0
-flux_factor = 1e-10
