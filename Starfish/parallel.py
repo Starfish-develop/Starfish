@@ -1,24 +1,18 @@
-#This is potentially a very powerful implementation, because it means that we can use as many data spectra or orders
-# as we want, and there will only be slight overheads. Basically, scaling is flat, as long as we keep adding more
-# processors. This might be tricky on Odyssey going across nodes, but it's still pretty excellent.
+# Parallel implementation for sampling a multi-order echelle spectrum. Because the likelihood
+# calculation is independent for each order, the runtime is essentially constant regardless
+# of how large a spectral range is used.
 
-# Pie-in-the-sky dream about how to hierarchically fit all stars.
-# Thinking about the alternative problem, where we actually link region parameters across different stars might be a
-# little bit more tricky. The implemenatation might be similar as to what's here, only now we'd also have a
-# synchronization step where regions are proposed (from a common distribution) for each star and each order. This
-# step could be selected upon all stars, specific order. This could get a little complicated, but then again we knew
-# it would be.
-
-# All orders are being selected up and updated based upon which star it is.
-# All regions are being updated selected upon all stars, but a specific order.
+# Additionally, one could use this to fit multiple stars at once.
 
 import argparse
-parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish fitting model in parallel.")
+parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish"
+" fitting model in parallel.")
 parser.add_argument("input", help="*.yaml file specifying parameters.")
-parser.add_argument("-r", "--run_index", help="Which run (of those running concurrently) is this? All data will "
-                                              "be written into this directory, overwriting any that exists.")
-parser.add_argument("-p", "--perturb", type=float, help="Randomly perturb the starting position of the "
-                                                        "chain, as a multiple of the jump parameters.")
+parser.add_argument("-r", "--run_index", help="Which run (of those running "
+"concurrently) is this? All data will be written into this directory, "
+"overwriting any that exists.")
+parser.add_argument("-p", "--perturb", type=float, help="Randomly perturb the "
+"starting position of the chain, as a multiple of the jump parameters.")
 args = parser.parse_args()
 
 from multiprocessing import Process, Pipe
@@ -75,7 +69,8 @@ else:
 print("Creating ", outdir)
 os.makedirs(outdir)
 
-#Determine how many filenames are in config['data']. Always load as a list, even len == 1.
+# Determine how many filenames are in config['data']. Always load as a list, even len == 1.
+# If there are multiple datasets, this list will be longer than length 1
 data = config["data"]
 if type(data) != list:
     data = [data]
@@ -84,7 +79,8 @@ orders = config["orders"] #list of which orders to fit
 order_ids = np.arange(len(orders))
 DataSpectra = [DataSpectrum.open(data_file, orders=orders) for data_file in data]
 
-spectra = np.arange(len(DataSpectra)) #Number of different data sets we are fitting. Used for indexing purposes.
+# Number of different data sets we are fitting. Used for indexing purposes.
+spectra = np.arange(len(DataSpectra))
 
 INSTRUMENTS = {"TRES": TRES, "SPEX": SPEX}
 #Instruments are provided as one per dataset
@@ -102,18 +98,19 @@ for model_number in range(len(DataSpectra)):
         print("Creating ", order_dir)
         os.makedirs(order_dir)
 
-#Copy yaml file to outdir
+# Copy yaml file to outdir for archiving purposes
 shutil.copy(args.input, outdir + "/input.yaml")
 
-#Set up the logger
+# Set up the logger
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
     outdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
 def perturb(startingDict, jumpDict, factor=3.):
     '''
-    Given a starting parameter dictionary loaded from a config file, perturb the values as a multiple of the jump
-    distribution. This is designed so that chains do not all start in the same place, when run in parallel.
+    Given a starting parameter dictionary loaded from a config file, perturb the
+    values as a multiple of the jump distribution. This is designed so that
+    not all chains start at exactly the same place.
 
     Modifies the startingDict
     '''
@@ -123,13 +120,13 @@ def perturb(startingDict, jumpDict, factor=3.):
 
 stellar_Starting = config['stellar_params']
 stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
-#go for each item in stellar_tuple, and assign the appropriate covariance to it
+# go through each item in stellar_tuple, and assign the appropriate covariance to it
 stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 \
                  * np.identity(len(stellar_Starting))
 
 fix_logg = config.get("fix_logg", None)
 
-#Updating specific correlations to speed mixing
+# Updating specific covariances to speed mixing
 if config["use_cov"]:
     stellar_cov = config["stellar_cov"]
     factor = stellar_cov["factor"]
@@ -143,6 +140,9 @@ if config["use_cov"]:
         stellar_MH_cov[0, 4] = stellar_MH_cov[4, 0] = stellar_cov['temp_logOmega'] * factor
 
 def info(title):
+    '''
+    Print process information useful for debugging.
+    '''
     print(title)
     print('module name:', __name__)
     if hasattr(os, 'getppid'):  # only available on Unix
@@ -153,9 +153,11 @@ def info(title):
 class OrderModel:
     def __init__(self, debug=False):
         '''
-        This is designed to be called within the main processes and then forked to other
-        subprocesses. We don't yet want to load any of the items that would be
-        specific to that specific order. Those will be loaded via an `INIT` message call, which tells which key
+        This object contains all of the variables necessary for the partial
+        lnprob calculation for one echelle order. It is designed to first be
+        instantiated within the main processes and then forked to other
+        subprocesses. Once operating in the subprocess, the variables specific
+        to the order are loaded with an `INIT` message call, which tells which key
         to initialize on in the `self.initialize()`.
         '''
         self.lnprob = -np.inf
@@ -173,18 +175,18 @@ class OrderModel:
 
     def initialize(self, key):
         '''
-        Initialize the OrderModel to the correct chunk of data.
+        Initialize the OrderModel to the correct chunk of data (echelle order).
 
-        :param key: (model_index, order_index)
+        :param key: (spectrum_id, order_id)
         :param type: (int, int)
 
-        Designed to be called after the other processes have been created.
+        This should only be called after all subprocess have been forked.
         '''
 
         self.id = key
         self.spectrum_id, self.order_id = self.id
 
-        print("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_id))
+        self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_id))
 
         self.instrument = Instruments[self.spectrum_id]
         self.DataSpectrum = DataSpectra[self.spectrum_id]
@@ -206,8 +208,8 @@ class OrderModel:
         self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
-        self.Emulator = Emulator.open(config["PCA_path"]) #Returns mu and var vectors
-        self.Emulator.determine_chunk_log(self.wl) #Truncates the grid to this wl format, power of 2
+        self.Emulator = Emulator.open(config["PCA_path"]) # Returns mu and var vectors
+        self.Emulator.determine_chunk_log(self.wl) # Truncates the grid to this wl format, power of 2
 
         pg = self.Emulator.PCAGrid
 
@@ -218,7 +220,7 @@ class OrderModel:
 
         self.min_v = self.Emulator.min_v
         self.ss = np.fft.rfftfreq(len(self.wl_FFT), d=self.min_v)
-        self.ss[0] = 0.01 #junk so we don't get a divide by zero error
+        self.ss[0] = 0.01 # junk so we don't get a divide by zero error
 
         self.pcomps = np.empty((self.ncomp, self.npoints))
         self.flux_mean = np.empty((self.npoints,))
@@ -229,7 +231,7 @@ class OrderModel:
 
         self.sigma_matrix = self.sigma**2 * np.eye(self.npoints)
 
-        self.prior = 0.0 #Modified and set by NuisanceSampler.lnprob
+        self.prior = 0.0 # Modified and set by NuisanceSampler.lnprob
         self.nregions = 0
         self.exceptions = []
 
@@ -239,13 +241,13 @@ class OrderModel:
 
         cheb_MH_cov = float(config["cheb_jump"])**2 * np.ones((self.npoly,))
         cheb_tuple = ("logc0",)
-        #add in new coefficients
+        # add in new coefficients
         for i in range(1, self.npoly):
             cheb_tuple += ("c{}".format(i),)
-        #set starting position to 0
+        # set starting position to 0
         cheb_Starting = {k:0.0 for k in cheb_tuple}
 
-        #Design cov starting
+        # Design cov starting
         cov_Starting = config['cov_params']
         cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
         cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in cov_tuple])**2
@@ -253,29 +255,34 @@ class OrderModel:
         nuisance_MH_cov = np.diag(np.concatenate((cheb_MH_cov, cov_MH_cov)))
         nuisance_starting = {"cheb": cheb_Starting, "cov": cov_Starting, "regions":{}}
 
-        #Because this initialization is happening on the subprocess, I think the random state should be fine.
-        #Update the outdir based upon id
+        # Because this initialization is happening on the subprocess, I think
+        # the random state should be fine.
+
+        # Update the outdir based upon id
         self.noutdir = outdir + "{}/{}/".format(self.spectrum_id, self.order)
 
+        # Create the nuisance parameter sampler to run independently
         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov,
                                        debug=True, outdir=self.noutdir, order=self.order)
         self.p0 = self.sampler.p0
 
-        # Udpate the nuisance parameters to the starting values so that we at least have a self.data_mat
-        print("Updating nuisance parameter data products to starting values.")
+        # Udpate the nuisance parameters to the starting values so that we at
+        # least have a self.data_mat
+        self.logger.info("Updating nuisance parameter data products to starting values.")
         self.update_nuisance(nuisance_starting)
         self.lnprob = None
 
     def instantiate(self, *args):
         '''
-        Clear the old NuisanceSampler, Instantiate the regions, and create a new NuisanceSampler.
+        Clear the old NuisanceSampler, instantiate the regions using the stored
+        residual spectra, and create a new NuisanceSampler.
         '''
 
-        # Using the stored residual spectra, find the largest outliers
-
+        # threshold for sigma clipping
         sigma=config["sigma_clip"]
 
-        #array that specifies if a pixel is already covered. to start, it should be all False
+        # array that specifies if a pixel is already covered.
+        # to start, it should be all False
         covered = np.zeros((self.npoints,), dtype='bool')
 
         #average all of the spectra in the deque together
@@ -285,7 +292,7 @@ class OrderModel:
         else:
             residuals = np.average(residual_array, axis=0)
 
-        #run the sigma_clip algorithm until converged, and we've identified the outliers
+        # run the sigma_clip algorithm until converged, and we've identified the outliers
         filtered_data = sigma_clip(residuals, sig=sigma, iters=None)
         mask = filtered_data.mask
         wl = self.wl
@@ -294,7 +301,7 @@ class OrderModel:
         logAmp = config["region_params"]["logAmp"]
         sigma = config["region_params"]["sigma"]
 
-        #Sort in decreasing strength of residual
+        # Sort in decreasing strength of residual
         self.nregions = 0
         regions = {}
 
@@ -303,20 +310,20 @@ class OrderModel:
             if w in wl[covered]:
                 continue
             else:
-                #check to make sure region is not *right* at the edge of the spectrum
+                # check to make sure region is not *right* at the edge of the echelle order
                 if w <= np.min(wl) or w >= np.max(wl):
                     continue
                 else:
-                    #instantiate region and update coverage
+                    # instantiate region and update coverage
 
-                    #Default amp and sigma values
+                    # Default amp and sigma values
                     regions[self.nregions] = {"logAmp":logAmp, "sigma":sigma, "mu":w}
                     region_mus[self.nregions] = w # for evaluating the mu prior
                     self.nregions += 1
 
-                    #determine the stretch of wl covered by this new region
+                    # determine the stretch of wl covered by this new region
                     ind = (wl >= (w - sigma0)) & (wl <= (w + sigma0))
-                    #update the covered regions
+                    # update the covered regions
                     covered = covered | ind
 
         # Take the current nuisance positions as a starting point, and add the regions
@@ -325,7 +332,7 @@ class OrderModel:
 
         region_mus = np.array([region_mus[i] for i in range(self.nregions)])
 
-        #Setup the priors
+        # Setup the priors
         region_priors = config["region_priors"]
         region_priors.update({"mus":region_mus})
         prior_params = {"regions":region_priors}
@@ -352,23 +359,28 @@ class OrderModel:
         self.update_nuisance(starting_dict)
         self.lnprob = self.evaluate()
 
-        #To speed up convergence, try just doing a bunch of nuisance runs
+        # To speed up convergence, try just doing a bunch of nuisance runs before
+        # going into the iteration pattern
         print("Doing nuisance burn-in for {} samples".format(config["nuisance_burn"]))
         self.independent_sample(config["nuisance_burn"])
 
     def get_lnprob(self, *args):
         '''
-        Called from within StellarSampler.sample, to query the children processes for the current value of lnprob.
+        Return the *current* value of lnprob.
+
+        Intended to be called from the master process (StellarSampler.sample), to
+        query the child processes for their current value of lnprob.
         '''
         return self.lnprob
 
     def stellar_lnprob(self, params):
         '''
-        To be called from the master process, via the command "LNPROB".
+        Update the model to the parameters and then evaluate the lnprob.
+
+        Intended to be called from the master process via the command "LNPROB".
         '''
 
         try:
-            #lnp = None
             self.update_stellar(params)
             lnp = self.evaluate() # Also sets self.lnprob to new value
             return lnp
@@ -378,7 +390,8 @@ class OrderModel:
 
     def evaluate(self):
         '''
-        Using the attached DataCovariance matrix and the other intermediate products, evaluate the lnposterior.
+        Return the lnprob using the current version of the DataCovariance matrix
+        and other intermediate products.
         '''
         self.lnprob_last = self.lnprob
 
@@ -388,24 +401,13 @@ class OrderModel:
 
         R = self.fl - self.ChebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
 
-        # sign, logdet = slogdet(CC)
-        # if sign <= 0:
-        #     self.logger.debug("The determinant is negative {}".format(logdet))
-        #     #np.save("CC.npy", CC)
-        #     self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
-        #     self.exceptions.append(self.sampler.params)
-        #
-        #     raise C.ModelError("The determinant is negative.")
-
         try:
             factor, flag = cho_factor(CC)
         except np.linalg.LinAlgError as e:
-            #np.save("CC.npy", CC)
             self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
             raise C.ModelError("Can't Cholesky factor {}".format(e))
 
         logdet = np.sum(2 * np.log((np.diag(factor))))
-
 
         self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet) + self.prior
 
@@ -414,16 +416,11 @@ class OrderModel:
 
         self.counter += 1
 
-        #Something is going wrong with the solve command here
-        #self.lnprob = -0.5 * (np.dot(R, solve(CC, R, sym_pos=True, overwrite_a=True, overwrite_b=True,
-        #                                 check_finite=False)) + logdet)
-
         return self.lnprob
 
     def revert_stellar(self):
         '''
-
-        Revert the status of the model from a rejected stellar proposal
+        Revert the status of the model from a rejected stellar proposal.
         '''
 
         self.logger.debug("Reverting stellar parameters")
@@ -439,7 +436,7 @@ class OrderModel:
 
     def update_stellar(self, params):
         '''
-        Update the stellar parameters.
+        Update the model to the current stellar parameters.
         '''
 
         self.logger.debug("Updating stellar parameters to {}".format(params))
@@ -454,12 +451,12 @@ class OrderModel:
         #TODO: Possible speedups:
         # 1. Store the PCOMPS pre-FFT'd
 
-        #Shift the velocity
+        # Shift the velocity
         vz = params["vz"]
-        #Local, shifted copy
+        # Local, shifted copy
         wl_FFT = self.wl_FFT * np.sqrt((C.c_kms + vz) / (C.c_kms - vz))
 
-        #FFT and convolve operations
+        # FFT and convolve operations
         vsini = params["vsini"]
 
         if vsini < 0.2:
@@ -467,25 +464,25 @@ class OrderModel:
 
         FF = np.fft.rfft(self.PCOMPS, axis=1)
 
-        #Determine the stellar broadening kernel
+        # Determine the stellar broadening kernel
         ub = 2. * np.pi * vsini * self.ss
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-        #set zeroth frequency to 1 separately (DC term)
+        # set zeroth frequency to 1 separately (DC term)
         sb[0] = 1.
 
-        #institute velocity and instrumental taper
+        # institute velocity and instrumental taper
         FF_tap = FF * sb
 
-        #do ifft
+        # do ifft
         pcomps_full = np.fft.irfft(FF_tap, len(wl_FFT), axis=1)
 
-        #Resample operations
+        # Spectrum resample operations
         if min(self.wl) < min(wl_FFT) or max(self.wl) > max(wl_FFT):
             raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({"
                        ":.2f},{:.2f})".format(min(self.wl), max(self.wl), min(wl_FFT), max(wl_FFT)))
 
-
-        #Take the output from the FFT operation (pcomps_full), and stuff them into respective data products
+        # Take the output from the FFT operation (pcomps_full), and stuff them
+        # into respective data products
         for lres, hres in zip(chain([self.flux_mean, self.flux_std], self.pcomps), pcomps_full):
             interp = InterpolatedUnivariateSpline(wl_FFT, hres, k=5)
             lres[:] = interp(self.wl)
@@ -493,56 +490,57 @@ class OrderModel:
 
         gc.collect()
 
-        #Adjust flux_mean and flux_std by Omega
+        # Adjust flux_mean and flux_std by Omega
         Omega = 10**params["logOmega"]
         self.flux_mean *= Omega
         self.flux_std *= Omega
 
-        #Now update the parameters from the emulator
+        # Now update the parameters from the emulator
         pars = np.array([params["temp"], params["logg"], params["Z"]])
 
-        #If pars are outside the grid, Emulator will raise C.ModelError
+        # If pars are outside the grid, Emulator will raise C.ModelError
         self.mus, self.vars = self.Emulator(pars)
 
         self.C_GP = self.vars * np.eye(self.ncomp)
 
     def decide_stellar(self, yes):
         '''
-        Interpret the decision from the master process to either revert stellar parameters or accept and move on.
+        Interpret the decision from the master process to either revert the
+        stellar model (rejected parameters) or move on (accepted parameters).
         '''
         if yes:
-            #accept and move on
+            # accept and move on
             self.logger.debug("Deciding to accept stellar parameters")
         else:
-            #revert and move on
+            # revert and move on
             self.logger.debug("Deciding to revert stellar parameters")
             self.revert_stellar()
 
-        #Proceed with independent sampling
+        # Proceed with independent sampling
         self.independent_sample(1)
 
     def update_nuisance(self, params):
         '''
-        Update the nuisance parameters.
+        Update the nuisance parameters and data covariance matrix.
 
         :param params: large dictionary containing cheb, cov, and regions
         '''
 
         self.logger.debug("Updating nuisance parameters to {}".format(params))
-        #Read off the Chebyshev parameters and update
+        # Read off the Chebyshev parameters and update
         self.ChebyshevSpectrum.update(params["cheb"])
 
-        #Create the full data covariance matrix.
+        # Create the full data covariance matrix.
         l = params["cov"]["l"]
         sigAmp = params["cov"]["sigAmp"]
 
-        #Check to make sure the global covariance parameters make sense
+        # Check to make sure the global covariance parameters make sense
         if sigAmp < 0.1:
             raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
 
-        max_r = 6.0 * l #km/s
+        max_r = 6.0 * l # [km/s]
 
-        #Check all regions, take the max
+        # Check all regions, take the max
         if self.nregions > 0:
             regions = params["regions"]
             keys = sorted(regions)
@@ -553,9 +551,9 @@ class OrderModel:
             max_r = max_reg if max_reg > max_r else max_r
             #print("Max_r now set by regions {}".format(max_r))
 
-        #print("max_r is {}".format(max_r))
+        # print("max_r is {}".format(max_r))
 
-        #Create a partial function which returns the proper element.
+        # Create a partial function which returns the proper element.
         k_func = make_k_func(params)
 
         # Store the previous data matrix in case we want to revert later
@@ -564,7 +562,8 @@ class OrderModel:
 
     def revert_nuisance(self, *args):
         '''
-        Revert all products from the nuisance parameters.
+        Revert all products from the nuisance parameters, including the data
+        covariance matrix.
         '''
 
         self.logger.debug("Reverting nuisance parameters")
@@ -575,11 +574,15 @@ class OrderModel:
         self.data_mat = self.data_mat_last
 
     def clear_resid_deque(self):
+        '''
+        Clear the accumulated residual spectra.
+        '''
         self.resid_deque.clear()
 
     def independent_sample(self, niter):
         '''
-        Now, do all the sampling that is specific to this order, using self.sampler
+        Do the independent sampling specific to this echelle order, using the
+        attached self.sampler (NuisanceSampler).
 
         :param niter: number of iterations to complete before returning to master process.
 
@@ -588,26 +591,26 @@ class OrderModel:
         self.logger.debug("Beginning independent sampling on nuisance parameters")
 
         if self.lnprob:
-            #Pass it to the sampler
+            # If we have a current value, pass it to the sampler
             self.p0, self.lnprob, state = self.sampler.run_mcmc(pos0=self.p0, N=niter, lnprob0=self.lnprob)
         else:
-            #Start from the beginning
+            # Otherwise, start from the beginning
             self.p0, self.lnprob, state = self.sampler.run_mcmc(pos0=self.p0, N=niter)
 
         self.logger.debug("Finished independent sampling on nuisance parameters")
-        #Don't return anything to the main process.
+        # Don't return anything to the master process.
 
     def finish(self, *args):
         '''
-        Wrap up the sampling. Write samples.
+        Wrap up the sampling and write the samples to disk.
         '''
 
         print(self.sampler.acceptance_fraction)
         print(self.sampler.acor)
         self.sampler.write()
-        self.sampler.plot() #triangle_plot=True
+        self.sampler.plot() # triangle_plot=True
         print("There were {} exceptions.".format(len(self.exceptions)))
-        #print out the values of each region key.
+        # print out the values of each region key.
         for exception in self.exceptions:
             regions = exception["regions"]
             keys = sorted(regions)
@@ -618,6 +621,10 @@ class OrderModel:
             print("\n\n")
 
     def brain(self, conn):
+        '''
+        The infinite loop of the subprocess, which continues to listen for
+        messages on the pipe.
+        '''
         self.conn = conn
         alive = True
         while alive:
@@ -627,37 +634,44 @@ class OrderModel:
         self.conn.send("DEAD")
 
     def interpret(self):
-        #Interpret the messages being put into the Pipe, and do something with them.
-        #Messages are always sent in a 2-arg tuple (fname, arg)
-        #Right now we only expect one function and one argument but we could generalize this to **args
+        '''
+        Interpret the messages being put into the Pipe, and do something with
+        them. Messages are always sent in a 2-arg tuple (fname, arg)
+        Right now we only expect one function and one argument but this could
+        be generalized to **args.
+        '''
         #info("brain")
 
         fname, arg = self.conn.recv() # Waits here to receive a new message
-        print("{} received message {}".format(os.getpid(), (fname, arg)))
+        self.logger.debug("{} received message {}".format(os.getpid(), (fname, arg)))
 
         func = self.func_dict.get(fname, False)
         if func:
             response = func(arg)
         else:
-            print("Given an unknown function {}, assuming kill signal.".format(fname))
+            self.logger.info("Given an unknown function {}, assuming kill signal.".format(fname))
             return False
 
-        #Functions only return a response other than None when they want them communicated back to the master process.
-        #Some commands sent to the child processes do not require a response to the main process.
+        # Functions only return a response other than None when they want them
+        # communicated back to the master process.
+        # Some commands sent to the child processes do not require a response
+        # to the main process.
         if response:
-            print("{} sending back {}".format(os.getpid(), response))
+            self.logger.debug("{} sending back {}".format(os.getpid(), response))
             self.conn.send(response)
         return True
 
-#We create one OrderModel in the main process. When the process forks, each process now has an order model.
-#Then, each forked model will be customized using an INIT command passed through the PIPE.
+# We create one OrderModel in the main process. When the process forks, each
+# subprocess now has its own independent OrderModel instance.
+# Then, each forked model will be customized using an INIT command passed
+# through the PIPE.
 
 model = OrderModel(debug=True)
 
-## Comment these following lines to profile
-#Fork a subprocess for each key: (spectra, order)
-pconns = {} #Parent connections
-cconns = {} #Child connections
+# Comment out these following lines to profile
+# Fork a subprocess for each key: (spectra, order)
+pconns = {} # Parent connections
+cconns = {} # Child connections
 ps = {}
 for spectrum in spectra:
     for order_id in order_ids:
@@ -668,19 +682,19 @@ for spectrum in spectra:
         p.start()
         ps[key] = p
 
-#Initialize all of the orders based upon which DataSpectrum and which order it is
+# Initialize all of the orders to a specific DataSpectrum and echelle order
 for key, pconn in pconns.items():
     pconn.send(("INIT", key))
 
-#From here on, we are here operating inside of the master process only.
+# From here on, this script operates on the master process only.
 if args.perturb:
     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
 
-
 def profile_code():
     '''
-    Test hook designed to be used by cprofile or kernprof. Does not include any network latency from communicating or
-    synchronizing between processes because we are just evaluating things directly.
+    Test hook designed to be used by cprofile or kernprof. Does not include any
+    network latency from communicating or synchronizing between processes
+    because we run on just one process.
     '''
 
     #Evaluate one complete iteration from delivery of stellar parameters from master process
@@ -703,13 +717,13 @@ def main():
     # cProfile.run("profile_code()", "prof")
     # import sys; sys.exit()
 
-    mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting, cov=stellar_MH_cov,
-                               outdir=outdir, debug=True, fix_logg=fix_logg)
+    mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting,
+        cov=stellar_MH_cov, outdir=outdir, debug=True, fix_logg=fix_logg)
 
     mySampler.run_mcmc(mySampler.p0, config['burn_in'])
     #mySampler.reset()
 
-    print("\n\n\n Instantiating Regions")
+    self.logger.info("Instantiating Regions")
 
     # Now that we are burned in, instantiate any regions
     for key, pconn in pconns.items():
@@ -722,12 +736,12 @@ def main():
     mySampler.write()
     mySampler.plot() #triangle_plot = True
 
-    #Kill all of the orders
+    # Kill all of the orders
     for pconn in pconns.values():
         pconn.send(("FINISH", None))
         pconn.send(("DIE", None))
 
-    #Join on everything and terminate
+    # Join on everything and terminate
     for p in ps.values():
         p.join()
         p.terminate()
