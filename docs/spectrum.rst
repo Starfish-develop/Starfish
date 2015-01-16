@@ -8,6 +8,11 @@ Spectrum
 :mod:`spectrum` is a package containing many different specrum objects. It defines many useful objects
 that may be used in the :mod:`grid_tools` package and the :mod:`model` package.
 
+Converting user spectra to input format
+=======================================
+
+HDF5 files or numpy files.
+
 
 Full-featured spectrum objects
 ==============================
