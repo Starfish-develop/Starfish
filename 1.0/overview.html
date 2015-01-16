@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Quickstart and Overview &mdash; Starfish 1.0 documentation</title>
+  <title>Overview &mdash; Starfish 1.0 documentation</title>
   
 
   
@@ -71,16 +71,17 @@
         
         
             <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Quickstart and Overview</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#obtaining-model-spectra">Obtaining model spectra</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-spectral-emulator">The Spectral Emulator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#the-driver-script">The driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-mcmc-driver-script">The MCMC driver script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#memory-usage">Memory usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
 </ul>
@@ -124,10 +125,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Quickstart and Overview</li>
+    <li>Overview</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/quickstart.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/overview.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -135,43 +136,40 @@
 </div>
           <div role="main">
             
-  <div class="section" id="quickstart-and-overview">
-<h1>Quickstart and Overview<a class="headerlink" href="#quickstart-and-overview" title="Permalink to this headline">¶</a></h1>
-<p>Spectroscopic inference is typically a complicated process, with many specifications for the type of spectrum used. Therefore, <em>Starfish</em> is presented as a code framework that provides the building blocks for any spectroscopic inference code one may write. We provide a few example scripts that show how the <em>Starfish</em> objects may be combined for a typical spectroscopic inference problem.</p>
+  <div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<p>Spectroscopic inference is typically a complicated process, requiring customization based upon the type of spectrum used. Therefore, <em>Starfish</em> is not a one-click solution but rather a framework of code that provides the building blocks for any spectroscopic inference code one may write. We provide a few example scripts that show how the <em>Starfish</em> code objects may be combined to solve a typical spectroscopic inference problem. This page summarizes the various components available for use and seeks to orient the user. More detailed information is provided at the end of each section.</p>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p>The source code and installation instructions can be found at the Github repository for Starfish here: <a class="reference external" href="http://github.com/iancze/Starfish">http://github.com/iancze/Starfish</a></p>
 </div>
 <div class="section" id="obtaining-model-spectra">
 <h2>Obtaining model spectra<a class="headerlink" href="#obtaining-model-spectra" title="Permalink to this headline">¶</a></h2>
-<p>Currently, <em>Starfish</em> relies upon model spectra provided as a synthetic library, since any stellar synthesis step is generally prohibitively expensive for the purposes of Markov Chain Monte Carlo (MCMC) exploration. However, if you have a synthesis backend that is fast enough, please feel free to swap out the synthetic library for your synthetic backend.</p>
-<p>First, you will need to download your synthetic spectral library of choice. What libraries are acceptable are dictated by the spectral range and resolution of your dataset. In general, it is preferable to start with a raw synthetic library that is sampled at least a factor of ~5 higher than your data. For our paper, we used the freely available PHOENIX library synthesized by [T. O. Husser](). Because the size of spectral libraries is typically measured in gigabytes, I would recommend starting the download process ASAP. [Here]() is an example script to download the most commonly used PHOENIX libraries.</p>
-<p>More information about how to download raw spectra and use other synthetic spectra is available in <a class="reference internal" href="grid_tools.html"><em>Grid Tools</em></a>. Most of <cite>Starfish</cite>&#8216;s model functionality is provided by a few objects which provide interfaces to these spectral libraries.</p>
+<p>Because any stellar synthesis step is currently prohibitively expensive for the purposes of Markov Chain Monte Carlo (MCMC) exploration, <em>Starfish</em> relies upon model spectra provided as a synthetic library. However, if you do have a synthesis back-end that is fast enough, please feel free to swap out the synthetic library for your synthetic back-end.</p>
+<p>First, you will need to download your synthetic spectral library of choice. What libraries are acceptable are dictated by the spectral range and resolution of your data. In general, it is preferable to start with a raw synthetic library that is sampled at least a factor of ~5 higher than your data. For our paper, we used the freely available <a class="reference external" href="http://phoenix.astro.physik.uni-goettingen.de/">PHOENIX library</a> synthesized by T. O. Husser. Because the size of spectral libraries is typically measured in gigabytes, I would recommend starting the download process now, and then finish reading the documentation :)</p>
+<p>More information about how to download raw spectra and use other synthetic spectra is available in <a class="reference internal" href="grid_tools.html"><em>Grid Tools</em></a>. <cite>Starfish</cite> provides a few objects which interface to these spectral libraries.</p>
 </div>
 <div class="section" id="the-spectral-emulator">
 <h2>The Spectral Emulator<a class="headerlink" href="#the-spectral-emulator" title="Permalink to this headline">¶</a></h2>
-<p>For high signal-to-noise data, we found that any interpolation error can constitute a large fraction of the uncertainty budget. For lower quality data, it may be possible to use a simpler (and faster) interpolation scheme, such as tri-linear interpolation. The next step is to train the emulator on the library.</p>
-<div class="section" id="pca-decomposition">
-<h3>PCA decomposition<a class="headerlink" href="#pca-decomposition" title="Permalink to this headline">¶</a></h3>
-<p>The spectral emulator works by reconstructing spectra from a linear combination of eigenspectra. Therefore, the first step is to deconstruct your spectral library into a set of eigenspectra using principal component analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <cite>scikit-learn</cite> package.</p>
-<p>Training the Gaussian Process.</p>
-</div>
+<p>For high signal-to-noise data, we found that any interpolation error can constitute a large fraction of the uncertainty budget (see the appendix of our paper). For lower quality data, it may be possible to live with this interpolation error and use a simpler (and faster) interpolation scheme, such as tri-linear interpolation. However, we found that for sources with <span class="math">\(S/N \geq 100\)</span> a smoother interpolation scheme was required, and so we developed a spectral emulator.</p>
+<p>The spectral emulator works by reconstructing spectra from a linear combination of eigenspectra, where the weight for each eigenspectrum is a function of the model parameters. Therefore, the first step is to deconstruct your spectral library into a set of eigenspectra using principal component analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <cite>scikit-learn</cite> package.</p>
+<p>The next step is training a Gaussian Process to model the reconstruction weights as a function of model parameters (e.g., effective temperature <span class="math">\(T_{\rm eff}\)</span>, surface gravity <span class="math">\(\log(g)\)</span>, and metallicity <span class="math">\([{\rm Fe}/{\rm H}]\)</span>). Because the spectral emulator delivers a probability distribution over the many possible interpolated spectra, we can propagate interpolation uncertainty into our final parameter estimates. For more on setting up the emulator, see <a class="reference internal" href="emulator.html"><em>Spectral Emulator</em></a>.</p>
 </div>
 <div class="section" id="spectrum-data-formats-and-runtime">
 <h2>Spectrum data formats and runtime<a class="headerlink" href="#spectrum-data-formats-and-runtime" title="Permalink to this headline">¶</a></h2>
-<p>High resolution data is often taken by an echelle spectrograph, with many separate spectral orders, or &#8220;chunks&#8221;, of data. This is convenient, because this means that the evaluation of each chunk is independent from the other chunks, meaning that this process can be parallelized on a computer with many cores.</p>
-<p>The runtime of <em>Starfish</em> strongly scales with the number of pixels in each chunk. If instead of a chunked dataset, you have a single merged array of more than 3000 pixels, we strongly advise chunking the dataset up to speed computation time. As long as you have as many CPU cores as you do chunks, the evaluation time of <em>Starfish</em> is roughly constant with respect to the number of chunks. Therefore if you have access to a 64 core node of a cluster, <em>Starfish</em> can fit an entire ~50 order high-res echelle spectrum in about the same time as it would take to fit a single order. (For testing purposes, it may be wise to use only single order to start, however.)</p>
-<p>Astronomical spectra come in a wide variety of formats. Although there is effort to [simplify](astropy/specutils) the reading of these formats, it was too complicated to present a read-write interface that would suit everyone. Therefore, <em>Starfish</em> requires that the user convert their spectra into a simple format. You can either present these as <em>numpy</em> arrays or HDF5 files. For some example scripts and data formats, see here.</p>
+<p>High resolution spectra are frequently taken with echelle spectrographs, which have many separate spectral orders, or &#8220;chunks&#8221;, of data. This chunking is convenient because the likelihood evaluation of each chunk is independent from the other chunks, meaning that the global likelihood evaluation for the entire spectrum can be parallelized on a computer with many cores.</p>
+<p>The runtime of <em>Starfish</em> strongly scales with the number of pixels in each chunk. If instead of a chunked dataset, you have a single merged array of more than 3000 pixels, we strongly advise chunking the dataset up to speed computation time. As long as you have as many CPU cores as you do chunks, the evaluation time of <em>Starfish</em> is roughly independent of the number of chunks. Therefore, if you have access to a 64 core node of a cluster, <em>Starfish</em> can fit an entire ~50 order high-res echelle spectrum in about the same time as it would take to fit a single order. (For testing purposes, it may be wise to use only single order to start, however.)</p>
+<p>Astronomical spectra come in a wide variety of formats. Although there is effort to <a class="reference external" href="http://specutils.readthedocs.org/en/latest/specutils/index.html">simplify</a> reading these formats, it is beyond the scope of this package to provide an interface that would suit everyone. <em>Starfish</em> requires that the user convert their spectra into one of two simple formats: <em>numpy</em> arrays or HDF5 files. For more about converting spectra to these data formats, see <a class="reference internal" href="spectrum.html"><em>Spectrum</em></a>.</p>
 </div>
-<div class="section" id="the-driver-script">
-<h2>The driver script<a class="headerlink" href="#the-driver-script" title="Permalink to this headline">¶</a></h2>
-<p>The main purpose of <em>Starfish</em> is to provide a framework for robust spectroscopic inference. This means providing a set of code that evaluates a posterior probability distribution using a non-trivial covariance matrix. In principle one could use traditional non-linear optimization techniques to find the maximum of this posterior with respect to the stellar parameters. However, because one is also keenly interested in the <em>uncertainties</em> on the best-fitting parameters, we must use an optimization technique that explores the full posterior, such as Markov Chain Monte Carlo (MCMC).</p>
-<p>Because each dataset is different, it is the user&#8217;s responsibility to modify the MCMC driver script to suit their needs. We provide a few different example scripts [here] to get you started. More information about writing these scripts is [here].</p>
-<p><em>Starfish</em> relies upon a modified version of <em>emcee</em>, a popular Markov Chain Monte Carlo package, to run a Gibbs sampler, available here: LINK. To help examine the output of any MCMC run and generate plots of the samples, we also provide some helpful command-line <a class="reference internal" href="scripts.html"><em>Scripts</em></a>.</p>
+<div class="section" id="the-mcmc-driver-script">
+<h2>The MCMC driver script<a class="headerlink" href="#the-mcmc-driver-script" title="Permalink to this headline">¶</a></h2>
+<p>The main purpose of <em>Starfish</em> is to provide a framework for robustly deriving model parameters using spectra. The ability to self-consistently downweight model systematics resulting from incorrectly modeled spectral lines is accomplished by using a non-trivial covariance matrix as part of a multi-dimensional Gaussian likelihood function. In principle, one could use traditional non-linear optimization techniques to find the maximum of the posterior probability distribution with respect to the model parameters. However, because one is usually keenly interested in the <em>uncertainties</em> on the best-fitting parameters, we must use an optimization technique that explores the full posterior, such as Markov Chain Monte Carlo (MCMC).</p>
+<p>Because each dataset has its own requirements, it is up to the user to modify the MCMC driver script to suit their needs. For now, a complicated parallel example is available <a class="reference external" href="https://github.com/iancze/Starfish/blob/master/Starfish/parallel.py">here</a>. We hope to provide more user-friendly scripts soon.</p>
+<p><em>Starfish</em> relies upon a modified version of <em>emcee</em>, a popular Markov Chain Monte Carlo package, to run a Gibbs sampler, available <a class="reference external" href="https://github.com/iancze/emcee">here</a>. To help examine the output of any MCMC run and generate plots of the samples, we also provide some helpful command-line <a class="reference internal" href="scripts.html"><em>Scripts</em></a>.</p>
 </div>
 <div class="section" id="memory-usage">
 <h2>Memory usage<a class="headerlink" href="#memory-usage" title="Permalink to this headline">¶</a></h2>
-<p>In our testing, <em>Starfish</em> requires a moderate amount of RAM per process (~0.5 Gb per process) for a spectrum that has chunk sizes of ~3000 pixels.</p>
+<p>In our testing, <em>Starfish</em> requires a moderate amount of RAM per process (~1 Gb per process) for a spectrum that has chunk sizes of ~3000 pixels.</p>
 </div>
 </div>
 

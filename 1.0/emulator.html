@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Scripts &mdash; Starfish 1.0 documentation</title>
+  <title>Spectral Emulator &mdash; Starfish 1.0 documentation</title>
   
 
   
@@ -29,7 +29,6 @@
 
   
     <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
-        <link rel="prev" title="Model" href="model.html"/>
  
 
 <script>
@@ -69,14 +68,14 @@
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
         
-            <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart and Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#obtaining-model-spectra">Obtaining model spectra</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#the-spectral-emulator">The Spectral Emulator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#the-driver-script">The driver script</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#memory-usage">Memory usage</a></li>
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-spectral-emulator">The Spectral Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-driver-script">The driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
@@ -95,9 +94,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Scripts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#hdf5-scripts">HDF5 Scripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#plotting-scripts">Plotting Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
 </ul>
 </li>
 </ul>
@@ -123,10 +122,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Scripts</li>
+    <li>Spectral Emulator</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/scripts.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -134,59 +133,13 @@
 </div>
           <div role="main">
             
-  <div class="section" id="scripts">
-<h1>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h1>
-<p>StellarSpectra is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
-data.</p>
-<p>You may want to add the following location to your <cite>PATH</cite> in order to make frequent use of these scripts.</p>
-<div class="section" id="hdf5-scripts">
-<h2>HDF5 Scripts<a class="headerlink" href="#hdf5-scripts" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>hdfcat.py</li>
-<li>hdfplot.py</li>
-</ul>
-<div class="section" id="hdfcat-py">
-<h3>hdfcat.py<a class="headerlink" href="#hdfcat-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is used to concatenate the samples from multiple MCMC runs. The output must be stored in the same formats,
-but it is primarily for concatenating the samples for the stellar parameters and order parameters, but notably <em>not</em>
-the region lists and parameters. This is designed to enable parallel runs of the algorithm but then combine all of
-the parameters into one HDF5 file for use with <cite>hdfplot.py</cite></p>
-</div>
-<div class="section" id="hdfplot-py">
-<h3>hdfplot.py<a class="headerlink" href="#hdfplot-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to plot the chain data contained in a single HDF5 file. As of now, you can select which
-stellar parameters you wish to provide in the triangle plot. This is designed to make custom plots <em>after</em> the run, such
-that you can play around with intercomparing parameters and making it look good for the paper or presentation.</p>
-<p>Functionality that&#8217;s coming: ability to select/truncate samples from the beginning/end of the run.</p>
-</div>
-<div class="section" id="hdfinterplot-py">
-<h3>hdfinterplot.py<a class="headerlink" href="#hdfinterplot-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to plot the different chains for single parameters. It hasn&#8217;t been written yet.</p>
-</div>
-</div>
-<div class="section" id="plotting-scripts">
-<h2>Plotting Scripts<a class="headerlink" href="#plotting-scripts" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>plotly_model.py</li>
-</ul>
-<div class="section" id="plotly-model-py">
-<h3>plotly_model.py<a class="headerlink" href="#plotly-model-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to visualize an individual order. Designed to be run both as a command line script and
-as an importable function that returns a url.</p>
-</div>
-</div>
+  <div class="section" id="spectral-emulator">
+<h1>Spectral Emulator<a class="headerlink" href="#spectral-emulator" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-      
-        <a href="model.html" class="btn btn-neutral" title="Model"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

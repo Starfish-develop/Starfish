@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>StellarSpectra documentation &mdash; Starfish 1.0 documentation</title>
+  <title>Starfish documentation &mdash; Starfish 1.0 documentation</title>
   
 
   
@@ -29,7 +29,7 @@
 
   
     <link rel="top" title="Starfish 1.0 documentation" href="#"/>
-        <link rel="next" title="Quickstart" href="quickstart.html"/>
+        <link rel="next" title="Overview" href="overview.html"/>
  
 
 <script>
@@ -70,14 +70,17 @@
         
         
             <ul>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#downloading-the-program-data">Downloading the program data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-the-parameter-script">Creating the parameter script</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#echelle-orders">Echelle orders</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#covariance-matrices">Covariance matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-spectral-emulator">The Spectral Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-mcmc-driver-script">The MCMC driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
 </ul>
@@ -121,7 +124,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="#">Docs</a> &raquo;</li>
       
-    <li>StellarSpectra documentation</li>
+    <li>Starfish documentation</li>
       <li class="wy-breadcrumbs-aside">
         
           <a href="_sources/index.txt" rel="nofollow"> View page source</a>
@@ -132,21 +135,23 @@
 </div>
           <div role="main">
             
-  <div class="section" id="stellarspectra-documentation">
-<h1>StellarSpectra documentation<a class="headerlink" href="#stellarspectra-documentation" title="Permalink to this headline">¶</a></h1>
-<p>StellarSpectra is designed to infer stellar properties such as effective temperature <span class="math">\(T_{\rm eff}\)</span>, surface
-gravity <span class="math">\(\log(g)\)</span>, and metallicity <span class="math">\([{\rm Fe}/{\rm H}]\)</span> from high resolution spectra using a Bayesian model.</p>
+  <div class="section" id="starfish-documentation">
+<h1>Starfish documentation<a class="headerlink" href="#starfish-documentation" title="Permalink to this headline">¶</a></h1>
+<p><em>Starfish</em> is a framework used for robust spectroscopic inference. While this package was designed around the need to infer stellar properties such as effective temperature <span class="math">\(T_{\rm eff}\)</span>, surface gravity <span class="math">\(\log(g)\)</span>, and metallicity <span class="math">\([{\rm Fe}/{\rm H}]\)</span> from high resolution spectra, the framework could easily be adapted to any type of model spectra: galaxy spectra, supernovae spectra, or spectra of unresolved stellar clusters. For an introduction to the problems that <em>Starfish</em> solves, please see <a class="reference external" href="http://iancze.github.io/Starfish">our website</a>. For more technical information, please see  <a class="reference external" href="http://arxiv.org/abs/1412.5177">our paper</a>.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#downloading-the-program-data">Downloading the program data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-the-parameter-script">Creating the parameter script</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#echelle-orders">Echelle orders</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#covariance-matrices">Covariance matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-spectral-emulator">The Spectral Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-mcmc-driver-script">The MCMC driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
 </ul>
@@ -169,7 +174,7 @@ gravity <span class="math">\(\log(g)\)</span>, and metallicity <span class="math
 </li>
 </ul>
 </div>
-<p>Copyright Ian Czekala 2013, 2014</p>
+<p>Copyright Ian Czekala and collaborators 2013, 2014</p>
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
@@ -186,7 +191,7 @@ gravity <span class="math">\(\log(g)\)</span>, and metallicity <span class="math
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="overview.html" class="btn btn-neutral float-right" title="Overview"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

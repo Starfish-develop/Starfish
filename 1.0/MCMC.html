@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Scripts &mdash; Starfish 1.0 documentation</title>
+  <title>MCMC &mdash; Starfish 1.0 documentation</title>
   
 
   
@@ -29,7 +29,6 @@
 
   
     <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
-        <link rel="prev" title="Model" href="model.html"/>
  
 
 <script>
@@ -69,7 +68,7 @@
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
         
-            <ul class="current">
+            <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart and Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#obtaining-model-spectra">Obtaining model spectra</a></li>
@@ -95,9 +94,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Scripts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#hdf5-scripts">HDF5 Scripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#plotting-scripts">Plotting Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
 </ul>
 </li>
 </ul>
@@ -123,10 +122,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Scripts</li>
+    <li>MCMC</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/scripts.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/MCMC.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -134,59 +133,26 @@
 </div>
           <div role="main">
             
-  <div class="section" id="scripts">
-<h1>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h1>
-<p>StellarSpectra is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
-data.</p>
-<p>You may want to add the following location to your <cite>PATH</cite> in order to make frequent use of these scripts.</p>
-<div class="section" id="hdf5-scripts">
-<h2>HDF5 Scripts<a class="headerlink" href="#hdf5-scripts" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>hdfcat.py</li>
-<li>hdfplot.py</li>
-</ul>
-<div class="section" id="hdfcat-py">
-<h3>hdfcat.py<a class="headerlink" href="#hdfcat-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is used to concatenate the samples from multiple MCMC runs. The output must be stored in the same formats,
-but it is primarily for concatenating the samples for the stellar parameters and order parameters, but notably <em>not</em>
-the region lists and parameters. This is designed to enable parallel runs of the algorithm but then combine all of
-the parameters into one HDF5 file for use with <cite>hdfplot.py</cite></p>
-</div>
-<div class="section" id="hdfplot-py">
-<h3>hdfplot.py<a class="headerlink" href="#hdfplot-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to plot the chain data contained in a single HDF5 file. As of now, you can select which
-stellar parameters you wish to provide in the triangle plot. This is designed to make custom plots <em>after</em> the run, such
-that you can play around with intercomparing parameters and making it look good for the paper or presentation.</p>
-<p>Functionality that&#8217;s coming: ability to select/truncate samples from the beginning/end of the run.</p>
-</div>
-<div class="section" id="hdfinterplot-py">
-<h3>hdfinterplot.py<a class="headerlink" href="#hdfinterplot-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to plot the different chains for single parameters. It hasn&#8217;t been written yet.</p>
-</div>
-</div>
-<div class="section" id="plotting-scripts">
-<h2>Plotting Scripts<a class="headerlink" href="#plotting-scripts" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>plotly_model.py</li>
-</ul>
-<div class="section" id="plotly-model-py">
-<h3>plotly_model.py<a class="headerlink" href="#plotly-model-py" title="Permalink to this headline">¶</a></h3>
-<p>This script is designed to visualize an individual order. Designed to be run both as a command line script and
-as an importable function that returns a url.</p>
-</div>
+  <div class="section" id="mcmc">
+<h1>MCMC<a class="headerlink" href="#mcmc" title="Permalink to this headline">¶</a></h1>
+<p>Driver scripts.</p>
+<div class="section" id="creating-the-parameter-script">
+<h2>Creating the parameter script<a class="headerlink" href="#creating-the-parameter-script" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>All parameters are specified in YAML. The specification is [here](<a class="reference external" href="http://www.yaml.org/spec/1.2/spec.html">http://www.yaml.org/spec/1.2/spec.html</a>) and the</dt>
+<dd>python interface is documented [here](<a class="reference external" href="http://pyyaml.org/wiki/PyYAMLDocumentation">http://pyyaml.org/wiki/PyYAMLDocumentation</a>). YAML is a very powerful configuration
+language but it&#8217;s also very easy to use, so don&#8217;t be intimidated. It&#8217;s a highly worthwhile format to learn,
+and you can probably figure out how it works from the example scripts.</dd>
+</dl>
+<p>Additionally, you can also configure the fitting runs by directly editing the python script <tt class="docutils literal"><span class="pre">scripts/stars/base_lnrob</span></tt>
+If you wanted to, you could also remove the YAML dependencey and just declare your variables in the script, but I think
+it is nice to keep them separate for organization&#8217;s sake.</p>
 </div>
 </div>
 
 
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-      
-        <a href="model.html" class="btn btn-neutral" title="Model"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

@@ -71,11 +71,13 @@
         
         
             <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#downloading-the-program-data">Downloading the program data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-the-parameter-script">Creating the parameter script</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#echelle-orders">Echelle orders</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#covariance-matrices">Covariance matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart and Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#obtaining-model-spectra">Obtaining model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#the-spectral-emulator">The Spectral Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#the-driver-script">The driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
@@ -266,7 +268,7 @@ Currently there are extensions for three main grids:</p>
 <p>All interactions with the grid are designed to be abstracted such that the user can easily extend to add a new
 spectral grid simply by writing a new class which inherits <a class="reference internal" href="#Starfish.grid_tools.RawGridInterface" title="Starfish.grid_tools.RawGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">RawGridInterface</span></tt></a>.</p>
 <p class="graphviz">
-<img src="_images/inheritance-97780b5625dd8c98f957852a17d3c391b6176449.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-62da4da0249cf31f589afe30c7db3536cb11aa9d.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" href="#Starfish.grid_tools.BTSettlGridInterface" title="BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the individual files of the BTSettl grid do not" alt="" coords="188,5,339,31"/>
 <area shape="rect" id="node2" href="#Starfish.grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral grids." alt="" coords="5,55,135,80"/>
@@ -546,7 +548,7 @@ in a unified file format (HDF5), so that it can be easily stored and transferred
 (say,  some external disk) to a laptop.</p>
 <dl class="class">
 <dt id="Starfish.grid_tools.HDF5GridStuffer">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5GridStuffer</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5GridStuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5GridStuffer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5GridStuffer</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5GridStuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5GridStuffer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -608,7 +610,7 @@ file, in a subfile called &#8216;flux&#8217;, and are labelled as a dataset with
 <div>t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}</div></blockquote>
 <dl class="class">
 <dt id="Starfish.grid_tools.HDF5Interface">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect to an HDF5 file that stores spectra.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -688,7 +690,7 @@ already been created by <a class="reference internal" href="#Starfish.grid_tools
 instrument under consideration.</p>
 <dl class="class">
 <dt id="Starfish.grid_tools.HDF5InstGridCreator">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5InstGridCreator</tt><big>(</big><em>HDF5Interface</em>, <em>filename</em>, <em>Instrument</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5InstGridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5InstGridCreator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5InstGridCreator</tt><big>(</big><em>HDF5Interface</em>, <em>filename</em>, <em>Instrument</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5InstGridCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5InstGridCreator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Designed to harness an HDF5 interface (that has been created using HDF5GridStuffer) to create a library of spectra
 designed specifically for just one instrument and one object. This means that it is convolved with the
 instrumental PSF and downsampled to some fraction of the FWHM.</p>
@@ -750,7 +752,7 @@ HDF5 file.</p>
 <a class="reference internal" href="#Starfish.grid_tools.HDF5Interface" title="Starfish.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> instance.</p>
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Connect to an HDF5 file that stores spectra.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -941,7 +943,7 @@ convolve and resample the synthetic spectra to match the format of our data. <em
 which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
 convolve raw spectra by the instrumental profile.</p>
 <p class="graphviz">
-<img src="_images/inheritance-0a82ee6287b1228b368e4e4b0d567decf28d2d28.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-4b0c1275145bc8e2db5e4c4e4d93774c09b54348.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#Starfish.grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for processing raw synthetic spectra." alt="" coords="5,55,97,80"/>
 <area shape="rect" id="node2" href="#Starfish.grid_tools.KPNO" title="KNPO Instrument" alt="" coords="145,5,217,31"/>

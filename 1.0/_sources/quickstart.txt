@@ -1,37 +1,55 @@
-==========
-Quickstart
-==========
+=======================
+Quickstart and Overview
+=======================
 
-Downloading the program data
-============================
+Spectroscopic inference is typically a complicated process, with many specifications for the type of spectrum used. Therefore, *Starfish* is presented as a code framework that provides the building blocks for any spectroscopic inference code one may write. We provide a few example scripts that show how the *Starfish* objects may be combined for a typical spectroscopic inference problem.
 
-In order to fit the data, you will need to download libraries of synthetic spectra. For those on the CfA network,
- I have stored many of these synthetic libraries at ``/pool/scout0/libraries/*.hdf5``. Many of these might be quite large,
- so make sure you have enough space (libraries range from 10 - 100 Gb).
+Installation
+============
 
-More information about how to download raw spectra and create your own grids is available in :doc:`grid_tools`.
+The source code and installation instructions can be found at the Github repository for Starfish here: http://github.com/iancze/Starfish
 
-Creating the parameter script
-=============================
+Obtaining model spectra
+========================
 
-All parameters are specified in YAML. The specification is [here](http://www.yaml.org/spec/1.2/spec.html) and the
- python interface is documented [here](http://pyyaml.org/wiki/PyYAMLDocumentation). YAML is a very powerful configuration
- language but it's also very easy to use, so don't be intimidated. It's a highly worthwhile format to learn,
- and you can probably figure out how it works from the example scripts.
+Currently, *Starfish* relies upon model spectra provided as a synthetic library, since any stellar synthesis step is generally prohibitively expensive for the purposes of Markov Chain Monte Carlo (MCMC) exploration. However, if you have a synthesis backend that is fast enough, please feel free to swap out the synthetic library for your synthetic backend.
 
-Additionally, you can also configure the fitting runs by directly editing the python script ``scripts/stars/base_lnrob``
-If you wanted to, you could also remove the YAML dependencey and just declare your variables in the script, but I think
-it is nice to keep them separate for organization's sake.
+First, you will need to download your synthetic spectral library of choice. What libraries are acceptable are dictated by the spectral range and resolution of your dataset. In general, it is preferable to start with a raw synthetic library that is sampled at least a factor of ~5 higher than your data. For our paper, we used the freely available PHOENIX library synthesized by [T. O. Husser](). Because the size of spectral libraries is typically measured in gigabytes, I would recommend starting the download process ASAP. [Here]() is an example script to download the most commonly used PHOENIX libraries.
+
+More information about how to download raw spectra and use other synthetic spectra is available in :doc:`grid_tools`. Most of `Starfish`'s model functionality is provided by a few objects which provide interfaces to these spectral libraries.
+
+The Spectral Emulator
+=====================
+
+For high signal-to-noise data, we found that any interpolation error can constitute a large fraction of the uncertainty budget. For lower quality data, it may be possible to use a simpler (and faster) interpolation scheme, such as tri-linear interpolation. The next step is to train the emulator on the library.
+
+PCA decomposition
+-----------------
+
+The spectral emulator works by reconstructing spectra from a linear combination of eigenspectra. Therefore, the first step is to deconstruct your spectral library into a set of eigenspectra using principal component analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the `scikit-learn` package.
+
+Training the Gaussian Process.
+
+Spectrum data formats and runtime
+=================================
+
+High resolution data is often taken by an echelle spectrograph, with many separate spectral orders, or "chunks", of data. This is convenient, because this means that the evaluation of each chunk is independent from the other chunks, meaning that this process can be parallelized on a computer with many cores.
+
+The runtime of *Starfish* strongly scales with the number of pixels in each chunk. If instead of a chunked dataset, you have a single merged array of more than 3000 pixels, we strongly advise chunking the dataset up to speed computation time. As long as you have as many CPU cores as you do chunks, the evaluation time of *Starfish* is roughly constant with respect to the number of chunks. Therefore if you have access to a 64 core node of a cluster, *Starfish* can fit an entire ~50 order high-res echelle spectrum in about the same time as it would take to fit a single order. (For testing purposes, it may be wise to use only single order to start, however.)
+
+Astronomical spectra come in a wide variety of formats. Although there is effort to [simplify](astropy/specutils) the reading of these formats, it was too complicated to present a read-write interface that would suit everyone. Therefore, *Starfish* requires that the user convert their spectra into a simple format. You can either present these as *numpy* arrays or HDF5 files. For some example scripts and data formats, see here.
+
+The driver script
+=================
+
+The main purpose of *Starfish* is to provide a framework for robust spectroscopic inference. This means providing a set of code that evaluates a posterior probability distribution using a non-trivial covariance matrix. In principle one could use traditional non-linear optimization techniques to find the maximum of this posterior with respect to the stellar parameters. However, because one is also keenly interested in the *uncertainties* on the best-fitting parameters, we must use an optimization technique that explores the full posterior, such as Markov Chain Monte Carlo (MCMC).
+
+Because each dataset is different, it is the user's responsibility to modify the MCMC driver script to suit their needs. We provide a few different example scripts [here] to get you started. More information about writing these scripts is [here].
+
+*Starfish* relies upon a modified version of *emcee*, a popular Markov Chain Monte Carlo package, to run a Gibbs sampler, available here: LINK. To help examine the output of any MCMC run and generate plots of the samples, we also provide some helpful command-line :doc:`scripts`.
 
 
-Echelle orders
-==============
+Memory usage
+============
 
-To prevent confusion, all echelle orders will be indexed from 0. This means that if there are :math:`N` total orders, then
- the first order is 0 and the last order is :math:`N - 1`.
-
-
-Covariance matrices
-===================
-
-Useful link to Wikipedia on covariance matrices/positive-semi definite
+In our testing, *Starfish* requires a moderate amount of RAM per process (~0.5 Gb per process) for a spectrum that has chunk sizes of ~3000 pixels.
