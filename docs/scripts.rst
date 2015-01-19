@@ -45,4 +45,3 @@ plotly_model.py
 
 This script is designed to visualize an individual order. Designed to be run both as a command line script and
 as an importable function that returns a url.
-

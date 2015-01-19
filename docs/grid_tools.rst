@@ -8,6 +8,11 @@ Grid Tools
 :mod: `grid_tools` is a package to manipulate synthetic stellar spectra. It defines many useful functions and objects
  that may be used in the modeling package :mod:`model`, such as :obj:`Interpolator`.
 
+Downloading model spectra
+=========================
+
+PHOENIX library.
+
 Module level methods
 ====================
 
