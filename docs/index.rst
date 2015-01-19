@@ -9,8 +9,8 @@ Contents:
    :maxdepth: 2
 
    overview
-   spectrum
    grid_tools
+   spectrum
    model
    scripts
 

@@ -48,4 +48,4 @@ Because each dataset has its own requirements, it is up to the user to modify th
 Memory usage
 ============
 
-In our testing, *Starfish* requires a moderate amount of RAM per process (~1 Gb per process) for a spectrum that has chunk sizes of ~3000 pixels.
+In our testing, *Starfish* requires a moderate amount of RAM per process (~1 Gb) for a spectrum that has chunk sizes of ~3000 pixels.
