@@ -2,14 +2,14 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title> Stellar Spectra </title>
+<title>Robust Spectroscopic Inference</title>
 
 <link rel="stylesheet" href="css/reveal.min.css">
-<!-- <link rel="stylesheet" href="css/theme/default.css"> -->
 <link rel="stylesheet" href="css/theme/sky.css">
 
 <!-- Bootstrap core CSS -->
 <link href="css/bootstrap.min.css" rel="stylesheet">
+
 <style>
 /* Help from https://github.com/pkgw/htmltalk */
 
@@ -37,7 +37,7 @@
     background:none;
 }
 
-.reveal td 
+.reveal td
 {
     vertical-align: top;
     padding: 15px;
@@ -62,13 +62,13 @@
 <body>
 <div class="reveal">
     <div class="slides">
-    <section class="slide-full">
-        <h2>Fitting stellar spectra with some help from Gaussian processes</h2>
-        
+    <!-- <section class="slide-full"> -->
+    <section>
+        <h2>Robust spectroscopic inference with imperfect models</h2>
+
         <img src="title.svg" class="noborder"/>
 
-        <p><em>ExoStat</em></p>
-        <p>Wednesday June 18th, 2014</p>
+        <!-- <p>Wednesday June 18th, 2014</p> -->
         <p>Ian Czekala</p>
     </section>
 
@@ -95,7 +95,7 @@
 
             <div class="row fragment">
                 <div class="col-xs-8">
-                    <h5>Stellar evolution</h5> 
+                    <h5>Stellar evolution</h5>
                     <p>
                     Models make predictions of stellar properties as a function of mass and age. This relationship is rather uncertain for young stars.
                     </p>
@@ -111,7 +111,7 @@
                 <div class="col-xs-8">
                     <h5>Exoplanet properties</h5>
                     <p>
-                    Determined relative to host star properties, and biases or uncertainties strongly affect habitable zone and $\eta_\bigoplus$ <small>(Kane11)</small> 
+                    Determined relative to host star properties, and biases or uncertainties strongly affect habitable zone and $\eta_\bigoplus$ <small>(Kane11)</small>
                     </p>
                 </div>
             </div>
@@ -122,11 +122,11 @@
             <h4>Part I: Mass </h4>
             <div class="row">
                 <div class="col-xs-8">
-                    <img src="chmaps.png" height=400px class="noborder" />
+                    <img src="img/chmaps.png" height=400px class="noborder" />
                 </div>
                 <div class="col-xs-4">
-                    <img src="SMA_cite.jpg" />
-                    <img src="ALMA_cite.jpg" />
+                    <img src="img/SMA_cite.jpg" />
+                    <img src="img/ALMA_cite.jpg" />
                 </div>
             </div>
             <p>
@@ -187,7 +187,7 @@
         </section>
         <section>
             <h3>The problem <small>in a nutshell </small></h3>
-            <img src="specfit.svg" class="noborder" />
+            <img src="img/specfit.svg" class="noborder" />
             <p>
             Spectroscopic fits are different from "normal" $ \chi^2$ fits
             </p>
@@ -198,10 +198,10 @@
 
             <div style="position:relative">
                 <div style="width:750px;height:180px"> </div>
-                <img src="residuals0.svg" class="noborder animate-residuals fragment fade-out" data-fragment-index="0" />
-                <img src="residuals1.svg" class="noborder animate-residuals fragment current-visible" data-fragment-index="0"/>
-                <img src="residuals2.svg" class="noborder animate-residuals fragment current-visible" data-fragment-index="1"/>
-                <img src="residuals0.svg" class="noborder animate-residuals fragment fade-in" data-fragment-index="2"/>
+                <img src="img/residuals0.svg" class="noborder animate-residuals fragment fade-out" data-fragment-index="0" />
+                <img src="img/residuals1.svg" class="noborder animate-residuals fragment current-visible" data-fragment-index="0"/>
+                <img src="img/residuals2.svg" class="noborder animate-residuals fragment current-visible" data-fragment-index="1"/>
+                <img src="img/residuals0.svg" class="noborder animate-residuals fragment fade-in" data-fragment-index="2"/>
             </div>
             <p>
             Existing stellar synthesis is <em>amazing</em>, but not <em>perfect</em>.
@@ -222,7 +222,7 @@
                 <div class="col-xs-6">
                 <img src="class0_residuals.png" />
                         <div class="caption">
-                            a "good" fit 
+                            a "good" fit
                         </div>
                 </div>
                 <div class="col-xs-6">
@@ -291,7 +291,7 @@
               Mat&eacute;rn $\nu = 3/2$
               </p>
               <p>
-              $k(\lambda_i, \lambda_j | a, l) = a \left (1 + \frac{\sqrt{3} r_{ij}}{l} \right ) \exp \left ( - \frac{\sqrt{3} r_{ij}}{l} \right )$ 
+              $k(\lambda_i, \lambda_j | a, l) = a \left (1 + \frac{\sqrt{3} r_{ij}}{l} \right ) \exp \left ( - \frac{\sqrt{3} r_{ij}}{l} \right )$
               </p>
           </div>
               <div class="row">
@@ -305,7 +305,7 @@
               </p>
                 </div>
                 <div class="col-xs-6">
-                    <img src="matern_matrix.png" class="fragment" data-fragment-index="0" />
+                    <img data-src="matern_matrix.png" class="fragment" data-fragment-index="0" />
                 </div>
               </div>
     </section>
@@ -316,12 +316,12 @@
               <p>
           </p>
           <video controls data-autoplay loop class="img-responsive">
-              <source src="global_animation.mp4" type="video/mp4">
+              <source data-src="global_animation.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
           </div>
           <div class="col-xs-6">
-              <img src="matern_matrix.png" / >
+              <img data-src="matern_matrix.png" / >
           </div>
     </div>
     </section>
@@ -338,7 +338,7 @@
                 </p>
                 <div class="fragment">
                 <p class="pad-top">
-                covariance kernel is 
+                covariance kernel is
                 </p>
                 <p>
                 $k(\lambda_i, \lambda_j) = \langle \textbf{R}_i \textbf{R}_j \rangle$
@@ -379,7 +379,7 @@
                     <small> (courtesy <a href="https://github.com/dfm/triangle.py">dfm/triangle.py</a> and <a href="https://github.com/dfm/emcee">dfm/emcee</a>)</small>
                     </p>
                 </div>
-                <div class="col-xs-5"> 
+                <div class="col-xs-5">
                     <ul>
                         <li>sample the stellar and covariance parameters with MH/Gibbs sampler</li>
                         <li class="fragment">posteriors naturally inflate to capture uncertainty in model</li>
@@ -399,7 +399,7 @@
                         <li class="fragment">each outlier line also has its own set of hyperparameters (hierarchical)</li>
                     </ul>
                 </div>
-                <div class="col-xs-7"> 
+                <div class="col-xs-7">
                     <img src="cov_triangle.png" width=500px />
                 </div>
             </div>
@@ -415,7 +415,7 @@
                         ...but, some bands tell you a lot about stellar properties
                         </p>
                         <p class="fragment">
-                        We want to include these areas but weight them appropriately 
+                        We want to include these areas but weight them appropriately
                         </p>
                         <p class="fragment">
                         <strong>Workshop topic</strong>: custom design of covariance kernels?
@@ -436,14 +436,14 @@
         <h2>The Holy Grail</h2>
         <h3>and the quest for it</h3>
         <ol>
-            <li class="fragment">fit many stellar spectra ($N > 50$)</li>    
-            <li class="fragment">learn the covariance structure; the locations of the outlier lines</li>    
+            <li class="fragment">fit many stellar spectra ($N > 50$)</li>
+            <li class="fragment">learn the covariance structure; the locations of the outlier lines</li>
             <li class="fragment">use the information in the covariance matrix and the ensemble of real stars to infer (<em>learn</em>) what the models <em>should</em> be <br />
             <p class="text-center" style="padding-top:10px">
             <small>This is not unlike how $UBVRI$ photometric passbands <br />
                 are regressed out (Bessell &amp; Simon 2012)</small>
             </p>
-            </li>    
+            </li>
         </ol>
         <div class="fragment">
         <p>Pass this along to the stellar modellers.</p>
@@ -471,64 +471,52 @@
         </p>
         </div>
     </section>
-    <section>
-        <h3>Outlier line hyperparameters</h3>
-        <div class="row">
-            <div class="col-xs-4">
-                <ul>
-                    <li>covariance hyperparameters are sampled self-consistently</li>
-                    <li>better models have fewer outliers </li>
-                    <li>$h$ is a dummy parameter at this point </li>
-                </ul>
-            </div>
-            <div class="col-xs-8"> 
-                <img src="cov_region_triangle.png" width=500px />
-            </div>
-        </div>
-    </section>
 
     </div>
 </div>
 
+<!-- Load the reveal.js libraries -->
 <script src="lib/js/head.min.js"></script>
 <script src="js/reveal.min.js"></script>
 
 
-<!-- Bootstrap core JavaScript
-================================================== -->
+<!-- Bootstrap core JavaScript -->
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-<script src="../js/bootstrap.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
 
 <script>
 // Full list of configuration options available here:
 // https://github.com/hakimel/reveal.js#configuration
 Reveal.initialize({
-controls: true,
+controls: false,
 progress: true,
+slideNumber: false,
 history: true,
 center: true,
+overview: true,
+touch: true,
+viewDistance: 3, //How far to lazy-load
 width: 960,
 height: 700,
 margin: 0.1,
+minScale: 0.2,
+maxScale: 1.5,
 
-theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
 //transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
-transition: 'linear', // default/cube/page/concave/zoom/linear/fade/none
+transition: 'linear', // none/fade/slide/convex/concave/zoom
 
-
-// Parallax scrolling
-// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
-// parallaxBackgroundSize: '2100px 900px',
+math: {
+  mathjax: 'http://cdn.mathjax.org/mathjax/latest/MathJax.js',
+  config: 'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+},
 
 // Optional libraries used to extend on reveal.js
 dependencies: [
 { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
-{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
-{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
-{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+{ src: 'plugin/zoom-js/zoom.js', async: true },
+{ src: 'plugin/notes/notes.js', async: true },
 { src: 'plugin/math/math.js', async: true}
 ]
 });
@@ -537,7 +525,7 @@ dependencies: [
     //This event is triggered going backwards.
     // event.fragment = the fragment DOM element
     //alert(event.fragment);
-    
+
 //} );
 
 //Reveal.addEventListener('fragmentshown', function(event) {
@@ -546,9 +534,9 @@ dependencies: [
     //        document.getElementById("specImg0").remove();
       //  }
 
-   //document.getElementById("postfragment").style.color="red"; 
-   //document.getElementById("specImg0").remove(); 
-//   document.getElementById("specImgText").remove(); 
+   //document.getElementById("postfragment").style.color="red";
+   //document.getElementById("specImg0").remove();
+//   document.getElementById("specImgText").remove();
 //});
 
 </script>

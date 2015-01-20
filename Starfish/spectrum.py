@@ -15,6 +15,64 @@ import copy
 log_lam_kws = frozenset(("CDELT1", "CRVAL1", "NAXIS1"))
 flux_units = frozenset(("f_lam", "f_nu"))
 
+def calculate_dv(wl):
+    '''
+    Given a wavelength array, calculate the minimum ``dv`` of the array.
+
+    :param wl: wavelength array
+    :type wl: np.array
+
+    :returns: (float) delta-v in units of km/s
+    '''
+    return C.c_kms * np.minimum(np.diff(wl)/wl[:-1])
+
+def calculate_dv_dict(wl_dict):
+    '''
+    Given a ``wl_dict``, calculate the velocity spacing.
+
+    :param wl_dict: wavelength dictionary
+    :type wl_dict: dict
+    '''
+    CDELT1 = wl_dict["CDELT1"]
+    dv = C.c_kms * (10**CDELT1 - 1)
+    return dv
+
+def create_log_lam_grid(dv, wl_start=3000., wl_end=13000.):
+    '''
+    Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for
+    ease of FFT.
+
+    :param wl_start: starting wavelength (inclusive)
+    :type wl_start: float, AA
+    :param wl_end: ending wavelength (inclusive)
+    :type wl_end: float, AA
+    :param min_wl: wavelength spacing at a specific wavelength
+    :type min_wl: (delta_wl, wl)
+    :param dv: maximum bounds on the velocity spacing (in km/s)
+    :type dv: float
+
+    :returns: a wavelength dictionary containing the specified properties. Note
+        that the returned dv will be <= specified dv.
+    :rtype: wl_dict
+
+    '''
+    assert wl_start < wl_end, "wl_start must be smaller than wl_end"
+
+    CDELT_temp = np.log10(dv/C.c_kms + 1.)
+    CRVAL1 = np.log10(wl_start)
+    CRVALN = np.log10(wl_end)
+    N = (CRVALN - CRVAL1) / CDELT_temp
+    NAXIS1 = 2
+    while NAXIS1 < N: #Make NAXIS1 an integer power of 2 for FFT purposes
+        NAXIS1 *= 2
+
+    CDELT1 = (CRVALN - CRVAL1) / (NAXIS1 - 1)
+
+    p = np.arange(NAXIS1)
+    wl = 10 ** (CRVAL1 + CDELT1 * p)
+    return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
+
+
 class BaseSpectrum:
     '''
     The base spectrum object, designed to be inherited.
@@ -227,60 +285,6 @@ class Base1DSpectrum(BaseSpectrum):
         #6) create and return LogLambdaSpectrum object with wl_dict and header info
         return LogLambdaSpectrum(wl_log, fl_log, air=self.air, metadata=self.metadata)
 
-
-
-def create_log_lam_grid(wl_start=3000., wl_end=13000., min_wl=None, min_vc=None):
-    '''
-    Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for ease of FFT.
-
-    :param wl_start: starting wavelength (inclusive)
-    :type wl_start: float
-    :param wl_end: ending wavelength (inclusive)
-    :type wl_end: float
-    :param min_wl: wavelength spacing at a specific wavelength
-    :type min_wl: (delta_wl, wl)
-    :param min_vc: tightest spacing
-    :type min_vc: float
-    :returns: a wavelength dictionary containing the specified properties.
-    :rtype: wl_dict
-
-    Takes the finer of min_WL or min_vc if both specified
-    '''
-    assert wl_start < wl_end, "wl_start must be smaller than wl_end"
-
-    if (min_wl is None) and (min_vc is None):
-        raise ValueError("You need to specify either min_wl or min_vc")
-    if min_wl is not None:
-        delta_wl, wl = min_wl #unpack
-        Vwl = delta_wl / wl
-        min_vc = Vwl
-    if (min_wl is not None) and (min_vc is not None):
-        min_vc = Vwl if Vwl < min_vc else min_vc
-
-    CDELT_temp = np.log10(min_vc + 1)
-    CRVAL1 = np.log10(wl_start)
-    CRVALN = np.log10(wl_end)
-    N = (CRVALN - CRVAL1) / CDELT_temp
-    NAXIS1 = 2
-    while NAXIS1 < N: #Make NAXIS1 an integer power of 2 for FFT purposes
-        NAXIS1 *= 2
-
-    CDELT1 = (CRVALN - CRVAL1) / (NAXIS1 - 1)
-
-    p = np.arange(NAXIS1)
-    wl = 10 ** (CRVAL1 + CDELT1 * p)
-    return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
-
-def calculate_min_v(wl_dict):
-    '''
-    Given a ``wl_dict``, calculate the velocity spacing.
-
-    :param wl_dict: wavelength dictionary
-    :type wl_dict: dict
-    '''
-    CDELT1 = wl_dict["CDELT1"]
-    min_v = C.c_kms * (10**CDELT1 - 1)
-    return min_v
 
 class LogLambdaSpectrum(Base1DSpectrum):
     '''
@@ -1648,64 +1652,3 @@ class OrderSpectrum:
 
     def evaluate(self, model_fl):
         return self.CovarianceMatrix.evaluate(model_fl)
-
-
-#class VelocitySpectrum:
-#    '''
-#    Preserves the cool velocity shifting of BaseSpectrum, but we don't really need it for the general spectra.
-#    '''
-#    def __init__(self, wl, fl, unit="f_lam", air=True, vel=0.0, metadata=None):
-#        #TODO: convert unit to use astropy units for later conversions
-#        assert wl.shape == fl.shape, "Spectrum wavelength and flux arrays must have the same shape."
-#        self.wl_raw = wl
-#        self.fl = fl
-#        self.unit = unit
-#        self.air = air
-#        self.velocity = vel #creates self.wl_vel
-#        self.metadata = {} if metadata is None else metadata
-#
-#    def convert_units(self):
-#        raise NotImplementedError
-#
-#    #Set air as a property which will update self.c it uses to calculate velocities
-#    @property
-#    def air(self):
-#        return self._air
-#
-#    @air.setter
-#    def air(self, air):
-#        #TODO: rewrite this to be more specific about which c
-#        assert type(air) == type(True)
-#        self._air = air
-#        if self.air:
-#            self.c = C.c_kms_air
-#        else:
-#            self.c = C.c_kms
-#
-#    @property
-#    def velocity(self):
-#        return self._velocity
-#
-#    @velocity.setter
-#    def velocity(self, vz):
-#        '''Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.'''
-#        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))
-#        self._velocity = vz
-#
-#    def add_metadata(self, keyVal):
-#        key, val = keyVal
-#        if key in self.metadata.keys():
-#            self.metadata[key]+= val
-#        else:
-#            self.metadata[key] = val
-#
-#    def save(self,name):
-#        obj = np.array((self.wl_vel, self.fl))
-#        np.save(name, obj)
-#
-#
-#    def __str__(self):
-#        return '''Spectrum object\n''' + "\n".join(["{}:{}".format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])
-#
-#    def copy(self):
-#        return copy.copy(self)
