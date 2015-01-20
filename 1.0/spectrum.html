@@ -29,8 +29,8 @@
 
   
     <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
-        <link rel="next" title="Grid Tools" href="grid_tools.html"/>
-        <link rel="prev" title="Overview" href="overview.html"/>
+        <link rel="next" title="Model" href="model.html"/>
+        <link rel="prev" title="Grid Tools" href="grid_tools.html"/>
  
 
 <script>
@@ -76,24 +76,26 @@
 <li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#the-spectral-emulator">The Spectral Emulator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="overview.html#the-driver-script">The driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-mcmc-driver-script">The MCMC driver script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#module-Starfish.grid_tools">Module level s</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#fits-creator">FITS creator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#log-lambda-spectrum">Log Lambda spectrum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fast-spectrum-objects">Fast spectrum objects</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#module-level-methods">Module level methods</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#grid-interfaces">Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-interfaces">HDF5 creators and interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#fits-creator">FITS creator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
@@ -138,16 +140,74 @@
             
   <div class="section" id="module-Starfish.spectrum">
 <span id="spectrum"></span><h1>Spectrum<a class="headerlink" href="#module-Starfish.spectrum" title="Permalink to this headline">¶</a></h1>
+<p>This module contains a few different routines for the manipulation of spectra.</p>
+<div class="section" id="log-lambda-spectrum">
+<h2>Log Lambda spectrum<a class="headerlink" href="#log-lambda-spectrum" title="Permalink to this headline">¶</a></h2>
+<p>If we consider</p>
+<p>A spectrum spaced linear in log lambda has equal-velocity pixels, meaning that</p>
+<div class="math">
+\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda}\]</div>
+<p>A log lambda spectrum is defined by the WCS keywords <strong>CDELT1</strong>, <strong>CRVAL1</strong>, and <strong>NAXIS1</strong>. They are related to the physical wavelengths by the following relationship</p>
+<div class="math">
+\[\lambda = 10^{{\rm CRVAL1} + {\rm CDELT1} \times i}\]</div>
+<p>where <span class="math">\(i\)</span> is the pixel index, with <span class="math">\(i = 0\)</span> referring to the first pixel and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last pixel.</p>
+<p>The wavelength array and header keywords are often stored in a <tt class="docutils literal"><span class="pre">wl_dict</span></tt> dictionary, which looks like <tt class="docutils literal"><span class="pre">{&quot;wl&quot;:wl,</span> <span class="pre">&quot;CRVAL1&quot;:CRVAL1,</span> <span class="pre">&quot;CDELT1&quot;:CDELT1,</span> <span class="pre">&quot;NAXIS1&quot;:NAXIS1}</span></tt>.</p>
+<p>These keywords are related to various wavelengths by</p>
+<div class="math">
+\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda} = 10^{\rm CDELT1} - 1\]</div>
+<div class="math">
+\[{\rm CDELT1} = \log_{10} \left ( \frac{v}{c} + 1 \right )\]</div>
+<div class="math">
+\[{\rm CRVAL1} = \log_{10} ( \lambda_{\rm start})\]</div>
+<p>Many spectral routines utilize a keyword <tt class="docutils literal"><span class="pre">dv</span></tt>, which stands for <span class="math">\(\Delta v\)</span>, or the velocity difference (measured in km/s) that corresponds to the width of one pixel.</p>
+<div class="math">
+\[\textrm{dv} = c \frac{\Delta \lambda}{\lambda}\]</div>
+<p>When resampling wavelength grids that are not log-lambda spaced onto a log-lambda grid, the requisite <tt class="docutils literal"><span class="pre">dv</span></tt> must be calculated. Generally I do it by meausuring the velocity difference of every pixel and choosing the smallest, that way no spectral information will be lost.</p>
+<dl class="function">
+<dt id="Starfish.spectrum.calculate_dv">
+<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">calculate_dv</tt><big>(</big><em>wl</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#calculate_dv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.calculate_dv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a wavelength array, calculate the minimum <tt class="docutils literal"><span class="pre">dv</span></tt> of the array.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">synopsis:</th><td class="field-body">A package with many different spectra objects for easy manipulation</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>wl</strong> (<em>np.array</em>) &#8211; wavelength array</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(float) delta-v in units of km/s</td>
 </tr>
 </tbody>
 </table>
-<p><tt class="xref py py-mod docutils literal"><span class="pre">spectrum</span></tt> is a package containing many different specrum objects. It defines many useful objects
-that may be used in the <tt class="xref py py-mod docutils literal"><span class="pre">grid_tools</span></tt> package and the <tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt> package.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Starfish.spectrum.create_log_lam_grid">
+<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>dv</em>, <em>wl_start=3000.0</em>, <em>wl_end=13000.0</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a log lambda spaced grid with <tt class="docutils literal"><span class="pre">N_points</span></tt> equal to a power of 2 for
+ease of FFT.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>wl_start</strong> (<em>float, AA</em>) &#8211; starting wavelength (inclusive)</li>
+<li><strong>wl_end</strong> (<em>float, AA</em>) &#8211; ending wavelength (inclusive)</li>
+<li><strong>min_wl</strong> (<em>(delta_wl, wl)</em>) &#8211; wavelength spacing at a specific wavelength</li>
+<li><strong>dv</strong> (<em>float</em>) &#8211; maximum bounds on the velocity spacing (in km/s)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a wavelength dictionary containing the specified properties. Note
+that the returned dv will be &lt;= specified dv.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">wl_dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
 <div class="section" id="converting-user-spectra-to-input-format">
 <h2>Converting user spectra to input format<a class="headerlink" href="#converting-user-spectra-to-input-format" title="Permalink to this headline">¶</a></h2>
 <p>HDF5 files or numpy files.</p>
@@ -157,7 +217,7 @@ that may be used in the <tt class="xref py py-mod docutils literal"><span class=
 <p>These objects may be a little bit slow, but they are designed for convenience to manipulate spectra (convolve, etc)
 while being robust to check and handle errors.</p>
 <p class="graphviz">
-<img src="_images/inheritance-23e6ea17c015cde4690b7c0ccac446ad5e10bc15.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
+<img src="_images/inheritance-f6271fbd1ac167a73c8c3c6843b70d100cb8fdff.png" alt="Inheritance diagram of BaseSpectrum, Base1DSpectrum, LogLambdaSpectrum" usemap="#inheritance2074dcef86" class="inheritance"/>
 <map id="inheritance2074dcef86" name="inheritance2074dcef86">
 <area shape="rect" id="node1" href="#Starfish.spectrum.Base1DSpectrum" title="The base one&#45;dimensional spectrum object, designed to be initialized with a generic spectrum." alt="" coords="171,5,305,31"/>
 <area shape="rect" id="node3" href="#Starfish.spectrum.LogLambdaSpectrum" title="A spectrum that has log lambda spaced wavelengths." alt="" coords="353,5,513,31"/>
@@ -295,26 +355,6 @@ that the input spectrum has already been properly oversampled.</p>
 
 </dd></dl>
 
-<div class="section" id="log-lambda-spectrum">
-<h3>Log Lambda spectrum<a class="headerlink" href="#log-lambda-spectrum" title="Permalink to this headline">¶</a></h3>
-<p>A spectrum spaced linear in log lambda has equal-velocity pixels, meaning that</p>
-<div class="math">
-\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda}\]</div>
-<p>A log lambda spectrum is defined by the WCS keywords <strong>CDELT1</strong>, <strong>CRVAL1</strong>, and <strong>NAXIS1</strong>. They are related to the
-physical wavelengths by the following relationship</p>
-<div class="math">
-\[\lambda = 10^{{\rm CRVAL1} + {\rm CDELT1} \times i}\]</div>
-<p>where <span class="math">\(i\)</span> is the pixel index, with <span class="math">\(i = 0\)</span> referring to the first pixel
-and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last pixel.</p>
-<p>The wavelength array and header keywords are often stored in a <tt class="docutils literal"><span class="pre">wl_dict</span></tt> dictionary, which looks like
-<tt class="docutils literal"><span class="pre">{&quot;wl&quot;:wl,</span> <span class="pre">&quot;CRVAL1&quot;:CRVAL1,</span> <span class="pre">&quot;CDELT1&quot;:CDELT1,</span> <span class="pre">&quot;NAXIS1&quot;:NAXIS1}</span></tt>.</p>
-<p>These keywords are related to various wavelengths by</p>
-<div class="math">
-\[\frac{v}{c} = \frac{\Delta \lambda}{\lambda} = 10^{\rm CDELT1} - 1\]</div>
-<div class="math">
-\[{\rm CDELT1} = \log_{10} \left ( \frac{v}{c} + 1 \right )\]</div>
-<div class="math">
-\[{\rm CRVAL1} = \log_{10} ( \lambda_{\rm start})\]</div>
 <dl class="data">
 <dt id="Starfish.spectrum.log_lam_kws">
 <tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">log_lam_kws</tt><a class="headerlink" href="#Starfish.spectrum.log_lam_kws" title="Permalink to this definition">¶</a></dt>
@@ -325,22 +365,24 @@ and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last p
 </dd></dl>
 
 <dl class="function">
-<dt id="Starfish.spectrum.create_log_lam_grid">
-<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>wl_start=3000.0</em>, <em>wl_end=13000.0</em>, <em>min_wl=None</em>, <em>min_vc=None</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.spectrum.create_log_lam_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a log lambda spaced grid with <tt class="docutils literal"><span class="pre">N_points</span></tt> equal to a power of 2 for ease of FFT.</p>
+<dt>
+<tt class="descclassname">Starfish.spectrum.</tt><tt class="descname">create_log_lam_grid</tt><big>(</big><em>dv</em>, <em>wl_start=3000.0</em>, <em>wl_end=13000.0</em><big>)</big><a class="reference internal" href="_modules/Starfish/spectrum.html#create_log_lam_grid"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Create a log lambda spaced grid with <tt class="docutils literal"><span class="pre">N_points</span></tt> equal to a power of 2 for
+ease of FFT.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wl_start</strong> (<em>float</em>) &#8211; starting wavelength (inclusive)</li>
-<li><strong>wl_end</strong> (<em>float</em>) &#8211; ending wavelength (inclusive)</li>
+<li><strong>wl_start</strong> (<em>float, AA</em>) &#8211; starting wavelength (inclusive)</li>
+<li><strong>wl_end</strong> (<em>float, AA</em>) &#8211; ending wavelength (inclusive)</li>
 <li><strong>min_wl</strong> (<em>(delta_wl, wl)</em>) &#8211; wavelength spacing at a specific wavelength</li>
-<li><strong>min_vc</strong> (<em>float</em>) &#8211; tightest spacing</li>
+<li><strong>dv</strong> (<em>float</em>) &#8211; maximum bounds on the velocity spacing (in km/s)</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a wavelength dictionary containing the specified properties.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a wavelength dictionary containing the specified properties. Note
+that the returned dv will be &lt;= specified dv.</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">wl_dict</p>
@@ -348,7 +390,6 @@ and <span class="math">\(i = ({\rm NAXIS1} - 1)\)</span> referring to the last p
 </tr>
 </tbody>
 </table>
-<p>Takes the finer of min_WL or min_vc if both specified</p>
 </dd></dl>
 
 <p>The <a class="reference internal" href="#Starfish.spectrum.LogLambdaSpectrum" title="Starfish.spectrum.LogLambdaSpectrum"><tt class="xref py py-obj docutils literal"><span class="pre">LogLambdaSpectrum</span></tt></a> is more of a workhorse than the previously defined spectra. Because it is regularly spaced
@@ -497,7 +538,6 @@ remains log lambda spaced and <tt class="docutils literal"><span class="pre">N_p
 
 </dd></dl>
 
-</div>
 </div>
 <div class="section" id="fast-spectrum-objects">
 <h2>Fast spectrum objects<a class="headerlink" href="#fast-spectrum-objects" title="Permalink to this headline">¶</a></h2>
@@ -708,10 +748,10 @@ ASSUMES that the grid is log-linear spaced and already instrument-convolved</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="grid_tools.html" class="btn btn-neutral float-right" title="Grid Tools"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="model.html" class="btn btn-neutral float-right" title="Model"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="overview.html" class="btn btn-neutral" title="Overview"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="grid_tools.html" class="btn btn-neutral" title="Grid Tools"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

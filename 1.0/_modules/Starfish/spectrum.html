@@ -79,20 +79,21 @@
 <li class="toctree-l2"><a class="reference internal" href="../../overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../grid_tools.html">Grid Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#interpolators">Interpolators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#instruments">Instruments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#utility-functions">Utility Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../spectrum.html#log-lambda-spectrum">Log Lambda spectrum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../../grid_tools.html">Grid Tools</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#module-level-methods">Module level methods</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#grid-interfaces">Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#hdf5-creators-and-interfaces">HDF5 creators and interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#interpolators">Interpolators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#fits-creator">FITS creator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
@@ -153,6 +154,64 @@
 <span class="n">log_lam_kws</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;CDELT1&quot;</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">))</span>
 <span class="n">flux_units</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s">&quot;f_lam&quot;</span><span class="p">,</span> <span class="s">&quot;f_nu&quot;</span><span class="p">))</span>
 
+<div class="viewcode-block" id="calculate_dv"><a class="viewcode-back" href="../../spectrum.html#Starfish.spectrum.calculate_dv">[docs]</a><span class="k">def</span> <span class="nf">calculate_dv</span><span class="p">(</span><span class="n">wl</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a wavelength array, calculate the minimum ``dv`` of the array.</span>
+
+<span class="sd">    :param wl: wavelength array</span>
+<span class="sd">    :type wl: np.array</span>
+
+<span class="sd">    :returns: (float) delta-v in units of km/s</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">wl</span><span class="p">)</span><span class="o">/</span><span class="n">wl</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</div>
+<span class="k">def</span> <span class="nf">calculate_dv_dict</span><span class="p">(</span><span class="n">wl_dict</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Given a ``wl_dict``, calculate the velocity spacing.</span>
+
+<span class="sd">    :param wl_dict: wavelength dictionary</span>
+<span class="sd">    :type wl_dict: dict</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">CDELT1</span> <span class="o">=</span> <span class="n">wl_dict</span><span class="p">[</span><span class="s">&quot;CDELT1&quot;</span><span class="p">]</span>
+    <span class="n">dv</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">CDELT1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dv</span>
+
+<div class="viewcode-block" id="create_log_lam_grid"><a class="viewcode-back" href="../../spectrum.html#Starfish.spectrum.create_log_lam_grid">[docs]</a><span class="k">def</span> <span class="nf">create_log_lam_grid</span><span class="p">(</span><span class="n">dv</span><span class="p">,</span> <span class="n">wl_start</span><span class="o">=</span><span class="mf">3000.</span><span class="p">,</span> <span class="n">wl_end</span><span class="o">=</span><span class="mf">13000.</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for</span>
+<span class="sd">    ease of FFT.</span>
+
+<span class="sd">    :param wl_start: starting wavelength (inclusive)</span>
+<span class="sd">    :type wl_start: float, AA</span>
+<span class="sd">    :param wl_end: ending wavelength (inclusive)</span>
+<span class="sd">    :type wl_end: float, AA</span>
+<span class="sd">    :param min_wl: wavelength spacing at a specific wavelength</span>
+<span class="sd">    :type min_wl: (delta_wl, wl)</span>
+<span class="sd">    :param dv: maximum bounds on the velocity spacing (in km/s)</span>
+<span class="sd">    :type dv: float</span>
+
+<span class="sd">    :returns: a wavelength dictionary containing the specified properties. Note</span>
+<span class="sd">        that the returned dv will be &lt;= specified dv.</span>
+<span class="sd">    :rtype: wl_dict</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">assert</span> <span class="n">wl_start</span> <span class="o">&lt;</span> <span class="n">wl_end</span><span class="p">,</span> <span class="s">&quot;wl_start must be smaller than wl_end&quot;</span>
+
+    <span class="n">CDELT_temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">dv</span><span class="o">/</span><span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">)</span>
+    <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_start</span><span class="p">)</span>
+    <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_end</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span> <span class="o">/</span> <span class="n">CDELT_temp</span>
+    <span class="n">NAXIS1</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">while</span> <span class="n">NAXIS1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span> <span class="c">#Make NAXIS1 an integer power of 2 for FFT purposes</span>
+        <span class="n">NAXIS1</span> <span class="o">*=</span> <span class="mi">2</span>
+
+    <span class="n">CDELT1</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">NAXIS1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span>
+    <span class="n">wl</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">CRVAL1</span> <span class="o">+</span> <span class="n">CDELT1</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s">&quot;wl&quot;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span> <span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;CDELT1&quot;</span><span class="p">:</span> <span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span> <span class="n">NAXIS1</span><span class="p">}</span>
+
+</div>
 <div class="viewcode-block" id="BaseSpectrum"><a class="viewcode-back" href="../../spectrum.html#Starfish.spectrum.BaseSpectrum">[docs]</a><span class="k">class</span> <span class="nc">BaseSpectrum</span><span class="p">:</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    The base spectrum object, designed to be inherited.</span>
@@ -365,61 +424,7 @@
         <span class="c">#6) create and return LogLambdaSpectrum object with wl_dict and header info</span>
         <span class="k">return</span> <span class="n">LogLambdaSpectrum</span><span class="p">(</span><span class="n">wl_log</span><span class="p">,</span> <span class="n">fl_log</span><span class="p">,</span> <span class="n">air</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">air</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
 
-
 </div></div>
-<div class="viewcode-block" id="create_log_lam_grid"><a class="viewcode-back" href="../../spectrum.html#Starfish.spectrum.create_log_lam_grid">[docs]</a><span class="k">def</span> <span class="nf">create_log_lam_grid</span><span class="p">(</span><span class="n">wl_start</span><span class="o">=</span><span class="mf">3000.</span><span class="p">,</span> <span class="n">wl_end</span><span class="o">=</span><span class="mf">13000.</span><span class="p">,</span> <span class="n">min_wl</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">min_vc</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for ease of FFT.</span>
-
-<span class="sd">    :param wl_start: starting wavelength (inclusive)</span>
-<span class="sd">    :type wl_start: float</span>
-<span class="sd">    :param wl_end: ending wavelength (inclusive)</span>
-<span class="sd">    :type wl_end: float</span>
-<span class="sd">    :param min_wl: wavelength spacing at a specific wavelength</span>
-<span class="sd">    :type min_wl: (delta_wl, wl)</span>
-<span class="sd">    :param min_vc: tightest spacing</span>
-<span class="sd">    :type min_vc: float</span>
-<span class="sd">    :returns: a wavelength dictionary containing the specified properties.</span>
-<span class="sd">    :rtype: wl_dict</span>
-
-<span class="sd">    Takes the finer of min_WL or min_vc if both specified</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="k">assert</span> <span class="n">wl_start</span> <span class="o">&lt;</span> <span class="n">wl_end</span><span class="p">,</span> <span class="s">&quot;wl_start must be smaller than wl_end&quot;</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;You need to specify either min_wl or min_vc&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">delta_wl</span><span class="p">,</span> <span class="n">wl</span> <span class="o">=</span> <span class="n">min_wl</span> <span class="c">#unpack</span>
-        <span class="n">Vwl</span> <span class="o">=</span> <span class="n">delta_wl</span> <span class="o">/</span> <span class="n">wl</span>
-        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">min_wl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">min_vc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
-        <span class="n">min_vc</span> <span class="o">=</span> <span class="n">Vwl</span> <span class="k">if</span> <span class="n">Vwl</span> <span class="o">&lt;</span> <span class="n">min_vc</span> <span class="k">else</span> <span class="n">min_vc</span>
-
-    <span class="n">CDELT_temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">min_vc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">CRVAL1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_start</span><span class="p">)</span>
-    <span class="n">CRVALN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">wl_end</span><span class="p">)</span>
-    <span class="n">N</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span> <span class="o">/</span> <span class="n">CDELT_temp</span>
-    <span class="n">NAXIS1</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="k">while</span> <span class="n">NAXIS1</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span> <span class="c">#Make NAXIS1 an integer power of 2 for FFT purposes</span>
-        <span class="n">NAXIS1</span> <span class="o">*=</span> <span class="mi">2</span>
-
-    <span class="n">CDELT1</span> <span class="o">=</span> <span class="p">(</span><span class="n">CRVALN</span> <span class="o">-</span> <span class="n">CRVAL1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">NAXIS1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">NAXIS1</span><span class="p">)</span>
-    <span class="n">wl</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">CRVAL1</span> <span class="o">+</span> <span class="n">CDELT1</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s">&quot;wl&quot;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span> <span class="s">&quot;CRVAL1&quot;</span><span class="p">:</span> <span class="n">CRVAL1</span><span class="p">,</span> <span class="s">&quot;CDELT1&quot;</span><span class="p">:</span> <span class="n">CDELT1</span><span class="p">,</span> <span class="s">&quot;NAXIS1&quot;</span><span class="p">:</span> <span class="n">NAXIS1</span><span class="p">}</span>
-</div>
-<span class="k">def</span> <span class="nf">calculate_min_v</span><span class="p">(</span><span class="n">wl_dict</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Given a ``wl_dict``, calculate the velocity spacing.</span>
-
-<span class="sd">    :param wl_dict: wavelength dictionary</span>
-<span class="sd">    :type wl_dict: dict</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">CDELT1</span> <span class="o">=</span> <span class="n">wl_dict</span><span class="p">[</span><span class="s">&quot;CDELT1&quot;</span><span class="p">]</span>
-    <span class="n">min_v</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">c_kms</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">CDELT1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">min_v</span>
-
 <div class="viewcode-block" id="LogLambdaSpectrum"><a class="viewcode-back" href="../../spectrum.html#Starfish.spectrum.LogLambdaSpectrum">[docs]</a><span class="k">class</span> <span class="nc">LogLambdaSpectrum</span><span class="p">(</span><span class="n">Base1DSpectrum</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    A spectrum that has log lambda spaced wavelengths.</span>
@@ -1786,67 +1791,6 @@
 
     <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_fl</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CovarianceMatrix</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model_fl</span><span class="p">)</span>
-
-
-<span class="c">#class VelocitySpectrum:</span>
-<span class="c">#    &#39;&#39;&#39;</span>
-<span class="c">#    Preserves the cool velocity shifting of BaseSpectrum, but we don&#39;t really need it for the general spectra.</span>
-<span class="c">#    &#39;&#39;&#39;</span>
-<span class="c">#    def __init__(self, wl, fl, unit=&quot;f_lam&quot;, air=True, vel=0.0, metadata=None):</span>
-<span class="c">#        #TODO: convert unit to use astropy units for later conversions</span>
-<span class="c">#        assert wl.shape == fl.shape, &quot;Spectrum wavelength and flux arrays must have the same shape.&quot;</span>
-<span class="c">#        self.wl_raw = wl</span>
-<span class="c">#        self.fl = fl</span>
-<span class="c">#        self.unit = unit</span>
-<span class="c">#        self.air = air</span>
-<span class="c">#        self.velocity = vel #creates self.wl_vel</span>
-<span class="c">#        self.metadata = {} if metadata is None else metadata</span>
-<span class="c">#</span>
-<span class="c">#    def convert_units(self):</span>
-<span class="c">#        raise NotImplementedError</span>
-<span class="c">#</span>
-<span class="c">#    #Set air as a property which will update self.c it uses to calculate velocities</span>
-<span class="c">#    @property</span>
-<span class="c">#    def air(self):</span>
-<span class="c">#        return self._air</span>
-<span class="c">#</span>
-<span class="c">#    @air.setter</span>
-<span class="c">#    def air(self, air):</span>
-<span class="c">#        #TODO: rewrite this to be more specific about which c</span>
-<span class="c">#        assert type(air) == type(True)</span>
-<span class="c">#        self._air = air</span>
-<span class="c">#        if self.air:</span>
-<span class="c">#            self.c = C.c_kms_air</span>
-<span class="c">#        else:</span>
-<span class="c">#            self.c = C.c_kms</span>
-<span class="c">#</span>
-<span class="c">#    @property</span>
-<span class="c">#    def velocity(self):</span>
-<span class="c">#        return self._velocity</span>
-<span class="c">#</span>
-<span class="c">#    @velocity.setter</span>
-<span class="c">#    def velocity(self, vz):</span>
-<span class="c">#        &#39;&#39;&#39;Shift the wl_vel relative to wl_raw. Keeps track if in air. Positive vz is redshift.&#39;&#39;&#39;</span>
-<span class="c">#        self.wl_vel = self.wl_raw * np.sqrt((self.c + vz) / (self.c - vz))</span>
-<span class="c">#        self._velocity = vz</span>
-<span class="c">#</span>
-<span class="c">#    def add_metadata(self, keyVal):</span>
-<span class="c">#        key, val = keyVal</span>
-<span class="c">#        if key in self.metadata.keys():</span>
-<span class="c">#            self.metadata[key]+= val</span>
-<span class="c">#        else:</span>
-<span class="c">#            self.metadata[key] = val</span>
-<span class="c">#</span>
-<span class="c">#    def save(self,name):</span>
-<span class="c">#        obj = np.array((self.wl_vel, self.fl))</span>
-<span class="c">#        np.save(name, obj)</span>
-<span class="c">#</span>
-<span class="c">#</span>
-<span class="c">#    def __str__(self):</span>
-<span class="c">#        return &#39;&#39;&#39;Spectrum object\n&#39;&#39;&#39; + &quot;\n&quot;.join([&quot;{}:{}&quot;.format(key,self.metadata[key]) for key in sorted(self.metadata.keys())])</span>
-<span class="c">#</span>
-<span class="c">#    def copy(self):</span>
-<span class="c">#        return copy.copy(self)</span>
 </pre></div>
 
           </div>

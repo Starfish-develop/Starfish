@@ -79,20 +79,21 @@
 <li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spectrum">Log Lambda spectrum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#module-level-methods">Module level methods</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#grid-interfaces">Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-interfaces">HDF5 creators and interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#fits-creator">FITS creator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
@@ -199,10 +200,6 @@
   <dt><a href="grid_tools.html#Starfish.grid_tools.air_to_vacuum">air_to_vacuum() (in module Starfish.grid_tools)</a>
   </dt>
 
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.all_parameters">all_parameters (in module Starfish.grid_tools)</a>
-  </dt>
-
   </dl></td>
 </tr></table>
 
@@ -229,6 +226,10 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="spectrum.html#Starfish.spectrum.calculate_dv">calculate_dv() (in module Starfish.spectrum)</a>
+  </dt>
+
       
   <dt><a href="spectrum.html#Starfish.spectrum.Base1DSpectrum.calculate_log_lam_grid">calculate_log_lam_grid() (Starfish.spectrum.Base1DSpectrum method)</a>
   </dt>
@@ -260,7 +261,7 @@
   </dt>
 
       
-  <dt><a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">create_log_lam_grid() (in module Starfish.spectrum)</a>
+  <dt><a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">create_log_lam_grid() (in module Starfish.spectrum)</a>, <a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">[1]</a>
   </dt>
 
   </dl></td>
@@ -271,6 +272,10 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="spectrum.html#Starfish.spectrum.DataSpectrum">DataSpectrum (class in Starfish.spectrum)</a>
+  </dt>
+
+      
+  <dt><a href="grid_tools.html#Starfish.grid_tools.determine_chunk_log">determine_chunk_log() (in module Starfish.grid_tools)</a>
   </dt>
 
   </dl></td>
@@ -308,7 +313,7 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.fluxes">fluxes (Starfish.grid_tools.HDF5Interface attribute)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.fluxes">[1]</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.fluxes">fluxes (Starfish.grid_tools.HDF5Interface attribute)</a>
   </dt>
 
   </dl></td>
@@ -340,23 +345,11 @@
 
       </dl></dd>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.get_error_spectra">get_error_spectra() (Starfish.grid_tools.HDF5Interface method)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.get_error_spectra">[1]</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.get_error_spectrum">get_error_spectrum() (Starfish.grid_tools.HDF5Interface method)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.get_error_spectrum">[1]</a>
+  <dt><a href="grid_tools.html#Starfish.constants.GridError">GridError</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.grid_parameters">grid_parameters (in module Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.constants.GridError">GridError</a>
-  </dt>
-
       
   <dt><a href="model.html#Starfish.model.grouper">grouper() (in module Starfish.model)</a>
   </dt>
@@ -368,17 +361,13 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5GridStuffer">HDF5GridStuffer (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5InstGridCreator">HDF5InstGridCreator (class in Starfish.grid_tools)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator">HDF5Creator (class in Starfish.grid_tools)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface">HDF5Interface (class in Starfish.grid_tools)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface">[1]</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface">HDF5Interface (class in Starfish.grid_tools)</a>
   </dt>
 
   </dl></td>
@@ -387,10 +376,6 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.idl_float">idl_float() (in module Starfish.grid_tools)</a>
-  </dt>
-
       
   <dt><a href="grid_tools.html#Starfish.grid_tools.IndexInterpolator">IndexInterpolator (class in Starfish.grid_tools)</a>
   </dt>
@@ -403,12 +388,12 @@
   <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">instrument_and_stellar_convolve() (Starfish.spectrum.LogLambdaSpectrum method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.instrument_convolve">instrument_convolve() (Starfish.spectrum.LogLambdaSpectrum method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.interpolate">interpolate() (Starfish.grid_tools.Interpolator method)</a>
   </dt>
@@ -449,10 +434,6 @@
 
       <dd><dl>
         
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_file">(Starfish.grid_tools.HDF5Interface method)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_file">[1]</a>
-  </dt>
-
-        
   <dt><a href="grid_tools.html#Starfish.grid_tools.KuruczGridInterface.load_file">(Starfish.grid_tools.KuruczGridInterface method)</a>
   </dt>
 
@@ -471,7 +452,7 @@
 
       <dd><dl>
         
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux">(Starfish.grid_tools.HDF5Interface method)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux">[1]</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux">(Starfish.grid_tools.HDF5Interface method)</a>
   </dt>
 
         
@@ -488,15 +469,11 @@
 
       </dl></dd>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.load_flux_full">load_flux_full() (in module Starfish.grid_tools)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">load_flux_hdr() (Starfish.grid_tools.HDF5Interface method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">load_flux_hdr() (Starfish.grid_tools.HDF5Interface method)</a>, <a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">[1]</a>
-  </dt>
-
       
   <dt><a href="spectrum.html#Starfish.spectrum.log_lam_kws">log_lam_kws (in module Starfish.spectrum)</a>
   </dt>
@@ -512,23 +489,15 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSGridProcessor">MasterToFITSGridProcessor (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSIndividual">MasterToFITSIndividual (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
   <dt><a href="model.html#Starfish.model.Model">Model (class in Starfish.model)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="model.html#Starfish.model.ModelEncoder">ModelEncoder (class in Starfish.model)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="model.html#Starfish.model.ModelHA">ModelHA (class in Starfish.model)</a>
   </dt>
@@ -574,45 +543,13 @@
 
       </dl></dd>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.pp_parameters">pp_parameters (in module Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSGridProcessor.process_all">process_all() (Starfish.grid_tools.MasterToFITSGridProcessor method)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSGridProcessor.process_chunk">process_chunk() (Starfish.grid_tools.MasterToFITSGridProcessor method)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator.process_flux">process_flux() (Starfish.grid_tools.HDF5Creator method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5GridStuffer.process_flux">process_flux() (Starfish.grid_tools.HDF5GridStuffer method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5InstGridCreator.process_flux">(Starfish.grid_tools.HDF5InstGridCreator method)</a>
-  </dt>
-
-      </dl></dd>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5GridStuffer.process_grid">process_grid() (Starfish.grid_tools.HDF5GridStuffer method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5InstGridCreator.process_grid">(Starfish.grid_tools.HDF5InstGridCreator method)</a>
-  </dt>
-
-      </dl></dd>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSIndividual.process_spectrum">process_spectrum() (Starfish.grid_tools.MasterToFITSIndividual method)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.MasterToFITSGridProcessor.process_spectrum_vsini">process_spectrum_vsini() (Starfish.grid_tools.MasterToFITSGridProcessor method)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator.process_grid">process_grid() (Starfish.grid_tools.HDF5Creator method)</a>
   </dt>
 
       
@@ -672,7 +609,7 @@
   </dt>
 
       
-  <dt><a href="grid_tools.html#module-Starfish.grid_tools">Starfish.grid_tools (module)</a>, <a href="grid_tools.html#module-Starfish.grid_tools">[1]</a>
+  <dt><a href="grid_tools.html#module-Starfish.grid_tools">Starfish.grid_tools (module)</a>
   </dt>
 
       
