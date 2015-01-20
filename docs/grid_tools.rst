@@ -3,93 +3,67 @@ Grid Tools
 ==========
 
 .. py:module:: Starfish.grid_tools
-   :synopsis: A package to manipulate synthetic stellar spectra
+   :synopsis: A package to manipulate synthetic spectra
 
-:mod: `grid_tools` is a package to manipulate synthetic stellar spectra. It defines many useful functions and objects
- that may be used in the modeling package :mod:`model`, such as :obj:`Interpolator`.
+:mod:`grid_tools` is a module to interface with and manipulate libraries of synthetic spectra.
+
+.. contents::
+   :depth: 2
+
+It defines many useful functions and objects that may be used in the modeling package :mod:`model`, such as :obj:`Interpolator`.
 
 Downloading model spectra
 =========================
 
-PHOENIX library.
+Before you may begin any fitting, you must acquire a synthetic library of model spectra. If you will be fitting spectra of stars, there are many high quality synthetic and empirical spectral libraries available. In our paper, we use the freely available PHOENIX library synthesized by T.O. Husser. The library is available for download here: http://phoenix.astro.physik.uni-goettingen.de/
 
-Module level methods
-====================
+Because spectral libraries are generally large (> 10 Gb), please make sure you available disk space before beginning the download. Downloads may take a day or longer, so it is recommended to start the download ASAP.
 
-These methods are meant to be used for low-level access to spectral libraries.
-Generally there is only a small amount of error checking.
+You may store the spectra on disk in whatever directory structure you find convenient, provided you adjust the Starfish routines that read spectra from disk. To use the default settings for the PHOENIX grid, please create a ``libraries`` directory, a ``raw`` directory within ``libraries``, and unpack the spectra in this format::
 
-.. automodule:: Starfish.grid_tools
-   :members: resample_and_convolve, load_BTSettl, load_flux_full, chunk_list
+    libraries/raw/
+        PHOENIX/
+            WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+            Z+1.0/
+            Z-0.0/
+            Z-0.0.Alpha=+0.20/
+            Z-0.0.Alpha=+0.40/
+            Z-0.0.Alpha=+0.60/
+            Z-0.0.Alpha=+0.80/
+            Z-0.0.Alpha=-0.20/
+            Z-0.5/
+            Z-0.5.Alpha=+0.20/
+            Z-0.5.Alpha=+0.40/
+            Z-0.5.Alpha=+0.60/
+            Z-0.5.Alpha=+0.80/
+            Z-0.5.Alpha=-0.20/
+            Z-1.0/
 
-.. autofunction:: idl_float
 
-Wavelength conversion methods
------------------------------
+.. _grid-reference-label:
 
-.. autofunction:: vacuum_to_air
+Raw Grid Interfaces
+===================
 
-.. autofunction:: air_to_vacuum
-
-.. autofunction:: calculate_n
-
-
-Grid Interfaces
-===============
-
-Overview
---------
-
-The *grid interfaces* are designed to abstract the interaction with raw synthetic stellar libraries that one might
-download. The :obj:`RawGridInterface` is designed to be extended by the user to provide access to any new grids.
-Currently there are extensions for three main grids:
+*Grid interfaces* are classes designed to abstract the interaction with the raw synthetic stellar libraries under a common interface. The :obj:`RawGridInterface` class is designed to be extended by the user to provide access to any new grids. Currently there are extensions for three main grids:
 
  1. `PHOENIX spectra <http://phoenix.astro.physik.uni-goettingen.de/>`_ by T.O. Husser et al 2013
- 2. Kurucz spectra by Laird and Morse
+ 2. Kurucz spectra by Laird and Morse (available to CfA internal only)
  3. `PHOENIX BT-Settl <http://phoenix.ens-lyon.fr/Grids/BT-Settl/>`_ spectra by France Allard
-
-All interactions with the grid are designed to be abstracted such that the user can easily extend to add a new
-spectral grid simply by writing a new class which inherits :obj:`RawGridInterface`.
 
 .. inheritance-diagram:: RawGridInterface PHOENIXGridInterface KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
-Stellar spectra are referenced by a dictionary of parameter values. The use of the *alpha* parameter (denoting alpha
-enhancement :math:`[{\rm \alpha}/{\rm Fe}]`) is optional and defaults to `0.0`.
+Here and throughout the code, stellar spectra are referenced by a dictionary of parameter values. The use of the ``alpha`` parameter (denoting alpha
+enhancement :math:`[{\rm \alpha}/{\rm Fe}]`) is usually optional and defaults to ``0.0``. There are some instances where it may be necessary to specify alpha explicitly.
 
     .. code-block:: python
 
         my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0} #or
         other_params = {"temp":4000, "logg":4.5, "Z":-0.2}
 
-.. py:data:: grid_parameters
 
-    The variables that define a grid. This set is use to validate input. By default these are set to
-
-    .. code-block:: python
-
-        grid_parameters = frozenset(("temp", "logg", "Z", "alpha"))
-
-.. py:data:: pp_parameters
-
-    The variables that define a grid. This set is use to validate input. By default these are set to
-
-    .. code-block:: python
-
-        pp_parameters = frozenset(("vsini", "FWHM", "vz", "Av", "Omega"))
-
-.. py:data:: all_parameters
-
-    The variables that define a grid. This set is use to validate input. By default these are set to
-
-    .. code-block:: python
-
-        all_parameters = grid_parameters | pp_parameters #union
-
-.. _raw-grid-interfaces-label:
-
-Raw Grid Interfaces
--------------------
+Here we introduce the classes and their methods. Below is an example of how you might use the :obj:`PHOENIXGridInterface`.
 
 .. autoclass:: RawGridInterface
    :members:
@@ -97,6 +71,14 @@ Raw Grid Interfaces
 .. autoclass:: PHOENIXGridInterface
    :members:
    :show-inheritance:
+
+In order to load a raw file from the PHOENIX grid, one would do
+
+.. code-block:: python
+
+   # if you downloaded the libraries elsewhere, be sure to include base="mydir"
+   mygrid = PHOENIXGridInterface(air=True, norm=True)
+   flux, hdr = mygrid.load_flux({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
 
 .. autoclass:: KuruczGridInterface
    :members:
@@ -106,68 +88,41 @@ Raw Grid Interfaces
    :members:
    :show-inheritance:
 
-In order to load a raw file from the PHOENIX grid, one would do
 
-.. code-block:: python
+Creating your own interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    myPHONEIXgrid = PHOENIXGridInterface(air=True, norm=True)
-    spec = myPHOENIXgrid.load_file({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0}) #Base1DSpectrum object
+The :obj:`RawGridInterface` and subclasses exist solely to interface with the raw files on disk. At minimum, they should each define a :meth:`load_flux` , which takes in a dictionary of parameters and returns a flux array and a dictionary of whatever information may be contained in the file header.
 
-
-The :obj:`RawGridInterface` and subclasses exist solely to interface with the raw files on disk. At minimum,
-they should each define a :method:`load_flux` method, which takes in a dictionary of parameters and returns a
-flux array and a dictionary of whatever information may be contained in the file header.
-
-Under the hood, each of these is implemented differently depending on how the synthetic grid is created. In the case
-of the BTSettl grid, each file in the grid may actually have a flux array that has been sampled at separate
-wavelengths. Therefore, it is necessary to actually interpolate each spectrum to a new, common grid, since
-the wavelength axis of each spectrum is not always the same.
+Under the hood, each of these is implemented differently depending on how the synthetic grid is created. In the case of the BTSettl grid, each file in the grid may actually have a flux array that has been sampled at separate wavelengths. Therefore, it is necessary to actually interpolate each spectrum to a new, common grid, since the wavelength axis of each spectrum is not always the same. Depending on your spectral library, you may need to do something similar.
 
 
-HDF5 creators and interfaces
-============================
+HDF5 creators and Fast interfaces
+=================================
 
-While using the :ref:`raw-grid-interfaces-label` may be useful for ordinary spectral reading, for fast read/write it
-is best to use HDF5 files, which store data in a hierarchical data format.
+While using the :ref:`grid-reference-label` may be useful for ordinary spectral reading, for fast read/write it is best to use HDF5 files to store only the data you need in a hierarchical binary data format. Let's be honest, we don't have all the time in the world to wait around for slow computations that carry around too much data. Before introducing the various ways to compress the spectral library, it might be worthwhile to review the section of the :doc:`spectrum` documentation that discusses how spectra are sampled and resampled in log-linear coordinates.
 
-The :obj:`HDF5GridStuffer` uses a raw grid interface to load all of the available files and saves them as individual
-datasets in the HDF5 file with all available metadata. If the wavelength format is different between individual
-files in the raw grid (BTSettl), it does minimal processing to unify them to the same wavelength grid. It aims to
-simply reproduce relevant sections of the raw grid (say, full optical, or certain temperature and metallicity ranges)
-in a unified file format (HDF5), so that it can be easily stored and transferred from the location of the files
-(say,  some external disk) to a laptop.
+If we will be fitting a star, there are generally three types of optimizations we can do to the spectral library to speed computation.
 
-.. autoclass:: HDF5GridStuffer
+1. Use only a range of spectra that span the likely parameter space of your star. For example, if we know we have an F5 star, maybe we will only use spectra that have :math:`5900~\textrm{K} \leq T_\textrm{eff} \leq 6500~\textrm{K}`.
+2. Use only the part of the spectrum that overlaps your instrument's wavelength coverage. For example, if the range of our spectrograph is 4000 - 9000 angstroms, it makes sense to discard the UV and IR portions of the synthetic spectrum.
+3. Resample the high resolution spectra to a lower resolution more suitably matched to the resolution of your spectrograph. For example, PHOENIX spectra are provided at :math:`R \sim 500,000`, while the TRES spectrograph has a resolution of :math:`R \sim 44,000`.
+
+All of these reductions can be achieved using the :obj:`HDF5Creator` object.
+
+.. autoclass:: HDF5Creator
    :members:
 
-The :obj:`HDF5Interface` provides `load_file` method similar to that of the raw grid interfaces. It does not make any
-assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file
-share the same wavelength grid, which is part of the HDF5 file in 'wl'. The flux files are stored within the HDF5
-file, in a subfile called 'flux', and are labelled as a dataset with the format
-
-    t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}
+Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is part of the HDF5 file in 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 
 .. autoclass:: HDF5Interface
    :members:
 
 
-The :obj:`HDF5InstGridCreator` is designed to use the :obj:`HDFInterface` to interface to an HDF5 file which has
-already been created by :obj:`HDF5GridStuffer`, and then process the relevant flux files to a sub grid that for the
-instrument under consideration.
-
-.. autoclass:: HDF5InstGridCreator
-   :members:
-
-Once the grid subsampled for a specific instrument has been created, then it too can be read by the same
-:obj:`HDF5Interface` class.
-
-
 Examples
 --------
 
-For example, to create a master grid for the PHOENIX spectra, we use our previously created :obj:`PHOENIXGridInterface`
-and create a new :obj:`HDFGridStuffer`. Then we run ``process_grid()`` to process all of the raw files on disk into an
-HDF5 file.
+For example, to create a master grid for the PHOENIX spectra, we use our previously created :obj:`PHOENIXGridInterface` and create a new :obj:`HDF5Creator`. Then we run ``process_grid()`` to process all of the raw files on disk into an HDF5 file.
 
 .. code-block:: python
 
@@ -180,12 +135,6 @@ HDF5 file.
     HDF5Creator.process_grid()
 
 
-Once an HDF5 file has been created using an :obj:`HDF5GridCreator`, spectra can be easily accesed from it through an
-:obj:`HDF5Interface` instance.
-
-.. autoclass:: HDF5Interface
-   :members:
-
 For example, to load a file from our HDF5 grid
 
 .. code-block:: python
@@ -194,11 +143,9 @@ For example, to load a file from our HDF5 grid
     spec = myHDF5.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
 
-The :obj:`HDF5GridCreatorDep` is designed to transfer the raw grid to a sub sampled grid. It is deprecated,
-but was used for the :obj:`MasterToFITSGridCreator` methods and so it remains.
-
 Interpolators
 =============
+
 The interpolators are used to create spectra in between grid points, for example
 ``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``.
 
@@ -221,10 +168,7 @@ For example, if we would like to generate a spectrum with the aforementioned par
 Instruments
 ===========
 
-In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need to
-convolve and resample the synthetic spectra to match the format of our data. *Instruments* are a convenience object
-which store the relevant characteristics of a given instrument. These objects will be later passed to methods which
-convolve raw spectra by the instrumental profile.
+In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need to convolve and resample the synthetic spectra to match the format of our data. ``Instrument`` s are a convenience object which store the relevant characteristics of a given instrument.
 
 .. inheritance-diagram:: Instrument KPNO TRES Reticon
    :parts: 1
@@ -235,7 +179,7 @@ convolve raw spectra by the instrumental profile.
 
    .. attribute:: self.wl_dict
 
-    A wl_dict that fits the instrumental properties with the correct oversampling.
+A wl_dict that fits the instrumental properties with the correct oversampling.
 
 .. autoclass:: TRES
    :members:
@@ -250,51 +194,28 @@ convolve raw spectra by the instrumental profile.
    :show-inheritance:
 
 
-FITS creator
-============
+Utility Functions
+=================
 
-Some techniques using synthetic spectra require them as input in FITS files. The :obj:`MasterToFITSProcessor` uses a
-:obj:`HDF5Interface` in order interface to a master stellar grid stored in HDF5 format. Given a parameter set, the object
-will create a FITS file storing a spectrum.
+.. autofunction:: chunk_list
 
-.. autoclass:: MasterToFITSIndividual
-   :members:
+.. autofunction:: determine_chunk_log
 
 
-To process an individual spectrum to a FITS file
+Wavelength conversions
+----------------------
 
-.. code-block:: python
+.. autofunction:: vacuum_to_air
 
-    myInstrument = KPNO()
-    myInterpolator = Interpolator(myHDF5Interface)
-    KPNOcreator = MasterToFITSIndividual(interpolator=myInterpolator, instrument=myInstrument)
+.. autofunction:: air_to_vacuum
 
-    params = {"temp":6000, "logg":4.5, "Z":0.0, "vsini":8}
-    KPNOcreator.process_spectrum(params, out_unit="f_nu_log")
-
-
-.. autoclass:: MasterToFITSGridProcessor
-   :members:
-
-
-
-For example, to process all of the PHOENIX spectra into FITS files suitable for the :obj:`KPNO` instrument, we would do
-
-.. code-block:: python
-
-    myInstrument = KPNO()
-
-    mycreator = MasterToFITSProcessor(interpolator=myInterpolator, instrument=myInstrument,
-    outdir="outFITS/", points={"temp":np.arange(2500, 12000, 250), "logg":np.arange(0.0, 6.1, 0.5),
-    "Z":np.arange(-1., 1.1, 0.5), "vsini": np.arange(0.0, 16.1, 1.)}, processes=32)
-
-    mycreator.process_all()
-
-
+.. autofunction:: calculate_n
 
 
 Exceptions
 ==========
+
+These exceptions will be called if anything is amiss.
 
 .. autoexception:: Starfish.constants.GridError
 

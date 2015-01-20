@@ -15,12 +15,13 @@ from functools import partial
 import itertools
 from collections import OrderedDict
 
-from .spectrum import Base1DSpectrum, LogLambdaSpectrum, create_log_lam_grid, calculate_min_v
+from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
 def chunk_list(mylist, n=mp.cpu_count()):
     '''
-    Divide a lengthy parameter list into chunks for parallel processing and backfill if necessary.
+    Divide a lengthy parameter list into chunks for parallel processing and
+    backfill if necessary.
 
     :param mylist: a lengthy list of parameter combinations
     :type mylist: 1-D list
@@ -42,42 +43,52 @@ def chunk_list(mylist, n=mp.cpu_count()):
 
 def determine_chunk_log(wl, wl_min, wl_max):
     '''
-    Take in a wavelength grid and then using two bounds, determine the indices that will allow us to truncate
-    this grid to near the requested bounds by still forcing the wl length to be a power of 2.
+    Take in a wavelength array and then, given two minimum bounds, determine
+    the boolean indices that will allow us to truncate this grid to near the
+    requested bounds while forcing the wl length to be a power of 2.
 
-    As a side note, HDF5Interface should be LogLambda spaced, because otherwise you shouldn't need a grid with 2^n
-    points, because you would need to interpolate in wl space after this anyway.
+    :param wl: wavelength array
+    :type wl: np.ndarray
+    :param wl_min: minimum required wavelength
+    :type wl_min: float
+    :param wl_max: maximum required wavelength
+    :type wl_max: float
+
+    :returns: a np.ndarray boolean array used to index into the wl array.
+
     '''
 
-    #wl_min and wl_max must of course be within the bounds of wl
-    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "wl_min {} and wl_max {} are not within the bounds of the " \
-                                                          "grid.".format(wl_min, wl_max)
+    # wl_min and wl_max must of course be within the bounds of wl
+    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "wl_min {} and wl_max"\
+    " {} are not within the bounds of the grid.".format(wl_min, wl_max)
 
-    #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the number of points
-    #contained between wl_min and wl_max
+    # Find the smallest length synthetic spectrum that is a power of 2 in length
+    # and longer than the number of points contained between wl_min and wl_max
     len_wl = len(wl)
     npoints = np.sum((wl >= wl_min) & (wl <= wl_max))
     chunk = len_wl
     inds = (0, chunk)
 
+    # This loop will exit with chunk being the smallest power of 2 that is
+    # larger than npoints
     while chunk > npoints:
         if chunk/2 > npoints:
             chunk = chunk//2
         else:
             break
 
-    #This loop will exit with chunk being the smallest power of 2 that is larger than npoints
-    assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
+
+    assert type(chunk) == np.int, "Chunk is not an integer!. Chunk is {}".format(chunk)
 
     if chunk < len_wl:
-        # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
-        # that straddle the data spectrum.
+        # Now that we have determined the length of the chunk of the synthetic
+        # spectrum, determine indices that straddle the data spectrum.
 
-        # What index corresponds to the wl at the center of the data spectrum?
+        # Find the index that corresponds to the wl at the center of the data spectrum
         center_wl = (wl_min + wl_max)/2.
         center_ind = (np.abs(wl - center_wl)).argmin()
 
-        #Take the chunk that straddles either side.
+        #Take a chunk that straddles either side.
         inds = (center_ind - chunk//2, center_ind + chunk//2)
 
         ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
@@ -85,21 +96,26 @@ def determine_chunk_log(wl, wl_min, wl_max):
         print("keeping grid as is")
         ind = np.ones_like(wl, dtype="b")
 
-    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-        "didn't encapsulate full wl range ({:.2f}, {:.2f}).".format(min(wl[ind]), max(wl[ind]), wl_min, wl_max)
+    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model"\
+        "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full"\
+        " wl range ({:.2f}, {:.2f}).".format(min(wl[ind]), max(wl[ind]), wl_min, wl_max)
 
     return ind
 
 
 class RawGridInterface:
     '''
-    A base class to handle interfacing with synthetic spectral grids.
+    A base class to handle interfacing with synthetic spectral libraries.
 
     :param name: name of the spectral library
-    :param points: a dictionary of lists describing the grid points at which spectra exist (assumes grid is square, not ragged).
-    :param air: Are the wavelengths in air?
+    :type name: string
+    :param points: a dictionary of lists describing the grid points at which
+        spectra exist (assumes grid is square, not ragged).
+    :type points: dict
+    :param air: Are the wavelengths measured in air?
     :type air: bool
-    :param wl_range: the starting and ending wavelength ranges of the grid to truncate to.
+    :param wl_range: the starting and ending wavelength ranges of the grid to
+        truncate to.
     :type wl_range: list of len 2 [min, max]
     :param base: path to the root of the files on disk.
     :type base: string
@@ -121,8 +137,8 @@ class RawGridInterface:
 
     def check_params(self, parameters):
         '''
-        Determine if a set of parameters is a subset of allowed parameters, and then determine if those parameters
-        are allowed in the grid.
+        Determine if a set of parameters is a subset of allowed parameters,
+        and then determine if those parameters are allowed in the grid.
 
         :param parameters: parameter set to check
         :type parameters: dict
@@ -147,7 +163,9 @@ class RawGridInterface:
 
          .. note::
 
-            This method is designed to be extended by the inheriting class'''
+            This method is designed to be extended by the inheriting class
+        '''
+
         self.check_params(parameters)
 
     def load_flux(self, parameters, norm=True):
@@ -170,24 +188,31 @@ class PHOENIXGridInterface(RawGridInterface):
     :type norm: bool
 
     '''
-    def __init__(self, air=True, norm=True, wl_range=[3000, 54000], base="libraries/raw/PHOENIX/"):
+    def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
+        base="libraries/raw/PHOENIX/"):
+
         super().__init__(name="PHOENIX",
-        points={"temp":
-      np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200,
-      4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900, 6000, 6100,
-      6200, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200, 11400, 11600, 11800, 12000]),
-        "logg":np.arange(0.0, 6.1, 0.5),
-        "Z":np.arange(-2., 1.1, 0.5),
-        "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
-        air=air, wl_range=wl_range, base=base) #wl_range used to be [2999, 13001]
+            points={"temp":
+          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+          11400, 11600, 11800, 12000]),
+            "logg":np.arange(0.0, 6.1, 0.5),
+            "Z":np.arange(-2., 1.1, 0.5),
+            "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
+            air=air, wl_range=wl_range, base=base) #wl_range used to be [2999, 13001]
 
         self.norm = norm #Normalize to 1 solar luminosity?
-        self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.alpha_dict = {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20", 0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40", 0.6:".Alpha=+0.60",
-                           0.8:".Alpha=+0.80"}
+        self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
+            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+        self.alpha_dict = {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20",
+            0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40",
+            0.6:".Alpha=+0.60", 0.8:".Alpha=+0.80"}
 
-        #if air is true, convert the normally vacuum file to air wls.
+        # if air is true, convert the normally vacuum file to air wls.
         try:
             wl_file = fits.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         except OSError:
@@ -207,7 +232,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     def load_file(self, parameters):
         '''
-        Load a file from the disk.
+        Load a file from disk and return it as a spectrum object.
 
         :param parameters: stellar parameters
         :type parameters: dict
@@ -262,7 +287,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     def load_flux(self, parameters, norm=True):
         '''
-       Load a file from the disk.
+       Load just the flux and header information.
 
        :param parameters: stellar parameters
        :type parameters: dict
@@ -319,10 +344,10 @@ class PHOENIXGridInterface(RawGridInterface):
 class KuruczGridInterface(RawGridInterface):
     '''Kurucz grid interface.
 
-    Spectra are in f_nu
-    in a filename like "t03500g00m25ap00k2v070z1i00.fits, ap00 means zero alpha enhancement, and k2 is the
-    microturbulence, I believe. I think z1 is the macroturbulence. These particular values are roughly the ones
-    appropriate for the Sun.
+    Spectra are stored in ``f_nu`` in a filename like
+    ``t03500g00m25ap00k2v070z1i00.fits``, ``ap00`` means zero alpha enhancement,
+    and ``k2`` is the microturbulence, while ``z1`` is the macroturbulence.
+    These particular values are roughly the ones appropriate for the Sun.
     '''
     def __init__(self, air=True, norm=True, wl_range=[5000, 5400], base="libraries/raw/Kurucz/"):
         super().__init__(name="Kurucz",
@@ -340,10 +365,9 @@ class KuruczGridInterface(RawGridInterface):
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
 
-
     def load_flux(self, parameters, norm=True):
         '''
-       Load a file from the disk.
+       Load a the flux and header information.
 
        :param parameters: stellar parameters
        :type parameters: dict
@@ -407,25 +431,16 @@ class KuruczGridInterface(RawGridInterface):
         super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
         raise NotImplementedError("No load_file routine for Kurucz")
 
-class ATLASGridInterface(RawGridInterface):
-    def __init__(self):
-
-        #The files are laid out into metallicity directories
-
-        #Within the metallicity directory, each FITS file contains all the spectra of a specific Teff and Z. The logg
-        # range from g00 to g50. If a certain T, Z combination does not have low surface gravities, then the column
-        # is filled with zeros.
-
-
-        pass
-
-    def load_flux(self, parameters, norm=True):
-        pass
 
 class BTSettlGridInterface(RawGridInterface):
-    '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the individual files of the BTSettl grid do not
-    always have the same wavelength sampling. Therefore, each call of :method:`load_flux` will interpolate the flux
-    onto a LogLambda spaced grid that ranges between `wl_range` and has a velocity spacing of 0.08 km/s or better.'''
+    '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the
+    individual files of the BTSettl grid do not always have the same wavelength
+    sampling. Therefore, each call of :meth:`load_flux` will interpolate the
+    flux onto a LogLambda spaced grid that ranges between `wl_range` and has a
+    velocity spacing of 0.08 km/s or better.
+
+    If you have a choice, it's probably easier to use the Husser PHOENIX grid.
+    '''
     def __init__(self, air=True, norm=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
         super().__init__(name="BTSettl",
         points={"temp":np.arange(3000, 7001, 100),
@@ -484,8 +499,8 @@ class BTSettlGridInterface(RawGridInterface):
             # the bolometric luminosity is always 1 L_sun
 
         # truncate the spectrum to the wl range of interest
-        # at this step, make the range a little more so that the next stage of spline interpolation is properly in
-        # bounds
+        # at this step, make the range a little more so that the next stage of
+        # spline interpolation is properly in bounds
         ind = (wl >= (self.wl_range[0] - 50.)) & (wl <= (self.wl_range[1] + 50.))
         wl = wl[ind]
         fl = fl[ind]
@@ -514,24 +529,35 @@ class BTSettlGridInterface(RawGridInterface):
         super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
         raise NotImplementedError("No load_file routine for BTSettl")
 
-class HDF5GridStuffer:
-    '''Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.
-
-    :param GridInterface: :obj:`RawGridInterface` object or subclass thereof to access raw spectra on disk.
-    :param filename: where to create the HDF5 file. Suffix `*`.hdf5 recommended.
-    :param ranges: lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.
-    :type ranges: dict of keywords mapped to 2-tuples
-
-    This object is designed to be run in serial.
-
+class HDF5Creator:
     '''
-    def __init__(self, GridInterface, filename, ranges={"temp":(0,np.inf),
-                                            "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
+    Create a HDF5 grid to store all of the spectra from a RawGridInterface,
+    along with metadata.
+    '''
+    def __init__(self, GridInterface, filename, Instrument, ranges={"temp":(0,np.inf),
+        "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
+        '''
+        :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
+            to access raw spectra on disk.
+        :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended.
+        :param Instrument: the instrument to convolve/truncate the grid. If you
+            want a high-res grid, use the NullInstrument.
+        :param ranges: lower and upper limits for each stellar parameter,
+            in order to truncate the number of spectra in the grid.
+        :type ranges: dict of keywords mapped to 2-tuples
+
+        This object is designed to be run in serial.
+        '''
         self.GridInterface = GridInterface
-        self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
+        self.filename = filename #only store the name to the HDF5 file, because
+        # otherwise the object cannot be parallelized
+        self.Instrument = Instrument
+
+        # The flux formatting key will always have alpha in the name, regardless
+        # of whether or not the library uses it as a parameter.
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
-        #Take only those points of the GridInterface that fall within the ranges specified
+        # Take only those points of the GridInterface that fall within the ranges specified
         self.points = {}
         for key, value in ranges.items():
             valid_points  = self.GridInterface.points[key]
@@ -539,98 +565,171 @@ class HDF5GridStuffer:
             ind = (valid_points >= low) & (valid_points <= high)
             self.points[key] = valid_points[ind]
 
-        #wl is the wl from the interface
-
-        self.wl = self.GridInterface.wl
+        # the raw wl from the spectral library
+        self.wl_native = self.GridInterface.wl #raw grid
+        self.dv_native = calculate_dv(self.wl_native)
 
         self.hdf5 = h5py.File(self.filename, "w")
         self.hdf5.attrs["grid_name"] = GridInterface.name
         self.hdf5.flux_group = self.hdf5.create_group("flux")
         self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
 
-        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
-        wl_dset[:] = self.wl
-        wl_dset.attrs["air"] = self.GridInterface.air
+        # We'll need a few wavelength grids
+        # 1. The original synthetic grid: ``self.wl_native``
+        # 2. A finely spaced log-lambda grid respecting the ``dv`` of
+        #   ``self.wl_native``, onto which we can interpolate the flux values
+        #   in preperation of the FFT: ``self.wl_FFT``
+        # [ DO FFT ]
+        # 3. A log-lambda spaced grid onto which we can downsample the result
+        #   of the FFT, spaced with a ``dv`` such that we respect the remaining
+        #   Fourier modes: ``self.wl_final``
 
-        #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
+        wl_min, wl_max = self.Instrument.wl_range
+
+        # Calculate wl_FFT
+        if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
+            wl_dict = create_log_lam_grid(self.dv_native, self.wl_native[0], self.wl_native[-1])
+
+        # otherwise use the edges specified by the instrument, plus a little more.
+        else:
+            #use the dv that preserves the quality of the raw PHOENIX grid
+            wl_dict = create_log_lam_grid(self.dv_native, wl_min - 50., wl_max + 50.)
+
+        self.wl_FFT = wl_dict["wl"]
+        self.dv_FFT = calculate_dv_dict(wl_dict)
+
+        print("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
+        print("wl_FFT dv is {} km/s".format(self.dv_FFT))
+
+        # The Fourier coordinate
+        self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
+        # The instrumental taper
+        sigma = self.Instrument.FWHM / 2.35 # in km/s
+        # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
+        self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
+
+        # Create the final wavelength grid, onto which we will interpolate the
+        # Fourier filtered wavelengths
+        # an upper limit on the final dv
+        dv_temp = self.Instrument.FWHM/self.Instrument.oversampling/C.c_kms
+        wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
+        self.wl_final = wl_dict["wl"]
+        self.dv_final = calculate_dv_dict(wl_dict)
+
+        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
+        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_final),), dtype="f8", compression='gzip', compression_opts=9)
+        wl_dset[:] = self.wl_final
+        wl_dset.attrs["air"] = self.GridInterface.air
+        wl_dset.attrs["dv"] = self.dv_final
 
 
     def process_flux(self, parameters):
         '''
-        Take a flux file from the raw grid and insert it into the HDF5 file.
+        Take a flux file from the raw grid, process it according to the
+        instrument, and insert it into the HDF5 file.
 
         :param parameters: the stellar parameters
         :type parameters: dict
 
         .. note::
 
-           This function assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
-           the :attr:`GridInterface` actually has alpha or not
+           This function assumes that it's going to get a dictionary of
+           parameters that includes ``(temp, logg, Z, alpha)``, regardless of
+           whether the :attr:`GridInterface` actually has alpha or not.
 
-        :raises AssertionError: if the `param parameters` dictionary is not length 4.
+        :raises AssertionError: if the `param parameters` dictionary is not
+            length 4.
+
+        :returns: a tuple of (parameters, flux, header). If the flux could
+            not be loaded, returns (None, None, None).
+
         '''
-        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
+        assert len(parameters.keys()) == 4, "Must pass dictionary with keys " \
+            "(temp, logg, Z, alpha)"
         print("Processing", parameters)
         try:
             flux, header = self.GridInterface.load_flux(parameters)
-            sys.stdout.flush()
-            return (parameters, flux, header)
+
+            # Interpolate the native spectrum to a log-lam FFT grid
+            interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
+            fl = interp(self.wl_FFT)
+            del interp
+            gc.collect()
+
+            # Do the FFT
+            FF = np.fft.rfft(fl)
+
+            # apply instrumental taper
+            FF_tap = FF * self.taper
+
+            # do IFFT
+            fl_tapered = np.fft.irfft(FF_tap)
+
+            # downsample to the final grid
+            interp = InterpolatedUnivariateSpline(self.wl_FFT, fl_tapered, k=5)
+            fl_final = interp(self.wl_final)
+            del interp
+            gc.collect()
+
+            return (parameters, fl_final, header)
 
         except C.GridError as e:
             print("No file with parameters {}. C.GridError: {}".format(parameters, e))
-            sys.stdout.flush()
             return (None, None, None)
 
     def process_grid(self):
         '''
-        Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the
-        HDF5 file.
+        Run :meth:`process_flux` for all of the spectra within the `ranges`
+        and store the processed spectra in the HDF5 file.
 
         Only executed in serial.
         '''
 
-        #Take all parameter permutations in self.points and create a list
+        # Take all parameter permutations in self.points and create a list
         param_list = [] #list of parameter dictionaries
         keys,values = self.points.keys(),self.points.values()
 
-        #use itertools.product to create permutations of all possible values
+        # use itertools.product to create permutations of all possible values
         for i in itertools.product(*values):
             param_list.append(dict(zip(keys,i)))
 
-        print("Total of {} files to stuff.".format(len(param_list)))
+        print("Total of {} files to process.".format(len(param_list)))
 
         for param in param_list:
             parameters, fl, header = self.process_flux(param)
             if parameters is None:
                 continue
 
-            #The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(fl),),
-                                               dtype="f", compression='gzip', compression_opts=9)
+            # The PHOENIX spectra are stored as float32, and so we do the same here.
+            flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters),
+                shape=(len(fl),), dtype="f", compression='gzip',
+                compression_opts=9)
             flux[:] = fl
 
-            #Store header keywords as attributes in HDF5 file
+            # Store header keywords as attributes in HDF5 file
             for key,value in header.items():
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
 
+
 class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
-
-    :param filename: the name of the HDF5 file
-    :type param: string
-
     '''
     def __init__(self, filename, ranges={"temp":(0,np.inf),
-                         "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
+                                        "logg":(-np.inf,np.inf),
+                                        "Z":(-np.inf, np.inf),
+                                        "alpha":(-np.inf, np.inf)}):
+        '''
+            :param filename: the name of the HDF5 file
+            :type param: string
+            :param ranges: optionally select a smaller part of the grid to use.
+            :type ranges: dict
+        '''
         self.filename = filename
         self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.errspec_name = "{axis}/t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
-            #self.name = hdf5.attrs["grid_name"]
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
 
@@ -661,42 +760,28 @@ class HDF5Interface:
             Z.append(param['Z'])
             alpha.append(param['alpha'])
 
-        self.bounds = {"temp": (min(temp),max(temp)), "logg": (min(logg), max(logg)), "Z": (min(Z), max(Z)),
-                       "alpha":(min(alpha),max(alpha))}
-        self.points = {"temp": np.unique(temp), "logg": np.unique(logg), "Z": np.unique(Z), "alpha": np.unique(alpha)}
+        self.bounds = { "temp": (min(temp),max(temp)),
+                        "logg": (min(logg), max(logg)),
+                        "Z": (min(Z), max(Z)),
+                        "alpha":(min(alpha),max(alpha))}
+
+        self.points = { "temp": np.unique(temp),
+                        "logg": np.unique(logg),
+                        "Z": np.unique(Z),
+                        "alpha": np.unique(alpha)}
+
         self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
-
-    def load_file(self, parameters):
-        '''load a spectrum from the grid and return it as a :obj:`model.Base1DSpectrum`.
-
-        :param parameters: the stellar parameters
-        :type parameters: dict
-
-        :raises KeyError: if spectrum is not found in the HDF5 file.
-
-        '''
-
-        key = self.flux_name.format(**parameters)
-        with h5py.File(self.filename, "r") as hdf5:
-            fl = hdf5['flux'][key][:]
-            hdr = dict(hdf5['flux'][key].attrs)
-
-        #Note: will raise a KeyError if the file is not found.
-
-        hdr.update(self.wl_header) #add the flux metadata to the wl data
-
-        return Base1DSpectrum(self.wl, fl, metadata=hdr)
 
     def load_flux(self, parameters):
         '''
-        Load *just the flux* from the grid, with possibly an index truncation. This is a speed method designed for MCMC.
+        Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
         :type parameters: dict
-        :param ind: slice to load
-        :type ind: (int low, int high) 2-tuple
 
         :raises KeyError: if spectrum is not found in the HDF5 file.
+
+        :returns: flux array
         '''
 
         key = self.flux_name.format(**parameters)
@@ -739,284 +824,6 @@ class HDF5Interface:
         #Note: will raise a KeyError if the file is not found.
 
         return (fl, hdr)
-
-    def get_error_spectrum(self, parameters, axis="temp"):
-        '''
-        Given a grid point specified by parameters, and a direction on the axis, return the error spectrum.
-        '''
-
-        params = parameters.copy()
-
-        #identify the axis
-        points = self.points[axis]
-        #Find which index this point is
-        idx = (np.abs(points - params[axis])).argmin()
-
-        #Get the two nearest spectra in the grid.
-        #If we are at a grid edge, just use the error spectrum from one grid point inbounds.
-
-
-        #load the file specified by the parameters
-        fl = self.load_flux(params)
-
-        if idx == 0:
-            #at the low gridpoint
-            low = points[0]
-            mid = points[1]
-            high = points[2]
-
-        elif idx == (len(points) - 1):
-            #at the high grid point
-            high = points[idx]
-            mid = points[idx - 1]
-            low = points[idx - 2]
-
-        else:
-            #Proceed as normal
-            low = points[idx - 1]
-            mid = points[idx]
-            high = points[idx + 1]
-
-        #Load all the spectra
-        params.update({axis:mid})
-        fl_mid = self.load_flux(params)
-
-        params.update({axis:low})
-        fl_low = self.load_flux(params)
-
-        params.update({axis:high})
-        fl_high = self.load_flux(params)
-
-        #compare the average of the two side spectra to the central spectrum and return this as the error spectrum
-        errspec = fl_mid - (fl_low + fl_high)/2
-        return errspec
-
-    def get_error_spectra(self, parameters):
-        '''
-        Do get_error_spectrum but for each one of the parameters in the grid
-        '''
-        return [self.get_error_spectrum(parameters, axis) for axis in ("temp", "logg", "Z")]
-
-    def load_error_spectrum(self, parameters, axis):
-        params = parameters.copy()
-        params.update({"axis":axis})
-        key = self.errspec_name.format(**params)
-        with h5py.File(self.filename, "r") as hdf5:
-            if self.ind is not None:
-                errspec = hdf5[key][self.ind[0]:self.ind[1]]
-            else:
-                errspec = hdf5[key][:]
-        return errspec
-
-    def load_error_spectra(self, parameters):
-        return [self.load_error_spectrum(parameters, axis) for axis in ("temp", "logg", "Z")]
-
-
-class HDF5InstGridCreator:
-    '''
-    Designed to harness an HDF5 interface (that has been created using HDF5GridStuffer) to create a library of spectra
-    designed specifically for just one instrument and one object. This means that it is convolved with the
-    instrumental PSF and downsampled to some fraction of the FWHM.
-    '''
-    def __init__(self, HDF5Interface, filename, Instrument, ranges={"temp":(0,np.inf),
-                                           "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
-
-        self.HDF5Interface = HDF5Interface
-        self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
-        self.Instrument = Instrument
-        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.oversample = 3. #how many pixels to fit across the FWHM of the instrument
-        self.min_vc = self.Instrument.FWHM/self.oversample/C.c_kms
-
-        #Take only those points of the GridInterface that fall within the ranges specified
-        self.points = {}
-        for key, value in ranges.items():
-            valid_points  = self.HDF5Interface.points[key]
-            low,high = value
-            ind = (valid_points >= low) & (valid_points <= high)
-            self.points[key] = valid_points[ind]
-
-        self.hdf5 = h5py.File(self.filename, "w")
-        #self.hdf5.attrs["grid_name"] = self.HDF5Interface.name
-        self.hdf5.flux_group = self.hdf5.create_group("flux")
-        self.hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
-
-        self.wl_native = self.HDF5Interface.wl #raw grid
-
-        #Calculate a log_lam grid based upon the range of the instrument, natural sampling of the grid (R=500,000)
-        #and the actual range of the synthetic grid.
-
-        #if the grid is shorter than the instrument, just take the grid ranges
-        if (self.wl_native[0] > self.Instrument.wl_range[0]) or (self.wl_native[-1] < self.Instrument.wl_range[1]):
-            wl_dict = create_log_lam_grid(self.wl_native[0], self.wl_native[-1], min_vc=0.08/C.c_kms)
-            self.wl_FFT = wl_dict["wl"]
-
-        else:
-            wl_min, wl_max = self.Instrument.wl_range
-            #use the min_vc that preserves the quality of the PHOENIX grid
-            wl_dict = create_log_lam_grid(wl_min - 100., wl_max + 100., min_vc=0.08/C.c_kms)
-            self.wl_FFT = wl_dict["wl"]
-
-        print("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
-        print("wl_FFT is {} km/s".format(calculate_min_v(wl_dict)))
-
-        self.min_v = calculate_min_v(wl_dict) #for the wl_FFT
-        self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
-
-        if (self.wl_native[0] > self.Instrument.wl_range[0]) or (self.wl_native[-1] < self.Instrument.wl_range[1]):
-            wl_dict = create_log_lam_grid(self.wl_native[0], self.wl_native[-1], min_vc=self.min_vc)
-            self.wl_output = wl_dict["wl"]
-
-        else:
-            #uses a different min_vc here, the (downsampled) output grid is interpolated onto
-            wl_dict = create_log_lam_grid(wl_min - 50., wl_max + 50., min_vc=self.min_vc)
-            self.wl_output = wl_dict["wl"]
-
-        print("Output grid is spaced {} km/s".format(calculate_min_v(wl_dict)))
-
-        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_output),), dtype="f8", compression='gzip', compression_opts=9)
-        wl_dset[:] = self.wl_output
-        wl_dset.attrs["air"] = self.HDF5Interface.wl_header["air"]
-        wl_dset.attrs["min_v"] = calculate_min_v(wl_dict)
-
-
-    def process_flux(self, parameters):
-        '''
-        Take a flux file from the raw grid and instrumentally broaden then downsample it and return the flux.
-
-        :param parameters: the stellar parameters
-        :type parameters: dict
-
-        .. note::
-
-           This function assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
-           the :attr:`GridInterface` actually has alpha or not
-
-        :raises AssertionError: if the `param parameters` dictionary is not length 4.
-        '''
-        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
-        print("Processing", parameters)
-        try:
-            flux, hdr = self.HDF5Interface.load_flux_hdr(parameters)
-            sys.stdout.flush()
-
-            #Here do the FFT, broadening, and resampling
-
-            #Interpolate the raw PHOENIX spectrum to a high res log-lam grid
-            interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
-            fl = interp(self.wl_FFT)
-            del interp
-            gc.collect()
-
-            #Do the FFT
-            FF = np.fft.rfft(fl)
-
-            sigma = self.Instrument.FWHM / 2.35 # in km/s
-
-            #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
-            taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
-
-            #institute instrumental taper
-            FF_tap = FF * taper
-
-            #do ifft
-            fl_tapered = np.fft.irfft(FF_tap)
-
-            #downsample to outgrid
-            interp = InterpolatedUnivariateSpline(self.wl_FFT, fl_tapered, k=5)
-            fl_output = interp(self.wl_output)
-            del interp
-
-            return (parameters, fl_output, hdr)
-
-        except C.GridError as e:
-            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
-            sys.stdout.flush()
-            return (None, None, None)
-
-
-    def process_grid(self):
-        '''
-        Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the
-        HDF5 file.
-
-        Only executed in serial.
-        '''
-
-        #Take all parameter permutations in self.points and create a list
-        param_list = [] #list of parameter dictionaries
-        keys,values = self.points.keys(),self.points.values()
-
-        #use itertools.product to create permutations of all possible values
-        for i in itertools.product(*values):
-            param_list.append(dict(zip(keys,i)))
-
-        print("Total of {} files to process.".format(len(param_list)))
-
-        for param in param_list:
-            parameters, fl, header = self.process_flux(param)
-            if parameters is None:
-                continue
-
-            #The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(fl),),
-                                                    dtype="f", compression='gzip', compression_opts=9)
-            flux[:] = fl
-
-            #Store header keywords as attributes in HDF5 file
-            for key,value in header.items():
-                if key != "" and value != "": #check for empty FITS kws
-                    flux.attrs[key] = value
-
-class ErrorSpectrumCreator:
-    '''
-    Go through the grid and do a bunch of drop-out interpolations in each dimension.
-
-    Do this as "/temp/key/"
-               "/logg/key/"
-               "/Z/key/"
-
-    Store each spectrum as (temp, logg, Z, drop_out_axis) key
-    '''
-    def __init__(self, interface):
-        self.interface = interface
-        self.filename = self.interface.filename
-        self.flux_name = "{axis}/t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.points = {}
-        self.points = self.interface.points
-        print("Points are {}".format(self.points))
-
-        self.len = len(self.interface.wl)
-
-
-    def process_grid(self):
-        param_list = [] #list of parameter dictionaries
-        keys,values = self.points.keys(),self.points.values()
-
-        #use itertools.product to create permutations of all possible values
-        for i in itertools.product(*values):
-            param_list.append(dict(zip(keys,i)))
-
-        print("Total of {} files to process.".format(len(param_list)))
-
-        for param in param_list:
-            print("Processing {}".format(param))
-            try:
-                spec_tuple = self.interface.get_error_spectra(param)
-
-                for axis, spec in zip(("temp", "logg", "Z"), spec_tuple):
-                    param.update({"axis":axis})
-                    print("Processing {}".format(param))
-
-                    with h5py.File(self.filename, "r+") as hdf5:
-                        dset = hdf5.create_dataset(self.flux_name.format(**param), shape=(self.len,),
-                                                                dtype="f", compression='gzip', compression_opts=9)
-                        dset[:] = spec
-
-            except C.GridError:
-                print("No spectrum with {}".format(param))
-                continue
 
 class IndexInterpolator:
     '''
@@ -1247,226 +1054,12 @@ class Interpolator:
 
         return np.sum(self.fluxes, axis=0)
 
-class ErrorInterpolator:
-    '''
-    Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
-    easier memory load.
-
-    :param interface: :obj:`HDF5Interface` (recommended) or :obj:`RawGridInterface` to load spectra
-    :param DataSpectrum: data spectrum that you are trying to fit. Used for truncating the synthetic spectra to the relevant region for speed.
-    :type DataSpectrum: :obj:`spectrum.DataSpectrum`
-    :param cache_max: maximum number of spectra to hold in cache
-    :type cache_max: int
-    :param cache_dump: how many spectra to purge from the cache once :attr:`cache_max` is reached
-    :type cache_dump: int
-    :param trilinear: Should this interpolate in temp, logg, and [Fe/H] AND [alpha/Fe], or just the first three parameters.
-    :type trilinear: bool
-
-    Setting :attr:`trilinear` to **True** is useful for when you want to do a run with [Fe/H] > 0.0
-
-    '''
-
-    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64, trilinear=False, log=True):
-        '''
-        Param log decides how to chunk up the returned spectrum. If we are using a pre-instrument convolved grid,
-        then we want to use log=True.
-
-        If we are using the raw synthetic grid, then we want to use log=False.
-        '''
-        self.interface = interface
-        self.DataSpectrum = DataSpectrum
-
-        #If alpha only includes one value, then do trilinear interpolation
-        (alow, ahigh) = self.interface.bounds['alpha']
-        if (alow == ahigh) or trilinear:
-            self.parameters = C.grid_set - set(("alpha",))
-        else:
-            self.parameters = C.grid_set
-
-
-        self.wl = self.interface.wl
-        self.wl_dict = self.interface.wl_header
-        if log:
-            self._determine_chunk_log()
-        else:
-            self._determine_chunk()
-        self.setup_index_interpolators()
-        self.cache_errors = OrderedDict([])
-        self.cache_max = cache_max
-        self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
-
-    def _determine_chunk_log(self):
-        '''
-        Using the DataSpectrum, determine the minimum chunksize that we can use and then truncate the synthetic
-        wavelength grid and the returned spectra.
-
-        Assumes HDF5Interface is LogLambda spaced, because otherwise you shouldn't need a grid with 2^n points,
-        because you would need to interpolate in wl space after this anyway.
-        '''
-
-        wave_grid = self.interface.wl
-        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
-        #Length of the raw synthetic spectrum
-        len_wg = len(wave_grid)
-        #ind_wg = np.arange(len_wg) #Labels of pixels
-        #Length of the data
-        len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #How much of the synthetic spectrum do we need?
-
-        #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
-        chunk = len_wg
-        self.interface.ind = (0, chunk) #Set to be the full spectrum
-
-        while chunk > len_data:
-            if chunk/2 > len_data:
-                chunk = chunk//2
-            else:
-                break
-
-        assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
-
-        if chunk < len_wg:
-            # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
-            # that straddle the data spectrum.
-
-            # What index corresponds to the wl at the center of the data spectrum?
-            median_wl = np.median(self.DataSpectrum.wls)
-            median_ind = (np.abs(wave_grid - median_wl)).argmin()
-
-            #Take the chunk that straddles either side.
-            ind = (median_ind - chunk//2, median_ind + chunk//2)
-
-            self.wl = self.wl[ind[0]:ind[1]]
-            assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                                                                    "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                                                                          max(self.wl), wl_min, wl_max)
-
-            self.interface.ind = ind
-
-        print("Determine Chunk Log: Wl is {}".format(len(self.wl)))
-
-    def _determine_chunk(self):
-        '''
-        Using the DataSpectrum, set the bounds of the interpolator to +/- 5 Ang
-        '''
-
-        wave_grid = self.interface.wl
-        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
-
-        ind_low = (np.abs(wave_grid - (wl_min - 5.))).argmin()
-        ind_high = (np.abs(wave_grid - (wl_max + 5.))).argmin()
-
-        self.wl = self.wl[ind_low:ind_high]
-
-        assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                                                                "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                                                                      max(self.wl), wl_min, wl_max)
-
-
-        self.interface.ind = (ind_low, ind_high)
-        print("Wl is {}".format(len(self.wl)))
-
-    def __call__(self, parameters):
-        '''
-        Interpolate a spectrum
-
-        :param parameters: stellar parameters
-        :type parameters: dict
-
-        Automatically pops :attr:`cache_dump` items from cache if full.
-        '''
-        if len(self.cache_errors) > 3 * self.cache_max:
-            [self.cache_errors.popitem(False) for i in range(len(self.parameters) * self.cache_dump)]
-            self.cache_counter = 0
-        return self.interpolate(parameters)
-
-    def setup_index_interpolators(self):
-        #create an interpolator between grid points indices. Given a temp, produce fractional index between two points
-        self.index_interpolators = {key:IndexInterpolator(self.interface.points[key]) for key in self.parameters}
-
-        lenF = self.interface.ind[1] - self.interface.ind[0]
-        self.errors = np.empty((len(self.parameters) * 2**len(self.parameters), lenF)) #24 rows, for temp, logg, Z
-
-    def interpolate(self, parameters):
-        '''
-        Interpolate a spectrum without clearing cache. Recommended to use :meth:`__call__` instead.
-
-        :param parameters: stellar parameters
-        :type parameters: dict
-        :raises C.InterpolationError: if parameters are out of bounds.
-
-        Now the interpolator also returns the 24 error spectra along with weights.
-        '''
-
-        #Here it really would be nice to return things in a predictable order
-        # (temp, logg, Z)
-        odict = OrderedDict()
-        for key in ("temp", "logg", "Z"):
-            odict[key] = parameters[key]
-        try:
-            edges = OrderedDict()
-            for key,value in odict.items():
-                edges[key] = self.index_interpolators[key](value)
-        except C.InterpolationError as e:
-            raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
-
-        #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
-        names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"],
-        params = [edges[key][0] for key in names] #[(6000, 6100), (4.0, 4.5), ...]
-        weights = [edges[key][1] for key in names] #[(0.2, 0.8), (0.4, 0.6), ...]
-        #print(params)
-        #print(weights)
-
-        #Somehow extract the appropriate temperature/logg/Z weights here for combining the different covariances
-        #Length 3 list
-        #Giving half the weight to these values, and weighting in a linear manner.
-        #Original, correct version
-        #Weight_list = [0.5 * np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
-        #Modified version
-        Weight_list = [np.sqrt(min(lspace, rspace)/0.5) for (lspace, rspace) in weights]
-        #print(Weight_list)
-
-        param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
-        #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
-        weight_combos = itertools.product(*weights)
-        #[(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
-
-        parameter_list = [dict(zip(names, param)) for param in param_combos]
-        if "alpha" not in parameters.keys():
-            [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
-        key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
-        weight_list = np.array([np.prod(weight) for weight in weight_combos])
-
-        weight_sq = np.sqrt(weight_list.copy())
-        #print(weight_sq)
-        #den = np.sqrt(np.sum(weight_sq**2))
-        #weight_sq /=  den #normalize by the squares
-
-        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
-
-        #Assemble flux vector from cache
-        for i,param in enumerate(parameter_list):
-            key = key_list[i]
-            if key not in self.cache_errors.keys():
-                try:
-                    spec_tuple = self.interface.load_error_spectra(param) #In the order of ("temp", "logg", "Z")
-                except KeyError as e:
-                    raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
-
-                self.cache_errors[key] = spec_tuple
-                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
-
-            spec_tuple = self.cache_errors[key]
-            for j, spec in enumerate(spec_tuple):
-                self.errors[i*3 + j,:] = spec * weight_sq[i] * Weight_list[j] #Do not square these weights here, since
-                #self.errors[i*3 + j,:] = spec*0.204124 #Do not square these weights here, since
-                #the routine for adding them to the sparse matrix will automatically square them.
-
-        return self.errors
 
 #Convert R to FWHM in km/s by \Delta v = c/R
 class Instrument:
     '''
-    Object describing an instrument. This will be used by other methods for processing raw synthetic spectra.
+    Object describing an instrument. This will be used by other methods for
+    processing raw synthetic spectra.
 
     :param name: name of the instrument
     :type name: string
@@ -1477,9 +1070,10 @@ class Instrument:
     :param oversampling: how many samples fit across the :attr:`FWHM`
     :type oversampling: float
 
-    upon initialization, calculates a ``wl_dict`` with the properties of the instrument.
+    Upon initialization, calculates a ``wl_dict`` with the properties of the
+    instrument.
     '''
-    def __init__(self, name, FWHM, wl_range, oversampling=3.5):
+    def __init__(self, name, FWHM, wl_range, oversampling=4.):
         self.name = name
         self.FWHM = FWHM #km/s
         self.oversampling = oversampling
@@ -1493,18 +1087,12 @@ class Instrument:
         '''
         Prints the relevant properties of the instrument.
         '''
-        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, wl_range: {}".format(self.name, self.FWHM,
-                                                                              self.oversampling, self.wl_range)
+        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, " \
+            "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
 
 class TRES(Instrument):
     '''TRES instrument'''
     def __init__(self, name="TRES", FWHM=6.8, wl_range=(3500, 9500)):
-        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        #sets the FWHM and wl_range
-
-class TRESPhotometry(Instrument):
-    '''This one has a wider wl range to allow for synthetic photometry comparisons.'''
-    def __init__(self, name="TRES", FWHM=6.8, wl_range=(3000, 13000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         #sets the FWHM and wl_range
 
@@ -1602,7 +1190,6 @@ def get_wl_kurucz(filename):
     wl = 10 ** (w1 + dw * p)
     return wl
 
-
 @np.vectorize
 def idl_float(idl_num):
     '''
@@ -1698,128 +1285,6 @@ def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
             head[key] = value
 
     hdu.writeto(filename)
-
-class HDF5GridCreatorDep:
-    '''Create a HDF5 grid to store all of the spectra from a RawGridInterface along with metadata.
-
-    :param GridInterface: :obj:`RawGridInterface` object or subclass thereof to access raw spectra on disk.
-    :param filename: where to create the HDF5 file. Suffix `*`.hdf5 recommended.
-    :param wl_dict: a dictionary containing the wavelength and metadata describing the common wavelength.
-    :type wl_dict: dict
-    :param ranges: lower and upper limits for each stellar parameter, in order to truncate the number of spectra in the grid.
-    :type ranges: dict of keywords mapped to 2-tuples
-    :param nprocesses: if > 1, run in parallel using nprocesses
-    :type nprocesses: int
-    :param chunksize: chunksize to use for lazy mp.imap
-    :type chunksize: int
-
-    Once initialized, the HDF5Interface creates an HDF5 file and then closes it.
-
-    '''
-    def __init__(self, GridInterface, filename, wl_dict, ranges={"temp":(0,np.inf),
-                                                                 "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)},
-                 nprocesses = 1, chunksize=1):
-        self.GridInterface = GridInterface
-        self.filename = filename #only store the name to the HDF5 file, because the object cannot be parallelized
-        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
-        self.nprocesses = nprocesses
-        self.chunksize = chunksize
-
-        #Take only those points of the GridInterface that fall within the ranges specified
-        self.points = {}
-        for key, value in ranges.items():
-            valid_points  = self.GridInterface.points[key]
-            low,high = value
-            ind = (valid_points >= low) & (valid_points <= high)
-            self.points[key] = valid_points[ind]
-
-        #wl_dict is the output from create_log_lam_grid, containing CRVAL1, CDELT1, etc...
-        wl_dict = wl_dict.copy()
-        self.wl = wl_dict.pop("wl")
-        self.wl_params = wl_dict
-
-        with h5py.File(self.filename, "w") as hdf5:
-            hdf5.attrs["grid_name"] = GridInterface.name
-            hdf5.flux_group = hdf5.create_group("flux")
-            hdf5.flux_group.attrs["unit"] = "erg/cm^2/s/A"
-            self.create_wl(hdf5)
-
-            #The HDF5 master grid will always have alpha in the name, regardless of whether GridIterface uses it.
-
-    def create_wl(self, hdf5):
-        '''
-        Creates the master wavelength as a dataset within an HDF5 file using the information in :attr:`wl_dict`
-
-        :param hdf5: the hdf5 file which will store the wavelength
-        :type hdf5: an h5py HDF5 file object
-
-        '''
-        #f8 is necessary since we will want to be converting to velocity space later, requiring great precision.
-        wl_dset = hdf5.create_dataset("wl", (len(self.wl),), dtype="f8", compression='gzip', compression_opts=9)
-        wl_dset[:] = self.wl
-        for key, value in self.wl_params.items():
-            wl_dset.attrs[key] = value
-            wl_dset.attrs["air"] = self.GridInterface.air
-
-    def process_flux(self, parameters):
-        '''
-        Processs a spectrum from the raw grid so that it is suitable to be inserted into the HDF5 file.
-
-        :param parameters: the stellar parameters
-        :type parameters: dict
-
-        .. note::
-
-           This function assumes that it's going to get parameters (temp, logg, Z, alpha), regardless of whether
-           the :attr:`GridInterface` actually has alpha or not
-
-        :raises AssertionError: if the `param parameters` dictionary is not length 4.
-        '''
-        assert len(parameters.keys()) == 4, "Must pass dictionary with keys (temp, logg, Z, alpha)"
-        print("Processing", parameters)
-        try:
-            spec = self.GridInterface.load_file(parameters)
-            spec.resample_to_grid(self.wl)
-            sys.stdout.flush()
-            return (parameters,spec)
-
-        except C.GridError as e:
-            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
-            sys.stdout.flush()
-            return (None,None)
-
-    def process_grid(self):
-        '''
-        Run :meth:`process_flux` for all of the spectra within the `ranges` and store the processed spectra in the
-        HDF5 file.
-
-        Executed in parallel if :attr:`nprocess` > 1.
-        '''
-        #Take all parameter permutations in self.points and create a list
-        param_list = [] #list of parameter dictionaries
-        keys,values = self.points.keys(),self.points.values()
-
-        #use itertools.product to create permutations of all possible values
-        for i in itertools.product(*values):
-            param_list.append(dict(zip(keys,i)))
-
-        if self.nprocesses > 1:
-            pool = mp.Pool(self.nprocesses)
-            M = lambda x,y : pool.imap_unordered(x, y, chunksize=self.chunksize)
-        else:
-            M = map
-
-        for parameters, spec in M(self.process_flux, param_list): #lazy map
-            if parameters is None:
-                continue
-            with h5py.File(self.filename, "r+") as hdf5:
-                flux = hdf5["flux"].create_dataset(self.flux_name.format(**parameters), shape=(len(spec.fl),),
-                                                   dtype="f", compression='gzip', compression_opts=9)
-                flux[:] = spec.fl
-
-                #Store header keywords as attributes in HDF5 file
-                for key,value in spec.metadata.items():
-                    flux.attrs[key] = value
 
 class MasterToFITSIndividual:
     '''
