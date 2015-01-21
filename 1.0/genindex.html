@@ -90,13 +90,16 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spectrum">Log Lambda spectrum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spacing">Log lambda spacing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#spectrum-objects">Spectrum objects</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a></li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MCMC.html">MCMC</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MCMC.html#creating-the-parameter-script">Creating the parameter script</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
@@ -165,15 +168,9 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.IndexInterpolator.__call__">__call__() (Starfish.grid_tools.IndexInterpolator method)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.__call__">__call__() (Starfish.grid_tools.Interpolator method)</a>
   </dt>
 
-      <dd><dl>
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.__call__">(Starfish.grid_tools.Interpolator method)</a>
-  </dt>
-
-      </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -207,16 +204,6 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="spectrum.html#Starfish.spectrum.Base1DSpectrum">Base1DSpectrum (class in Starfish.spectrum)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.BaseSpectrum">BaseSpectrum (class in Starfish.spectrum)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
   <dt><a href="grid_tools.html#Starfish.grid_tools.BTSettlGridInterface">BTSettlGridInterface (class in Starfish.grid_tools)</a>
   </dt>
 
@@ -231,10 +218,6 @@
   </dt>
 
       
-  <dt><a href="spectrum.html#Starfish.spectrum.Base1DSpectrum.calculate_log_lam_grid">calculate_log_lam_grid() (Starfish.spectrum.Base1DSpectrum method)</a>
-  </dt>
-
-      
   <dt><a href="grid_tools.html#Starfish.grid_tools.calculate_n">calculate_n() (in module Starfish.grid_tools)</a>
   </dt>
 
@@ -242,26 +225,14 @@
   <dt><a href="grid_tools.html#Starfish.grid_tools.RawGridInterface.check_params">check_params() (Starfish.grid_tools.RawGridInterface method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="grid_tools.html#Starfish.grid_tools.chunk_list">chunk_list() (in module Starfish.grid_tools)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="spectrum.html#Starfish.spectrum.BaseSpectrum.convert_units">convert_units() (Starfish.spectrum.BaseSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.convolve_with_gaussian">convolve_with_gaussian() (Starfish.spectrum.LogLambdaSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.BaseSpectrum.copy">copy() (Starfish.spectrum.BaseSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">create_log_lam_grid() (in module Starfish.spectrum)</a>, <a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">[1]</a>
+  <dt><a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">create_log_lam_grid() (in module Starfish.spectrum)</a>
   </dt>
 
   </dl></td>
@@ -377,27 +348,15 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.IndexInterpolator">IndexInterpolator (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
   <dt><a href="grid_tools.html#Starfish.grid_tools.Instrument">Instrument (class in Starfish.grid_tools)</a>
   </dt>
 
       
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.instrument_and_stellar_convolve">instrument_and_stellar_convolve() (Starfish.spectrum.LogLambdaSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.instrument_convolve">instrument_convolve() (Starfish.spectrum.LogLambdaSpectrum method)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.interpolate">interpolate() (Starfish.grid_tools.Interpolator method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.interpolate">interpolate() (Starfish.grid_tools.Interpolator method)</a>
-  </dt>
-
       
   <dt><a href="grid_tools.html#Starfish.constants.InterpolationError">InterpolationError</a>
   </dt>
@@ -468,18 +427,10 @@
   </dt>
 
       </dl></dd>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">load_flux_hdr() (Starfish.grid_tools.HDF5Interface method)</a>
-  </dt>
-
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="spectrum.html#Starfish.spectrum.log_lam_kws">log_lam_kws (in module Starfish.spectrum)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum">LogLambdaSpectrum (class in Starfish.spectrum)</a>
+  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">load_flux_hdr() (Starfish.grid_tools.HDF5Interface method)</a>
   </dt>
 
   </dl></td>
@@ -567,25 +518,15 @@
   </dt>
 
       
-  <dt><a href="spectrum.html#Starfish.spectrum.Base1DSpectrum.resample_to_grid">resample_to_grid() (Starfish.spectrum.Base1DSpectrum method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.resample_to_grid">(Starfish.spectrum.LogLambdaSpectrum method)</a>
-  </dt>
-
-      </dl></dd>
-      
   <dt><a href="grid_tools.html#Starfish.grid_tools.Reticon">Reticon (class in Starfish.grid_tools)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.revert_flux">revert_flux() (Starfish.spectrum.ModelSpectrum method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="model.html#Starfish.model.Model.revert_Model">revert_Model() (Starfish.model.Model method)</a>
   </dt>
@@ -605,10 +546,6 @@
   </dt>
 
       
-  <dt><a href="spectrum.html#Starfish.spectrum.BaseSpectrum.save">save() (Starfish.spectrum.BaseSpectrum method)</a>
-  </dt>
-
-      
   <dt><a href="grid_tools.html#module-Starfish.grid_tools">Starfish.grid_tools (module)</a>
   </dt>
 
@@ -620,10 +557,6 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="spectrum.html#module-Starfish.spectrum">Starfish.spectrum (module)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.stellar_convolve">stellar_convolve() (Starfish.spectrum.LogLambdaSpectrum method)</a>
   </dt>
 
       
@@ -646,10 +579,6 @@
   </dt>
 
       </dl></dd>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.Base1DSpectrum.to_LogLambda">to_LogLambda() (Starfish.spectrum.Base1DSpectrum method)</a>
-  </dt>
-
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -712,6 +641,8 @@
   <dt><a href="grid_tools.html#Starfish.grid_tools.Instrument.self.wl_dict">wl_dict (Starfish.grid_tools.Instrument.self attribute)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="model.html#Starfish.model.PSampler.write">write() (Starfish.model.PSampler method)</a>
   </dt>
@@ -722,12 +653,6 @@
   </dt>
 
       </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.LogLambdaSpectrum.write_to_FITS">write_to_FITS() (Starfish.spectrum.LogLambdaSpectrum method)</a>
-  </dt>
-
   </dl></td>
 </tr></table>
 

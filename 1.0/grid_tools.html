@@ -192,7 +192,7 @@
 </ol>
 </div></blockquote>
 <p class="graphviz">
-<img src="_images/inheritance-8a3358811ba42c302abce70da86e5bbc8852c701.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
+<img src="_images/inheritance-98fb115428a6fb3bfed0e63ac8e52d41a81bfdf5.png" alt="Inheritance diagram of RawGridInterface, PHOENIXGridInterface, KuruczGridInterface, BTSettlGridInterface" usemap="#inheritance81448a7240" class="inheritance"/>
 <map id="inheritance81448a7240" name="inheritance81448a7240">
 <area shape="rect" id="node1" href="#Starfish.grid_tools.BTSettlGridInterface" title="BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the" alt="" coords="188,5,339,31"/>
 <area shape="rect" id="node2" href="#Starfish.grid_tools.RawGridInterface" title="A base class to handle interfacing with synthetic spectral libraries." alt="" coords="5,55,135,80"/>
@@ -446,7 +446,7 @@ everything is unique, and we&#8217;re not screwing ourselves with the spline.</p
 <p>All of these reductions can be achieved using the <a class="reference internal" href="#Starfish.grid_tools.HDF5Creator" title="Starfish.grid_tools.HDF5Creator"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Creator</span></tt></a> object.</p>
 <dl class="class">
 <dt id="Starfish.grid_tools.HDF5Creator">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Creator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>Instrument</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Creator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Creator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Creator</tt><big>(</big><em>GridInterface</em>, <em>filename</em>, <em>Instrument</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Creator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Creator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a HDF5 grid to store all of the spectra from a RawGridInterface,
 along with metadata.</p>
 <dl class="method">
@@ -496,7 +496,7 @@ and store the processed spectra in the HDF5 file.</p>
 <p>Once you&#8217;ve made a grid, then you&#8217;ll want to interface with it via <a class="reference internal" href="#Starfish.grid_tools.HDF5Interface" title="Starfish.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a>. The <a class="reference internal" href="#Starfish.grid_tools.HDF5Interface" title="Starfish.grid_tools.HDF5Interface"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></tt></a> provides <cite>load_file</cite>  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is part of the HDF5 file in &#8216;wl&#8217;. The flux files are stored within the HDF5 file, in a subfile called &#8216;flux&#8217;.</p>
 <dl class="class">
 <dt id="Starfish.grid_tools.HDF5Interface">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'temp': (0</em>, <em>inf)</em>, <em>'alpha': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">HDF5Interface</tt><big>(</big><em>filename</em>, <em>ranges={'alpha': (-inf</em>, <em>inf)</em>, <em>'logg': (-inf</em>, <em>inf)</em>, <em>'Z': (-inf</em>, <em>inf)</em>, <em>'temp': (0</em>, <em>inf)}</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#HDF5Interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.HDF5Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connect to an HDF5 file that stores spectra.</p>
 <dl class="attribute">
 <dt id="Starfish.grid_tools.HDF5Interface.fluxes">
@@ -531,6 +531,8 @@ and store the processed spectra in the HDF5 file.</p>
 
 </dd></dl>
 
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
 <p>For example, to create a master grid for the PHOENIX spectra, we use our previously created <a class="reference internal" href="#Starfish.grid_tools.PHOENIXGridInterface" title="Starfish.grid_tools.PHOENIXGridInterface"><tt class="xref py py-obj docutils literal"><span class="pre">PHOENIXGridInterface</span></tt></a> and create a new <a class="reference internal" href="#Starfish.grid_tools.HDF5Creator" title="Starfish.grid_tools.HDF5Creator"><tt class="xref py py-obj docutils literal"><span class="pre">HDF5Creator</span></tt></a>. Then we run <tt class="docutils literal"><span class="pre">process_grid()</span></tt> to process all of the raw files on disk into an HDF5 file.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="c">#First, load a test file to determine the wldict</span>
 <span class="n">spec</span> <span class="o">=</span> <span class="n">myPHOENIXgrid</span><span class="o">.</span><span class="n">load_file</span><span class="p">({</span><span class="s">&quot;temp&quot;</span><span class="p">:</span><span class="mi">5000</span><span class="p">,</span> <span class="s">&quot;logg&quot;</span><span class="p">:</span><span class="mf">3.5</span><span class="p">,</span> <span class="s">&quot;Z&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&quot;alpha&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">})</span>
@@ -547,44 +549,11 @@ and store the processed spectra in the HDF5 file.</p>
 </pre></div>
 </div>
 </div>
+</div>
 <div class="section" id="interpolators">
 <h2><a class="toc-backref" href="#id5">Interpolators</a><a class="headerlink" href="#interpolators" title="Permalink to this headline">¶</a></h2>
 <p>The interpolators are used to create spectra in between grid points, for example
-<tt class="docutils literal"><span class="pre">myParams</span> <span class="pre">=</span> <span class="pre">{&quot;temp&quot;:6114,</span> <span class="pre">&quot;logg&quot;:4.34,</span> <span class="pre">&quot;Z&quot;:</span> <span class="pre">0.12,</span> <span class="pre">&quot;alpha&quot;:0.1}</span></tt>.</p>
-<dl class="class">
-<dt id="Starfish.grid_tools.IndexInterpolator">
-<em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">IndexInterpolator</tt><big>(</big><em>parameter_list</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#IndexInterpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.IndexInterpolator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Object to return fractional distance between grid points of a single grid variable.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parameter_list</strong> (<em>1-D list</em>) &#8211; list of parameter values</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="Starfish.grid_tools.IndexInterpolator.__call__">
-<tt class="descname">__call__</tt><big>(</big><em>value</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#IndexInterpolator.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.IndexInterpolator.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Evaluate the interpolator at a parameter.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<em>float</em>) &#8211; </td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises C.InterpolationError:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body">if <em>value</em> is out of bounds.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid</td>
-</tr>
-</tbody>
-</table>
-<p>and the fractional distance (0 - 1) between them and the value.</p>
-</dd></dl>
-
-</dd></dl>
-
+<tt class="docutils literal"><span class="pre">myParams</span> <span class="pre">=</span> <span class="pre">{&quot;temp&quot;:6114,</span> <span class="pre">&quot;logg&quot;:4.34,</span> <span class="pre">&quot;Z&quot;:</span> <span class="pre">0.12,</span> <span class="pre">&quot;alpha&quot;:0.1}</span></tt>. Note, this might be currently broken. If you have high signal-to-noise data, you might want to consider using the <a class="reference internal" href="emulator.html"><em>Spectral Emulator</em></a>.</p>
 <dl class="class">
 <dt id="Starfish.grid_tools.Interpolator">
 <em class="property">class </em><tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">Interpolator</tt><big>(</big><em>interface</em>, <em>DataSpectrum</em>, <em>cache_max=256</em>, <em>cache_dump=64</em>, <em>trilinear=False</em>, <em>log=True</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#Interpolator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.Interpolator" title="Permalink to this definition">¶</a></dt>
@@ -651,7 +620,7 @@ easier memory load.</p>
 <h2><a class="toc-backref" href="#id6">Instruments</a><a class="headerlink" href="#instruments" title="Permalink to this headline">¶</a></h2>
 <p>In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need to convolve and resample the synthetic spectra to match the format of our data. <tt class="docutils literal"><span class="pre">Instrument</span></tt> s are a convenience object which store the relevant characteristics of a given instrument.</p>
 <p class="graphviz">
-<img src="_images/inheritance-af317de7033392359f254edaa46545c09ed52fdf.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
+<img src="_images/inheritance-a06186a60e992cfc0a99394a4e4b33a4307b0a8a.png" alt="Inheritance diagram of Instrument, KPNO, TRES, Reticon" usemap="#inheritance8cb621eb03" class="inheritance"/>
 <map id="inheritance8cb621eb03" name="inheritance8cb621eb03">
 <area shape="rect" id="node1" href="#Starfish.grid_tools.Instrument" title="Object describing an instrument. This will be used by other methods for" alt="" coords="5,55,97,80"/>
 <area shape="rect" id="node2" href="#Starfish.grid_tools.KPNO" title="KNPO Instrument" alt="" coords="145,5,217,31"/>
@@ -764,6 +733,8 @@ requested bounds while forcing the wl length to be a power of 2.</p>
 </table>
 </dd></dl>
 
+<div class="section" id="wavelength-conversions">
+<h3>Wavelength conversions<a class="headerlink" href="#wavelength-conversions" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
 <dt id="Starfish.grid_tools.vacuum_to_air">
 <tt class="descclassname">Starfish.grid_tools.</tt><tt class="descname">vacuum_to_air</tt><big>(</big><em>wl</em><big>)</big><a class="reference internal" href="_modules/Starfish/grid_tools.html#vacuum_to_air"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.grid_tools.vacuum_to_air" title="Permalink to this definition">¶</a></dt>
@@ -821,6 +792,7 @@ requested bounds while forcing the wl length to be a power of 2.</p>
 </dd></dl>
 
 </div>
+</div>
 <div class="section" id="exceptions">
 <h2><a class="toc-backref" href="#id8">Exceptions</a><a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
 <p>These exceptions will be called if anything is amiss.</p>
@@ -833,7 +805,7 @@ requested bounds while forcing the wl length to be a power of 2.</p>
 <dl class="exception">
 <dt id="Starfish.constants.InterpolationError">
 <em class="property">exception </em><tt class="descclassname">Starfish.constants.</tt><tt class="descname">InterpolationError</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/Starfish/constants.html#InterpolationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Starfish.constants.InterpolationError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Raised when the <a class="reference internal" href="#Starfish.grid_tools.Interpolator" title="Starfish.grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a> or <a class="reference internal" href="#Starfish.grid_tools.IndexInterpolator" title="Starfish.grid_tools.IndexInterpolator"><tt class="xref py py-obj docutils literal"><span class="pre">IndexInterpolator</span></tt></a> cannot properly interpolate a spectrum,
+<dd><p>Raised when the <a class="reference internal" href="#Starfish.grid_tools.Interpolator" title="Starfish.grid_tools.Interpolator"><tt class="xref py py-obj docutils literal"><span class="pre">Interpolator</span></tt></a> or <tt class="xref py py-obj docutils literal"><span class="pre">IndexInterpolator</span></tt> cannot properly interpolate a spectrum,
 usually grid bounds.</p>
 </dd></dl>
 
