@@ -90,7 +90,7 @@ In order to load a raw file from the PHOENIX grid, one would do
 
 
 Creating your own interface
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 The :obj:`RawGridInterface` and subclasses exist solely to interface with the raw files on disk. At minimum, they should each define a :meth:`load_flux` , which takes in a dictionary of parameters and returns a flux array and a dictionary of whatever information may be contained in the file header.
 
@@ -147,12 +147,7 @@ Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``.
-
-
-.. autoclass:: IndexInterpolator
-   :members:
-   :special-members: __call__
+``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this might be currently broken. If you have high signal-to-noise data, you might want to consider using the :doc:`emulator`.
 
 .. autoclass:: Interpolator
    :members:
