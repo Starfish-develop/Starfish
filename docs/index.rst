@@ -11,7 +11,9 @@ Contents:
    overview
    grid_tools
    spectrum
+   emulator
    model
+   MCMC
    scripts
 
 Copyright Ian Czekala and collaborators 2013, 2014
