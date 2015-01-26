@@ -24,7 +24,7 @@ def calculate_dv(wl):
 
     :returns: (float) delta-v in units of km/s
     '''
-    return C.c_kms * np.min(np.diff(wl)/wl[:-1])
+    return C.c_kms * np.minimum(np.diff(wl)/wl[:-1])
 
 def calculate_dv_dict(wl_dict):
     '''
