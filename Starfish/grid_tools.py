@@ -1079,7 +1079,7 @@ class Instrument:
         self.oversampling = oversampling
         self.wl_range = wl_range
 
-        self.wl_dict = create_log_lam_grid(self.FWHM/self.oversampling, *self.wl_range)
+        self.wl_dict = create_log_lam_grid(*self.wl_range, min_vc=self.FWHM/(self.oversampling * C.c_kms))
         #Take the starting and ending wavelength ranges, the FWHM,
         # and oversampling value and generate an outwl grid  that can be resampled to.
 
