@@ -73,9 +73,6 @@ def create_log_lam_grid(dv=1., wl_start=3000., wl_end=13000., min_vc=None):
 
     CDELT1 = (CRVALN - CRVAL1) / (NAXIS1 - 1)
 
-    print(min_vc)
-    print(CDELT_temp)
-    print(NAXIS1)
     p = np.arange(NAXIS1)
     wl = 10 ** (CRVAL1 + CDELT1 * p)
     return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
