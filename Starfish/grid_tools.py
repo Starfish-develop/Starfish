@@ -611,7 +611,7 @@ class HDF5Creator:
         # Create the final wavelength grid, onto which we will interpolate the
         # Fourier filtered wavelengths
         # an upper limit on the final dv
-        dv_temp = self.Instrument.FWHM/self.Instrument.oversampling/C.c_kms
+        dv_temp = self.Instrument.FWHM/self.Instrument.oversampling
         wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
         self.wl_final = wl_dict["wl"]
         self.dv_final = calculate_dv_dict(wl_dict)
