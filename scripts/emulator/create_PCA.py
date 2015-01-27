@@ -15,5 +15,5 @@ f = open(args.input)
 cfg = yaml.load(f)
 f.close()
 
-pca = PCAGrid.from_cfg(cfg)
+pca = PCAGrid.from_cfg(**cfg)
 pca.write(cfg["PCA_grid"])

@@ -7,96 +7,83 @@ from Starfish.covariance import sigma, V12, V22
 from Starfish import constants as C
 
 class PCAGrid:
+    '''
+    Create and query eigenspectra.
+    '''
 
-    def __init__(self, wl, min_v, flux_mean, flux_std, pcomps, w, gparams):
+    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, gparams):
+        '''
+
+        :param wl: wavelength array
+        :type wl: 1D np.array
+        :param dv: delta velocity
+        :type dv: float
+        :param flux_mean: mean flux spectrum
+        :type flux_mean: 1D np.array
+        :param flux_std: standard deviation flux spectrum
+        :type flux_std: 1D np.array
+        :param eigenspectra: the principal component eigenspectra
+        :type eigenspectra: 2D np.array
+        :param w: weights to reproduce any spectrum in the original grid
+        :type w: 1D np.array
+        :param gparams: The stellar parameters of the synthetic library
+        :type gparams: 1D list of dictionaries
+
+
+        '''
         self.wl = wl
-        self.min_v = min_v
+        self.dv = dv
         self.flux_mean = flux_mean
         self.flux_std = flux_std
-        self.pcomps = pcomps
-        self.ncomp = len(self.pcomps)
+        self.eigenspectra = eigenspectra
+        self.ncomp = len(self.eigenspectra)
         self.w = w
         self.gparams = gparams
 
         self.npix = len(self.wl)
-        self.m = self.w.shape[1]
+        self.m = self.w.shape[1] # The number of spectra in the synthetic grid
+
 
     @classmethod
-    def open(cls, filename):
+    def create(cls, interface, ncomp):
         '''
-        :param filename: filename of an HDF5 object containing the PCA components.
-        '''
+        Create a PCA grid object from a synthetic spectral library, with
+        configuration options specified in a dictionary.
 
-        hdf5 = h5py.File(filename, "r")
-        pdset = hdf5["pcomps"]
+        :param interface: HDF5Interface containing the processed spectra.
+        :type interface: HDF5Interface
+        :param ncomp: number of eigenspectra to keep
+        :type ncomp: int
 
-        min_v = hdf5.attrs["min_v"]
-
-        wl = pdset[0,:]
-
-        flux_mean = pdset[1,:]
-        flux_std = pdset[2,:]
-        pcomps = pdset[3:,:]
-
-        wdset = hdf5["w"]
-        w = wdset[:]
-
-        gdset = hdf5["gparams"]
-        gparams = gdset[:]
-
-        pcagrid = cls(wl, min_v, flux_mean, flux_std, pcomps, w, gparams)
-        hdf5.close()
-
-        return pcagrid
-
-    @classmethod
-    def from_cfg(cls, cfg):
-        '''
-        :param cfg: dictionary containing the parameters.
         '''
 
-        grid = HDF5Interface(cfg["grid"], ranges=cfg["ranges"])
-        wl = grid.wl
-        min_v = grid.wl_header["min_v"]
-
-        if 'wl' in cfg:
-            low, high = cfg['wl']
-            ind = determine_chunk_log(wl, low, high) #Sets the wavelength vector using a power of 2
-            wl = wl[ind]
-        else:
-            ind = np.ones_like(wl, dtype="bool")
+        wl = interface.wl
+        dv = interface.dv
 
         npix = len(wl)
-        m = len(grid.list_grid_points)
-        test_index = cfg['test_index']
-
-        if test_index < m:
-            #If the index actually corresponds to a spectrum in the grid, we're dropping it out. Otherwise,
-            #leave it in by simply setting test_index to something larger than the number of spectra in the grid.
-            m -= 1
+        # number of spectra in the synthetic library
+        m = len(interface.list_grid_points)
 
         fluxes = np.empty((m, npix))
 
         z = 0
-        for i, spec in enumerate(grid.fluxes):
-            if i == test_index:
-                test_spectrum = spec[ind]
-                continue
-            fluxes[z,:] = spec[ind]
+        for i, spec in enumerate(interface.fluxes):
+            fluxes[z,:] = spec
             z += 1
 
-        #Normalize all of the fluxes to an average value of 1
-        #In order to remove interesting correlations
+        # Normalize all of the fluxes to an average value of 1
+        # In order to remove uninteresting correlations
         fluxes = fluxes/np.average(fluxes, axis=1)[np.newaxis].T
 
-        #Subtract the mean from all of the fluxes.
+        # Subtract the mean from all of the fluxes.
         flux_mean = np.average(fluxes, axis=0)
         fluxes -= flux_mean
 
-        #"Whiten" each spectrum such that the variance for each wavelength is 1
+        # "Whiten" each spectrum such that the variance for each wavelength is 1
         flux_std = np.std(fluxes, axis=0)
         fluxes /= flux_std
 
+        # Use the scikit-learn PCA module
         pca = PCA()
         pca.fit(fluxes)
         comp = pca.transform(fluxes)
@@ -107,43 +94,106 @@ class PCAGrid:
         if not np.allclose(mean, np.zeros_like(mean)):
             import sys
             sys.exit("PCA mean is more than just numerical noise. Something's wrong!")
+            # Otherwise, the PCA mean is just numerical noise that we can ignore.
 
-            #Otherwise, the PCA mean is just numerical noise that we can ignore.
-
-        ncomp = cfg['ncomp']
         print("Keeping only the first {} components".format(ncomp))
-        pcomps = components[0:ncomp]
+        eigenspectra = components[0:ncomp]
 
         gparams = np.empty((m, 3))
         z = 0
-        for i, params in enumerate(grid.list_grid_points):
+        for i, params in enumerate(interface.list_grid_points):
             if i == test_index:
                 test_params = np.array([params["temp"], params["logg"], params["Z"]])
                 continue
             gparams[z, :] = np.array([params["temp"], params["logg"], params["Z"]])
             z += 1
 
-        #Create w
+        #Create w, the weights corresponding to the synthetic grid
 
         w = np.empty((ncomp, m))
-        for i,pcomp in enumerate(pcomps):
+        for i,pcomp in enumerate(eigenspectra):
             for j,spec in enumerate(fluxes):
                 w[i,j] = np.sum(pcomp * spec)
 
-        pca = cls(wl, min_v, flux_mean, flux_std, pcomps, w, gparams)
-        pca.ind = ind
-        return pca
+        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, gparams)
+
+    def write(self, filename):
+        '''
+        Write the PCA decomposition to an HDF5 file.
+
+        :param filename: name of the HDF5 to create.
+        :type filename: str
+
+        '''
+
+        hdf5 = h5py.File(filename, "w")
+
+        hdf5.attrs["dv"] = self.dv
+
+        pdset = hdf5.create_dataset("eigenspectra", (self.ncomp + 3, self.npix),
+            compression='gzip', dtype="f8", compression_opts=9)
+        pdset[0,:] = self.wl
+        pdset[1,:] = self.flux_mean
+        pdset[2,:] = self.flux_std
+        pdset[3:, :] = self.eigenspectra
+
+        wdset = hdf5.create_dataset("w", (self.ncomp, self.m), compression='gzip',
+            dtype="f8", compression_opts=9)
+        wdset[:] = self.w
+
+        gdset = hdf5.create_dataset("gparams", (self.m, 3), compression='gzip',
+            dtype="f8", compression_opts=9)
+        gdset[:] = self.gparams
+
+        hdf5.close()
+
+    @classmethod
+    def open(cls, filename):
+        '''
+        Initialize an object using the PCA already stored to an HDF5 file.
+
+        :param filename: filename of an HDF5 object containing the PCA components.
+        :type filename: str
+        '''
+
+        hdf5 = h5py.File(filename, "r")
+        pdset = hdf5["eigenspectra"]
+
+        dv = hdf5.attrs["dv"]
+
+        wl = pdset[0,:]
+
+        flux_mean = pdset[1,:]
+        flux_std = pdset[2,:]
+        eigenspectra = pdset[3:,:]
+
+        wdset = hdf5["w"]
+        w = wdset[:]
+
+        gdset = hdf5["gparams"]
+        gparams = gdset[:]
+
+        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, gparams)
+        hdf5.close()
+
+        return pcagrid
 
     def determine_chunk_log(self, wl_data):
         '''
-        Possibly truncate the wl, pcomps, and flux_mean and flux_std in response to some data.
+        Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
+        response to some data.
+
+        :param wl_data: The spectrum dataset you want to fit.
+        :type wl_data: np.array
+
+
         '''
 
-        #determine the indices
+        # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
-        #Length of the raw synthetic spectrum
+        # Length of the raw synthetic spectrum
         len_wl = len(self.wl)
-        #Length of the data
+        # Length of the data
         len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #what is the minimum amount of the
         # synthetic spectrum that we need?
 
@@ -180,7 +230,7 @@ class PCAGrid:
                                                                             wl_min, wl_max)
 
         self.wl = self.wl[ind]
-        self.pcomps = self.pcomps[:, ind]
+        self.eigenspectra = self.eigenspectra[:, ind]
         self.flux_mean = self.flux_mean[ind]
         self.flux_std = self.flux_std[ind]
 
@@ -199,7 +249,7 @@ class PCAGrid:
         '''
 
         f = np.empty((self.ncomp, self.npix))
-        for i, (pcomp, weight) in enumerate(zip(self.pcomps, weights)):
+        for i, (pcomp, weight) in enumerate(zip(self.eigenspectra, weights)):
             f[i, :] = pcomp * weight
         return np.sum(f, axis=0) * self.flux_std + self.flux_mean
 
@@ -210,35 +260,12 @@ class PCAGrid:
         recon_fluxes = np.empty((self.m, self.npix))
         for i in range(self.m):
             f = np.empty((self.ncomp, self.npix))
-            for j, (pcomp, weight) in enumerate(zip(self.pcomps, self.w[:,i])):
+            for j, (pcomp, weight) in enumerate(zip(self.eigenspectra, self.w[:,i])):
                 f[j, :] = pcomp * weight
             recon_fluxes[i, :] = np.sum(f, axis=0) * self.flux_std + self.flux_mean
 
         return recon_fluxes
 
-    def write(self, filename):
-        '''
-        Write the PCA decomposition to an HDF5 file.
-        '''
-
-        hdf5 = h5py.File(filename, "w")
-
-        hdf5.attrs["min_v"] = self.min_v
-
-        pdset = hdf5.create_dataset("pcomps", (self.ncomp + 3, self.npix), compression='gzip', dtype="f8",
-                                    compression_opts=9)
-        pdset[0,:] = self.wl
-        pdset[1,:] = self.flux_mean
-        pdset[2,:] = self.flux_std
-        pdset[3:, :] = self.pcomps
-
-        wdset = hdf5.create_dataset("w", (self.ncomp, self.m), compression='gzip', dtype="f8", compression_opts=9)
-        wdset[:] = self.w
-
-        gdset = hdf5.create_dataset("gparams", (self.m, 3), compression='gzip', dtype="f8", compression_opts=9)
-        gdset[:] = self.gparams
-
-        hdf5.close()
 
 class WeightEmulator:
     def __init__(self, PCAGrid, emulator_params, w_index):
@@ -367,8 +394,8 @@ class Emulator:
         self.min_params = np.min(self.PCAGrid.gparams, axis=0)
         self.max_params = np.max(self.PCAGrid.gparams, axis=0)
 
-        #self.pcomps = self.PCAGrid.pcomps
-        self.min_v = self.PCAGrid.min_v
+        #self.eigenspectra = self.PCAGrid.eigenspectra
+        self.dv = self.PCAGrid.dv
         self.wl = self.PCAGrid.wl
 
         self.WEs = []
@@ -390,7 +417,7 @@ class Emulator:
 
     def determine_chunk_log(self, wl_data):
         '''
-        Possibly truncate the wl grid in response to some data. Also truncate pcomps, and flux_mean and flux_std.
+        Possibly truncate the wl grid in response to some data. Also truncate eigenspectra, and flux_mean and flux_std.
         '''
         self.PCAGrid.determine_chunk_log(wl_data)
         self.wl = self.PCAGrid.wl
@@ -428,7 +455,7 @@ class Emulator:
         #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
 
         weights = self.draw_weights()
-        recons = self.PCAGrid.pcomps.T.dot(weights).reshape(-1)
+        recons = self.PCAGrid.eigenspectra.T.dot(weights).reshape(-1)
         return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
 
     def reconstruct(self, weights):
@@ -437,7 +464,7 @@ class Emulator:
         '''
         #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
 
-        recons = self.PCAGrid.pcomps.T.dot(weights).reshape(-1)
+        recons = self.PCAGrid.eigenspectra.T.dot(weights).reshape(-1)
         return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
 
     def __call__(self, *args):
