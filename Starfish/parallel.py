@@ -128,16 +128,8 @@ fix_logg = config.get("fix_logg", None)
 
 # Updating specific covariances to speed mixing
 if config["use_cov"]:
-    stellar_cov = config["stellar_cov"]
-    factor = stellar_cov["factor"]
-
-    stellar_MH_cov[0, 1] = stellar_MH_cov[1, 0] = stellar_cov['temp_logg']  * factor
-    stellar_MH_cov[0, 2] = stellar_MH_cov[2, 0] = stellar_cov['temp_Z'] * factor
-    stellar_MH_cov[1, 2] = stellar_MH_cov[2, 1] = stellar_cov['logg_Z'] * factor
-    if fix_logg is None:
-        stellar_MH_cov[0, 5] = stellar_MH_cov[5, 0] = stellar_cov['temp_logOmega'] * factor
-    else:
-        stellar_MH_cov[0, 4] = stellar_MH_cov[4, 0] = stellar_cov['temp_logOmega'] * factor
+    # Use an emprically determined covariance matrix to for the jumps.
+    pass
 
 def info(title):
     '''
@@ -216,13 +208,13 @@ class OrderModel:
         self.wl_FFT = pg.wl
         self.ncomp = pg.ncomp
 
-        self.PCOMPS = np.vstack((pg.flux_mean[np.newaxis,:], pg.flux_std[np.newaxis,:], pg.pcomps))
+        self.EIGENSPECTRA = np.vstack((pg.flux_mean[np.newaxis,:], pg.flux_std[np.newaxis,:], pg.eigenspectra))
 
         self.min_v = self.Emulator.min_v
         self.ss = np.fft.rfftfreq(len(self.wl_FFT), d=self.min_v)
         self.ss[0] = 0.01 # junk so we don't get a divide by zero error
 
-        self.pcomps = np.empty((self.ncomp, self.npoints))
+        self.eigenspectra = np.empty((self.ncomp, self.npoints))
         self.flux_mean = np.empty((self.npoints,))
         self.flux_std = np.empty((self.npoints,))
         self.mus, self.vars = None, None
@@ -395,7 +387,7 @@ class OrderModel:
         '''
         self.lnprob_last = self.lnprob
 
-        X = (self.ChebyshevSpectrum.k * self.flux_std * np.eye(self.npoints)).dot(self.pcomps.T)
+        X = (self.ChebyshevSpectrum.k * self.flux_std * np.eye(self.npoints)).dot(self.eigenspectra.T)
 
         CC = X.dot(self.C_GP.dot(X.T)) + self.data_mat
 
@@ -429,7 +421,7 @@ class OrderModel:
 
         self.flux_mean = self.flux_mean_last
         self.flux_std = self.flux_std_last
-        self.pcomps = self.pcomps_last
+        self.eigenspectra = self.eigenspectra_last
 
         self.mus, self.vars = self.mus_last, self.vars_last
         self.C_GP = self.C_GP_last
@@ -444,12 +436,12 @@ class OrderModel:
         # Store the current accepted values before overwriting with new proposed values.
         self.flux_mean_last = self.flux_mean
         self.flux_std_last = self.flux_std
-        self.pcomps_last = self.pcomps
+        self.eigenspectra_last = self.eigenspectra
         self.mus_last, self.vars_last = self.mus, self.vars
         self.C_GP_last = self.C_GP
 
         #TODO: Possible speedups:
-        # 1. Store the PCOMPS pre-FFT'd
+        # 1. Store the EIGENSPECTRA pre-FFT'd
 
         # Shift the velocity
         vz = params["vz"]
@@ -462,7 +454,7 @@ class OrderModel:
         if vsini < 0.2:
             raise C.ModelError("vsini must be positive")
 
-        FF = np.fft.rfft(self.PCOMPS, axis=1)
+        FF = np.fft.rfft(self.EIGENSPECTRA, axis=1)
 
         # Determine the stellar broadening kernel
         ub = 2. * np.pi * vsini * self.ss
@@ -474,16 +466,16 @@ class OrderModel:
         FF_tap = FF * sb
 
         # do ifft
-        pcomps_full = np.fft.irfft(FF_tap, len(wl_FFT), axis=1)
+        eigenspectra_full = np.fft.irfft(FF_tap, len(wl_FFT), axis=1)
 
         # Spectrum resample operations
         if min(self.wl) < min(wl_FFT) or max(self.wl) > max(wl_FFT):
             raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({"
                        ":.2f},{:.2f})".format(min(self.wl), max(self.wl), min(wl_FFT), max(wl_FFT)))
 
-        # Take the output from the FFT operation (pcomps_full), and stuff them
+        # Take the output from the FFT operation (eigenspectra_full), and stuff them
         # into respective data products
-        for lres, hres in zip(chain([self.flux_mean, self.flux_std], self.pcomps), pcomps_full):
+        for lres, hres in zip(chain([self.flux_mean, self.flux_std], self.eigenspectra), eigenspectra_full):
             interp = InterpolatedUnivariateSpline(wl_FFT, hres, k=5)
             lres[:] = interp(self.wl)
             del interp
