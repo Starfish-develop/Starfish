@@ -24,7 +24,7 @@ def calculate_dv(wl):
 
     :returns: (float) delta-v in units of km/s
     '''
-    return C.c_kms * np.minimum(np.diff(wl)/wl[:-1])
+    return C.c_kms * np.min(np.diff(wl)/wl[:-1])
 
 def calculate_dv_dict(wl_dict):
     '''
@@ -37,7 +37,7 @@ def calculate_dv_dict(wl_dict):
     dv = C.c_kms * (10**CDELT1 - 1)
     return dv
 
-def create_log_lam_grid(dv, wl_start=3000., wl_end=13000.):
+def create_log_lam_grid(dv=1., wl_start=3000., wl_end=13000., min_vc=None):
     '''
     Create a log lambda spaced grid with ``N_points`` equal to a power of 2 for
     ease of FFT.
@@ -50,6 +50,8 @@ def create_log_lam_grid(dv, wl_start=3000., wl_end=13000.):
     :type min_wl: (delta_wl, wl)
     :param dv: maximum bounds on the velocity spacing (in km/s)
     :type dv: float
+    :param min_vc: tightest spacing. Overrides dv if given!
+-   :type min_vc: float
 
     :returns: a wavelength dictionary containing the specified properties. Note
         that the returned dv will be <= specified dv.
@@ -58,7 +60,10 @@ def create_log_lam_grid(dv, wl_start=3000., wl_end=13000.):
     '''
     assert wl_start < wl_end, "wl_start must be smaller than wl_end"
 
-    CDELT_temp = np.log10(dv/C.c_kms + 1.)
+    if min_vc is None:
+        min_vc = dv/C.c_kms
+
+    CDELT_temp = np.log10(min_vc + 1.)
     CRVAL1 = np.log10(wl_start)
     CRVALN = np.log10(wl_end)
     N = (CRVALN - CRVAL1) / CDELT_temp
