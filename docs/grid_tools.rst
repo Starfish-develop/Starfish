@@ -76,9 +76,24 @@ In order to load a raw file from the PHOENIX grid, one would do
 
 .. code-block:: python
 
-   # if you downloaded the libraries elsewhere, be sure to include base="mydir"
-   mygrid = PHOENIXGridInterface(air=True, norm=True)
-   flux, hdr = mygrid.load_flux({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+    # if you downloaded the libraries elsewhere, be sure to include base="mydir"
+    import Starfish
+    from Starfish.grid_tools import PHOENIXGridInterface
+    mygrid = PHOENIXGridInterface()
+    my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0}
+    flux, hdr = mygrid.load_flux(my_params)
+
+    >>>flux
+    array([ 4679672.5       ,  4595894.        ,  4203616.5       , ...,
+    11033.5625    ,    11301.25585938,    11383.8828125 ], dtype=float32)
+
+    >>>hdr
+    {'PHXXI_N': 1.49, 'PHXDUST': False, 'PHXLUM': 5.0287e+34, 'PHXVER': '16.01.00B', 'PHXREFF': 233350000000.0, 'PHXEOS': 'ACES', 'PHXXI_L': 1.49, 'PHXALPHA': 0.0, 'PHXLOGG': 3.5, 'logg': 3.5, 'temp': 6000, 'PHXMASS': 2.5808e+33, 'alpha': 0.0, 'PHXTEFF': 6000.0, 'Z': 0.0, 'PHXMXLEN': 1.48701064748, 'PHXXI_M': 1.49, 'PHXM_H': 0.0, 'PHXBUILD': '02/Aug/2010', 'norm': True, 'air': True}
+
+    >>>mygrid.wl
+    array([  3000.00133087,   3000.00732938,   3000.01332789, ...,
+        53999.27587687,  53999.52580875,  53999.77574063])
+
 
 .. autoclass:: KuruczGridInterface
    :members:
