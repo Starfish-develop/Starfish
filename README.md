@@ -78,6 +78,7 @@ Now that you've successfully installed the code, please see the [documentation](
 
 ## Features in development**
 
+* generalize model parameters (e.g., B fields, alpha enhancement, etc...) to accommodate different types of model spectra.
 * faster GP kernel optimization
 * extinction laws
 * accretion continuum from veiling
