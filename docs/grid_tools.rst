@@ -162,8 +162,9 @@ For example, to load a file from our recently-created HDF5 grid
 
 .. code-block:: python
 
-    myHDF5 = HDF5Interface("test.hdf5")
-    spec = myHDF5.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+    from Starfish.grid_tools import HDF5Interface
+    myHDF5 = HDF5Interface("libraries/PHOENIX_TRES_F.hdf5")
+    flux = myHDF5.load_flux({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
 
 
 Interpolators
