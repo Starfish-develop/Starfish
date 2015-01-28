@@ -641,6 +641,7 @@ class HDF5Interface:
         with h5py.File(self.filename, "r") as hdf5:
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
+            self.dv = self.wl_header["dv"]
 
             grid_points = []
 
