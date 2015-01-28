@@ -102,9 +102,9 @@ class PCAGrid:
         gparams = np.empty((m, 3))
         z = 0
         for i, params in enumerate(interface.list_grid_points):
-            if i == test_index:
-                test_params = np.array([params["temp"], params["logg"], params["Z"]])
-                continue
+            # if i == test_index:
+                # test_params = np.array([params["temp"], params["logg"], params["Z"]])
+                # continue
             gparams[z, :] = np.array([params["temp"], params["logg"], params["Z"]])
             z += 1
 
