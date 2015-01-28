@@ -516,8 +516,10 @@ class HDF5Creator:
 
         # The final wavelength grid, onto which we will interpolate the
         # Fourier filtered wavelengths, is part of the Instrument object
-        self.wl_final = self.Instrument.wl
-        self.dv_final = self.Instrument.dv
+        dv_temp = self.Instrument.FWHM/self.Instrument.oversampling
+        wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
+        self.wl_final = wl_dict["wl"]
+        self.dv_final = calculate_dv_dict(wl_dict)
 
         #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
         wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_final),), dtype="f8", compression='gzip', compression_opts=9)
@@ -981,16 +983,6 @@ class Instrument:
         self.FWHM = FWHM #km/s
         self.oversampling = oversampling
         self.wl_range = wl_range
-
-        dv_temp = self.FWHM/self.oversampling
-        # Take the starting and ending wavelength ranges, the FWHM,
-        # and oversampling value and generate an outwl grid  that can be resampled to.
-        wl_dict = create_log_lam_grid(dv_temp, *self.wl_range)
-
-        self.wl = wl_dict["wl"]
-        self.dv = calculate_dv_dict(wl_dict)
-
-
 
     def __str__(self):
         '''
