@@ -1,19 +1,14 @@
 '''
-Take an HDF5 file and downsize it to a PCA grid, write out to HDF5.
+Take an HDF5 file and downsize it to a PCA grid, then write out to HDF5.
 '''
 
-import argparse
-parser = argparse.ArgumentParser(prog="create_PCA.py",
-                description="Decompose the spectra into eigenspectra.")
-parser.add_argument("input", help="*.yaml file specifying parameters.")
-args = parser.parse_args()
-
-import yaml
+from Starfish.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid
 
-f = open(args.input)
-cfg = yaml.load(f)
-f.close()
+# Load the HDF5 interface
 
-pca = PCAGrid.from_cfg(**cfg)
-pca.write(cfg["PCA_grid"])
+myHDF5 = HDF5Interface("../../libraries/PHOENIX_TRES_F.hdf5")
+ncomp = 40
+
+pca = PCAGrid.create(myHDF5, ncomp)
+pca.write("../../libraries/PHOENIX_TRES_F_PCA.hdf5")
