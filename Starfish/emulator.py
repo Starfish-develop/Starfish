@@ -50,7 +50,7 @@ class PCAGrid:
         Create a PCA grid object from a synthetic spectral library, with
         configuration options specified in a dictionary.
 
-        :param interface: HDF5Interface containing the processed spectra.
+        :param interface: HDF5Interface containing the instrument-processed spectra.
         :type interface: HDF5Interface
         :param ncomp: number of eigenspectra to keep
         :type ncomp: int
@@ -191,43 +191,46 @@ class PCAGrid:
 
         # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
-        # Length of the raw synthetic spectrum
-        len_wl = len(self.wl)
-        # Length of the data
-        len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #what is the minimum amount of the
-        # synthetic spectrum that we need?
+        ind = determine_chunk_log(self.wl, wl_min, wl_max)
 
-        #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
-        chunk = len_wl
-        inds = (0, chunk) #Set to be the full spectrum
+        # # Length of the raw synthetic spectrum
+        # len_wl = len(self.wl)
+        # # Length of the data
+        # len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #what is the minimum amount of the
+        # # synthetic spectrum that we need?
+        #
+        # #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
+        # chunk = len_wl
+        # inds = (0, chunk) #Set to be the full spectrum
+        #
+        # while chunk > len_data:
+        #     if chunk/2 > len_data:
+        #         chunk = chunk//2
+        #     else:
+        #         break
+        #
+        # assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
+        #
+        # if chunk < len_wl:
+        #     # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
+        #     # that straddle the data spectrum.
+        #
+        #     # What index corresponds to the wl at the center of the data spectrum?
+        #     center_wl = np.median(wl_data)
+        #     center_ind = (np.abs(self.wl - center_wl)).argmin()
+        #
+        #     #Take the chunk that straddles either side.
+        #     inds = (center_ind - chunk//2, center_ind + chunk//2)
+        #
+        #     ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
+        #
+        # else:
+        #     ind = np.ones_like(self.wl, dtype="bool")
 
-        while chunk > len_data:
-            if chunk/2 > len_data:
-                chunk = chunk//2
-            else:
-                break
-
-        assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
-
-        if chunk < len_wl:
-            # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
-            # that straddle the data spectrum.
-
-            # What index corresponds to the wl at the center of the data spectrum?
-            center_wl = np.median(wl_data)
-            center_ind = (np.abs(self.wl - center_wl)).argmin()
-
-            #Take the chunk that straddles either side.
-            inds = (center_ind - chunk//2, center_ind + chunk//2)
-
-            ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
-
-        else:
-            ind = np.ones_like(self.wl, dtype="bool")
-
-        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max), "ModelInterpolator chunking ({:.2f}, " \
-        "{:.2f}) didn't encapsulate full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]), max(self.wl[ind]),
-                                                                            wl_min, wl_max)
+        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),
+            "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
+            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),
+            max(self.wl[ind]), wl_min, wl_max)
 
         self.wl = self.wl[ind]
         self.eigenspectra = self.eigenspectra[:, ind]
@@ -236,7 +239,8 @@ class PCAGrid:
 
     def get_index(self, stellar_params):
         '''
-        Given a np.array of stellar params (corresponding to a grid point), deliver the index that corresponds to the
+        Given a np.array of stellar params (corresponding to a grid point),
+        deliver the index that corresponds to the
         entry in the fluxes, list_grid_points, and weights
         '''
         return np.sum(np.abs(self.gparams - stellar_params), axis=1).argmin()
@@ -356,17 +360,17 @@ class WeightEmulator:
 
     def __call__(self, *args):
         '''
-        If you call this with an arg that is an np.array, it will set the emulator to these parameters first and then
-        draw weights.
+        If you call this with an arg that is an np.array, it will set the
+        emulator to these parameters first and then draw weights.
 
         If no args are provided, then the emulator uses the previous parameters.
 
-        If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
-        combination from MCMC samples.
+        If there are samples defined, it will also reseed the emulator
+        parameters by randomly draw a parameter combination from MCMC samples.
         '''
 
-        # Don't reset the parameters. We want to be using the optimized GP parameters so that the likelihood call
-        # is deterministic
+        # Don't reset the parameters. We want to be using the optimized GP
+        # parameters so that the likelihood call is deterministic
 
         if args:
             params, *junk = args
