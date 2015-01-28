@@ -57,10 +57,10 @@ Raw Grid Interfaces
 Here and throughout the code, stellar spectra are referenced by a dictionary of parameter values. The use of the ``alpha`` parameter (denoting alpha
 enhancement :math:`[{\rm \alpha}/{\rm Fe}]`) is usually optional and defaults to ``0.0``. There are some instances where it may be necessary to specify alpha explicitly.
 
-    .. code-block:: python
+.. code-block:: python
 
-        my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0} #or
-        other_params = {"temp":4000, "logg":4.5, "Z":-0.2}
+    my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0} #or
+    other_params = {"temp":4000, "logg":4.5, "Z":-0.2}
 
 
 Here we introduce the classes and their methods. Below is an example of how you might use the :obj:`PHOENIXGridInterface`.
@@ -128,7 +128,28 @@ All of these reductions can be achieved using the :obj:`HDF5Creator` object.
 .. autoclass:: HDF5Creator
    :members:
 
-Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is part of the HDF5 file in 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
+Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument.
+
+.. code-block:: python
+
+    from Starfish.grid_tools import PHOENIXGridInterface, HDF5Creator, TRES
+
+    raw_library_path = "../../libraries/raw/PHOENIX/"
+    mygrid = PHOENIXGridInterface(base=raw_library_path, wl_range=[4700, 5500])
+
+    out_path = "../../libraries/" + "PHOENIX_TRES_F.hdf5"
+
+    instrument = TRES()
+
+    # Limit the range of stellar parameters corresponding to an F star
+    creator = HDF5Creator(mygrid, out_path, instrument,
+    ranges={"temp":(5800, 6500), "logg":(3.5,6.0),
+    "Z":(-1.5,1.0), "alpha":(0.0,0.0)})
+
+    creator.process_grid()
+
+
+Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 
 .. autoclass:: HDF5Interface
    :members:
@@ -137,20 +158,7 @@ Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Int
 Examples
 --------
 
-For example, to create a master grid for the PHOENIX spectra, we use our previously created :obj:`PHOENIXGridInterface` and create a new :obj:`HDF5Creator`. Then we run ``process_grid()`` to process all of the raw files on disk into an HDF5 file.
-
-.. code-block:: python
-
-    #First, load a test file to determine the wldict
-    spec = myPHOENIXgrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
-    wldict = spec.calculate_log_lam_grid() #explaned in the model.py documentation
-
-
-    HDF5Creator = HDF5GridCreator(myPHOENIXgrid, filename="test.hdf5", wldict=wldict, nprocesses=10, chunksize=1)
-    HDF5Creator.process_grid()
-
-
-For example, to load a file from our HDF5 grid
+For example, to load a file from our recently-created HDF5 grid
 
 .. code-block:: python
 
