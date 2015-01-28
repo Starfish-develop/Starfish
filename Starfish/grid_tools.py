@@ -154,23 +154,9 @@ class RawGridInterface:
             if value not in self.points[key]:
                 raise C.GridError("{} not in the grid points {}".format(value, sorted(self.points[key])))
 
-    def load_file(self, parameters, norm=True):
-        '''
-        Load a synthetic spectrum from disk and :meth:`check_params`
-
-        :param parameters: stellar parameters describing a spectrum
-        :type parameters: dict
-
-         .. note::
-
-            This method is designed to be extended by the inheriting class
-        '''
-
-        self.check_params(parameters)
-
     def load_flux(self, parameters, norm=True):
         '''
-        Load just the synthetic flux from the disk and  :meth:`check_params`
+        Load the synthetic flux from the disk and  :meth:`check_params`
 
         :param parameters: stellar parameters describing a spectrum
         :type parameters: dict
@@ -179,6 +165,7 @@ class RawGridInterface:
 
             This method is designed to be extended by the inheriting class
         '''
+        pass
 
 class PHOENIXGridInterface(RawGridInterface):
     '''
@@ -230,61 +217,6 @@ class PHOENIXGridInterface(RawGridInterface):
         self.rname = self.base + "Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
                      ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
-    def load_file(self, parameters):
-        '''
-        Load a file from disk and return it as a spectrum object.
-
-        :param parameters: stellar parameters
-        :type parameters: dict
-
-        :raises C.GridError: if the file cannot be found on disk.
-
-        :returns: :obj:`model.Base1DSpectrum`
-        '''
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
-
-        str_parameters = parameters.copy()
-        #Rewrite Z
-        Z = parameters["Z"]
-        str_parameters["Z"] = self.Z_dict[Z]
-
-        #Rewrite alpha, allow alpha to be missing from parameters and set to 0
-        try:
-            alpha = parameters["alpha"]
-        except KeyError:
-            alpha = 0.0
-            parameters["alpha"] = alpha
-        str_parameters["alpha"] = self.alpha_dict[alpha]
-
-        fname = self.rname.format(**str_parameters)
-
-        #Still need to check that file is in the grid, otherwise raise a C.GridError
-        #Read all metadata in from the FITS header, and append to spectrum
-        try:
-            flux_file = fits.open(fname)
-            f = flux_file[0].data
-            hdr = flux_file[0].header
-            flux_file.close()
-        except OSError:
-            raise C.GridError("{} is not on disk.".format(fname))
-
-        #If we want to normalize the spectra, we must do it now since later we won't have the full EM range
-        if self.norm:
-            f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
-            F_bol = trapz(f, self.wl_full)
-            f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
-
-        #Add temp, logg, Z, alpha, norm to the metadata
-        header = parameters
-        header["norm"] = self.norm
-        #Keep only the relevant PHOENIX keywords, which start with PHX
-        for key, value in hdr.items():
-            if key[:3] == "PHX":
-                header[key] = value
-
-        return Base1DSpectrum(self.wl, f[self.ind], metadata=header, air=self.air)
-
-
     def load_flux(self, parameters, norm=True):
         '''
        Load just the flux and header information.
@@ -297,7 +229,8 @@ class PHOENIXGridInterface(RawGridInterface):
        :returns: tuple (flux_array, header_dict)
 
        '''
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+        self.check_params(parameters) # Check to make sure that the keys are
+        # allowed and that the values are in the grid
 
         str_parameters = parameters.copy()
         #Rewrite Z
@@ -331,7 +264,7 @@ class PHOENIXGridInterface(RawGridInterface):
             f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
 
         #Add temp, logg, Z, alpha, norm to the metadata
-        header = parameters
+        header = parameters.copy()
         header["norm"] = self.norm
         header["air"] = self.air
         #Keep only the relevant PHOENIX keywords, which start with PHX
@@ -417,20 +350,6 @@ class KuruczGridInterface(RawGridInterface):
 
         return (f[self.ind], header)
 
-    def load_file(self, parameters):
-        '''
-        Load a file from the disk.
-
-        :param parameters: stellar parameters
-        :type parameters: dict
-
-        :raises C.GridError: if the file cannot be found on disk.
-
-        :returns: :obj:`model.Base1DSpectrum`
-        '''
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
-        raise NotImplementedError("No load_file routine for Kurucz")
-
 
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the
@@ -515,19 +434,6 @@ class BTSettlGridInterface(RawGridInterface):
 
         return fl_interp
 
-    def load_file(self, parameters):
-        '''
-        Load a file from the disk.
-
-        :param parameters: stellar parameters
-        :type parameters: dict
-
-        :raises C.GridError: if the file cannot be found on disk.
-
-        :returns: :obj:`model.Base1DSpectrum`
-        '''
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
-        raise NotImplementedError("No load_file routine for BTSettl")
 
 class HDF5Creator:
     '''
