@@ -227,9 +227,9 @@ class PCAGrid:
         # else:
         #     ind = np.ones_like(self.wl, dtype="bool")
 
-        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),
+        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),\
             "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
-            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),
+            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),\
             max(self.wl[ind]), wl_min, wl_max)
 
         self.wl = self.wl[ind]
