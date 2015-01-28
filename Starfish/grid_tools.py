@@ -490,17 +490,21 @@ class HDF5Creator:
         #   of the FFT, spaced with a ``dv`` such that we respect the remaining
         #   Fourier modes: ``self.wl_final``
 
-        wl_min, wl_max = self.Instrument.wl_range
+        inst_min, inst_max = self.Instrument.wl_range
+        buffer = 50. # [AA]
+
+        # If the raw synthetic grid doesn't span the full range of the instrument,
+        # use only the full wavelength range of the synthetic grid
+        if (self.wl_native[0] > inst_min) or (self.wl_native[-1] < inst_max):
+            wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
+        # Otherwise, use the edges specified by the instrument, plus a little buffer.
+        else:
+            wl_min = inst_min - buffer
+            wl_max = inst_max + buffer
 
         # Calculate wl_FFT
-        if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
-            wl_dict = create_log_lam_grid(self.dv_native, self.wl_native[0], self.wl_native[-1])
-
-        # otherwise use the edges specified by the instrument, plus a little more.
-        else:
-            #use the dv that preserves the quality of the raw PHOENIX grid
-            wl_dict = create_log_lam_grid(self.dv_native, wl_min - 50., wl_max + 50.)
-
+        # use the dv that preserves the native quality of the raw PHOENIX grid
+        wl_dict = create_log_lam_grid(self.dv_native, wl_min, wl_max)
         self.wl_FFT = wl_dict["wl"]
         self.dv_FFT = calculate_dv_dict(wl_dict)
 
