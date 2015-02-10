@@ -19,6 +19,27 @@ The eigenspectra decomposition is performed via Principal Component Analysis (PC
 .. autoclass:: PCAGrid
    :members:
 
+
+For example, the following takes a bunch of spectra specified by an :obj:`HDF5Interface` and decomposes them into a PCA basis
+
+.. code-block:: python
+
+    from Starfish.grid_tools import HDF5Interface
+    from Starfish.emulator import PCAGrid
+
+    # Load the HDF5 interface
+
+    myHDF5 = HDF5Interface("../../libraries/PHOENIX_TRES_F.hdf5")
+    ncomp = 40
+
+    pca = PCAGrid.create(myHDF5, ncomp)
+    pca.write("../../libraries/PHOENIX_TRES_F_PCA.hdf5")
+
+Optimizing the emulator
+=======================
+
+Nugget term. Tuning the hyper-parameters of the Gaussian process.
+
 Model spectrum reconstruction
 =============================
 
