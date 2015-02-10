@@ -109,9 +109,12 @@ class RawGridInterface:
 
     :param name: name of the spectral library
     :type name: string
-    :param points: a dictionary of lists describing the grid points at which
-        spectra exist (assumes grid is square, not ragged).
-    :type points: dict
+    :param param_names: the names of the parameters (dimensions) of the grid
+    :type param_names: list
+    :param points: the grid points at which
+        spectra exist (assumes grid is square, not ragged, meaning that every combination
+        of parameters specified exists in the grid).
+    :type points: list of numpy arrays
     :param air: Are the wavelengths measured in air?
     :type air: bool
     :param wl_range: the starting and ending wavelength ranges of the grid to
@@ -121,15 +124,11 @@ class RawGridInterface:
     :type base: string
 
     '''
-    def __init__(self, name, points, air=True, wl_range=[3000,13000], base=None):
+    def __init__(self, name, param_names, points, air=True, wl_range=[3000,13000], base=None):
         self.name = name
-        self.points = {}
-        assert type(points) is dict, "points must be a dictionary."
-        for key, value in points.items():
-            if key in C.grid_set:
-                self.points[key] = value
-            else:
-                raise KeyError("{0} is not an allowed parameter, skipping".format(key))
+
+        self.param_names = param_names
+        self.points = points
 
         self.air = air
         self.wl_range = wl_range
@@ -137,29 +136,26 @@ class RawGridInterface:
 
     def check_params(self, parameters):
         '''
-        Determine if a set of parameters is a subset of allowed parameters,
-        and then determine if those parameters are allowed in the grid.
+        Determine if the specified parameters are allowed in the grid.
 
         :param parameters: parameter set to check
-        :type parameters: dict
+        :type parameters: np.array
 
-        :raises C.GridError: if parameters.keys() is not a subset of :data:`C.grid_set`
         :raises C.GridError: if the parameter values are outside of the grid bounds
 
         '''
-        if not set(parameters.keys()) <= C.grid_set:
-            raise C.GridError("{} not in allowable grid parameters {}".format(parameters.keys(), C.grid_set))
+        assert len(parameters) == len(self.param_names)
 
-        for key,value in parameters.items():
-            if value not in self.points[key]:
-                raise C.GridError("{} not in the grid points {}".format(value, sorted(self.points[key])))
+        for param, ppoints in zip(parameters, self.points):
+            if param not in ppoints:
+                raise C.GridError("{} not in the grid points {}".format(param, ppoints))
 
     def load_flux(self, parameters, norm=True):
         '''
         Load the synthetic flux from the disk and  :meth:`check_params`
 
         :param parameters: stellar parameters describing a spectrum
-        :type parameters: dict
+        :type parameters: np.array
 
          .. note::
 
@@ -179,7 +175,8 @@ class PHOENIXGridInterface(RawGridInterface):
         base="libraries/raw/PHOENIX/"):
 
         super().__init__(name="PHOENIX",
-            points={"temp":
+            param_names = ["temp", "logg", "Z", "alpha"],
+            points=[
           np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
           3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
           4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
@@ -187,17 +184,19 @@ class PHOENIXGridInterface(RawGridInterface):
           6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
           9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
           11400, 11600, 11800, 12000]),
-            "logg":np.arange(0.0, 6.1, 0.5),
-            "Z":np.arange(-2., 1.1, 0.5),
-            "alpha":np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])},
+            np.arange(0.0, 6.1, 0.5),
+            np.arange(-2., 1.1, 0.5),
+            np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
             air=air, wl_range=wl_range, base=base) #wl_range used to be [2999, 13001]
 
         self.norm = norm #Normalize to 1 solar luminosity?
-        self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
-            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.alpha_dict = {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20",
-            0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40",
-            0.6:".Alpha=+0.60", 0.8:".Alpha=+0.80"}
+        self.par_dicts = [None,
+                        None,
+                        {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
+                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
+                        {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20",
+                            0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40",
+                            0.6:".Alpha=+0.60", 0.8:".Alpha=+0.80"}]
 
         # if air is true, convert the normally vacuum file to air wls.
         try:
@@ -214,7 +213,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = self.base + "Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
+        self.rname = self.base + "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
                      ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
     def load_flux(self, parameters, norm=True):
@@ -222,7 +221,7 @@ class PHOENIXGridInterface(RawGridInterface):
        Load just the flux and header information.
 
        :param parameters: stellar parameters
-       :type parameters: dict
+       :type parameters: np.array
 
        :raises C.GridError: if the file cannot be found on disk.
 
@@ -232,20 +231,17 @@ class PHOENIXGridInterface(RawGridInterface):
         self.check_params(parameters) # Check to make sure that the keys are
         # allowed and that the values are in the grid
 
-        str_parameters = parameters.copy()
-        #Rewrite Z
-        Z = parameters["Z"]
-        str_parameters["Z"] = self.Z_dict[Z]
+        # Create a list of the parameters to be fed to the format string
+        # optionally replacing arguments using the dictionaries, if the formatting
+        # of a certain parameter is tricky
+        str_parameters = []
+        for param, par_dict in zip(parameters, self.param_dicts):
+            if par_dict is None:
+                str_parameters.append(param)
+            else:
+                str_parameters.append(par_dict[param])
 
-        #Rewrite alpha, allow alpha to be missing from parameters and set to 0
-        try:
-            alpha = parameters["alpha"]
-        except KeyError:
-            alpha = 0.0
-            parameters["alpha"] = alpha
-        str_parameters["alpha"] = self.alpha_dict[alpha]
-
-        fname = self.rname.format(**str_parameters)
+        fname = self.rname.format(*str_parameters)
 
         #Still need to check that file is in the grid, otherwise raise a C.GridError
         #Read all metadata in from the FITS header, and append to spectrum
@@ -440,8 +436,8 @@ class HDF5Creator:
     Create a HDF5 grid to store all of the spectra from a RawGridInterface,
     along with metadata.
     '''
-    def __init__(self, GridInterface, filename, Instrument, ranges={"temp":(0,np.inf),
-        "logg":(-np.inf,np.inf), "Z":(-np.inf, np.inf), "alpha":(-np.inf, np.inf)}):
+    def __init__(self, GridInterface, filename, Instrument, ranges=None,
+        key_name="t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -451,9 +447,19 @@ class HDF5Creator:
         :param ranges: lower and upper limits for each stellar parameter,
             in order to truncate the number of spectra in the grid.
         :type ranges: dict of keywords mapped to 2-tuples
+        :param key_name: formatting string that has keys for each of the parameter
+            names to translate into a hash-able string.
+        :type key_name: string
 
         This object is designed to be run in serial.
         '''
+
+        if ranges is None:
+            # Programatically define each range to be (-np.inf, np.inf)
+            ranges = {}
+            for par in Starfish.parname:
+                ranges[par] = (-np.inf,np.inf)
+
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because
         # otherwise the object cannot be parallelized
@@ -461,7 +467,7 @@ class HDF5Creator:
 
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
-        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.key_name = key_name
 
         # Take only those points of the GridInterface that fall within the ranges specified
         self.points = {}
@@ -537,24 +543,19 @@ class HDF5Creator:
         Take a flux file from the raw grid, process it according to the
         instrument, and insert it into the HDF5 file.
 
-        :param parameters: the stellar parameters
-        :type parameters: dict
+        :param parameters: the model parameters.
+        :type parameters: 1D np.array
 
         .. note::
 
-           This function assumes that it's going to get a dictionary of
-           parameters that includes ``(temp, logg, Z, alpha)``, regardless of
-           whether the :attr:`GridInterface` actually has alpha or not.
-
-        :raises AssertionError: if the `param parameters` dictionary is not
-            length 4.
+        :raises AssertionError: if the `parameters` vector is not
+            the same length as that of the raw grid.
 
         :returns: a tuple of (parameters, flux, header). If the flux could
             not be loaded, returns (None, None, None).
 
         '''
-        assert len(parameters.keys()) == 4, "Must pass dictionary with keys " \
-            "(temp, logg, Z, alpha)"
+        assert len(parameters.keys()) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
         print("Processing", parameters)
         try:
             flux, header = self.GridInterface.load_flux(parameters)
@@ -610,7 +611,7 @@ class HDF5Creator:
                 continue
 
             # The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.flux_name.format(**parameters),
+            flux = self.hdf5["flux"].create_dataset(self.key_name.format(**parameters),
                 shape=(len(fl),), dtype="f", compression='gzip',
                 compression_opts=9)
             flux[:] = fl
@@ -636,7 +637,7 @@ class HDF5Interface:
             :type ranges: dict
         '''
         self.filename = filename
-        self.flux_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.key_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
             self.wl = hdf5["wl"][:]
@@ -694,7 +695,7 @@ class HDF5Interface:
         :returns: flux array
         '''
 
-        key = self.flux_name.format(**parameters)
+        key = self.key_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
                 if self.ind is not None:
@@ -720,7 +721,7 @@ class HDF5Interface:
         '''
         Just like load_flux, but also returns the header
         '''
-        key = self.flux_name.format(**parameters)
+        key = self.key_name.format(**parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
                 hdr = dict(hdf5['flux'][key].attrs)
@@ -944,7 +945,7 @@ class Interpolator:
         parameter_list = [dict(zip(names, param)) for param in param_combos]
         if "alpha" not in parameters.keys():
             [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
-        key_list = [self.interface.flux_name.format(**param) for param in parameter_list]
+        key_list = [self.interface.key_name.format(**param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
