@@ -456,9 +456,9 @@ class HDF5Creator:
 
         if ranges is None:
             # Programatically define each range to be (-np.inf, np.inf)
-            ranges = {}
+            ranges = []
             for par in Starfish.parname:
-                ranges[par] = (-np.inf,np.inf)
+                ranges.append([-np.inf,np.inf])
 
         self.GridInterface = GridInterface
         self.filename = filename #only store the name to the HDF5 file, because
@@ -470,12 +470,11 @@ class HDF5Creator:
         self.key_name = key_name
 
         # Take only those points of the GridInterface that fall within the ranges specified
-        self.points = {}
-        for key, value in ranges.items():
-            valid_points  = self.GridInterface.points[key]
-            low,high = value
+        self.points = []
+        for i,(low, high) in enumerate(ranges):
+            valid_points  = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
-            self.points[key] = valid_points[ind]
+            self.points.append(lid_points[ind])
 
         # the raw wl from the spectral library
         self.wl_native = self.GridInterface.wl #raw grid
