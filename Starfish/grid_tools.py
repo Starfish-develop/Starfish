@@ -600,7 +600,7 @@ class HDF5Creator:
         param_list = []
 
         # use itertools.product to create permutations of all possible values
-        for i in itertools.product(*points):
+        for i in itertools.product(*self.points):
             param_list.append(np.array(i))
 
         print("Total of {} files to process.".format(len(param_list)))
