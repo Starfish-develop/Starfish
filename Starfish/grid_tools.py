@@ -15,6 +15,7 @@ from functools import partial
 import itertools
 from collections import OrderedDict
 
+import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
