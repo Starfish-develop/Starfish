@@ -474,7 +474,7 @@ class HDF5Creator:
         for i,(low, high) in enumerate(ranges):
             valid_points  = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
-            self.points.append(lid_points[ind])
+            self.points.append(valid_points[ind])
 
         # the raw wl from the spectral library
         self.wl_native = self.GridInterface.wl #raw grid
