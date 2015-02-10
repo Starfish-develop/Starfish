@@ -6,6 +6,27 @@ from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 from Starfish.covariance import sigma, V12, V22
 from Starfish import constants as C
 
+def skinny_kron(eigenspectra):
+    '''
+    Compute Phi.T.dot(Phi) in a memory efficient manner.
+
+    eigenspectra is a list of 1D numpy arrays.
+    '''
+    out = np.zeros((m * M, m * M))
+
+    # Compute all of the dot products pairwise, beforehand
+    dots = np.empty((m, m))
+    for i in range(m):
+        for j in range(m):
+            dots[i,j] = eigenspectra[i].T.dot(eigenspectra[j])
+
+    for i in range(M * m):
+        for jj in range(m):
+            ii = i // M
+            j = jj * M + (i % M)
+            out[i, j] = dots[ii, jj]
+    return out
+
 class PCAGrid:
     '''
     Create and query eigenspectra.
