@@ -554,7 +554,7 @@ class HDF5Creator:
             not be loaded, returns (None, None, None).
 
         '''
-        assert len(parameters.keys()) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
+        assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
         print("Processing", parameters)
         try:
             flux, header = self.GridInterface.load_flux(parameters)
@@ -580,37 +580,38 @@ class HDF5Creator:
             del interp
             gc.collect()
 
-            return (parameters, fl_final, header)
+            return (fl_final, header)
 
         except C.GridError as e:
             print("No file with parameters {}. C.GridError: {}".format(parameters, e))
-            return (None, None, None)
+            return (None, None)
 
     def process_grid(self):
         '''
         Run :meth:`process_flux` for all of the spectra within the `ranges`
         and store the processed spectra in the HDF5 file.
 
-        Only executed in serial.
+        Only executed in serial for now.
         '''
 
+        # points is now a list of numpy arrays of the values in the grid
         # Take all parameter permutations in self.points and create a list
-        param_list = [] #list of parameter dictionaries
-        keys,values = self.points.keys(),self.points.values()
+        # param_list will be a list of numpy arrays, specifying the parameters
+        param_list = []
 
         # use itertools.product to create permutations of all possible values
-        for i in itertools.product(*values):
-            param_list.append(dict(zip(keys,i)))
+        for i in itertools.product(*points):
+            param_list.append(np.array(i))
 
         print("Total of {} files to process.".format(len(param_list)))
 
         for param in param_list:
-            parameters, fl, header = self.process_flux(param)
-            if parameters is None:
+            fl, header = self.process_flux(param)
+            if fl is None:
                 continue
 
             # The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.key_name.format(**parameters),
+            flux = self.hdf5["flux"].create_dataset(self.key_name.format(**zip(Starfish.parname, param)),
                 shape=(len(fl),), dtype="f", compression='gzip',
                 compression_opts=9)
             flux[:] = fl
