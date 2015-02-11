@@ -261,7 +261,7 @@ class PHOENIXGridInterface(RawGridInterface):
             f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
 
         #Add temp, logg, Z, alpha, norm to the metadata
-        header = parameters.copy()
+        header = {}
         header["norm"] = self.norm
         header["air"] = self.air
         #Keep only the relevant PHOENIX keywords, which start with PHX
