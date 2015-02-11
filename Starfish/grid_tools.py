@@ -612,7 +612,7 @@ class HDF5Creator:
                 continue
 
             # The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.key_name.format(**zip(Starfish.parname, param)),
+            flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
                 shape=(len(fl),), dtype="f", compression='gzip',
                 compression_opts=9)
             flux[:] = fl
