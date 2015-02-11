@@ -236,7 +236,7 @@ class PHOENIXGridInterface(RawGridInterface):
         # optionally replacing arguments using the dictionaries, if the formatting
         # of a certain parameter is tricky
         str_parameters = []
-        for param, par_dict in zip(parameters, self.param_dicts):
+        for param, par_dict in zip(parameters, self.par_dicts):
             if par_dict is None:
                 str_parameters.append(param)
             else:

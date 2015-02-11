@@ -386,10 +386,6 @@ def plot_paper(flatchain, base=args.outdir, triangle_plot=args.triangle, chain_p
     params = flatchain.param_tuple
     samples = flatchain.samples
 
-    if args.replicate:
-        #Concatenate the samples a few times
-        samples = np.vstack([samples for i in range(30)])
-
     labels = [label_dict.get(key, "unknown") for key in params]
 
     K = len(labels)
