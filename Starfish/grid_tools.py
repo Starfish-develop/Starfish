@@ -635,7 +635,7 @@ class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
-    def __init__(self, filename=Starfish.grid["hdf_path"]):
+    def __init__(self, filename=Starfish.grid["hdf5_path"]):
         '''
             :param filename: the name of the HDF5 file
             :type param: string
