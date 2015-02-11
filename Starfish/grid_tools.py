@@ -635,7 +635,7 @@ class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
-    def __init__(self, filename, ranges=None):
+    def __init__(self, filename):
         '''
             :param filename: the name of the HDF5 file
             :type param: string
@@ -645,63 +645,24 @@ class HDF5Interface:
         self.filename = filename
         self.key_name = "t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"
 
-        if ranges is None:
-            # Programatically define each range to be (-np.inf, np.inf)
-            ranges = []
-            for par in Starfish.parname:
-                ranges.append([-np.inf,np.inf])
-
         # In order to properly interface with the HDF5 file, we need to learn
         # a few things about it
 
-        # 1.) Which parameter combinations exist in the file
-        # 2.) What are the minimum and maximum values for each parameter
-        # 3.) Which values exist for each parameter.
-
-        # I think these would be solved if we stored a 2D array of parameter
-        # values with the grid during creation.
+        # 1.) Which parameter combinations exist in the file (self.grid_points)
+        # 2.) What are the minimum and maximum values for each parameter (self.bounds)
+        # 3.) Which values exist for each parameter (self.points)
 
         with h5py.File(self.filename, "r") as hdf5:
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
             self.dv = self.wl_header["dv"]
-
-            grid_points = []
-
-            for key in hdf5["flux"].keys():
-                #assemble all keys into a giant list
-                hdr = hdf5['flux'][key].attrs
-
-                params = {k: hdr[k] for k in C.grid_set}
-
-                #Check whether the parameters are within the range
-                for i,vv in params.items():
-                    low, high = ranges[kk]
-                    if (vv < low) or (vv > high):
-                        break
-                else:
-                    #If all parameters have passed successfully through the ranges, allow.
-                     grid_points.append(params)
-
-            self.list_grid_points = grid_points
+            self.grid_points = hdf5["pars"][:]
 
         #determine the bounding regions of the grid by sorting the grid_points
-        temp, logg, Z, alpha = [],[],[],[]
-        for param in self.list_grid_points:
-            temp.append(param['temp'])
-            logg.append(param['logg'])
-            Z.append(param['Z'])
-            alpha.append(param['alpha'])
-
-        self.bounds = { "temp": (min(temp),max(temp)),
-                        "logg": (min(logg), max(logg)),
-                        "Z": (min(Z), max(Z)),
-                        "alpha":(min(alpha),max(alpha))}
-
-        self.points = { "temp": np.unique(temp),
-                        "logg": np.unique(logg),
-                        "Z": np.unique(Z),
-                        "alpha": np.unique(alpha)}
+        low = np.min(self.grid_points, axis=0)
+        high = np.max(self.grid_points, axis=0)
+        self.bounds = np.vstack((low, high).T
+        self.points = np.unique(self.grid_points, axis=0)
 
         self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
 
@@ -736,7 +697,7 @@ class HDF5Interface:
         '''
         Iterator to loop over all of the spectra stored in the grid, for PCA.
         '''
-        for grid_point in self.list_grid_points:
+        for grid_point in self.grid_points:
             yield self.load_flux(grid_point)
 
     def load_flux_hdr(self, parameters):
