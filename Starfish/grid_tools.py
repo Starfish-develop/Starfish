@@ -438,7 +438,7 @@ class HDF5Creator:
     along with metadata.
     '''
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-        key_name="t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"):
+        key_name="t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -638,7 +638,7 @@ class HDF5Interface:
             :type ranges: dict
         '''
         self.filename = filename
-        self.key_name = "t{temp:.0f}g{logg:.1f}z{Z:.1f}a{alpha:.1f}"
+        self.key_name = "t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"
 
         with h5py.File(self.filename, "r") as hdf5:
             self.wl = hdf5["wl"][:]
@@ -696,7 +696,7 @@ class HDF5Interface:
         :returns: flux array
         '''
 
-        key = self.key_name.format(**parameters)
+        key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
                 if self.ind is not None:
@@ -722,7 +722,7 @@ class HDF5Interface:
         '''
         Just like load_flux, but also returns the header
         '''
-        key = self.key_name.format(**parameters)
+        key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
                 hdr = dict(hdf5['flux'][key].attrs)
@@ -946,7 +946,7 @@ class Interpolator:
         parameter_list = [dict(zip(names, param)) for param in param_combos]
         if "alpha" not in parameters.keys():
             [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
-        key_list = [self.interface.key_name.format(**param) for param in parameter_list]
+        key_list = [self.interface.key_name.format(*param) for param in parameter_list]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
