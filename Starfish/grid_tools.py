@@ -661,7 +661,7 @@ class HDF5Interface:
         #determine the bounding regions of the grid by sorting the grid_points
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
-        self.bounds = np.vstack((low, high).T
+        self.bounds = np.vstack((low, high)).T
         self.points = np.unique(self.grid_points, axis=0)
 
         self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
