@@ -55,6 +55,7 @@ Raw Grid Interfaces
    :parts: 1
 
 Here and throughout the code, stellar spectra are referenced by a numpy array of parameter values, which corresponds to the parameters listed in the config file.
+
 .. code-block:: python
 
     my_params = np.array([6000, 3.5, 0.0, 0.0])
@@ -75,21 +76,40 @@ In order to load a raw file from the PHOENIX grid, one would do
     # if you downloaded the libraries elsewhere, be sure to include base="mydir"
     import Starfish
     from Starfish.grid_tools import PHOENIXGridInterface
+    import numpy as np
     mygrid = PHOENIXGridInterface()
     my_params = np.array([6000, 3.5, 0.0, 0.0])
     flux, hdr = mygrid.load_flux(my_params)
 
-    >>>flux
+    In [5]: flux
+    Out[5]:
     array([ 4679672.5       ,  4595894.        ,  4203616.5       , ...,
-    11033.5625    ,    11301.25585938,    11383.8828125 ], dtype=float32)
+              11033.5625    ,    11301.25585938,    11383.8828125 ], dtype=float32)
 
-    >>>hdr
-    {'PHXXI_N': 1.49, 'PHXDUST': False, 'PHXLUM': 5.0287e+34, 'PHXVER': '16.01.00B', 'PHXREFF': 233350000000.0, 'PHXEOS': 'ACES', 'PHXXI_L': 1.49, 'PHXALPHA': 0.0, 'PHXLOGG': 3.5, 'logg': 3.5, 'temp': 6000, 'PHXMASS': 2.5808e+33, 'alpha': 0.0, 'PHXTEFF': 6000.0, 'Z': 0.0, 'PHXMXLEN': 1.48701064748, 'PHXXI_M': 1.49, 'PHXM_H': 0.0, 'PHXBUILD': '02/Aug/2010', 'norm': True, 'air': True}
+    In [6]: hdr
+    Out[6]:
+    {'PHXDUST': False,
+     'PHXLUM': 5.0287e+34,
+     'PHXVER': '16.01.00B',
+     'PHXREFF': 233350000000.0,
+     'PHXEOS': 'ACES',
+     'PHXALPHA': 0.0,
+     'PHXLOGG': 3.5,
+     'PHXTEFF': 6000.0,
+     'PHXMASS': 2.5808e+33,
+     'PHXXI_N': 1.49,
+     'PHXXI_M': 1.49,
+     'PHXXI_L': 1.49,
+     'PHXMXLEN': 1.48701064748,
+     'PHXM_H': 0.0,
+     'PHXBUILD': '02/Aug/2010',
+     'norm': True,
+     'air': True}
 
-    >>>mygrid.wl
+    In [7]: mygrid.wl
+    Out[7]:
     array([  3000.00133087,   3000.00732938,   3000.01332789, ...,
-        53999.27587687,  53999.52580875,  53999.77574063])
-
+            53999.27587687,  53999.52580875,  53999.77574063])
 
 .. autoclass:: KuruczGridInterface
    :members:
@@ -128,22 +148,17 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
 
 .. code-block:: python
 
+    import Starfish
     from Starfish.grid_tools import PHOENIXGridInterface, HDF5Creator, TRES
 
-    raw_library_path = "../../libraries/raw/PHOENIX/"
-    mygrid = PHOENIXGridInterface(base=raw_library_path, wl_range=[4700, 5500])
-
-    out_path = "../../libraries/" + "PHOENIX_TRES_F.hdf5"
+    mygrid = PHOENIXGridInterface(base=Starfish.grid["raw_path"], wl_range=Starfish.grid["wl_range"])
 
     instrument = TRES()
 
-    # Limit the range of stellar parameters corresponding to an F star
-    creator = HDF5Creator(mygrid, out_path, instrument,
-    ranges={"temp":(5800, 6500), "logg":(3.5,6.0),
-    "Z":(-1.5,1.0), "alpha":(0.0,0.0)})
+    creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument,
+    ranges=Starfish.grid["parrange"])
 
     creator.process_grid()
-
 
 Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 

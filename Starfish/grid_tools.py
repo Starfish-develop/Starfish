@@ -604,9 +604,14 @@ class HDF5Creator:
         for i in itertools.product(*self.points):
             param_list.append(np.array(i))
 
+        all_params = np.array(param_list)
+
+        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip', compression_opts=9)
+        par_dset[:] = all_params
+
         print("Total of {} files to process.".format(len(param_list)))
 
-        for param in param_list:
+        for param in all_params:
             fl, header = self.process_flux(param)
             if fl is None:
                 continue
@@ -622,15 +627,15 @@ class HDF5Creator:
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
 
+    def __del__(self):
+        self.hdf5.close()
+
 
 class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
-    def __init__(self, filename, ranges={"temp":(0,np.inf),
-                                        "logg":(-np.inf,np.inf),
-                                        "Z":(-np.inf, np.inf),
-                                        "alpha":(-np.inf, np.inf)}):
+    def __init__(self, filename, ranges=None):
         '''
             :param filename: the name of the HDF5 file
             :type param: string
@@ -640,6 +645,22 @@ class HDF5Interface:
         self.filename = filename
         self.key_name = "t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"
 
+        if ranges is None:
+            # Programatically define each range to be (-np.inf, np.inf)
+            ranges = []
+            for par in Starfish.parname:
+                ranges.append([-np.inf,np.inf])
+
+        # In order to properly interface with the HDF5 file, we need to learn
+        # a few things about it
+
+        # 1.) Which parameter combinations exist in the file
+        # 2.) What are the minimum and maximum values for each parameter
+        # 3.) Which values exist for each parameter.
+
+        # I think these would be solved if we stored a 2D array of parameter
+        # values with the grid during creation.
+
         with h5py.File(self.filename, "r") as hdf5:
             self.wl = hdf5["wl"][:]
             self.wl_header = dict(hdf5["wl"].attrs.items())
@@ -648,13 +669,13 @@ class HDF5Interface:
             grid_points = []
 
             for key in hdf5["flux"].keys():
-                #assemble all temp, logg, Z, alpha keywords into a giant list
+                #assemble all keys into a giant list
                 hdr = hdf5['flux'][key].attrs
 
                 params = {k: hdr[k] for k in C.grid_set}
 
                 #Check whether the parameters are within the range
-                for kk,vv in params.items():
+                for i,vv in params.items():
                     low, high = ranges[kk]
                     if (vv < low) or (vv > high):
                         break
