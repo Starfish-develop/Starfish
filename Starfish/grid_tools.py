@@ -662,7 +662,7 @@ class HDF5Interface:
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
         self.bounds = np.vstack((low, high)).T
-        self.points = [np.unique(self.grid_points[:, i] for i in range(len(Starfish.parname))]
+        self.points = [np.unique(self.grid_points[:, i]) for i in range(len(Starfish.parname))]
 
         self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
 
