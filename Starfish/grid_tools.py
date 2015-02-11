@@ -173,7 +173,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     '''
     def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
-        base="libraries/raw/PHOENIX/"):
+        base=Starfish.grid["raw_path"]):
 
         super().__init__(name="PHOENIX",
             param_names = ["temp", "logg", "Z", "alpha"],

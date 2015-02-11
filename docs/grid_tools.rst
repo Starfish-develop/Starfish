@@ -54,14 +54,10 @@ Raw Grid Interfaces
 .. inheritance-diagram:: RawGridInterface PHOENIXGridInterface KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
-Here and throughout the code, stellar spectra are referenced by a dictionary of parameter values. The use of the ``alpha`` parameter (denoting alpha
-enhancement :math:`[{\rm \alpha}/{\rm Fe}]`) is usually optional and defaults to ``0.0``. There are some instances where it may be necessary to specify alpha explicitly.
-
+Here and throughout the code, stellar spectra are referenced by a numpy array of parameter values, which corresponds to the parameters listed in the config file.
 .. code-block:: python
 
-    my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0} #or
-    other_params = {"temp":4000, "logg":4.5, "Z":-0.2}
-
+    my_params = np.array([6000, 3.5, 0.0, 0.0])
 
 Here we introduce the classes and their methods. Below is an example of how you might use the :obj:`PHOENIXGridInterface`.
 
@@ -80,7 +76,7 @@ In order to load a raw file from the PHOENIX grid, one would do
     import Starfish
     from Starfish.grid_tools import PHOENIXGridInterface
     mygrid = PHOENIXGridInterface()
-    my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0}
+    my_params = np.array([6000, 3.5, 0.0, 0.0])
     flux, hdr = mygrid.load_flux(my_params)
 
     >>>flux
