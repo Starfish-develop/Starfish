@@ -177,7 +177,7 @@ For example, to load a file from our recently-created HDF5 grid
     from Starfish.grid_tools import HDF5Interface
     import numpy as np
     myHDF5 = HDF5Interface()
-    flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0, 0.0]))
+    flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
 
     In [4]: flux
     Out[4]:

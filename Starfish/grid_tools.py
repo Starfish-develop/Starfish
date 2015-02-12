@@ -734,6 +734,8 @@ class HDF5Interface:
     def fluxes(self):
         '''
         Iterator to loop over all of the spectra stored in the grid, for PCA.
+
+        Loops over parameters in the order specified by grid_points.
         '''
         for grid_point in self.grid_points:
             yield self.load_flux(grid_point)
