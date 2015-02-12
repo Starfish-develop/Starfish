@@ -19,6 +19,25 @@ import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
+def augment_pars(parameters):
+    '''
+    Given a set of parameters, translate these to the raw parameters
+    that the raw grid requires.
+    '''
+    nraw = len(Starfish.grid["rawparname"])
+    if len(parameters) == nraw:
+        # do nothing, the parameters are the full length
+        return parameters
+    else:
+        apar = np.empty((nraw,))
+        offset = 0
+        for i in range(nraw):
+            if i in Starfish.grid["parsubset"]:
+                apar[i] = parameters[i - offset]
+            else:
+                apar[i] = Starfish.grid["pardefault"][i]
+                offset += 1
+
 def chunk_list(mylist, n=mp.cpu_count()):
     '''
     Divide a lengthy parameter list into chunks for parallel processing and
@@ -438,7 +457,7 @@ class HDF5Creator:
     along with metadata.
     '''
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-        key_name="t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"):
+        key_name="t{0:.0f}g{1:.1f}z{2:.1f}"):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -472,8 +491,12 @@ class HDF5Creator:
 
         # Take only those points of the GridInterface that fall within the ranges specified
         self.points = []
-        for i,(low, high) in enumerate(ranges):
-            valid_points  = self.GridInterface.points[i]
+
+        # We know which subset we want, so use these.
+        for i, isub in enumerate(Starfish.grid["parsubset"]):
+            (low, high) = ranges[i]
+
+            valid_points  = self.GridInterface.points[isub]
             ind = (valid_points >= low) & (valid_points <= high)
             self.points.append(valid_points[ind])
 
@@ -558,7 +581,7 @@ class HDF5Creator:
         assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
         print("Processing", parameters)
         try:
-            flux, header = self.GridInterface.load_flux(parameters)
+            flux, header = self.GridInterface.load_flux(augment_pars(parameters))
 
             # Interpolate the native spectrum to a log-lam FFT grid
             interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
@@ -635,7 +658,7 @@ class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
-    def __init__(self, filename=Starfish.grid["hdf5_path"]):
+    def __init__(self, filename=Starfish.grid["hdf5_path"], key_name="t{0:.0f}g{1:.1f}z{2:.1f}"):
         '''
             :param filename: the name of the HDF5 file
             :type param: string
@@ -643,7 +666,7 @@ class HDF5Interface:
             :type ranges: dict
         '''
         self.filename = filename
-        self.key_name = "t{0:.0f}g{1:.1f}z{2:.1f}a{3:.1f}"
+        self.key_name = key_name
 
         # In order to properly interface with the HDF5 file, we need to learn
         # a few things about it
