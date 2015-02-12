@@ -596,7 +596,7 @@ class HDF5Creator:
         assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
         print("Processing", parameters)
         try:
-            flux, header = self.GridInterface.load_flux(augment_pars(parameters))
+            flux, header = self.GridInterface.load_flux(parameters)
 
             # Interpolate the native spectrum to a log-lam FFT grid
             interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
