@@ -175,15 +175,21 @@ For example, to load a file from our recently-created HDF5 grid
 
     import Starfish
     from Starfish.grid_tools import HDF5Interface
+    import numpy as np
     myHDF5 = HDF5Interface()
     flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0, 0.0]))
+
+    In [4]: flux
+    Out[4]:
+    array([ 10249189.,  10543461.,  10742093., ...,   9639472.,   9868226.,
+        10169717.], dtype=float32)
 
 
 Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this might be currently broken. If you have high signal-to-noise data, you might want to consider using the :doc:`emulator`.
+``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
 
 .. autoclass:: Interpolator
    :members:
