@@ -474,7 +474,7 @@ class HDF5Creator:
     along with metadata.
     '''
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-        key_name="t{0:.0f}g{1:.1f}z{2:.1f}"):
+        key_name=Starfish.grid["key_name"]):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -673,7 +673,7 @@ class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
-    def __init__(self, filename=Starfish.grid["hdf5_path"], key_name="t{0:.0f}g{1:.1f}z{2:.1f}"):
+    def __init__(self, filename=Starfish.grid["hdf5_path"], key_name=Starfish.grid["key_name"]):
         '''
             :param filename: the name of the HDF5 file
             :type param: string
