@@ -19,25 +19,6 @@ import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
-def augment_pars(parameters):
-    '''
-    Given a set of parameters, translate these to the raw parameters
-    that the raw grid requires.
-    '''
-    nraw = len(Starfish.grid["rawparname"])
-    if len(parameters) == nraw:
-        # do nothing, the parameters are the full length
-        return parameters
-    else:
-        apar = np.empty((nraw,))
-        offset = 0
-        for i in range(nraw):
-            if i in Starfish.grid["parsubset"]:
-                apar[i] = parameters[i - offset]
-            else:
-                apar[i] = Starfish.grid["pardefault"][i]
-                offset += 1
-
 def chunk_list(mylist, n=mp.cpu_count()):
     '''
     Divide a lengthy parameter list into chunks for parallel processing and
@@ -290,6 +271,42 @@ class PHOENIXGridInterface(RawGridInterface):
 
         return (f[self.ind], header)
 
+class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
+        '''
+        An Interface to the PHOENIX/Husser synthetic library.
+
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
+
+        '''
+        def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
+            base=Starfish.grid["raw_path"]):
+
+            # Initialize according to the regular PHOENIX values
+            super().__init__(air=air, norm=norm, wl_range=wl_range, base=base)
+
+            # Now override parameters to exclude alpha
+            self.param_names = ["temp", "logg", "Z"]
+            self.points=[
+          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+          11400, 11600, 11800, 12000]),
+            np.arange(0.0, 6.1, 0.5),
+            np.arange(-2., 1.1, 0.5)]
+
+            self.par_dicts = [None,
+                            None,
+                            {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
+                                0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
+
+            self.rname = self.base + "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
+                         ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+
+
 class KuruczGridInterface(RawGridInterface):
     '''Kurucz grid interface.
 
@@ -493,10 +510,8 @@ class HDF5Creator:
         self.points = []
 
         # We know which subset we want, so use these.
-        for i, isub in enumerate(Starfish.grid["parsubset"]):
-            (low, high) = ranges[i]
-
-            valid_points  = self.GridInterface.points[isub]
+        for i,(low, high) in enumerate(ranges):
+            valid_points  = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
             self.points.append(valid_points[ind])
 
