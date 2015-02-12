@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 from sklearn.decomposition import PCA
 
+import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 from Starfish.covariance import sigma, V12, V22
 from Starfish import constants as C
@@ -48,8 +49,7 @@ class PCAGrid:
         :param w: weights to reproduce any spectrum in the original grid
         :type w: 1D np.array
         :param gparams: The stellar parameters of the synthetic library
-        :type gparams: 1D list of dictionaries
-
+        :type gparams: 2D array of parameters (nspec, nparam)
 
         '''
         self.wl = wl
@@ -66,7 +66,7 @@ class PCAGrid:
 
 
     @classmethod
-    def create(cls, interface, ncomp):
+    def create(cls, interface, ncomp=Starfish.PCA["ncomp"]):
         '''
         Create a PCA grid object from a synthetic spectral library, with
         configuration options specified in a dictionary.
@@ -120,14 +120,7 @@ class PCAGrid:
         print("Keeping only the first {} components".format(ncomp))
         eigenspectra = components[0:ncomp]
 
-        gparams = np.empty((m, 3))
-        z = 0
-        for i, params in enumerate(interface.list_grid_points):
-            # if i == test_index:
-                # test_params = np.array([params["temp"], params["logg"], params["Z"]])
-                # continue
-            gparams[z, :] = np.array([params["temp"], params["logg"], params["Z"]])
-            z += 1
+        gparams = interface.grid_points
 
         #Create w, the weights corresponding to the synthetic grid
 
@@ -138,7 +131,7 @@ class PCAGrid:
 
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, gparams)
 
-    def write(self, filename):
+    def write(self, filename=Starfish.PCA["path"]):
         '''
         Write the PCA decomposition to an HDF5 file.
 
@@ -151,6 +144,7 @@ class PCAGrid:
 
         hdf5.attrs["dv"] = self.dv
 
+        # Store the eigenspectra plus the wavelength, mean, and std arrays.
         pdset = hdf5.create_dataset("eigenspectra", (self.ncomp + 3, self.npix),
             compression='gzip', dtype="f8", compression_opts=9)
         pdset[0,:] = self.wl
@@ -162,8 +156,7 @@ class PCAGrid:
             dtype="f8", compression_opts=9)
         wdset[:] = self.w
 
-        gdset = hdf5.create_dataset("gparams", (self.m, 3), compression='gzip',
-            dtype="f8", compression_opts=9)
+        gdset = hdf5.create_dataset("gparams", (self.m, len(Starfish.parname)), compression='gzip', dtype="f8", compression_opts=9)
         gdset[:] = self.gparams
 
         hdf5.close()
@@ -209,44 +202,9 @@ class PCAGrid:
 
 
         '''
-
         # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
         ind = determine_chunk_log(self.wl, wl_min, wl_max)
-
-        # # Length of the raw synthetic spectrum
-        # len_wl = len(self.wl)
-        # # Length of the data
-        # len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #what is the minimum amount of the
-        # # synthetic spectrum that we need?
-        #
-        # #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
-        # chunk = len_wl
-        # inds = (0, chunk) #Set to be the full spectrum
-        #
-        # while chunk > len_data:
-        #     if chunk/2 > len_data:
-        #         chunk = chunk//2
-        #     else:
-        #         break
-        #
-        # assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
-        #
-        # if chunk < len_wl:
-        #     # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
-        #     # that straddle the data spectrum.
-        #
-        #     # What index corresponds to the wl at the center of the data spectrum?
-        #     center_wl = np.median(wl_data)
-        #     center_ind = (np.abs(self.wl - center_wl)).argmin()
-        #
-        #     #Take the chunk that straddles either side.
-        #     inds = (center_ind - chunk//2, center_ind + chunk//2)
-        #
-        #     ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
-        #
-        # else:
-        #     ind = np.ones_like(self.wl, dtype="bool")
 
         assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),\
             "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
