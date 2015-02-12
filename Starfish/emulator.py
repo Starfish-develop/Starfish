@@ -83,7 +83,7 @@ class PCAGrid:
 
         npix = len(wl)
         # number of spectra in the synthetic library
-        m = len(interface.list_grid_points)
+        m = len(interface.grid_points)
 
         fluxes = np.empty((m, npix))
 
