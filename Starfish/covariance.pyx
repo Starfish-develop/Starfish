@@ -112,7 +112,7 @@ def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     return bloc_diag(*sig_list)
 
 
-def V12(params, np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
+def V12(params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
     '''
     Create V12, but just for a single weight.
 
@@ -126,13 +126,15 @@ def V12(params, np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, 
     params.shape = (-1, 3)
     npoints = len(params)
 
+    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
+
     mat = np.empty((m, npoints), dtype=np.float64)
     for i in range(m):
         for j in range(npoints):
-            mat[i,j] = k(gparams[i], params[j], a2, lt2, ll2, lz2)
+            mat[i,j] = k(gparams[i], params[j], h2params)
     return mat
 
-def V22(params, double a2, double lt2, double ll2, double lz2):
+def V22(params, np.ndarray[np.double_t, ndim=1] hparams):
     '''
     Create V22, but just for a single weight.
 
@@ -145,10 +147,12 @@ def V22(params, double a2, double lt2, double ll2, double lz2):
     params.shape = (-1, 3)
     npoints = len(params)
 
+    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
+
     mat = np.empty((npoints, npoints))
     for i in range(npoints):
         for j in range(npoints):
-            mat[i,j] = k(params[i], params[j], a2, lt2, ll2, lz2)
+            mat[i,j] = k(params[i], params[j], h2params)
     return mat
 
 
