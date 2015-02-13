@@ -10,33 +10,40 @@ import math
 
 # Routines for emulator setup
 
-@cython.boundscheck(False)
-cdef R(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] irhos):
-    '''
-    Autocorrelation function.
-
-    p0, p1 : the two sets of parameters, each shape (nparams,)
-
-    irhos : shape (nparams,)
-    '''
-    cdef double sum = 0.
-    cdef unsigned int i = 0
-    for i in range(3):
-        sum += 4. * (p0[i] - p1[i])*(p0[i] - p1[i]) * irhos[i]
-    return math.exp(sum)
-
-@cython.boundscheck(False)
+/*@cython.boundscheck(False)
 cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1,
        double a2, double lt2, double ll2, double lz2):
     '''
     Assumes that kernel params are already squared : a**2, l_temp**2
     '''
-    return a2 * math.exp(-0.5 * ((p0[0] - p1[0])**2/lt2 + (p0[1] - p1[1])**2/ll2 + (p0[2] - p1[2])**2/lz2))
+    return a2 * math.exp(-0.5 * ((p0[0] - p1[0])**2/lt2 + (p0[1] - p1[1])**2/ll2 + (p0[2] - p1[2])**2/lz2))*/
 
 @cython.boundscheck(False)
+cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] h2params):
+    '''
+    Covariance function for the emulator. Defines the amount of covariance
+    between two sets of input parameters.
+
+    :param p0: first set of input parameters
+    :type p0: np.array
+    :param p1: second set of input parameters
+    :type p1: np.array
+    :param h2params: the set of Gaussian Process hyperparameters that set the
+      degree of covariance. [amplitude, l0, l1, l2, ..., l(len(parname) - 1)].
+      To save computation, these are already input squared.
+    :type h2params: np.array
+
+    :returns: (double) value of covariance
+    '''
+    dp = (p1 - p0)**2 # The covariance only depends on the distance squared
+    cdef double a2 = h2params[0]
+    l2 = h2params[1:]
+    return a2 * math.exp(-0.5 * np.sum(dp/l2))
+
+/*@cython.boundscheck(False)
 def sigma(np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
     '''
-    Assumes gparams have real units: [temp, logg, Z]
+    Assumes gparams have real units.
 
     Assumes kernel parameters are coming in squared.
     '''
@@ -54,7 +61,38 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double
             mat[i,j] = cov
             mat[j,i] = cov
 
+    return mat*/
+
+@cython.boundscheck(False)
+def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
+    '''
+    Compute the Lambda block of covariance for a single eigenspectrum weight.
+
+    :param gparams: parameters at which the synthetic grid provides spectra
+    :type gparams: 2D np.array
+    :param hparams: the Gaussian Process hyperparameters defining amplitude and
+      correlation length
+    :type hparams: 1D np.array
+
+    :returns: (2D np.array) Lambda block of covariance.
+    '''
+
+    cdef int m = len(gparams)
+    cdef int i = 0
+    cdef int j = 0
+    cdef double cov = 0.0
+    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
+
+    cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
+
+    for i in range(m):
+        for j in range(i+1):
+            cov = k(gparams[i], gparams[j], h2params)
+            mat[i,j] = cov
+            mat[j,i] = cov
+
     return mat
+
 
 def V12(params, np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
     '''

@@ -32,11 +32,13 @@ install:
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
 
-    - conda install --yes numpy=$NUMPY_VERSION scipy matplotlib Cython h5py scikit-learn astropy pyyaml nose
+    - conda install --yes numpy=$NUMPY_VERSION scipy matplotlib Cython h5py scikit-learn astropy pyyaml pytest
 
-    #- CXX=g++ python setup.py build_ext --inplace
     - python setup.py build_ext --inplace
 
 script:
-    #- nosetests -v
-    - echo "no tests"
+    # Download the necessary PHOENIX libraries to run some tests.
+    - bash tests/download_PHOENIX_test_spec.sh
+
+    # Run the tests
+    - py.test
