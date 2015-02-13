@@ -3,7 +3,7 @@
 # filename: covariance.pyx
 
 import numpy as np
-from scipy.linalg import bloc_diag
+from scipy.linalg import block_diag
 cimport numpy as np
 cimport cython
 import Starfish.constants as C
@@ -109,7 +109,7 @@ def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     for hparam in hparams:
         sig_list.append(sigma(gparams, hparam))
 
-    return bloc_diag(*sig_list)
+    return block_diag(*sig_list)
 
 
 def V12(params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
