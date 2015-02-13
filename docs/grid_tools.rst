@@ -51,6 +51,8 @@ Raw Grid Interfaces
  2. Kurucz spectra by Laird and Morse (available to CfA internal only)
  3. `PHOENIX BT-Settl <http://phoenix.ens-lyon.fr/Grids/BT-Settl/>`_ spectra by France Allard
 
+There are two interfaces provided to the PHOENIX/Husser grid: one that includes alpha enhancement and another which restricts access to 0 alpha enhancement.
+
 .. inheritance-diagram:: RawGridInterface PHOENIXGridInterface KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
@@ -69,16 +71,21 @@ Here we introduce the classes and their methods. Below is an example of how you 
    :members:
    :show-inheritance:
 
+.. autoclass:: PHOENIXGridInterfaceNoAlpha
+   :members:
+   :show-inheritance:
+
+
 In order to load a raw file from the PHOENIX grid, one would do
 
 .. code-block:: python
 
     # if you downloaded the libraries elsewhere, be sure to include base="mydir"
     import Starfish
-    from Starfish.grid_tools import PHOENIXGridInterface
+    from Starfish.grid_tools import PHOENIXGridInterfaceNoAlpha as PHOENIX
     import numpy as np
-    mygrid = PHOENIXGridInterface()
-    my_params = np.array([6000, 3.5, 0.0, 0.0])
+    mygrid = PHOENIX()
+    my_params = np.array([6000, 3.5, 0.0])
     flux, hdr = mygrid.load_flux(my_params)
 
     In [5]: flux
@@ -149,16 +156,18 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
 .. code-block:: python
 
     import Starfish
-    from Starfish.grid_tools import PHOENIXGridInterface, HDF5Creator, TRES
+    from Starfish.grid_tools import PHOENIXGridInterfaceNoAlpha as PHOENIX
+    from Starfish.grid_tools import HDF5Creator, TRES
 
-    mygrid = PHOENIXGridInterface(base=Starfish.grid["raw_path"], wl_range=Starfish.grid["wl_range"])
 
+    mygrid = PHOENIX()
     instrument = TRES()
 
     creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument,
     ranges=Starfish.grid["parrange"])
 
     creator.process_grid()
+
 
 Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 

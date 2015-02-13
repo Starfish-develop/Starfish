@@ -3,6 +3,7 @@
 # filename: covariance.pyx
 
 import numpy as np
+from scipy.linalg import bloc_diag
 cimport numpy as np
 cimport cython
 import Starfish.constants as C
@@ -10,13 +11,13 @@ import math
 
 # Routines for emulator setup
 
-/*@cython.boundscheck(False)
-cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1,
-       double a2, double lt2, double ll2, double lz2):
-    '''
-    Assumes that kernel params are already squared : a**2, l_temp**2
-    '''
-    return a2 * math.exp(-0.5 * ((p0[0] - p1[0])**2/lt2 + (p0[1] - p1[1])**2/ll2 + (p0[2] - p1[2])**2/lz2))*/
+# @cython.boundscheck(False)
+# cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1,
+#       double a2, double lt2, double ll2, double lz2):
+    #'''
+    #Assumes that kernel params are already squared : a**2, l_temp**2
+    #'''
+    #return a2 * math.exp(-0.5 * ((p0[0] - p1[0])**2/lt2 + (p0[1] - p1[1])**2/ll2 + (p0[2] - p1[2])**2/lz2))
 
 @cython.boundscheck(False)
 cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] h2params):
@@ -40,28 +41,28 @@ cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
     l2 = h2params[1:]
     return a2 * math.exp(-0.5 * np.sum(dp/l2))
 
-/*@cython.boundscheck(False)
-def sigma(np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
-    '''
-    Assumes gparams have real units.
+#@cython.boundscheck(False)
+#def sigma(np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
+#    '''
+    #Assumes gparams have real units.
 
-    Assumes kernel parameters are coming in squared.
-    '''
+    #Assumes kernel parameters are coming in squared.
+    #'''
 
-    cdef int m = len(gparams)
-    cdef int i = 0
-    cdef int j = 0
-    cdef double cov = 0.0
+    #cdef int m = len(gparams)
+    #cdef int i = 0
+    #cdef int j = 0
+    #cdef double cov = 0.0
 
-    cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
+    #cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
 
-    for i in range(m):
-        for j in range(i+1):
-            cov = k(gparams[i], gparams[j], a2, lt2, ll2, lz2)
-            mat[i,j] = cov
-            mat[j,i] = cov
+    #for i in range(m):
+        #for j in range(i+1):
+        #    cov = k(gparams[i], gparams[j], a2, lt2, ll2, lz2)
+            #mat[i,j] = cov
+            #mat[j,i] = cov
 
-    return mat*/
+    #return mat
 
 @cython.boundscheck(False)
 def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
@@ -92,6 +93,23 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
             mat[j,i] = cov
 
     return mat
+
+def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] hparams):
+    '''
+    Fill in the large Sigma matrix using blocks of smaller sigma matrices.
+
+    :param gparams: parameters at which the synthetic grid provides spectra
+    :type gparams: 2D numpy array
+    :param hparams: parameters for all of the different eigenspectra weights.
+    :type hparams: 2D numpy array
+    '''
+    sig_list = []
+    m = len(hparams)
+
+    for hparam in hparams:
+        sig_list.append(sigma(gparams, hparam))
+
+    return bloc_diag(*sig_list)
 
 
 def V12(params, np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):

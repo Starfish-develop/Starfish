@@ -27,16 +27,19 @@ For example, the following takes a bunch of spectra specified by an :obj:`HDF5In
     from Starfish.grid_tools import HDF5Interface
     from Starfish.emulator import PCAGrid
 
-    # Load the HDF5 interface
+    # Load the HDF5 interface using the values in config.yaml
+    myHDF5 = HDF5Interface()
 
-    myHDF5 = HDF5Interface("../../libraries/PHOENIX_TRES_F.hdf5")
-    ncomp = 40
+    pca = PCAGrid.create(myHDF5)
+    pca.write()
 
-    pca = PCAGrid.create(myHDF5, ncomp)
-    pca.write("../../libraries/PHOENIX_TRES_F_PCA.hdf5")
 
 Optimizing the emulator
 =======================
+
+Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
+
+
 
 Nugget term. Tuning the hyper-parameters of the Gaussian process.
 
