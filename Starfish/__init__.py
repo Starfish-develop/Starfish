@@ -1,5 +1,5 @@
 __version__ = '1.0'
-__all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "em_cov"]
+__all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator"]
 
 # Read the users config.yaml file.
 # If it doesn't exist, print a useful help message

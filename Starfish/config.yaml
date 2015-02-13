@@ -18,6 +18,8 @@ grid:
   raw_path: "libraries/raw/PHOENIX/"
   hdf5_path: "libraries/PHOENIX_TRES_test.hdf5"
   parname: ["temp", "logg", "Z"]
+  key_name: "t{0:.0f}g{1:.1f}z{2:.1f}" # Specifies how the params are stored
+  # in the HDF5 file
   parrange: [[6000, 6300], [4.0, 5.0], [-1.0, 0.0]]
   wl_range: [5000, 5200]
 

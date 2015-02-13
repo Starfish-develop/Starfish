@@ -7,6 +7,17 @@ from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 from Starfish.covariance import sigma, V12, V22
 from Starfish import constants as C
 
+def Phi(eigenspectra, M):
+    '''
+    :param eigenspectra:
+    :type eigenspectra: 2D array
+    :param M: number of spectra in the synthetic library
+    :type M: int
+    Calculate the matrix Phi using the kronecker products.
+    '''
+
+    return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
+
 def skinny_kron(eigenspectra):
     '''
     Compute Phi.T.dot(Phi) in a memory efficient manner.
@@ -33,7 +44,7 @@ class PCAGrid:
     Create and query eigenspectra.
     '''
 
-    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, gparams):
+    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams):
         '''
 
         :param wl: wavelength array
@@ -57,12 +68,13 @@ class PCAGrid:
         self.flux_mean = flux_mean
         self.flux_std = flux_std
         self.eigenspectra = eigenspectra
-        self.ncomp = len(self.eigenspectra)
+        self.m = len(self.eigenspectra)
         self.w = w
+        self.w_hat = w
         self.gparams = gparams
 
         self.npix = len(self.wl)
-        self.m = self.w.shape[1] # The number of spectra in the synthetic grid
+        self.M = self.w.shape[1] # The number of spectra in the synthetic grid
 
 
     @classmethod
@@ -83,9 +95,9 @@ class PCAGrid:
 
         npix = len(wl)
         # number of spectra in the synthetic library
-        m = len(interface.grid_points)
+        M = len(interface.grid_points)
 
-        fluxes = np.empty((m, npix))
+        fluxes = np.empty((M, npix))
 
         z = 0
         for i, spec in enumerate(interface.fluxes):
@@ -122,14 +134,20 @@ class PCAGrid:
 
         gparams = interface.grid_points
 
-        #Create w, the weights corresponding to the synthetic grid
+        # Create w, the weights corresponding to the synthetic grid
 
-        w = np.empty((ncomp, m))
+        w = np.empty((ncomp, M))
         for i,pcomp in enumerate(eigenspectra):
             for j,spec in enumerate(fluxes):
                 w[i,j] = np.sum(pcomp * spec)
 
-        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, gparams)
+        # Calculate w_hat, Eqn 20 Habib
+        PhiPhi = np.linalg.inv(skinny_kron(eigenspectra))
+        PHI = Phi(eigenspectra, M)
+
+        w_hat = PhiPhi.dot(PHI.T.dot(fluxes.flatten()))
+
+        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 
     def write(self, filename=Starfish.PCA["path"]):
         '''
@@ -145,24 +163,27 @@ class PCAGrid:
         hdf5.attrs["dv"] = self.dv
 
         # Store the eigenspectra plus the wavelength, mean, and std arrays.
-        pdset = hdf5.create_dataset("eigenspectra", (self.ncomp + 3, self.npix),
+        pdset = hdf5.create_dataset("eigenspectra", (self.m + 3, self.npix),
             compression='gzip', dtype="f8", compression_opts=9)
         pdset[0,:] = self.wl
         pdset[1,:] = self.flux_mean
         pdset[2,:] = self.flux_std
         pdset[3:, :] = self.eigenspectra
 
-        wdset = hdf5.create_dataset("w", (self.ncomp, self.m), compression='gzip',
+        wdset = hdf5.create_dataset("w", (self.m, self.M), compression='gzip',
             dtype="f8", compression_opts=9)
         wdset[:] = self.w
 
-        gdset = hdf5.create_dataset("gparams", (self.m, len(Starfish.parname)), compression='gzip', dtype="f8", compression_opts=9)
+        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M), compression='gzip', dtype="f8", compression_opts=9)
+        w_hatdset[:] = self.w_hat
+
+        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.parname)), compression='gzip', dtype="f8", compression_opts=9)
         gdset[:] = self.gparams
 
         hdf5.close()
 
     @classmethod
-    def open(cls, filename):
+    def open(cls, filename=Starfish.PCA["path"]):
         '''
         Initialize an object using the PCA already stored to an HDF5 file.
 
@@ -184,10 +205,13 @@ class PCAGrid:
         wdset = hdf5["w"]
         w = wdset[:]
 
+        w_hatdset = hdf5["w_hat"]
+        w_hat = w_hatdset[:]
+
         gdset = hdf5["gparams"]
         gparams = gdset[:]
 
-        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, gparams)
+        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
         hdf5.close()
 
         return pcagrid
@@ -200,8 +224,8 @@ class PCAGrid:
         :param wl_data: The spectrum dataset you want to fit.
         :type wl_data: np.array
 
-
         '''
+
         # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
         ind = determine_chunk_log(self.wl, wl_min, wl_max)
@@ -231,7 +255,7 @@ class PCAGrid:
         Also correct for original scaling.
         '''
 
-        f = np.empty((self.ncomp, self.npix))
+        f = np.empty((self.m, self.npix))
         for i, (pcomp, weight) in enumerate(zip(self.eigenspectra, weights)):
             f[i, :] = pcomp * weight
         return np.sum(f, axis=0) * self.flux_std + self.flux_mean
@@ -240,9 +264,9 @@ class PCAGrid:
         '''
         Return a (m, npix) array with all of the spectra reconstructed.
         '''
-        recon_fluxes = np.empty((self.m, self.npix))
-        for i in range(self.m):
-            f = np.empty((self.ncomp, self.npix))
+        recon_fluxes = np.empty((self.M, self.npix))
+        for i in range(self.M):
+            f = np.empty((self.m, self.npix))
             for j, (pcomp, weight) in enumerate(zip(self.eigenspectra, self.w[:,i])):
                 f[j, :] = pcomp * weight
             recon_fluxes[i, :] = np.sum(f, axis=0) * self.flux_std + self.flux_mean
@@ -317,14 +341,14 @@ class WeightEmulator:
         '''
         Using the current settings, draw a sample of PCA weights
 
-        If you call this with an arg that is an np.array, it will set the emulator to these parameters first and then
-        draw weights.
+        If you call this with an arg that is an np.array, it will set the
+        emulator to these parameters first and then draw weights.
 
-        If no args are provided, the emulator uses the previous parameters but redraws the weights,
-        for use in seeing the full scatter.
+        If no args are provided, the emulator uses the previous parameters but
+        redraws the weights, for use in seeing the full scatter.
 
-        If there are samples defined, it will also reseed the emulator parameters by randomly draw a parameter
-        combination from MCMC samples.
+        If there are samples defined, it will also reseed the emulator
+        parameters by randomly draw a parameter combination from MCMC samples.
         '''
 
         if args:
