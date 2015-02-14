@@ -168,7 +168,7 @@ class PCAGrid:
         # Calculate w_hat, Eqn 20 Habib
         w_hat = get_w_hat(eigenspectra, fluxes, M)
 
-        print("w_hat shape", w_hat.shape))
+        print("w_hat shape", w_hat.shape)
 
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 
