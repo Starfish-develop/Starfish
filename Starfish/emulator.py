@@ -33,11 +33,8 @@ def get_w_hat(eigenspectra, fluxes, M):
         for j in range(M):
             out[i * M + j] = eigenspectra[i].T.dot(fluxes[j])
 
-    print("out shape", out.shape)
 
     PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
-
-    print("PhiPhi shape", PhiPhi.shape)
 
     return PhiPhi.dot(out)
 
@@ -94,7 +91,7 @@ class PCAGrid:
         self.eigenspectra = eigenspectra
         self.m = len(self.eigenspectra)
         self.w = w
-        self.w_hat = w
+        self.w_hat = w_hat
         self.gparams = gparams
 
         self.npix = len(self.wl)
@@ -167,8 +164,6 @@ class PCAGrid:
 
         # Calculate w_hat, Eqn 20 Habib
         w_hat = get_w_hat(eigenspectra, fluxes, M)
-
-        print("w_hat shape", w_hat.shape)
 
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 
