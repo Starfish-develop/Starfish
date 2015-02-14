@@ -2,7 +2,6 @@ import Starfish
 from Starfish import emulator
 from Starfish.covariance import Sigma
 import numpy as np
-import math
 
 # Load the PCAGrid from the location specified in the config file
 pca = emulator.PCAGrid.open()
@@ -53,6 +52,9 @@ def main():
 
     p0 = np.hstack((np.array([0.01, ]),
     np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
+
+    # Deal only with squared parameters for the GP.
+    p0 = p0**2
 
     print(lnprob(p0))
 

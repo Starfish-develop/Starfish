@@ -65,7 +65,7 @@ cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
     #return mat
 
 @cython.boundscheck(False)
-def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
+def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] h2params):
     '''
     Compute the Lambda block of covariance for a single eigenspectrum weight.
 
@@ -82,7 +82,6 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     cdef int i = 0
     cdef int j = 0
     cdef double cov = 0.0
-    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
 
     cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
 
@@ -94,7 +93,7 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
 
     return mat
 
-def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] hparams):
+def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params):
     '''
     Fill in the large Sigma matrix using blocks of smaller sigma matrices.
 
@@ -104,10 +103,10 @@ def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     :type hparams: 2D numpy array
     '''
     sig_list = []
-    m = len(hparams)
+    m = len(h2params)
 
-    for hparam in hparams:
-        sig_list.append(sigma(gparams, hparam))
+    for h2param in h2params:
+        sig_list.append(sigma(gparams, h2param))
 
     return block_diag(*sig_list)
 
