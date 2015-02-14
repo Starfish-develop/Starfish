@@ -62,7 +62,8 @@ def main():
     ll = 0.5
     lZ = 0.5
 
-    p = np.hstack((np.array([0.01, ]), np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]))
+    p = np.hstack((np.array([0.01, ]),
+    np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
     print(lnprob(p))
 
