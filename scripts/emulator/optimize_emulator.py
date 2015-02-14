@@ -17,6 +17,9 @@ def lnprob(p):
     Calculate the lnprob using Habib's posterior formula for the emulator.
 
     '''
+
+    print(p)
+
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
     #Fold hparams into the new shape
@@ -39,18 +42,6 @@ def lnprob(p):
     return -0.5 * (pref + central + pca.M * pca.m * np.log(2. * np.pi)) #+ prior_l + prior_z
 
 
-def fmin_lnprob(weight_index):
-    # from scipy.optimize import fmin
-    # #from scipy.optimize import minimize
-    # p0 = np.array([1., 200., 1.0, 1.0])
-    # func = lambda x: -lnprob(x, weight_index)
-    # result = fmin(func, p0)
-    # #result = minimize(func, p0, bounds=[(-3, 3),(40, 400),(0.1, 2.0),(0.1, 2.0)])
-    # print(weight_index, result)
-    # return result
-    pass
-
-
 def main():
 
     # Set up starting parameters and see if lnprob evaluates.
@@ -60,10 +51,14 @@ def main():
     ll = 0.5
     lZ = 0.5
 
-    p = np.hstack((np.array([0.01, ]),
+    p0 = np.hstack((np.array([0.01, ]),
     np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
-    print(lnprob(p))
+    print(lnprob(p0))
+
+    from scipy.optimize import fmin
+    result = fmin(lnprob, p0)
+    print(result)
 
 
 if __name__=="__main__":
