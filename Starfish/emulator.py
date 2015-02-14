@@ -9,6 +9,9 @@ from Starfish import constants as C
 
 def Phi(eigenspectra, M):
     '''
+    Warning: for any spectra of real-world dimensions, this routine will
+    likely over flow memory.
+
     :param eigenspectra:
     :type eigenspectra: 2D array
     :param M: number of spectra in the synthetic library
@@ -188,7 +191,7 @@ class PCAGrid:
             dtype="f8", compression_opts=9)
         wdset[:] = self.w
 
-        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M), compression='gzip', dtype="f8", compression_opts=9)
+        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M,), compression='gzip', dtype="f8", compression_opts=9)
         w_hatdset[:] = self.w_hat
 
         gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.parname)), compression='gzip', dtype="f8", compression_opts=9)
