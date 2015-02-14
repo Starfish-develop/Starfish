@@ -18,6 +18,22 @@ def Phi(eigenspectra, M):
 
     return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
 
+def get_w_hat(eigenspectra, fluxes, M):
+    '''
+    Since we will overflow memory if we actually calculate Phi, we have to
+    determine w_hat in a memory-efficient manner.
+
+    '''
+    m = len(eigenspectra)
+    out = np.empty(M * m)
+    for i in range(m):
+        for j in range(M):
+            out[i * M + j] = eigenspectra[i].T.dot(fluxes[j])
+
+    PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
+
+    return PhiPhi.dot(out)
+
 def skinny_kron(eigenspectra, M):
     '''
     Compute Phi.T.dot(Phi) in a memory efficient manner.
@@ -143,10 +159,7 @@ class PCAGrid:
                 w[i,j] = np.sum(pcomp * spec)
 
         # Calculate w_hat, Eqn 20 Habib
-        PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
-        PHI = Phi(eigenspectra, M)
-
-        w_hat = PhiPhi.dot(PHI.T.dot(fluxes.flatten()))
+        w_hat = get_w_hat(eigenspectra, fluxes, M)
 
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 

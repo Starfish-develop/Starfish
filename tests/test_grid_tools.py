@@ -1,9 +1,9 @@
 import pytest
 
-from StellarSpectra.grid_tools import *
+from Starfish.grid_tools import *
 import numpy as np
-from StellarSpectra.spectrum import create_log_lam_grid
-import StellarSpectra.constants as C
+from Starfish.spectrum import create_log_lam_grid
+import Starfish.constants as C
 
 class TestRawGridInterface:
     def setup_class(self):

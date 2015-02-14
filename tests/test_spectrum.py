@@ -1,5 +1,5 @@
 import pytest
-from StellarSpectra.spectrum import *
+from Starfish.spectrum import *
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 import tempfile
