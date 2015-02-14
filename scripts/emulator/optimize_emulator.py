@@ -54,7 +54,7 @@ def main():
     ll = 0.5
     lZ = 0.5
 
-    p0 = np.hstack((np.array([0.01, ]),
+    p0 = np.hstack((np.array([10., ]),
     np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
     # Deal only with squared parameters for the GP.
