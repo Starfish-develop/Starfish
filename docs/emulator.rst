@@ -37,11 +37,11 @@ For example, the following takes a bunch of spectra specified by an :obj:`HDF5In
 Optimizing the emulator
 =======================
 
-Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
+Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
 
+The optimization of the GP hyperparameters is carried out using the `numpy.optimize.fmin` routine in `scripts/emulator/optimize_emulator.py`.
 
-
-Nugget term. Tuning the hyper-parameters of the Gaussian process.
+Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA["path"]).
 
 Model spectrum reconstruction
 =============================

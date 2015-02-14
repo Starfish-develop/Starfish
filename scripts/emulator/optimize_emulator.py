@@ -19,7 +19,7 @@ def lnprob(p):
 
     print(p)
     if np.any(p < 0.):
-        return -1e99
+        return 1e99
 
     lambda_xi = p[0]
     h2params = p[1:].reshape((pca.m, -1))
@@ -40,7 +40,9 @@ def lnprob(p):
     # r = 5.
     # prior_z = s * np.log(r) + (s - 1.) * np.log(lz) - r*lz - math.lgamma(s)
 
-    return -0.5 * (pref + central + pca.M * pca.m * np.log(2. * np.pi)) #+ prior_l + prior_z
+    lnp = 0.5 * (pref + central + pca.M * pca.m * np.log(2. * np.pi)) #+ prior_l + prior_z
+    print(lnp)
+    return lnp
 
 
 def main():
