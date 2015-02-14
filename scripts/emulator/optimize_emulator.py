@@ -18,11 +18,13 @@ def lnprob(p):
     '''
 
     print(p)
+    if np.any(p < 0.):
+        return -1e99
 
     lambda_xi = p[0]
-    hparams = p[1:].reshape((pca.m, -1))
+    h2params = p[1:].reshape((pca.m, -1))
     #Fold hparams into the new shape
-    Sig_w = Sigma(pca.gparams, hparams)
+    Sig_w = Sigma(pca.gparams, h2params)
 
     C = 1/lambda_xi * PhiPhi + Sig_w
 
