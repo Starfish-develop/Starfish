@@ -7,7 +7,7 @@ import math
 # Load the PCAGrid from the location specified in the config file
 pca = emulator.PCAGrid.open()
 M = len(pca.gparams)
-PhiPhi = np.linalg.inv(emulator.skinny_kron(pca.eigenspectra))
+PhiPhi = np.linalg.inv(emulator.skinny_kron(pca.eigenspectra, M))
 
 
 def lnprob(p):
