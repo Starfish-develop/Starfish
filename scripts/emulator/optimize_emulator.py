@@ -21,12 +21,17 @@ def lnprob(p):
 
     '''
 
-    print(p)
+    # We don't allow negative parameters.
     if np.any(p < 0.):
         return 1e99
 
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
+
+    print("lambda_xi", lambda_xi)
+    for row in hparams:
+        print(row)
+    print()
 
     # Calculate the prior for temp, logg, and Z
     priors = np.sum(Glnprior(hparams[:, 0], 2., 0.013)) + np.sum(Glnprior(hparams[:, 1], 2., 1.6)) + np.sum(Glnprior(hparams[:, 2], 2., 1.6))
