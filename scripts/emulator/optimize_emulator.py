@@ -22,7 +22,7 @@ def lnprob(p):
         return 1e99
 
     lambda_xi = p[0]
-    h2params = p[1:].reshape((pca.m, -1))
+    h2params = p[1:].reshape((pca.m, -1))**2
     #Fold hparams into the new shape
     Sig_w = Sigma(pca.gparams, h2params)
 
@@ -57,9 +57,6 @@ def main():
     p0 = np.hstack((np.array([1., ]),
     np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
-    # Deal only with squared parameters for the GP.
-    p0 = p0**2
-
     # Set lambda_xi
     p0[0] = 1.0
 
@@ -68,6 +65,7 @@ def main():
     from scipy.optimize import fmin
     result = fmin(lnprob, p0)
     print(result)
+    np.save("eparams.npy", result)
 
 
 if __name__=="__main__":
