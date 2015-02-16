@@ -49,16 +49,18 @@ def main():
 
     # Set up starting parameters and see if lnprob evaluates.
     # p will have a length of 1 + (pca.m * (1 + len(Starfish.parname)))
-    amp = 50.0
-    lt = 100.
-    ll = 0.5
-    lZ = 0.5
+    # amp = 50.0
+    # lt = 100.
+    # ll = 0.5
+    # lZ = 0.5
+    #
+    # p0 = np.hstack((np.array([1., ]),
+    # np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
+    #
+    # # Set lambda_xi
+    # p0[0] = 1.0
 
-    p0 = np.hstack((np.array([1., ]),
-    np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
-
-    # Set lambda_xi
-    p0[0] = 1.0
+    p0 = np.load("eparams.npy")
 
     print(lnprob(p0))
 
