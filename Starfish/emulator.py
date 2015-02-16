@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
-from Starfish.covariance import Sigma, sigma, V12, V22
+from Starfish.covariance import Sigma, sigma, V12, V22, V12m, V22m
 from Starfish import constants as C
 
 def Phi(eigenspectra, M):
@@ -379,6 +379,27 @@ class Emulator:
     @property
     def matrix(self):
         return (self.mu, self.sig)
+
+    def draw_many_weights(self, params):
+        '''
+        :param params: multiple parameters to produce weight draws at.
+        :type params: 2D np.array
+        '''
+
+        # Local variables, different from instance attributes
+        v12 = V12m(params, self.pca.gparams, self.h2params, self.pca.m)
+        v22 = V22m(params, self.h2params, self.pca.m)
+
+        mu = v12.T.dot(np.linalg.solve(self.V11, self.pca.w_hat))
+        sig = v22 - v12.T.dot(np.linalg.solve(self.V11, v12))
+
+        weights = np.random.multivariate_normal(mu, sig)
+
+        # Reshape these weights into a 2D matrix
+        weights.shape = (len(params), self.pca.m)
+
+        return weights
+
 
     def draw_weights(self):
         '''

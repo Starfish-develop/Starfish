@@ -83,7 +83,7 @@ def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
 
 def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):
     '''
-    Create V12, but just for a single weight.
+    Calculate V12 for a single parameter value.
 
     Assumes kernel params coming in squared as h2params
     '''
@@ -93,6 +93,28 @@ def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] 
     for block in range(m):
         for row in range(M):
             mat[block * M + row, block] = k(gparams[row], params, h2params[block])
+    return mat
+
+def V12m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):
+    '''
+    Calculate V12 for a multiple parameter values.
+
+    Assumes kernel params coming in squared as h2params
+    '''
+    cdef int M = len(gparams)
+    cdef int npar = len(params)
+
+    mat = np.zeros((m * M, m * npar), dtype=np.float64)
+
+    # Going down the rows in "blocks" corresponding to the eigenspectra
+    for block in range(m):
+        # Now go down the rows within that block
+        for row in range(M):
+            ii = block * M + row
+            # Now go across the columns within that row
+            for ip in range(npar):
+                jj = block + ip * m
+                mat[ii, jj] = k(gparams[row], params[ip], h2params[block])
     return mat
 
 def V22(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] h2params, int m):
@@ -108,6 +130,27 @@ def V22(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] 
             mat[i,i] = k(params, params, h2params[i])
     return mat
 
+
+def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] h2params, int m):
+    '''
+    Create V22 for a set of many parameters.
+
+    Assumes kernel parameters are coming in squared as h2params
+    '''
+    cdef int i = 0
+    cdef int npar = len(params)
+    cdef double cov = 0.0
+
+    mat = np.zeros((m * npar, m * npar))
+    for ixp in range(npar):
+        for i in range(m):
+            for iyp in range(npar):
+                ii = ixp * m + i
+                jj = iyp * m + i
+                cov = k(params[ixp], params[iyp], h2params[i])
+                mat[ii, jj] = cov
+                mat[jj, ii] = cov
+    return mat
 # Routines for data covariance matrix generation
 
 #New covariance filler routines
