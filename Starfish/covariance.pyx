@@ -11,16 +11,8 @@ import math
 
 # Routines for emulator setup
 
-# @cython.boundscheck(False)
-# cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1,
-#       double a2, double lt2, double ll2, double lz2):
-    #'''
-    #Assumes that kernel params are already squared : a**2, l_temp**2
-    #'''
-    #return a2 * math.exp(-0.5 * ((p0[0] - p1[0])**2/lt2 + (p0[1] - p1[1])**2/ll2 + (p0[2] - p1[2])**2/lz2))
-
 @cython.boundscheck(False)
-cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] h2params):
+cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] h2param):
     '''
     Covariance function for the emulator. Defines the amount of covariance
     between two sets of input parameters.
@@ -29,51 +21,29 @@ cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
     :type p0: np.array
     :param p1: second set of input parameters
     :type p1: np.array
-    :param h2params: the set of Gaussian Process hyperparameters that set the
+    :param h2param: the set of Gaussian Process hyperparameters that set the
       degree of covariance. [amplitude, l0, l1, l2, ..., l(len(parname) - 1)].
       To save computation, these are already input squared.
-    :type h2params: np.array
+    :type h2param: np.array
 
     :returns: (double) value of covariance
     '''
     dp = (p1 - p0)**2 # The covariance only depends on the distance squared
-    cdef double a2 = h2params[0]
-    l2 = h2params[1:]
+    cdef double a2 = h2param[0]
+    l2 = h2param[1:]
     return a2 * math.exp(-0.5 * np.sum(dp/l2))
 
-#@cython.boundscheck(False)
-#def sigma(np.ndarray[np.double_t, ndim=2] gparams, double a2, double lt2, double ll2, double lz2):
-#    '''
-    #Assumes gparams have real units.
-
-    #Assumes kernel parameters are coming in squared.
-    #'''
-
-    #cdef int m = len(gparams)
-    #cdef int i = 0
-    #cdef int j = 0
-    #cdef double cov = 0.0
-
-    #cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
-
-    #for i in range(m):
-        #for j in range(i+1):
-        #    cov = k(gparams[i], gparams[j], a2, lt2, ll2, lz2)
-            #mat[i,j] = cov
-            #mat[j,i] = cov
-
-    #return mat
 
 @cython.boundscheck(False)
-def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] h2params):
+def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] h2param):
     '''
     Compute the Lambda block of covariance for a single eigenspectrum weight.
 
     :param gparams: parameters at which the synthetic grid provides spectra
     :type gparams: 2D np.array
-    :param hparams: the Gaussian Process hyperparameters defining amplitude and
+    :param hparam: the Gaussian Process hyperparameters defining amplitude and
       correlation length
-    :type hparams: 1D np.array
+    :type hparam: 1D np.array
 
     :returns: (2D np.array) Lambda block of covariance.
     '''
@@ -87,7 +57,7 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
 
     for i in range(m):
         for j in range(i+1):
-            cov = k(gparams[i], gparams[j], h2params)
+            cov = k(gparams[i], gparams[j], h2param)
             mat[i,j] = cov
             mat[j,i] = cov
 
@@ -111,49 +81,32 @@ def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     return block_diag(*sig_list)
 
 
-def V12(params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] hparams):
+def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):
     '''
     Create V12, but just for a single weight.
 
-    Assumes kernel params coming in squared
+    Assumes kernel params coming in squared as h2params
     '''
-    cdef int m = len(gparams)
+    cdef int M = len(gparams)
+
+    mat = np.zeros((m * M, m), dtype=np.float64)
+    for block in range(m):
+        for row in range(M):
+            mat[block * M + row, block] = k(gparams[row], params, h2params[block])
+    return mat
+
+def V22(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] h2params, int m):
+    '''
+    Create V22.
+
+    Assumes kernel parameters are coming in squared as h2params
+    '''
     cdef int i = 0
-    cdef int j = 0
 
-    #In the case that we might actually be predicting weights at more than one location.
-    params.shape = (-1, 3)
-    npoints = len(params)
-
-    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
-
-    mat = np.empty((m, npoints), dtype=np.float64)
+    mat = np.zeros((m, m))
     for i in range(m):
-        for j in range(npoints):
-            mat[i,j] = k(gparams[i], params[j], h2params)
+            mat[i,i] = k(params, params, h2params[i])
     return mat
-
-def V22(params, np.ndarray[np.double_t, ndim=1] hparams):
-    '''
-    Create V22, but just for a single weight.
-
-    Assumes kernel parameters are coming in squared.
-    '''
-    cdef int i = 0
-    cdef int j = 0
-
-    #In the case that we might actually be predicting weights at more than one location.
-    params.shape = (-1, 3)
-    npoints = len(params)
-
-    cdef np.ndarray[np.double_t, ndim=1] h2params = hparams**2
-
-    mat = np.empty((npoints, npoints))
-    for i in range(npoints):
-        for j in range(npoints):
-            mat[i,j] = k(params[i], params[j], h2params)
-    return mat
-
 
 # Routines for data covariance matrix generation
 

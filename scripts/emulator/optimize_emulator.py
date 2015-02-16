@@ -26,7 +26,7 @@ def lnprob(p):
     #Fold hparams into the new shape
     Sig_w = Sigma(pca.gparams, h2params)
 
-    C = 1/lambda_xi * PhiPhi + Sig_w
+    C = (1./lambda_xi) * PhiPhi + Sig_w
 
     sign, pref = np.linalg.slogdet(C)
 
