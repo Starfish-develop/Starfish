@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
-from Starfish.covariance import sigma, V12, V22
+from Starfish.covariance import Sigma, sigma, V12, V22
 from Starfish import constants as C
 
 def Phi(eigenspectra, M):
@@ -258,13 +258,23 @@ class PCAGrid:
         self.flux_mean = self.flux_mean[ind]
         self.flux_std = self.flux_std[ind]
 
-    def get_index(self, stellar_params):
+    def get_index(self, params):
         '''
         Given a np.array of stellar params (corresponding to a grid point),
         deliver the index that corresponds to the
         entry in the fluxes, list_grid_points, and weights
         '''
-        return np.sum(np.abs(self.gparams - stellar_params), axis=1).argmin()
+        return np.sum(np.abs(self.gparams - params), axis=1).argmin()
+
+    def get_weights(self, params):
+        '''
+        Given a np.array of parameters (corresponding to a grid point),
+        deliver the weights that reconstruct this spectrum out of eigenspectra.
+
+        '''
+
+        ii = self.get_index(params)
+        return self.w[:,ii]
 
     def reconstruct(self, weights):
         '''
@@ -292,143 +302,42 @@ class PCAGrid:
         return recon_fluxes
 
 
-class WeightEmulator:
-    def __init__(self, PCAGrid, emulator_params, w_index):
-        #Construct the emulator using the sampled parameters.
+class Emulator:
+    def __init__(self, pca, eparams):
+        '''
+        Provide the emulation products.
 
-        self.PCAGrid = PCAGrid
+        :param pca: object storing the principal components, the eigenpsectra
+        :type pca: PCAGrid
+        :param eparams: Optimized GP hyperparameters.
+        :type eparams: 1D np.array
+        '''
 
-        #vector of weights
-        self.wvec = self.PCAGrid.w[w_index]
+        self.pca = pca
+        self.lambda_xi = eparams[0]
+        self.h2params = eparams[1:].reshape(self.pca.m, -1)**2
 
-        loga, lt, ll, lz = emulator_params
-        self.a2 = 10**(2 * loga)
-        self.lt2 = lt**2
-        self.ll2 = ll**2
-        self.lz2 = lz**2
+        #Determine the minimum and maximum bounds of the grid
+        self.min_params = np.min(self.pca.gparams, axis=0)
+        self.max_params = np.max(self.pca.gparams, axis=0)
 
-        C = sigma(self.PCAGrid.gparams, self.a2, self.lt2, self.ll2, self.lz2)
+        #self.eigenspectra = self.PCAGrid.eigenspectra
+        self.dv = self.pca.dv
+        self.wl = self.pca.wl
 
-        self.V11 = C
+        self.iPhiPhi = (1./self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
 
-        self._params = None #Where we want to interpolate
+        self.V11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
+
+        self._params = None # Where we want to interpolate
 
         self.V12 = None
         self.V22 = None
         self.mu = None
         self.sig = None
 
-    @property
-    def emulator_params(self):
-        #return np.concatenate((np.log10(self.lambda_p), self.lambda_w, self.rho_w))
-        pass
-
-    @emulator_params.setter
-    def emulator_params(self, emulator_params):
-        loga, lt, ll, lz = emulator_params
-        self.a2 = 10**(2 * loga)
-        self.lt2 = lt**2
-        self.ll2 = ll**2
-        self.lz2 = lz**2
-
-        C = sigma(self.PCAGrid.gparams, self.a2, self.lt2, self.ll2, self.lz2)
-
-        self.V11 = C
-
-    @property
-    def params(self):
-        return self._params
-
-    @params.setter
-    def params(self, pars):
-        #Assumes pars are coming in as Temp, logg, Z.
-        self._params = pars
-
-        #Do this according to R&W eqn 2.18, 2.19
-
-        #Recalculate V12, V21, and V22.
-        self.V12 = V12(self._params, self.PCAGrid.gparams, self.a2, self.lt2, self.ll2, self.lz2)
-        self.V22 = V22(self._params, self.a2, self.lt2, self.ll2, self.lz2)
-
-        #Recalculate the covariance
-        self.mu = self.V12.T.dot(np.linalg.solve(self.V11, self.wvec))
-        self.mu.shape = (-1)
-        self.sig = self.V22 - self.V12.T.dot(np.linalg.solve(self.V11, self.V12))
-
-    def draw_weights(self, *args):
-        '''
-        Using the current settings, draw a sample of PCA weights
-
-        If you call this with an arg that is an np.array, it will set the
-        emulator to these parameters first and then draw weights.
-
-        If no args are provided, the emulator uses the previous parameters but
-        redraws the weights, for use in seeing the full scatter.
-
-        If there are samples defined, it will also reseed the emulator
-        parameters by randomly draw a parameter combination from MCMC samples.
-        '''
-
-        if args:
-            params, *junk = args
-            self.params = params
-
-        if self.V12 is None:
-            print("No parameters are set, yet. Must set parameters first.")
-            return
-
-        return np.random.multivariate_normal(self.mu, self.sig)
-
-    def __call__(self, *args):
-        '''
-        If you call this with an arg that is an np.array, it will set the
-        emulator to these parameters first and then draw weights.
-
-        If no args are provided, then the emulator uses the previous parameters.
-
-        If there are samples defined, it will also reseed the emulator
-        parameters by randomly draw a parameter combination from MCMC samples.
-        '''
-
-        # Don't reset the parameters. We want to be using the optimized GP
-        # parameters so that the likelihood call is deterministic
-
-        if args:
-            params, *junk = args
-            self.params = params
-
-        if self.V12 is None:
-            print("No parameters are set, yet. Must set parameters first.")
-            return
-
-        return (self.mu, self.sig)
-
-class Emulator:
-    '''
-    Stores a Gaussian process for the weight of each principal component.
-    '''
-    def __init__(self, PCAGrid, optimized_params):
-        '''
-
-        :param weights_list: [w0s, w1s, w2s, ...]
-        :param samples_list:
-        '''
-        self.PCAGrid = PCAGrid
-
-        #Determine the minimum and maximum bounds of the grid
-        self.min_params = np.min(self.PCAGrid.gparams, axis=0)
-        self.max_params = np.max(self.PCAGrid.gparams, axis=0)
-
-        #self.eigenspectra = self.PCAGrid.eigenspectra
-        self.dv = self.PCAGrid.dv
-        self.wl = self.PCAGrid.wl
-
-        self.WEs = []
-        for weight_index, params in enumerate(optimized_params):
-            self.WEs.append(WeightEmulator(self.PCAGrid, params, weight_index))
-
     @classmethod
-    def open(cls, filename):
+    def open(cls, filename=Starfish.PCA["path"]):
         '''
         Create an Emulator object from an HDF5 file.
         '''
@@ -436,16 +345,16 @@ class Emulator:
         pcagrid = PCAGrid.open(filename)
         hdf5 = h5py.File(filename, "r")
 
-        params = hdf5["params"][:]
+        eparams = hdf5["eparams"][:]
         hdf5.close()
-        return cls(pcagrid, params)
+        return cls(pcagrid, eparams)
 
     def determine_chunk_log(self, wl_data):
         '''
         Possibly truncate the wl grid in response to some data. Also truncate eigenspectra, and flux_mean and flux_std.
         '''
-        self.PCAGrid.determine_chunk_log(wl_data)
-        self.wl = self.PCAGrid.wl
+        self.pca.determine_chunk_log(wl_data)
+        self.wl = self.pca.wl
 
     @property
     def params(self):
@@ -453,63 +362,44 @@ class Emulator:
 
     @params.setter
     def params(self, pars):
-        #Assumes pars are coming in as Temp, logg, Z.
-        #If the parameters are out of bounds, raise an error
-        if np.any(pars < self.min_params) or np.any(pars > self.max_params):
-            raise C.ModelError("Emulating outside of the grid.")
-
+        # Assumes pars is a single parameter combination, as a 1D np.array
         self._params = pars
 
-    def draw_weights(self, *args):
-        '''
-        Draw a weight from each WeightEmulator and return as an array.
-        '''
-        if args:
-            params, *junk = args
-            self.params = params
-        return np.array([WE.draw_weights(self._params) for WE in self.WEs])
+        # Do this according to R&W eqn 2.18, 2.19
 
-    def reconstruct_draw(self, *args):
-        '''
-        Reconstructing a spectrum. Taking the place of the old __call__ behavior.
-        '''
-        if args:
-            params, *junk = args
-            self.params = params
+        # Recalculate V12, V21, and V22.
+        self.V12 = V12(self._params, self.pca.gparams, self.h2params, self.pca.m)
+        self.V22 = V22(self._params, self.h2params, self.pca.m)
 
-        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
+        # Recalculate the covariance
+        self.mu = self.V12.T.dot(np.linalg.solve(self.V11, self.pca.w_hat))
+        self.mu.shape = (-1)
+        self.sig = self.V22 - self.V12.T.dot(np.linalg.solve(self.V11, self.V12))
+
+    @property
+    def matrix(self):
+        return (self.mu, self.sig)
+
+    def draw_weights(self):
+        '''
+        Using the current settings, draw a sample of PCA weights
+        '''
+
+        if self.V12 is None:
+            print("No parameters are set, yet. Must set parameters first.")
+            return
+
+        return np.random.multivariate_normal(self.mu, self.sig)
+
+    def reconstruct(self):
+        '''
+        Reconstructing a spectrum using a random draw of weights. In this case,
+        we are making the assumption that we are always drawing a weight at a
+        single stellar value.
+        '''
 
         weights = self.draw_weights()
-        recons = self.PCAGrid.eigenspectra.T.dot(weights).reshape(-1)
-        return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
-
-    def reconstruct(self, weights):
-        '''
-        Reconstructing a spectrum. Taking the place of the old __call__ behavior.
-        '''
-        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
-
-        recons = self.PCAGrid.eigenspectra.T.dot(weights).reshape(-1)
-        return recons * self.PCAGrid.flux_std + self.PCAGrid.flux_mean
-
-    def __call__(self, *args):
-        '''
-
-        :param params: [temp, logg, Z] numpy array
-
-        Same behavior as with WeightEmulator. Returns a two vectors of [mu_1, mu_2, ..., mu_m], [var_1, var_2, ...]
-        '''
-        if args:
-            params, *junk = args
-            self.params = params
-
-        #In this case, we are making the assumption that we are always drawing a weight at a single stellar value.
-        mu = np.empty((self.PCAGrid.ncomp,))
-        sig = np.empty((self.PCAGrid.ncomp,))
-        for i in range(self.PCAGrid.ncomp):
-            mu[i], sig[i] = self.WEs[i](self._params)
-
-        return mu, sig
+        return self.pca.reconstruct(weights)
 
 def main():
     pass
