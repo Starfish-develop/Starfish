@@ -19,6 +19,7 @@ from multiprocessing import Process, Pipe
 import os
 import numpy as np
 
+import Starfish
 from Starfish.model import StellarSampler, NuisanceSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
 from Starfish.grid_tools import SPEX, TRES
@@ -203,7 +204,7 @@ class OrderModel:
         self.Emulator = Emulator.open(config["PCA_path"]) # Returns mu and var vectors
         self.Emulator.determine_chunk_log(self.wl) # Truncates the grid to this wl format, power of 2
 
-        pg = self.Emulator.PCAGrid
+        pg = self.Emulator.pca
 
         self.wl_FFT = pg.wl
         self.ncomp = pg.ncomp
