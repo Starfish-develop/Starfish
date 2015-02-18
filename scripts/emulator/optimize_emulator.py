@@ -24,7 +24,7 @@ def lnprob(p):
 
     # We don't allow negative parameters.
     if np.any(p < 0.):
-        return 1e99
+        return -np.inf
 
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
