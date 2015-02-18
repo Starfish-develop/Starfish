@@ -39,11 +39,6 @@ def lnprob(p, fmin=False):
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
 
-    # print("lambda_xi", lambda_xi)
-    # for row in hparams:
-    #     print(row)
-    # print()
-
     # Calculate the prior for temp, logg, and Z
     priors = np.sum(Glnprior(hparams[:, 1], 2., 0.0075)) + np.sum(Glnprior(hparams[:, 2], 2., 0.75)) + np.sum(Glnprior(hparams[:, 3], 2., 0.75))
 
@@ -62,6 +57,12 @@ def lnprob(p, fmin=False):
 
     # Negate this when using the fmin algorithm
     if fmin:
+        print("lambda_xi", lambda_xi)
+        for row in hparams:
+            print(row)
+        print()
+        print(lnp)
+        
         return -lnp
     else:
         return lnp
