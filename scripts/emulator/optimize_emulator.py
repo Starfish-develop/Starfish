@@ -1,3 +1,10 @@
+import argparse
+parser = argparse.ArgumentParser(description="Optimize the emulator.")
+parser.add_argument("-m", "--min", action="store_true", help="Use fmin instead of emcee.")
+parser.add_argument("-f", "--fresh", action="store_true", help="Start from a good guess, rather than the previously stored parameters.")
+args = parser.parse_args()
+
+
 import Starfish
 from Starfish import emulator
 from Starfish.covariance import Sigma
@@ -12,7 +19,7 @@ PhiPhi = np.linalg.inv(emulator.skinny_kron(pca.eigenspectra, pca.M))
 def Glnprior(x, s, r):
     return s * np.log(r) + (s - 1.) * np.log(x) - r*x - math.lgamma(s)
 
-def lnprob(p):
+def lnprob(p, fmin=False):
     '''
 
     :param p: Gaussian Processes hyper-parameters
@@ -24,7 +31,10 @@ def lnprob(p):
 
     # We don't allow negative parameters.
     if np.any(p < 0.):
-        return -np.inf
+        if fmin:
+            return 1e99
+        else:
+            return -np.inf
 
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
@@ -51,25 +61,32 @@ def lnprob(p):
     # print(lnp)
 
     # Negate this when using the fmin algorithm
-    return lnp
+    if fmin:
+        return -lnp
+    else:
+        return lnp
 
 def minimize():
 
-    amp = 50.0
-    lt = 200.
-    ll = 1.25
-    lZ = 1.25
-    #
-    p0 = np.hstack((np.array([1., ]),
-    np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
+    if args.fresh():
 
-    # # Set lambda_xi separately
-    p0[0] = 0.3
+        amp = 50.0
+        lt = 200.
+        ll = 1.25
+        lZ = 1.25
+        #
+        p0 = np.hstack((np.array([1., ]),
+        np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
-    # p0 = np.load("eparams.npy")
+        # # Set lambda_xi separately
+        p0[0] = 0.3
+
+    else:
+        p0 = np.load("eparams.npy")
 
     from scipy.optimize import fmin
-    result = fmin(lnprob, p0)
+    func = lambda p : lnprob(p, fmin=True)
+    result = fmin(func, p0, maxiter=10000, maxfun=10000)
     print(result)
     np.save("eparams.npy", result)
 
@@ -80,24 +97,25 @@ def sample():
     nwalkers = 4 * ndim # about the minimum per dimension we can get by with
 
     # Assemble p0 based off either a guess or the previous state of walkers
+    if args.fresh:
+        p0 = []
+        # p0 is a (nwalkers, ndim) array
+        amp = [40.0, 150]
+        lt = [150., 300]
+        ll = [0.8, 1.65]
+        lZ = [0.8, 1.65]
 
-    p0 = []
-    # p0 is a (nwalkers, ndim) array
-    amp = [40.0, 150]
-    lt = [150., 300]
-    ll = [0.8, 1.65]
-    lZ = [0.8, 1.65]
+        p0.append(np.random.uniform(0.1, 1.0, nwalkers))
+        for i in range(pca.m):
+            p0 +=   [np.random.uniform(amp[0], amp[1], nwalkers),
+                    np.random.uniform(lt[0], lt[1], nwalkers),
+                    np.random.uniform(ll[0], ll[1], nwalkers),
+                    np.random.uniform(lZ[0], lZ[1], nwalkers)]
 
-    p0.append(np.random.uniform(0.1, 1.0, nwalkers))
-    for i in range(pca.m):
-        p0 +=   [np.random.uniform(amp[0], amp[1], nwalkers),
-                np.random.uniform(lt[0], lt[1], nwalkers),
-                np.random.uniform(ll[0], ll[1], nwalkers),
-                np.random.uniform(lZ[0], lZ[1], nwalkers)]
+        p0 = np.array(p0).T
 
-    p0 = np.array(p0).T
-
-    # p0 = np.load("walkers_start.npy")
+    else:
+        p0 = np.load("walkers_start.npy")
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
@@ -118,9 +136,10 @@ def main():
     # Set up starting parameters and see if lnprob evaluates.
     # p will have a length of 1 + (pca.m * (1 + len(Starfish.parname)))
 
-    # minimize(p0)
-    sample()
-
+    if args.min:
+        minimize()
+    else:
+        sample()
 
 
 if __name__=="__main__":
