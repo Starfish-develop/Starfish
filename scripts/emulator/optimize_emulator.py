@@ -3,6 +3,7 @@ from Starfish import emulator
 from Starfish.covariance import Sigma
 import numpy as np
 import math
+import multiprocessing as mp
 
 # Load the PCAGrid from the location specified in the config file
 pca = emulator.PCAGrid.open()
@@ -52,11 +53,8 @@ def lnprob(p):
     # Negate this since we are using the fmin algorithm
     return -lnp
 
+def minimize():
 
-def main():
-
-    # Set up starting parameters and see if lnprob evaluates.
-    # p will have a length of 1 + (pca.m * (1 + len(Starfish.parname)))
     amp = 50.0
     lt = 200.
     ll = 1.25
@@ -70,12 +68,59 @@ def main():
 
     # p0 = np.load("eparams.npy")
 
-    print(lnprob(p0))
-
     from scipy.optimize import fmin
     result = fmin(lnprob, p0)
     print(result)
     np.save("eparams.npy", result)
+
+def sample():
+    import emcee
+
+    ndim = 1 + (1 + len(Starfish.parname)) * pca.m
+    print(ndim)
+    nwalkers = 4 * ndim # about the minimum per dimension we can get by with
+    print(nwalkers)
+
+    # Assemble p0 based off either a guess or the previous state of walkers
+
+    p0 = []
+    # p0 is a (nwalkers, ndim) array
+    amp = [40.0, 100]
+    lt = [150., 300]
+    ll = [0.8, 1.65]
+    lZ = [0.8, 1.65]
+
+    p0.append(np.random.uniform(0.1, 1.0, nwalkers))
+    block = [np.random.uniform(amp[0], amp[1], nwalkers),
+            np.random.uniform(lt[0], lt[1], nwalkers),
+            np.random.uniform(ll[0], ll[1], nwalkers),
+            np.random.uniform(lZ[0], lZ[1], nwalkers)]
+    for i in range(pca.m):
+        p0 += block
+
+    p0 = np.array(p0).T
+
+    # p0 = np.load("eparams_walkers.npy")
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
+
+    # burn in
+    sampler.run_mcmc(p0, 20)
+    sampler.reset()
+
+    # actual run
+    sampler.run_mcmc(p0, 100)
+
+    np.save("eparams.npy", sampler.flatchain)
+
+def main():
+
+    # Set up starting parameters and see if lnprob evaluates.
+    # p will have a length of 1 + (pca.m * (1 + len(Starfish.parname)))
+
+    # minimize(p0)
+    sample()
+
 
 
 if __name__=="__main__":
