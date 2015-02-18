@@ -62,14 +62,14 @@ def lnprob(p, fmin=False):
             print(row)
         print()
         print(lnp)
-        
+
         return -lnp
     else:
         return lnp
 
 def minimize():
 
-    if args.fresh():
+    if args.fresh
 
         amp = 50.0
         lt = 200.
