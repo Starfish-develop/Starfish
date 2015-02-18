@@ -81,35 +81,37 @@ def sample():
 
     # Assemble p0 based off either a guess or the previous state of walkers
 
-    # p0 = []
-    # # p0 is a (nwalkers, ndim) array
-    # amp = [40.0, 100]
-    # lt = [150., 300]
-    # ll = [0.8, 1.65]
-    # lZ = [0.8, 1.65]
-    #
-    # p0.append(np.random.uniform(0.1, 1.0, nwalkers))
-    # block = [np.random.uniform(amp[0], amp[1], nwalkers),
-    #         np.random.uniform(lt[0], lt[1], nwalkers),
-    #         np.random.uniform(ll[0], ll[1], nwalkers),
-    #         np.random.uniform(lZ[0], lZ[1], nwalkers)]
-    # for i in range(pca.m):
-    #     p0 += block
-    #
-    # p0 = np.array(p0).T
+    p0 = []
+    # p0 is a (nwalkers, ndim) array
+    amp = [40.0, 100]
+    lt = [150., 300]
+    ll = [0.8, 1.65]
+    lZ = [0.8, 1.65]
 
-    p0 = np.load("eparams_walkers.npy")
+    p0.append(np.random.uniform(0.1, 1.0, nwalkers))
+    block = [np.random.uniform(amp[0], amp[1], nwalkers),
+            np.random.uniform(lt[0], lt[1], nwalkers),
+            np.random.uniform(ll[0], ll[1], nwalkers),
+            np.random.uniform(lZ[0], lZ[1], nwalkers)]
+    for i in range(pca.m):
+        p0 += block
+
+    p0 = np.array(p0).T
+
+    # p0 = np.load("walkers_start.npy")
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
     # burn in
-    sampler.run_mcmc(p0, 500)
+    pos, prob, state = sampler.run_mcmc(p0, 500)
     sampler.reset()
     print("Burned in")
 
     # actual run
-    sampler.run_mcmc(p0, 500)
+    sampler.run_mcmc(pos, 500)
 
+    # Save the last position of the walkers
+    np.save("walkers_start.npy", sampler.chain[:,-1,:])
     np.save("eparams_walkers.npy", sampler.flatchain)
 
 def main():
