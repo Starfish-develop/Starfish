@@ -50,8 +50,8 @@ def lnprob(p):
     lnp = -0.5 * (pref + central + pca.M * pca.m * np.log(2. * np.pi)) + priors
     print(lnp)
 
-    # Negate this since we are using the fmin algorithm
-    return -lnp
+    # Negate this when using the fmin algorithm
+    return lnp
 
 def minimize():
 
