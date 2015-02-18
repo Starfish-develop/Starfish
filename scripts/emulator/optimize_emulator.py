@@ -29,10 +29,10 @@ def lnprob(p):
     lambda_xi = p[0]
     hparams = p[1:].reshape((pca.m, -1))
 
-    print("lambda_xi", lambda_xi)
-    for row in hparams:
-        print(row)
-    print()
+    # print("lambda_xi", lambda_xi)
+    # for row in hparams:
+    #     print(row)
+    # print()
 
     # Calculate the prior for temp, logg, and Z
     priors = np.sum(Glnprior(hparams[:, 1], 2., 0.0075)) + np.sum(Glnprior(hparams[:, 2], 2., 0.75)) + np.sum(Glnprior(hparams[:, 3], 2., 0.75))
@@ -77,41 +77,40 @@ def sample():
     import emcee
 
     ndim = 1 + (1 + len(Starfish.parname)) * pca.m
-    print(ndim)
     nwalkers = 4 * ndim # about the minimum per dimension we can get by with
-    print(nwalkers)
 
     # Assemble p0 based off either a guess or the previous state of walkers
 
-    p0 = []
-    # p0 is a (nwalkers, ndim) array
-    amp = [40.0, 100]
-    lt = [150., 300]
-    ll = [0.8, 1.65]
-    lZ = [0.8, 1.65]
+    # p0 = []
+    # # p0 is a (nwalkers, ndim) array
+    # amp = [40.0, 100]
+    # lt = [150., 300]
+    # ll = [0.8, 1.65]
+    # lZ = [0.8, 1.65]
+    #
+    # p0.append(np.random.uniform(0.1, 1.0, nwalkers))
+    # block = [np.random.uniform(amp[0], amp[1], nwalkers),
+    #         np.random.uniform(lt[0], lt[1], nwalkers),
+    #         np.random.uniform(ll[0], ll[1], nwalkers),
+    #         np.random.uniform(lZ[0], lZ[1], nwalkers)]
+    # for i in range(pca.m):
+    #     p0 += block
+    #
+    # p0 = np.array(p0).T
 
-    p0.append(np.random.uniform(0.1, 1.0, nwalkers))
-    block = [np.random.uniform(amp[0], amp[1], nwalkers),
-            np.random.uniform(lt[0], lt[1], nwalkers),
-            np.random.uniform(ll[0], ll[1], nwalkers),
-            np.random.uniform(lZ[0], lZ[1], nwalkers)]
-    for i in range(pca.m):
-        p0 += block
-
-    p0 = np.array(p0).T
-
-    # p0 = np.load("eparams_walkers.npy")
+    p0 = np.load("eparams_walkers.npy")
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
     # burn in
-    sampler.run_mcmc(p0, 20)
+    sampler.run_mcmc(p0, 500)
     sampler.reset()
+    print("Burned in")
 
     # actual run
-    sampler.run_mcmc(p0, 100)
+    sampler.run_mcmc(p0, 500)
 
-    np.save("eparams.npy", sampler.flatchain)
+    np.save("eparams_walkers.npy", sampler.flatchain)
 
 def main():
 
