@@ -48,7 +48,7 @@ def lnprob(p):
     central = pca.w_hat.T.dot(np.linalg.solve(C, pca.w_hat))
 
     lnp = -0.5 * (pref + central + pca.M * pca.m * np.log(2. * np.pi)) + priors
-    print(lnp)
+    # print(lnp)
 
     # Negate this when using the fmin algorithm
     return lnp
@@ -83,18 +83,17 @@ def sample():
 
     p0 = []
     # p0 is a (nwalkers, ndim) array
-    amp = [40.0, 100]
+    amp = [40.0, 150]
     lt = [150., 300]
     ll = [0.8, 1.65]
     lZ = [0.8, 1.65]
 
     p0.append(np.random.uniform(0.1, 1.0, nwalkers))
-    block = [np.random.uniform(amp[0], amp[1], nwalkers),
-            np.random.uniform(lt[0], lt[1], nwalkers),
-            np.random.uniform(ll[0], ll[1], nwalkers),
-            np.random.uniform(lZ[0], lZ[1], nwalkers)]
     for i in range(pca.m):
-        p0 += block
+        p0 +=   [np.random.uniform(amp[0], amp[1], nwalkers),
+                np.random.uniform(lt[0], lt[1], nwalkers),
+                np.random.uniform(ll[0], ll[1], nwalkers),
+                np.random.uniform(lZ[0], lZ[1], nwalkers)]
 
     p0 = np.array(p0).T
 
@@ -103,15 +102,15 @@ def sample():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
     # burn in
-    pos, prob, state = sampler.run_mcmc(p0, 500)
+    pos, prob, state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     print("Burned in")
 
     # actual run
-    sampler.run_mcmc(pos, 500)
+    pos, prob, state = sampler.run_mcmc(pos, 100)
 
     # Save the last position of the walkers
-    np.save("walkers_start.npy", sampler.chain[:,-1,:])
+    np.save("walkers_start.npy", pos)
     np.save("eparams_walkers.npy", sampler.flatchain)
 
 def main():
