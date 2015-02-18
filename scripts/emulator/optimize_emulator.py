@@ -122,12 +122,12 @@ def sample():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
     # burn in
-    pos, prob, state = sampler.run_mcmc(p0, par.samples)
+    pos, prob, state = sampler.run_mcmc(p0, args.samples)
     sampler.reset()
     print("Burned in")
 
     # actual run
-    pos, prob, state = sampler.run_mcmc(pos, par.samples)
+    pos, prob, state = sampler.run_mcmc(pos, args.samples)
 
     # Save the last position of the walkers
     np.save("walkers_start.npy", pos)
