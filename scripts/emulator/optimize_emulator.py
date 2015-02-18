@@ -2,6 +2,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Optimize the emulator.")
 parser.add_argument("-m", "--min", action="store_true", help="Use fmin instead of emcee.")
 parser.add_argument("-f", "--fresh", action="store_true", help="Start from a good guess, rather than the previously stored parameters.")
+parser.add_argument("-s", "--samples", type=int, default=100, help="How many iterations for burn in and for sampling.")
 args = parser.parse_args()
 
 
@@ -121,12 +122,12 @@ def sample():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
 
     # burn in
-    pos, prob, state = sampler.run_mcmc(p0, 100)
+    pos, prob, state = sampler.run_mcmc(p0, par.samples)
     sampler.reset()
     print("Burned in")
 
     # actual run
-    pos, prob, state = sampler.run_mcmc(pos, 100)
+    pos, prob, state = sampler.run_mcmc(pos, par.samples)
 
     # Save the last position of the walkers
     np.save("walkers_start.npy", pos)
