@@ -34,7 +34,7 @@ def lnprob(p):
     print()
 
     # Calculate the prior for temp, logg, and Z
-    priors = np.sum(Glnprior(hparams[:, 1], 2., 0.013)) + np.sum(Glnprior(hparams[:, 2], 2., 1.6)) + np.sum(Glnprior(hparams[:, 3], 2., 1.6))
+    priors = np.sum(Glnprior(hparams[:, 1], 2., 0.0075)) + np.sum(Glnprior(hparams[:, 2], 2., 0.75)) + np.sum(Glnprior(hparams[:, 3], 2., 0.75))
 
     h2params = hparams**2
     #Fold hparams into the new shape
@@ -57,18 +57,18 @@ def main():
 
     # Set up starting parameters and see if lnprob evaluates.
     # p will have a length of 1 + (pca.m * (1 + len(Starfish.parname)))
-    # amp = 50.0
-    # lt = 100.
-    # ll = 0.5
-    # lZ = 0.5
-    # #
-    # p0 = np.hstack((np.array([1., ]),
-    # np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
+    amp = 50.0
+    lt = 200.
+    ll = 1.25
+    lZ = 1.25
     #
-    # # # Set lambda_xi separately
-    # p0[0] = 0.3
+    p0 = np.hstack((np.array([1., ]),
+    np.hstack([np.array([amp, lt, ll, lZ]) for i in range(pca.m)]) ))
 
-    p0 = np.load("eparams.npy")
+    # # Set lambda_xi separately
+    p0[0] = 0.3
+
+    # p0 = np.load("eparams.npy")
 
     print(lnprob(p0))
 
