@@ -143,6 +143,12 @@ class PCAGrid:
         comp = pca.transform(fluxes)
         components = pca.components_
         mean = pca.mean_
+        variance_ratio = pca.explained_variance_ratio_
+
+        import matplotlib.pyplot as plt
+        plt.plot(np.arange(M), variance_ratio))
+        plt.savefig("explained_variance.png")
+
         print("Shape of PCA components {}".format(components.shape))
 
         if not np.allclose(mean, np.zeros_like(mean)):

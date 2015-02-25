@@ -255,8 +255,7 @@ class OrderModel:
         self.noutdir = outdir + "{}/{}/".format(self.spectrum_id, self.order)
 
         # Create the nuisance parameter sampler to run independently
-        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov,
-                                       debug=True, outdir=self.noutdir, order=self.order)
+        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov, debug=True, outdir=self.noutdir, order=self.order)
         self.p0 = self.sampler.p0
 
         # Udpate the nuisance parameters to the starting values so that we at
@@ -342,8 +341,7 @@ class OrderModel:
         print("cov shape {}".format(nuisance_MH_cov.shape))
 
         # Initialize a new sampler, replacing the old one
-        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov,
-                                       debug=True, outdir=self.noutdir, prior_params=prior_params, order=self.order)
+        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov, debug=True, outdir=self.noutdir, prior_params=prior_params, order=self.order)
 
         self.p0 = self.sampler.p0
 
