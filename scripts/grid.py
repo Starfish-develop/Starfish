@@ -49,5 +49,7 @@ if args.action == "plot":
         ax.set_title(name)
         fig.savefig(Starfish.config["plotdir"] + "g" + name + ".png")
 
+        plt.close("all")
+
     p = mp.Pool(mp.cpu_count())
     p.map(plot, par_fluxes)
