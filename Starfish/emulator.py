@@ -99,7 +99,7 @@ class PCAGrid:
 
 
     @classmethod
-    def create(cls, interface, ncomp=Starfish.PCA["ncomp"]):
+    def create(cls, interface):
         '''
         Create a PCA grid object from a synthetic spectral library, with
         configuration options specified in a dictionary.
@@ -138,16 +138,19 @@ class PCAGrid:
         fluxes /= flux_std
 
         # Use the scikit-learn PCA module
-        pca = PCA()
+        # Automatically select enough components to explain > threshold (say
+        # 0.99, or 99%) of the variance.
+        pca = PCA(n_components=Starfish.PCA["threshold"])
         pca.fit(fluxes)
         comp = pca.transform(fluxes)
         components = pca.components_
         mean = pca.mean_
         variance_ratio = pca.explained_variance_ratio_
 
-        import matplotlib.pyplot as plt
-        plt.plot(np.arange(M), variance_ratio)
-        plt.savefig("explained_variance.png")
+        ncomp = len(components)
+
+        print("found {} components explaining {}% of the" \
+              " variance".format(ncomp, 100* Starfish.PCA["threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
 
@@ -156,8 +159,9 @@ class PCAGrid:
             sys.exit("PCA mean is more than just numerical noise. Something's wrong!")
             # Otherwise, the PCA mean is just numerical noise that we can ignore.
 
-        print("Keeping only the first {} components".format(ncomp))
-        eigenspectra = components[0:ncomp]
+        #print("Keeping only the first {} components".format(ncomp))
+        #eigenspectra = components[0:ncomp]
+        eigenspectra = components[:]
 
         gparams = interface.grid_points
 
@@ -296,7 +300,7 @@ class PCAGrid:
 
     def reconstruct_all(self):
         '''
-        Return a (m, npix) array with all of the spectra reconstructed.
+        Return a (M, npix) array with all of the spectra reconstructed.
         '''
         recon_fluxes = np.empty((self.M, self.npix))
         for i in range(self.M):

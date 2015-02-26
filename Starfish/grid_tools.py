@@ -534,17 +534,24 @@ class HDF5Creator:
         #   of the FFT, spaced with a ``dv`` such that we respect the remaining
         #   Fourier modes: ``self.wl_final``
 
-        inst_min, inst_max = self.Instrument.wl_range
-        buffer = 50. # [AA]
+        # There are three ranges to consider when wanting to make a grid:
+        # 1. The full range of the synthetic library
+        # 2. The full range of the instrument/dataset
+        # 3. The range specified by the user in config.yaml
+        # For speed reasons, we will always truncate to to wl_range. If either
+        # the synthetic library or the instrument library is smaller than this range,
+        # raise an error.
 
-        # If the raw synthetic grid doesn't span the full range of the instrument,
-        # use only the full wavelength range of the synthetic grid
-        if (self.wl_native[0] > inst_min) or (self.wl_native[-1] < inst_max):
-            wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
-        # Otherwise, use the edges specified by the instrument, plus a little buffer.
-        else:
-            wl_min = inst_min - buffer
-            wl_max = inst_max + buffer
+        #inst_min, inst_max = self.Instrument.wl_range
+        wl_min, wl_max = Starfish.grid["wl_range"]
+        buffer = Starfish.grid["buffer"] # [AA]
+        wl_min -= buffer
+        wl_max += buffer
+
+        # If the raw synthetic grid doesn't span the full range of the user
+        # specified grid, raise an error.
+        if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
+            raise C.GridError("Synthetic grid does not encapsulate chosen wl_range in config.yaml")
 
         # Calculate wl_FFT
         # use the dv that preserves the native quality of the raw PHOENIX grid
