@@ -107,7 +107,7 @@ def sample():
         ll = [0.8, 1.65]
         lZ = [0.8, 1.65]
 
-        p0.append(np.random.uniform(0.1, 1.0, nwalkers))
+        p0.append(np.random.uniform(0.01, 1.0, nwalkers))
         for i in range(pca.m):
             p0 +=   [np.random.uniform(amp[0], amp[1], nwalkers),
                     np.random.uniform(lt[0], lt[1], nwalkers),
