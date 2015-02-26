@@ -300,7 +300,7 @@ class PCAGrid:
 
     def reconstruct_all(self):
         '''
-        Return a (m, npix) array with all of the spectra reconstructed.
+        Return a (M, npix) array with all of the spectra reconstructed.
         '''
         recon_fluxes = np.empty((self.M, self.npix))
         for i in range(self.M):
