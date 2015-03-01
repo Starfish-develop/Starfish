@@ -12,15 +12,17 @@ parser.add_argument("--optimize", choices=["fmin", "emcee"], help="Optimize the 
 parser.add_argument("--resume", action="store_true", help="Designed to be used with the --optimize flag to continue from the previous set of parameters. If this is left off, the chain will start from your initial guess specified in config.yaml.")
 
 parser.add_argument("--samples", type=int, default=100, help="Number of samples to run the emcee ensemble sampler.")
+parser.add_argument("--params", choices=["fmin", "emcee"], help="Which optimized parameters to use.")
 args = parser.parse_args()
 
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
+import itertools
 import Starfish
 from Starfish import emulator
 from Starfish.grid_tools import HDF5Interface
-from Starfish.emulator import PCAGrid, Gprior, Glnprior
+from Starfish.emulator import PCAGrid, Gprior, Glnprior, Emulator
 from Starfish.covariance import Sigma
 
 
@@ -221,3 +223,122 @@ if args.plot == "emcee":
         figure = triangle.corner(flatchain[:, start:end], quantiles=[0.16, 0.5, 0.84],
             plot_contours=True, plot_datapoints=False, show_titles=True, labels=labels)
         figure.savefig(Starfish.config["plotdir"] + "triangle_{}.png".format(i))
+
+if args.plot == "emulator":
+
+    my_pca = PCAGrid.open()
+
+    if args.params == "fmin":
+        eparams = np.load("eparams.npy")
+    elif args.params == "emcee":
+        eparams = np.median(np.load("eparams_walkers.npy"), axis=0)
+        print("Using emcee median")
+    else:
+        import sys
+        sys.exit()
+
+    # Print out the emulator parameters in an easily-readable format
+    lambda_xi = eparams[0]
+    hparams = eparams[1:].reshape((my_pca.m, -1))
+    print("Emulator parameters are:")
+    print("lambda_xi", lambda_xi)
+    for row in hparams:
+        print(row)
+
+    emulator = Emulator(my_pca, eparams)
+
+    # We will want to produce interpolated plots spanning each parameter dimension,
+    # for each eigenspectrum.
+
+    # Create a list of parameter blocks.
+    # Go through each parameter, and create a list of all parameter combination of
+    # the other two parameters.
+    unique_points = [np.unique(my_pca.gparams[:, i]) for i in range(len(Starfish.parname))]
+    blocks = []
+    for ipar, pname in enumerate(Starfish.parname):
+        upars = unique_points.copy()
+        dim = upars.pop(ipar)
+        ndim = len(dim)
+
+        # use itertools.product to create permutations of all possible values
+        par_combos = itertools.product(*upars)
+
+        # Now, we want to create a list of parameters in the original order.
+        for static_pars in par_combos:
+            par_list = []
+            for par in static_pars:
+                par_list.append( par * np.ones((ndim,)))
+
+            # Insert the changing dim in the right location
+            par_list.insert(ipar, dim)
+
+            blocks.append(np.vstack(par_list).T)
+
+
+    # Now, this function takes a parameter block and plots all of the eigenspectra.
+    npoints = 40 # How many points to include across the active dimension
+    ndraw = 8 # How many draws from the emulator to use
+
+    def plot_block(block):
+        # block specifies the parameter grid points
+        # fblock defines a parameter grid that is finer spaced than the gridpoints
+
+        # Query for the weights at the grid points.
+        ww = np.empty((len(block), my_pca.m))
+        for i,param in enumerate(block):
+            weights = my_pca.get_weights(param)
+            ww[i, :] = weights
+
+        # Determine the active dimension by finding the one that has unique > 1
+        uni = np.array([len(np.unique(block[:, i])) for i in range(len(Starfish.parname))])
+        active_dim = np.where(uni > 1)[0][0]
+
+        ublock = block.copy()
+        ablock = ublock[:,active_dim]
+        ublock = np.delete(ublock, active_dim, axis=1)
+        nactive = len(ablock)
+
+        fblock = []
+        for par in ublock[0, :]:
+            # Create a space of the parameter the same length as the active
+            fblock.append(par * np.ones((npoints,)))
+
+        # find min and max of active dim. Create a linspace of `npoints` spanning from
+        # min to max
+        active = np.linspace(ablock[0], ablock[-1], npoints)
+
+        fblock.insert(active_dim, active)
+        fgrid = np.vstack(fblock).T
+
+        # Draw multiple times at the location.
+        weight_draws = []
+        for i in range(ndraw):
+            weight_draws.append(emulator.draw_many_weights(fgrid))
+
+        # Now make all of the plots
+        for eig_i in range(my_pca.m):
+            fig, ax = plt.subplots(nrows=1, figsize=(6,6))
+
+            x0 = block[:, active_dim] # x-axis
+            # Weight values at grid points
+            y0 = ww[:, eig_i]
+            ax.plot(x0, y0, "bo")
+
+            x1 = fgrid[:, active_dim]
+            for i in range(ndraw):
+                y1 = weight_draws[i][:, eig_i]
+                ax.plot(x1, y1)
+
+            ax.set_ylabel(r"$w_{:}$".format(eig_i))
+            ax.set_xlabel(Starfish.parname[active_dim])
+
+            fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(["{:.1f}".format(ub) for ub in ublock[0, :]])
+
+            fig.savefig(Starfish.config["plotdir"] + fstring + ".png")
+
+            plt.close('all')
+
+
+    # Create a pool of workers and map the plotting to these.
+    p = mp.Pool(mp.cpu_count() - 1)
+    p.map(plot_block, blocks)
