@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 from sklearn.decomposition import PCA
+import math
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
@@ -59,6 +60,12 @@ def skinny_kron(eigenspectra, M):
             j = jj * M + (i % M)
             out[i, j] = dots[ii, jj]
     return out
+
+def Gprior(x, s, r):
+    return r**s * x**(s - 1) * np.exp(- x * r) / math.gamma(s)
+
+def Glnprior(x, s, r):
+    return s * np.log(r) + (s - 1.) * np.log(x) - r*x - math.lgamma(s)
 
 class PCAGrid:
     '''
