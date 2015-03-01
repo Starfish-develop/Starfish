@@ -204,7 +204,8 @@ if args.plot == "emcee":
     import triangle
 
     # figure out how many separate triangle plots we need to make
-    npar = len(Starfish.parname)
+    npar = len(Starfish.parname) + 1
+    labels = ["amp"] + Starfish.parname
 
     # Make a histogram of lambda xi
     plt.hist(flatchain[:,0], histtype="step", normed=True)
@@ -218,5 +219,5 @@ if args.plot == "emcee":
         start = 1 + i * npar
         end = 1 + (i + 1) * npar
         figure = triangle.corner(flatchain[:, start:end], quantiles=[0.16, 0.5, 0.84],
-            plot_contours=True, plot_datapoints=False, show_titles=True, labels=Starfish.parname)
-        figure.savefig("triangle_{}.png".format(i))
+            plot_contours=True, plot_datapoints=False, show_titles=True, labels=labels)
+        figure.savefig(Starfish.config["plotdir"] + "triangle_{}.png".format(i))
