@@ -44,9 +44,8 @@ if args.action == "plot":
         ax.plot(interface.wl, flux)
         ax.set_xlabel(r"$\lambda$ [AA]")
         ax.set_ylabel(r"$f_\lambda$")
-        fmt = "_".join(["{:.2f}" for i in range(len(Starfish.parname))])
+        fmt = "=".join(["{:.2f}" for i in range(len(Starfish.parname))])
         name = fmt.format(*[p for p in par])
-        ax.set_title(name)
         fig.savefig(Starfish.config["plotdir"] + "g" + name + ".png")
 
         plt.close("all")

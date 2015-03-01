@@ -672,8 +672,7 @@ class HDF5Creator:
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
 
-    def __del__(self):
-        self.hdf5.close()
+        self.hdf5.close()    
 
 
 class HDF5Interface:
