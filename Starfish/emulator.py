@@ -86,7 +86,7 @@ class PCAGrid:
         :param eigenspectra: the principal component eigenspectra
         :type eigenspectra: 2D np.array
         :param w: weights to reproduce any spectrum in the original grid
-        :type w: 1D np.array
+        :type w: 2D np.array (m, M)
         :param gparams: The stellar parameters of the synthetic library
         :type gparams: 2D array of parameters (nspec, nparam)
 
