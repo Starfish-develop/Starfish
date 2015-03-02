@@ -4,7 +4,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Create and manipulate a PCA decomposition of the synthetic spectral library.")
 parser.add_argument("--create", action="store_true", help="Create a PCA decomposition.")
 
-parser.add_argument("--plot", choices=["reconstruct", "priors", "emcee",
+parser.add_argument("--plot", choices=["reconstruct", "eigenspectra", "priors", "emcee",
                                        "emulator"], help="reconstruct: plot the original synthetic spectra vs. the PCA reconstructed spectra.\n priors: plot the chosen priors on the parameters emcee: plot the triangle diagram for the result of the emcee optimization. emulator: plot weight interpolations")
 
 parser.add_argument("--optimize", choices=["fmin", "emcee"], help="Optimize the emulator using either a downhill simplex algorithm or the emcee ensemble sampler algorithm.")
@@ -69,6 +69,33 @@ if args.plot == "reconstruct":
 
     p = mp.Pool(mp.cpu_count())
     p.map(plot, data)
+
+if args.plot == "eigenspectra":
+    my_HDF5 = HDF5Interface()
+    my_pca = PCAGrid.open()
+
+    row_height = 3 # in
+    margin = 0.5 # in
+
+    fig_height = my_pca.m * (row_height + margin) + margin
+    fig_width = 14 # in
+
+    fig = plt.figure(figsize=(fig_width, fig_height))
+
+    for i in range(my_pca.m):
+
+        ax = plt.subplot2grid((my_pca.m, 4), (i, 0), colspan=3)
+        ax.plot(my_pca.wl, my_pca.eigenspectra[i])
+        ax.set_xlabel(r"$\lambda$ [AA]")
+        ax.set_ylabel(r"$\xi_{}$".format(i))
+
+        ax = plt.subplot2grid((my_pca.m, 4), (i, 3))
+        ax.hist(my_pca.w[i], histtype="step", normed=True)
+        ax.set_xlabel(r"$w_{}$".format(i))
+        ax.set_ylabel("count")
+
+    fig.subplots_adjust(wspace=0.3, left=0.1, right=0.98, bottom=0.1, top=0.98)
+    fig.savefig(Starfish.config["plotdir"] + "eigenspectra.png")
 
 
 if args.plot == "priors":

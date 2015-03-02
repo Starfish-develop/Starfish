@@ -26,6 +26,9 @@ Then, we will want to make the PCA grid, and do many other things regarding opti
     # create the grid using settings in config.yaml
     pca.py --create
 
+    # Plot all of the eigenspectra and the histogram of weights
+    pca.py --plot=eigenspectra
+
     # reconstruct the grid at the synthetic grid points, plotting the difference
     pca.py --plot=reconstruct
 
