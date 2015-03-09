@@ -20,7 +20,6 @@ From within this local directory, we will want to create the grid.
 
 Here we should also have some routines to plot the various spectra within the grid to make sure everything looks as we want.
 
-
 Then, we will want to make the PCA grid, and do many other things regarding optimization and final plotting. These are all done through the `pca.py` script.
 
     # create the grid using settings in config.yaml
@@ -41,7 +40,7 @@ Then, we will want to make the PCA grid, and do many other things regarding opti
     # Optimize the emulator starting from fresh parameter combinations
     pca.py --optimize=fmin --resume
 
-    # Optimize using emcee
+    # OR optimize using emcee
     # default samples = 100
     pca.py --optimize=emcee --samples=100
     pca.py --optimize=emcee --resume
@@ -51,7 +50,32 @@ Then, we will want to make the PCA grid, and do many other things regarding opti
 
     # Make some plots showing weight interpolations using the emulator
     pca.py --plot=emulator --params=fmin
+    # OR
     pca.py --plot=emulator --params=emcee
+
+    # Once you've OK'd the parameters, then store them to the HDF5 file
+    pca.py --store --params=fmin
+    # OR
+    pca.py --store --params=emcee
 
 
 After doing some more analysis, we'll want to make a bunch of plots showing the scatter of interpolated spectra against what the gridpoint spectrum looks like.
+
+Now that you've optimized the emulator for the specific spectrum you'd like to fit, we can use a series of tools to fit the spectrum. Further customization will require writing your own python scripts.
+
+These codes are much simpler and just output everything to the local directory.
+
+Optimize the grid and observational parameters (:math:`\Theta`)
+
+    star.py --optimize=Theta
+    star.py --sample=Theta
+
+Optimize the noise parameters (:math:`\Phi`)
+
+    star.py --optimize=Phi
+
+    star.py --optimize=Phi --regions
+
+Using the parallel code, sample both :math:`\Theta` and :math:`\Phi` at the same time. This code is more robust and actually sets up directories for output and everything.
+
+    pstar.py
