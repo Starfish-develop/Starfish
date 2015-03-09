@@ -251,7 +251,7 @@ class PCAGrid:
 
         return pcagrid
 
-    def determine_chunk_log(self, wl_data):
+    def determine_chunk_log(self, wl_data, buffer=Starfish.grid["buffer"]):
         '''
         Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
         response to some data.
@@ -263,10 +263,14 @@ class PCAGrid:
 
         # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
+
+        wl_min -= buffer
+        wl_max += buffer
+
         ind = determine_chunk_log(self.wl, wl_min, wl_max)
 
         assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),\
-            "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
+            "PCA/emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
             "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),\
             max(self.wl[ind]), wl_min, wl_max)
 

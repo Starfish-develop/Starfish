@@ -1,18 +1,15 @@
-# Parallel implementation for sampling a multi-order echelle spectrum. Because the likelihood
-# calculation is independent for each order, the runtime is essentially constant regardless
-# of how large a spectral range is used.
+# Parallel implementation for sampling a multi-order echelle spectrum.
+# Because the likelihood calculation is independent for each order, the
+# runtime is essentially constant regardless of how large a spectral range is used.
 
 # Additionally, one could use this to fit multiple stars at once.
 
 import argparse
-parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish"
-" fitting model in parallel.")
-parser.add_argument("input", help="*.yaml file specifying parameters.")
-parser.add_argument("-r", "--run_index", help="Which run (of those running "
-"concurrently) is this? All data will be written into this directory, "
-"overwriting any that exists.")
-parser.add_argument("-p", "--perturb", type=float, help="Randomly perturb the "
-"starting position of the chain, as a multiple of the jump parameters.")
+parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish fitting model in parallel.")
+parser.add_argument("-r", "--run_index", help="Which run (of those running concurrently) is this? All data will be written into this directory, overwriting any that exists.")
+parser.add_argument("-p", "--perturb", type=float, help="Randomly perturb the starting position of the chain, as a multiple of the jump parameters.")
+parser.add_argument("--optimize", choices=["Phi", "Theta"], help="Optimize the parameters using fmin.")
+parser.add_argument("--sample", choices=["Phi", "Theta"], help="Sample the parameters.")
 args = parser.parse_args()
 
 from multiprocessing import Process, Pipe
@@ -20,9 +17,9 @@ import os
 import numpy as np
 
 import Starfish
-from Starfish.model import StellarSampler, NuisanceSampler
+import Starfish.grid_tools
+from Starfish.samplers import StellarSampler, NuisanceSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
-from Starfish.grid_tools import SPEX, TRES
 from Starfish.emulator import Emulator
 import Starfish.constants as C
 from Starfish.covariance import get_dense_C, make_k_func
@@ -42,65 +39,60 @@ from operator import itemgetter
 import yaml
 import shutil
 
-f = open(args.input)
-config = yaml.load(f)
-f.close()
+# If we are sampling, then we need to setup output directories to store the samples and other output products. If we're sampling, we probably want to be running multiple chains at once, and so we have to set things up so that they don't conflict.
+if args.sample:
+    base = Starfish.outdir + Starfish.name + "run{:0>2}/"
+    # This code is necessary for multiple simultaneous runs on a cluster
+    # so that different runs do not write into the same output directory
+    if args.run_index == None:
+        run_index = 0
+        while os.path.exists(base.format(run_index)):
+            print(base.format(run_index), "exists")
+            run_index += 1
+        outdir = base.format(run_index)
 
-outdir = config['outdir']
-name = config['name']
-base = outdir + name + "run{:0>2}/"
+    else:
+        run_index = args.run_index
+        outdir = base.format(run_index)
+        #Delete this outdir, if it exists
+        if os.path.exists(outdir):
+            print("Deleting", outdir)
+            shutil.rmtree(outdir)
 
-# This code is necessary for multiple simultaneous runs on odyssey
-# so that different runs do not write into the same output directory
-if args.run_index == None:
-    run_index = 0
-    while os.path.exists(base.format(run_index)) and (run_index < 40):
-        print(base.format(run_index), "exists")
-        run_index += 1
-    outdir = base.format(run_index)
+    print("Creating ", outdir)
+    os.makedirs(outdir)
 
+    # Copy yaml file to outdir for archiving purposes
+    shutil.copy("config.yaml", outdir + "/config.yaml")
+
+    for model_number in range(len(DataSpectra)):
+        for order in config['orders']:
+            order_dir = "{}{}/{}".format(outdir, model_number, order)
+            print("Creating ", order_dir)
+            os.makedirs(order_dir)
+
+# Otherwise, we'll be optimizing and we can write everything into the current working directory
 else:
-    run_index = args.run_index
-    outdir = base.format(run_index)
-    #Delete this outdir, if it exists
-    if os.path.exists(outdir):
-        print("Deleting", outdir)
-        shutil.rmtree(outdir)
+    outdir = ""
 
-print("Creating ", outdir)
-os.makedirs(outdir)
-
-# Determine how many filenames are in config['data']. Always load as a list, even len == 1.
+# Determine how many filenames we have.
+# Always load as a list, even len == 1.
 # If there are multiple datasets, this list will be longer than length 1
-data = config["data"]
-if type(data) != list:
-    data = [data]
-print("loading data spectra {}".format(data))
-orders = config["orders"] #list of which orders to fit
-order_ids = np.arange(len(orders))
-DataSpectra = [DataSpectrum.open(data_file, orders=orders) for data_file in data]
+orders = Starfish.data["orders"] # list of which orders to fit
+order_keys = np.arange(len(orders)) # list of keys from 0 to (norders - 1)
+DataSpectra = [DataSpectrum.open(file, orders=orders) for file in Starfish.data["files"]]
 
 # Number of different data sets we are fitting. Used for indexing purposes.
-spectra = np.arange(len(DataSpectra))
+spectra_keys = np.arange(len(DataSpectra))
 
-INSTRUMENTS = {"TRES": TRES, "SPEX": SPEX}
 #Instruments are provided as one per dataset
-Instruments = [INSTRUMENTS[key]() for key in config["instruments"]]
+Instruments = [eval("Starfish.grid_tools." + inst)() for inst in Starfish.data["instruments"]]
 
 masks = config.get("mask", None)
 if masks is not None:
     for mask, dataSpec in zip(masks, DataSpectra):
         myMask = Mask(mask, orders=orders)
         dataSpec.add_mask(myMask.masks)
-
-for model_number in range(len(DataSpectra)):
-    for order in config['orders']:
-        order_dir = "{}{}/{}".format(outdir, model_number, order)
-        print("Creating ", order_dir)
-        os.makedirs(order_dir)
-
-# Copy yaml file to outdir for archiving purposes
-shutil.copy(args.input, outdir + "/input.yaml")
 
 # Set up the logger
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
@@ -170,25 +162,25 @@ class OrderModel:
         '''
         Initialize the OrderModel to the correct chunk of data (echelle order).
 
-        :param key: (spectrum_id, order_id)
+        :param key: (spectrum_id, order_key)
         :param type: (int, int)
 
         This should only be called after all subprocess have been forked.
         '''
 
         self.id = key
-        self.spectrum_id, self.order_id = self.id
+        self.spectrum_id, self.order_key = self.id
 
-        self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_id))
+        self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_key))
 
         self.instrument = Instruments[self.spectrum_id]
         self.DataSpectrum = DataSpectra[self.spectrum_id]
-        self.wl = self.DataSpectrum.wls[self.order_id]
-        self.fl = self.DataSpectrum.fls[self.order_id]
-        self.sigma = self.DataSpectrum.sigmas[self.order_id]
+        self.wl = self.DataSpectrum.wls[self.order_key]
+        self.fl = self.DataSpectrum.fls[self.order_key]
+        self.sigma = self.DataSpectrum.sigmas[self.order_key]
         self.npoints = len(self.wl)
-        self.mask = self.DataSpectrum.masks[self.order_id]
-        self.order = self.DataSpectrum.orders[self.order_id]
+        self.mask = self.DataSpectrum.masks[self.order_key]
+        self.order = self.DataSpectrum.orders[self.order_key]
 
         self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.order))
         if self.debug:
@@ -197,7 +189,7 @@ class OrderModel:
             self.logger.setLevel(logging.INFO)
 
         self.npoly = config["cheb_degree"]
-        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.order_id, npoly=self.npoly)
+        self.ChebyshevSpectrum = ChebyshevSpectrum(self.DataSpectrum, self.order_key, npoly=self.npoly)
         self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
@@ -664,10 +656,10 @@ model = OrderModel(debug=True)
 pconns = {} # Parent connections
 cconns = {} # Child connections
 ps = {}
-for spectrum in spectra:
-    for order_id in order_ids:
+for spectrum_key in spectra_keys:
+    for order_key in order_keys:
         pconn, cconn = Pipe()
-        key = (spectrum, order_id)
+        key = (spectrum_key, order_key)
         pconns[key], cconns[key] = pconn, cconn
         p = Process(target=model.brain, args=(cconn,))
         p.start()

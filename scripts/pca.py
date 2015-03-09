@@ -13,6 +13,8 @@ parser.add_argument("--resume", action="store_true", help="Designed to be used w
 
 parser.add_argument("--samples", type=int, default=100, help="Number of samples to run the emcee ensemble sampler.")
 parser.add_argument("--params", choices=["fmin", "emcee"], help="Which optimized parameters to use.")
+
+parser.add_argument("--store", action="store_true", help="Store the optimized emulator parameters to the HDF5 file. Use with the --params=fmin or --params=emcee to choose.")
 args = parser.parse_args()
 
 import matplotlib.pyplot as plt
@@ -171,7 +173,7 @@ if args.optimize:
 if args.optimize == "fmin":
 
     if args.resume:
-        p0 = np.load("eparams.npy")
+        p0 = np.load("eparams_fmin.npy")
 
     else:
         amp = 100.
@@ -184,7 +186,7 @@ if args.optimize == "fmin":
     func = lambda p : lnprob(p, fmin=True)
     result = fmin(func, p0, maxiter=10000, maxfun=10000)
     print(result)
-    np.save("eparams.npy", result)
+    np.save("eparams_fmin.npy", result)
 
 if args.optimize == "emcee":
 
@@ -195,7 +197,7 @@ if args.optimize == "emcee":
 
     # Assemble p0 based off either a guess or the previous state of walkers
     if args.resume:
-        p0 = np.load("walkers_start.npy")
+        p0 = np.load("walkers_emcee.npy")
     else:
         p0 = []
         # p0 is a (nwalkers, ndim) array
@@ -222,14 +224,14 @@ if args.optimize == "emcee":
     pos, prob, state = sampler.run_mcmc(pos, args.samples)
 
     # Save the last position of the walkers
-    np.save("walkers_start.npy", pos)
-    np.save("eparams_walkers.npy", sampler.flatchain)
+    np.save("walkers_emcee.npy", pos)
+    np.save("eparams_emcee.npy", sampler.flatchain)
 
 
 if args.plot == "emcee":
     #Make a triangle plot of the samples
     my_pca = emulator.PCAGrid.open()
-    flatchain = np.load("eparams_walkers.npy")
+    flatchain = np.load("eparams_emcee.npy")
     import triangle
 
     # figure out how many separate triangle plots we need to make
@@ -256,9 +258,9 @@ if args.plot == "emulator":
     my_pca = PCAGrid.open()
 
     if args.params == "fmin":
-        eparams = np.load("eparams.npy")
+        eparams = np.load("eparams_fmin.npy")
     elif args.params == "emcee":
-        eparams = np.median(np.load("eparams_walkers.npy"), axis=0)
+        eparams = np.median(np.load("eparams_emcee.npy"), axis=0)
         print("Using emcee median")
     else:
         import sys
@@ -369,3 +371,25 @@ if args.plot == "emulator":
     # Create a pool of workers and map the plotting to these.
     p = mp.Pool(mp.cpu_count() - 1)
     p.map(plot_block, blocks)
+
+if args.store:
+    if args.params == "fmin":
+        eparams = np.load("eparams_fmin.npy")
+    elif args.params == "emcee":
+        eparams = np.median(np.load("eparams_emcee.npy"), axis=0)
+        print("Using emcee median")
+    else:
+        import sys
+        sys.exit()
+
+    import h5py
+    hdf5 = h5py.File(Starfish.PCA["path"], "r+")
+
+    # check to see whether the dataset already exists
+    if "eparams" in hdf5.keys():
+        pdset = hdf5["eparams"]
+    else:
+        pdset = hdf5.create_dataset("eparams", eparams.shape, compression="gzip", compression_opts=9, dtype="f8")
+
+    pdset[:] = eparams
+    hdf5.close()
