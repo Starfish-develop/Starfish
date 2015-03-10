@@ -275,6 +275,7 @@ class PCAGrid:
             max(self.wl[ind]), wl_min, wl_max)
 
         self.wl = self.wl[ind]
+        self.npix = len(self.wl)
         self.eigenspectra = self.eigenspectra[:, ind]
         self.flux_mean = self.flux_mean[ind]
         self.flux_std = self.flux_std[ind]
@@ -383,6 +384,11 @@ class Emulator:
 
     @params.setter
     def params(self, pars):
+
+        # If the pars is outside of the range of emulator values, raise a ModelError
+        if np.any(pars < self.min_params) or np.any(pars > self.max_params):
+            raise C.ModelError("Querying emulator outside of original PCA parameter range.")
+
         # Assumes pars is a single parameter combination, as a 1D np.array
         self._params = pars
 

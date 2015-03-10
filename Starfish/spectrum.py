@@ -248,290 +248,6 @@ class Mask:
 
         return cls(masks, orders)
 
-class ModelSpectrum:
-    '''
-    A 1D synthetic spectrum.
-
-    :param interpolator: object to query stellar parameters
-    :type interpolator: :obj:`grid_tools.ModelInterpolator`
-    :param instrument: Which instrument is this a model for?
-    :type instrument: :obj:`grid_tools.Instrument` object describing wavelength range and instrumental profile
-
-    We essentially want to preserve two capabilities.
-
-    1. Sample in all "stellar parameters" at once
-    2. Sample in only the easy "post-processing" parameters, like ff and v_z to speed the burn-in process.
-
-    '''
-    def __init__(self, Emulator, DataSpectrum, instrument):
-        self.Emulator = Emulator
-
-        #Set raw_wl from wl stored with emulator
-        self.instrument = instrument
-        self.DataSpectrum = DataSpectrum #so that we can downsample to the same wls
-
-        self.wl_FFT = self.Emulator.wl
-
-        self.min_v = self.Emulator.min_v
-        self.ss = rfftfreq(len(self.wl_FFT), d=self.min_v)
-        self.ss[0] = 0.01 #junk so we don't get a divide by zero error
-
-        self.downsampled_fls = np.empty(self.DataSpectrum.shape)
-        self.downsampled_fls_last = self.downsampled_fls
-
-        self.grid_params = {}
-        self.vz = 0
-        self.Av = 0
-        self.logOmega = 0.
-
-        #Grab chunk from wl_FFT
-        chunk = len(self.wl_FFT)
-        assert chunk % 2 == 0, "Chunk is not a power of 2. FFT will be too slow."
-
-    def __str__(self):
-        return "Model Spectrum for Instrument {}".format(self.instrument.name)
-
-    def update_logOmega(self, logOmega):
-        '''
-        Update the 'flux factor' parameter, :math:`\Omega = R^2/d^2`, which multiplies the model spectrum to be the same scale as the data.
-
-        :param Omega: 'flux factor' parameter, :math:`\Omega = R^2/d^2`
-        :type Omega: float
-
-        '''
-        #factor by which to correct from old Omega
-        self.fl *= 10**(logOmega - self.logOmega)
-        #self.errors *= 10**(logOmega - self.logOmega)
-        self.logOmega = logOmega
-
-    def update_vz(self, vz):
-        '''
-        Update the radial velocity parameter.
-
-        :param vz: The radial velocity parameter. Positive means redshift and negative means blueshift.
-        :type vz: float (km/s)
-
-        '''
-        #How far to shift based from old vz?
-        vz_shift = vz - self.vz
-        self.wl = self.wl_FFT * np.sqrt((C.c_kms + vz_shift) / (C.c_kms - vz_shift))
-        self.vz = vz
-
-    def update_Av(self, Av):
-        '''
-        Update the extinction parameter.
-
-        :param Av: The optical extinction parameter.
-        :type Av: float (magnitudes)
-
-        '''
-        pass
-
-
-        #Av_shift = self.Av - Av
-        #self.fl /= deredden(self.wl, Av, mags=False)
-        #self.Av = Av
-
-    #Make this private again after speed testing is done
-    def update_grid_params(self, weights, grid_params):
-        '''
-        Private method to update just those stellar parameters. Designed to be used as part of update_all.
-        ASSUMES that grid is log-linear spaced and already instrument-convolved
-
-        :param grid_params: grid parameters, including alpha or not.
-        :type grid_params: dict
-
-        '''
-        try:
-            self.fl = self.Emulator.reconstruct(weights)
-
-            self.grid_params.update(grid_params)
-
-        except C.InterpolationError as e:
-            raise C.ModelError("{} cannot be interpolated from the grid. C.InterpolationError: {}".format(grid_params, e))
-
-    #Make this private again after speed testing is done
-    def update_vsini(self, vsini):
-        '''
-        Private method to update just the vsini kernel. Designed to be used as part of update_all
-        *after* the grid_params have been updated using _update_grid_params_approx.
-        ASSUMES that the grid is log-linear spaced and already instrument-convolved
-
-        :param vsini: projected stellar rotation velocity
-        :type vsini: float (km/s)
-
-        '''
-        if vsini < 0.2:
-            raise C.ModelError("vsini must be positive")
-
-        self.vsini = vsini
-
-        # self.influx[:] = self.fl
-        # self.fft_object()
-        FF = np.fft.rfft(self.fl)
-        #FE = np.fft.rfft(self.errors, axis=1)
-
-        #Determine the stellar broadening kernel
-        ub = 2. * np.pi * self.vsini * self.ss
-
-        # if np.allclose(self.vsini, 0):
-        #     #If in fact, vsini=0, then just exit this subroutine and continue with the raw models.
-        #     return None
-        #     #sb = np.ones_like(ub)
-        # else:
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-
-        #set zeroth frequency to 1 separately (DC term)
-        sb[0] = 1.
-
-        #institute velocity and instrumental taper
-        # self.FF *= sb
-        FF_tap = FF * sb
-        #FE_tap = FE * sb
-
-        #do ifft
-        # self.ifft_object()
-        # self.fl[:] = self.outflux
-        self.fl = np.fft.irfft(FF_tap, len(self.wl_FFT))
-        #self.errors = np.fft.irfft(FE_tap, len(self.wl_FFT), axis=1)
-
-
-    # def _update_vsini_and_instrument(self, vsini):
-    #     '''
-    #     Private method to update just the vsini and instrumental kernel. Designed to be used as part of update_all
-    #     *after* the grid_params have been updated.
-    #
-    #     :param vsini: projected stellar rotation velocity
-    #     :type vsini: float (km/s)
-    #
-    #     '''
-    #     if vsini < 0:
-    #         raise C.ModelError("vsini must be positive")
-    #
-    #     self.vsini = vsini
-    #
-    #     self.influx[:] = self.fl
-    #     self.fft_object()
-    #     # FF = np.fft.rfft(self.fl)
-    #
-    #     sigma = self.instrument.FWHM / 2.35 # in km/s
-    #
-    #     #Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
-    #     taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
-    #
-    #     #Determine the stellar broadening kernel
-    #     ub = 2. * np.pi * self.vsini * self.ss
-    #
-    #     if np.allclose(self.vsini, 0):
-    #         sb = np.ones_like(ub)
-    #     else:
-    #         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-    #
-    #     #set zeroth frequency to 1 separately (DC term)
-    #     sb[0] = 1.
-    #     taper[0] = 1.
-    #
-    #     #institute velocity and instrumental taper
-    #     self.FF *= sb * taper
-    #     # FF_tap = FF * sb * taper
-    #
-    #     #do ifft
-    #     self.ifft_object()
-    #     self.fl[:] = self.outflux
-    #
-    #     # self.fl = np.fft.irfft(FF_tap)
-
-
-    def update_all(self, params):
-        '''
-        Update all of the stellar parameters
-
-        Give parameters as a dict and choose the params to update.
-
-        '''
-        #Pull the weights from here
-        weights = params["weights"]
-
-        #First set stellar parameters using _update_grid_params
-        grid_params = {key:params[key] for key in ["temp", "logg", "Z"]}
-
-        self.update_grid_params(weights, grid_params)
-
-        #Reset the relative variables
-        self.vz = 0
-        self.Av = 0
-        self.logOmega = 0
-
-        #Then vsini and instrument using _update_vsini
-        self.update_vsini(params['vsini'])
-
-        #Then vz, logOmega, and Av using public methods
-        self.update_vz(params['vz'])
-        self.update_logOmega(params['logOmega'])
-
-        if 'Av' in params:
-            self.update_Av(params['Av'])
-
-        self.downsample()
-
-    def downsample(self):
-        '''
-        Downsample the synthetic spectrum to the same wl pixels as the DataSpectrum.
-
-        :returns fls: the downsampled fluxes that has the same shape as DataSpectrum.fls
-        '''
-
-        #print("inside downsample")
-        #Check to make sure that the grid is within self.wl range, because a spline will not naturally raise an error!
-        wls = self.DataSpectrum.wls.flatten()
-        if min(wls) < min(self.wl) or max(wls) > max(self.wl):
-            raise ValueError("Downsampled grid ({:.2f},{:.2f}) must fit within the range of self.wl ({:.2f},"
-                             "{:.2f})".format(min(wls), max(wls), min(self.wl), max(self.wl)))
-
-        interp = InterpolatedUnivariateSpline(self.wl, self.fl, k=5)
-
-        self.downsampled_fls_last = self.downsampled_fls
-        self.downsampled_fls = np.reshape(interp(wls), self.DataSpectrum.shape)
-        del interp
-
-        #if self.downsampled_errors is not None:
-        #    self.downsampled_errors_last = np.copy(self.downsampled_errors)
-
-        # if self.other_downsampled_errors is None:
-        #     print("setting other downsampled errors")
-        #     self.other_downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        #     for i, errspec in enumerate(self.errors):
-        #         interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
-        #
-        #         self.other_downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
-        #         del interp
-
-        #Interpolate each of the 24 error spectra to the grid points
-        #if self.downsampled_errors is None:
-        # self.downsampled_errors = np.zeros((24,) + self.DataSpectrum.shape)
-        # for i, errspec in enumerate(self.errors):
-        #     interp = InterpolatedUnivariateSpline(self.wl, errspec, k=5)
-        #
-        #     self.downsampled_errors[i, :, :] = np.reshape(interp(wls), self.DataSpectrum.shape)
-        #     del interp
-
-        #assert np.allclose(self.downsampled_errors, self.other_downsampled_errors), "No longer downsampling the same " \
-                                                                                    #"thing"
-
-
-
-        #self.downsampled_errors = 1e-15 * np.ones((24,) + self.DataSpectrum.shape)
-
-        gc.collect()
-
-    def revert_flux(self):
-        '''
-        If a MH proposal was rejected, revert the downsampled flux to it's last value.
-        '''
-        self.downsampled_fls = self.downsampled_fls_last
-        #if self.downsampled_errors_last is not None:
-        #    self.downsampled_errors = np.copy(self.downsampled_errors_last)
-
 class ChebyshevSpectrum:
     '''
     A DataSpectrum-like object which multiplies downsampled fls to account for imperfect flux calibration issues.
@@ -573,7 +289,7 @@ class ChebyshevSpectrum:
         self.npoly = npoly
         # assert self.npoly == 4, "Only handling order 4 Chebyshev for now."
 
-        #Dummy holders
+        #Dummy holders for a flat spectrum
         self.k = np.ones(len_wl)
         self.k_last = self.k
         #self.c0s = np.ones(self.norders)
@@ -586,30 +302,26 @@ class ChebyshevSpectrum:
         ##    Dmu = np.einsum("ij,j->j", D, mu)
         ##    muDmu = np.einsum("j,j->", mu, Dmu)
 
-    def update(self, params):
+    def update(self, p):
         '''
         Given a dictionary of coefs, create a k array to multiply against model fls
+
+        :param p: array of coefficients
+        :type p: 1D np.array
         '''
 
         #Fix the last order c0 to 1.
         if self.fix_c0:
-            logc0 = 0.0
+            c0 = 1.0
+            cns = p
         else:
-            logc0 = params["logc0"]
-
-        #Convert params dict to a 1d array of coefficients
-        cns = np.array([params["c{}".format(i)] for i in range(1, self.npoly)])
-
-        # cns = np.array([params["c1"], params["c2"], params["c3"]])
-
-        #if c0 < 0:
-        #    raise C.ModelError("Negative c0s are not allowed.")
+            c0 = 10**p[0]
+            cns = p[1:]
 
         #now create polynomials for each order, and multiply through fls
         #print("T shape", self.T.shape)
         #print("cns shape", cns.shape)
 
-        c0 = 10**logc0
         Tc = np.dot(self.T.T, cns) #self.T.T is the transpose of self.T
         #print("Tc shape", Tc.shape)
         k = c0 * (1 + Tc)
@@ -618,87 +330,3 @@ class ChebyshevSpectrum:
 
     def revert(self):
         self.k = self.k_last
-
-class DataCovarianceMatrix:
-    '''
-    Non-trivial covariance matrices (one for each order) for correlated noise.
-
-    Let's try doing everything dense.
-
-    And, let's try doing everything all at once. Step in the Global Cov parameters and the Regions.
-
-    How to efficiently fill the matrix?
-    1. Define a k_func, based off of update
-    2. Pass this to some optimized cython routine which only loops over the appropriate indices, evaluating k_func
-    (this is get_dense_C.
-
-    Then we will just have two methods
-
-    CovarianceMatrix.update(params) #updates global and all regions
-    CovarianceMatrix.evaluate() uses existing matrix to determine lnprob.
-
-    Passes some partial function to the cython routine.
-
-    initialized via CovarianceMatrix.__init__(self.DataSpectrum, self.index, max_v=max_v, debug=self.debug)
-
-    CovarianceMatrix.update_global(params)
-
-    CovarianceMatrix.revert_global()
-
-    CovarianceMatrix.get_amp()
-
-    CovarianceMatrix.get_region_coverage()
-
-    CovarianceMatrix.evaluate(residuals)
-
-    CovarianceMatrix.create_region(starting_param_dict, self.priors)
-
-    CovMatrix.delete_region(self.region_index)
-
-    CovMatrix.revert_region(self.region_index)
-
-    CovMatrix.update_region(self.region_index, params)
-
-'''
-
-    def __init__(self, DataSpectrum, index):
-        self.wl = DataSpectrum.wls[index]
-        self.sigma = DataSpectrum.sigmas[index]
-
-        self.npoints = len(self.wl)
-
-        self.sigma_matrix = np.dot(self.sigma**2, np.eye(self.npoints))
-        self.matrix = self.sigma_matrix
-
-    #def update_logdet(self):
-    #    #Calculate logdet
-    #    self.logdet = np.sum(2 * np.log*np.diag(self.factor))
-
-    def update(self, params):
-        '''
-        Update the covariance matrix using the parameters.
-
-        :param params: parameters to update the covariance matrix
-        :type params: dict
-        '''
-
-        #Currently expects {"sigAmp", "logAmp", "l"}
-        amp = 10**params['logAmp']
-        l = params['l']
-        sigAmp = params['sigAmp']
-
-        if (l <= 0) or (sigAmp < 0):
-            raise C.ModelError("l {} and sigAmp {} must be positive.".format(l, sigAmp))
-
-        mat = get_dense_C()
-
-        #self.factor, self.flag = cho_factor(mat)
-        #self.update_logdet()
-
-    #def evaluate(self, residuals):
-    #    '''
-    #    Evaluate lnprob using the residuals and current covariance matrix.
-    #    '''
-    #
-    #    lnp = -0.5 * (residuals.T.dot(cho_solve((self.factor, self.flag), residuals)) + self.logdet)
-    #    return lnp

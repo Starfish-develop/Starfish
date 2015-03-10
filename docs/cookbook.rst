@@ -68,6 +68,26 @@ These codes are much simpler and just output everything to the local directory.
 Optimize the grid and observational parameters (:math:`\Theta`)
 
     star.py --optimize=Theta
+
+    star.py --optimize=Cheb
+
+This script will leave you with a single JSON file which specifies the Theta parameters. The fit might be OK, but is probably not the best you can do, especially since we haven't allowed any flexibility in the Chebyshev paramteters that take care of calibration uncertainties. Hopefully, however, your estimates of radial velocity, Omega, and vsini are in the ballpark of what you might expect. To check that this is the case, it would be a great idea to generate model spectra and plot them to examine the residuals of the fit.
+
+    # Write out model, data, residuals for each order in the CWD
+    star.py --generate
+
+    # Gather all of these together into one large JSON file.
+    splot.py --gather
+
+Now we can plot these files using our plotting programs.
+
+    splot.py --matplotlib
+
+    splot.py --D3
+
+
+
+
     star.py --sample=Theta
 
 Optimize the noise parameters (:math:`\Phi`)
