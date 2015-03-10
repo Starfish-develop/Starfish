@@ -202,6 +202,14 @@ class Order:
 
         self.npoly = Starfish.config["cheb_degree"]
         self.chebyshevSpectrum = ChebyshevSpectrum(self.dataSpectrum, self.order_key, npoly=self.npoly)
+
+        # If the file exists, optionally initiliaze to the chebyshev values
+        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        if os.path.exists(fname):
+            self.logger.debug("Loading stored Chebyshev parameters.")
+            phi = PhiParam.load(fname)
+            self.chebyshevSpectrum.update(phi.cheb)
+
         self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
         self.counter = 0
 

@@ -76,12 +76,10 @@ This script will leave you with a single JSON file which specifies the Theta par
     # Write out model, data, residuals for each order in the CWD
     star.py --generate
 
-    # Gather all of these together into one large JSON file.
-    splot.py --gather
 
 Now we can plot these files using our plotting programs.
 
-    splot.py --matplotlib
+    splot.py s0_o23_spec.json --matplotlib
 
     splot.py --D3
 
