@@ -15,7 +15,8 @@ parser.add_argument("-r", "--run_index", help="All data will be written into thi
 # Even though these arguments aren't being used, we need to add them.
 parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
 parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
-parser.add_argument("--sample", choices=["Theta", "Phi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--sample", choices=["ThetaCheb", "Phi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
 args = parser.parse_args()
 
 from multiprocessing import Process, Pipe
@@ -24,7 +25,7 @@ import numpy as np
 
 import Starfish
 import Starfish.grid_tools
-from Starfish.samplers import StellarSampler, NuisanceSampler
+from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
 from Starfish.emulator import Emulator
 import Starfish.constants as C
@@ -279,6 +280,9 @@ class Order:
         Return the lnprob using the current version of the C_GP matrix, data matrix,
         and other intermediate products.
         '''
+
+        self.lnprob_last = self.lnprob
+
         X = (self.chebyshevSpectrum.k * self.flux_std * np.eye(self.ndata)).dot(self.eigenspectra.T)
 
         CC = X.dot(self.C_GP.dot(X.T)) + self.data_mat
@@ -288,10 +292,10 @@ class Order:
         R = self.fl - self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
 
         logdet = np.sum(2 * np.log((np.diag(factor))))
-        lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
+        self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
 
-        self.logger.debug("Evaluating lnprob={}".format(lnprob))
-        return lnprob
+        self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
+        return self.lnprob
 
     def revert_Theta(self):
         '''
@@ -425,7 +429,6 @@ class Order:
         phi = PhiParam(spectrum_id=int(self.spectrum_id), order=int(self.order), fix_c0=self.chebyshevSpectrum.fix_c0, cheb=result)
         phi.save()
 
-
     def update_Phi(self, p):
         '''
         Update the nuisance parameters and data covariance matrix.
@@ -433,37 +436,9 @@ class Order:
         :param params: large dictionary containing cheb, cov, and regions
         '''
 
-        self.logger.debug("Updating nuisance parameters to {}".format(params))
-        # Read off the Chebyshev parameters and update
-        self.ChebyshevSpectrum.update(p.cheb)
+        raise NotImplementedError
 
-        # Check to make sure the global covariance parameters make sense
-        if p.sigAmp < 0.1:
-            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
-
-        max_r = 6.0 * p.l # [km/s]
-
-        # Check all regions, take the max
-        if self.nregions > 0:
-            regions = params["regions"]
-            keys = sorted(regions)
-            sigmas = np.array([regions[key]["sigma"] for key in keys]) #km/s
-            #mus = np.array([regions[key]["mu"] for key in keys])
-            max_reg = 4.0 * np.max(sigmas)
-            #If this is a larger distance than the global length, replace it
-            max_r = max_reg if max_reg > max_r else max_r
-            #print("Max_r now set by regions {}".format(max_r))
-
-        # print("max_r is {}".format(max_r))
-
-        # Create a partial function which returns the proper element.
-        k_func = make_k_func(params)
-
-        # Store the previous data matrix in case we want to revert later
-        self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + sigAmp*self.sigma_mat
-
-    def revert_nuisance(self, *args):
+    def revert_Phi(self, *args):
         '''
         Revert all products from the nuisance parameters, including the data
         covariance matrix.
@@ -473,7 +448,7 @@ class Order:
 
         self.lnprob = self.lnprob_last
 
-        self.ChebyshevSpectrum.revert()
+        self.chebyshevSpectrum.revert()
         self.data_mat = self.data_mat_last
 
     def clear_resid_deque(self):
@@ -591,6 +566,46 @@ class OptimizeCheb(Order):
 class OptimizePhi(Order):
     def __init__(self):
         pass
+
+class SampleThetaCheb(Order):
+    def initialize(self, key):
+        super().initialize(key)
+
+        # for now, just use white noise
+        self.data_mat = self.sigma_mat.copy()
+        self.data_mat_last = self.data_mat
+
+        #Set up p0 and the independent sampler
+        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        phi = PhiParam.load(fname)
+        self.p0 = phi.cheb
+        cov = np.diag(Starfish.config["cheb_jump"]**2 * np.ones(len(self.p0)))
+
+        def lnprob(p):
+            # turn this into pars
+            self.update_Phi(p)
+            lnp = self.evaluate()
+            print(self.order, p, lnp)
+            return lnp
+
+        def revertfn():
+            self.revert_Phi()
+
+        self.sampler = StateSampler(lnprob, self.p0, cov, query_lnprob=self.get_lnprob, revertfn=revertfn)
+
+    def update_Phi(self, p):
+        '''
+        Update the Chebyshev coefficients only.
+        '''
+        self.chebyshevSpectrum.update(p)
+
+    def finish(self, *args):
+        super().finish(*args)
+
+        self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
+
+
+
 
 class SampleThetaPhi(Order):
     def __init__(self):
@@ -740,6 +755,38 @@ class SampleThetaPhi(Order):
 
         return self.lnprob
 
+    def update_Phi(self, p):
+        self.logger.debug("Updating nuisance parameters to {}".format(params))
+        # Read off the Chebyshev parameters and update
+        self.ChebyshevSpectrum.update(p.cheb)
+
+        # Check to make sure the global covariance parameters make sense
+        if p.sigAmp < 0.1:
+            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+
+        max_r = 6.0 * p.l # [km/s]
+
+        # Check all regions, take the max
+        if self.nregions > 0:
+            regions = params["regions"]
+            keys = sorted(regions)
+            sigmas = np.array([regions[key]["sigma"] for key in keys]) #km/s
+            #mus = np.array([regions[key]["mu"] for key in keys])
+            max_reg = 4.0 * np.max(sigmas)
+            #If this is a larger distance than the global length, replace it
+            max_r = max_reg if max_reg > max_r else max_r
+            #print("Max_r now set by regions {}".format(max_r))
+
+        # print("max_r is {}".format(max_r))
+
+        # Create a partial function which returns the proper element.
+        k_func = make_k_func(params)
+
+        # Store the previous data matrix in case we want to revert later
+        self.data_mat_last = self.data_mat
+        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + sigAmp*self.sigma_mat
+
+
     def finish(self):
         super().finish()
         print(self.sampler.acceptance_fraction)
@@ -784,8 +831,8 @@ def initialize(model):
     return (pconns, cconns, ps)
 
 # From here on, this script operates on the master process only.
-if args.sample:
-    perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
+# if args.sample:
+#     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
 
 def profile_code():
     '''

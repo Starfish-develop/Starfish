@@ -74,8 +74,8 @@ if args.optimize == "Theta":
     p0 = np.array(start["grid"] + [start["vz"], start["vsini"], start["logOmega"]])
 
     from scipy.optimize import fmin
-    result = fmin(fprob, p0, maxiter=10000, maxfun=10000)
-    print(result)
+    p = fmin(fprob, p0, maxiter=10000, maxfun=10000)
+    print(p)
     pars = ThetaParam(grid=p[0:3], vz=p[3], vsini=p[4], logOmega=p[5])
     pars.save()
 
@@ -107,6 +107,74 @@ if args.optimize == "Cheb":
         pconn.send(("LNPROB", pars))
         pconn.recv() # Receive and discard the answer so we can send the optimize
         pconn.send(("OPTIMIZE_CHEB", None))
+
+    # Kill all of the orders
+    for pconn in pconns.values():
+        pconn.send(("FINISH", None))
+        pconn.send(("DIE", None))
+
+    # Join on everything and terminate
+    for p in ps.values():
+        p.join()
+        p.terminate()
+
+    import sys;sys.exit()
+
+if args.sample == "ThetaCheb":
+
+    model = parallel.SampleThetaCheb(debug=True)
+
+    pconns, cconns, ps = parallel.initialize(model)
+
+    # These functions store the variables pconns, cconns, ps.
+    def lnprob(p):
+        pars = ThetaParam(grid=p[0:3], vz=p[3], vsini=p[4], logOmega=p[5])
+        #Distribute the calculation to each process
+        for ((spectrum_id, order_id), pconn) in pconns.items():
+            pconn.send(("LNPROB", pars))
+
+        #Collect the answer from each process
+        lnps = np.empty((len(Starfish.data["orders"]),))
+        for i, pconn in enumerate(pconns.values()):
+            lnps[i] = pconn.recv()
+
+        result = np.sum(lnps) # + lnprior
+        print(p, result)
+        return result
+
+    def query_lnprob():
+        for ((spectrum_id, order_id), pconn) in pconns.items():
+            pconn.send(("GET_LNPROB", None))
+
+        #Collect the answer from each process
+        lnps = np.empty((len(Starfish.data["orders"]),))
+        for i, pconn in enumerate(pconns.values()):
+            lnps[i] = pconn.recv()
+
+        return np.sum(lnps) # + lnprior
+
+    def acceptfn():
+        for ((spectrum_id, order_id), pconn) in pconns.items():
+            pconn.send(("DECIDE", True))
+
+    def rejectfn():
+        for ((spectrum_id, order_id), pconn) in pconns.items():
+            pconn.send(("DECIDE", False))
+
+    from Starfish.samplers import StateSampler
+
+    start = Starfish.config["Theta"]
+    p0 = np.array(start["grid"] + [start["vz"], start["vsini"], start["logOmega"]])
+
+    jump = Starfish.config["Theta_jump"]
+    cov = np.diag(np.array(jump["grid"] + [jump["vz"], jump["vsini"], jump["logOmega"]])**2)
+
+    sampler = StateSampler(lnprob, p0, cov, query_lnprob=query_lnprob, acceptfn=acceptfn, rejectfn=rejectfn, debug=True)
+
+    p, lnprob, state = sampler.run_mcmc(p0, N=args.samples)
+    print("Final", p)
+
+    sampler.write()
 
     # Kill all of the orders
     for pconn in pconns.values():
