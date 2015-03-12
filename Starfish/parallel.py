@@ -324,9 +324,9 @@ class Order:
         self.logger.debug("Updating Theta parameters to {}".format(p))
 
         # Store the current accepted values before overwriting with new proposed values.
-        self.flux_mean_last = self.flux_mean
-        self.flux_std_last = self.flux_std
-        self.eigenspectra_last = self.eigenspectra
+        self.flux_mean_last = self.flux_mean.copy()
+        self.flux_std_last = self.flux_std.copy()
+        self.eigenspectra_last = self.eigenspectra.copy()
         self.mus_last = self.mus
         self.C_GP_last = self.C_GP
 
