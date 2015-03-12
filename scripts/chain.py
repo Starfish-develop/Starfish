@@ -5,8 +5,6 @@ import argparse
 parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
 parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell expansion.")
 
-# parser.add_argument("--dir", action="store_true", help="Concatenate all of the flatchains stored
-# within run* folders in the current directory. Designed to collate runs from a JobArray.")
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
 
@@ -46,7 +44,6 @@ if not os.path.exists(args.outdir):
     os.makedirs(args.outdir)
 
 args.outdir += "/"
-
 
 
 def h5read(fname, burn=0, thin=1):
@@ -144,11 +141,11 @@ def plot(flatchain, base=args.outdir, format=".png"):
 
     import triangle
 
-    labels = [r"$M_\ast\quad [M_\odot]$", r"$r_c$ [AU]", r"$T_{10}$ [K]",
-    r"$q$", r"$\log M_\textrm{CO} \quad \log [M_\oplus]$",  r"$\xi$ [km/s]",
-    r"$d$ [pc]",
-    r"$i_d \quad [{}^\circ]$", r"PA $[{}^\circ]$", r"$v_r$ [km/s]",
-    r"$\mu_\alpha$ ['']", r"$\mu_\delta$ ['']"]
+    # labels = [r"$M_\ast\quad [M_\odot]$", r"$r_c$ [AU]", r"$T_{10}$ [K]",
+    # r"$q$", r"$\log M_\textrm{CO} \quad \log [M_\oplus]$",  r"$\xi$ [km/s]",
+    # r"$d$ [pc]",
+    # r"$i_d \quad [{}^\circ]$", r"PA $[{}^\circ]$", r"$v_r$ [km/s]",
+    # r"$\mu_\alpha$ ['']", r"$\mu_\delta$ ['']"]
     figure = triangle.corner(flatchain, quantiles=[0.16, 0.5, 0.84],
         plot_contours=True, plot_datapoints=False, labels=labels, show_titles=True)
     figure.savefig(base + "triangle" + format)
