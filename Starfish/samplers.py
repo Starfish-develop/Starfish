@@ -49,17 +49,18 @@ class StateSampler(Sampler):
         will be called with the sequence ``lnpostfn(p, *args, **kwargs)``.
 
     """
-    def __init__(self, lnprob, p0, cov, *args, **kwargs):
+    def __init__(self, lnprob, p0, cov, query_lnprob=None, rejectfn=None,
+        acceptfn=None, debug=False, outdir="", *args, **kwargs):
         dim = len(p0)
         super().__init__(dim, lnprob, *args, **kwargs)
         self.cov = cov
         self.p0 = p0
-        self.query_lnprob = kwargs.get("query_lnprob", None)
-        self.revertfn = kwargs.get("revertfn", None)
-        self.acceptfn = kwargs.get("acceptfn", None)
+        self.query_lnprob = query_lnprob
+        self.rejectfn = rejectfn
+        self.acceptfn = acceptfn
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.debug = kwargs.get("debug", False)
-        self.outdir = kwargs.get("outdir", "")
+        self.outdir = outdir
+        self.debug = debug
         if self.debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -157,8 +158,8 @@ class StateSampler(Sampler):
                 if diff < 0:
                     #Reject the proposal and revert the state of the model
                     self.logger.debug("Proposal rejected")
-                    if self.revertfn is not None:
-                        self.revertfn()
+                    if self.rejectfn is not None:
+                        self.rejectfn()
 
             if diff > 0:
                 #Accept the new proposal

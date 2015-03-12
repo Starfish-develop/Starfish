@@ -154,10 +154,12 @@ if args.sample == "ThetaCheb":
         return np.sum(lnps) # + lnprior
 
     def acceptfn():
+        print("Calling acceptfn")
         for ((spectrum_id, order_id), pconn) in pconns.items():
             pconn.send(("DECIDE", True))
 
     def rejectfn():
+        print("Calling rejectfn")
         for ((spectrum_id, order_id), pconn) in pconns.items():
             pconn.send(("DECIDE", False))
 

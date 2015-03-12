@@ -321,7 +321,7 @@ class Order:
         :type p: model.ThetaParam
         '''
 
-        self.logger.debug("Updating stellar parameters to {}".format(p))
+        self.logger.debug("Updating Theta parameters to {}".format(p))
 
         # Store the current accepted values before overwriting with new proposed values.
         self.flux_mean_last = self.flux_mean
@@ -390,10 +390,10 @@ class Order:
         '''
         if yes:
             # accept and move on
-            self.logger.debug("Deciding to accept stellar parameters")
+            self.logger.debug("Deciding to accept Theta parameters")
         else:
             # revert and move on
-            self.logger.debug("Deciding to revert stellar parameters")
+            self.logger.debug("Deciding to revert Theta parameters")
             self.revert_Theta()
 
         # Proceed with independent sampling
@@ -431,7 +431,7 @@ class Order:
 
     def update_Phi(self, p):
         '''
-        Update the nuisance parameters and data covariance matrix.
+        Update the Phi parameters and data covariance matrix.
 
         :param params: large dictionary containing cheb, cov, and regions
         '''
@@ -444,7 +444,7 @@ class Order:
         covariance matrix.
         '''
 
-        self.logger.debug("Reverting nuisance parameters")
+        self.logger.debug("Reverting Phi parameters")
 
         self.lnprob = self.lnprob_last
 
@@ -466,7 +466,7 @@ class Order:
 
         '''
 
-        self.logger.debug("Beginning independent sampling on nuisance parameters")
+        self.logger.debug("Beginning independent sampling on Phi parameters")
 
         if self.lnprob:
             # If we have a current value, pass it to the sampler
@@ -475,7 +475,7 @@ class Order:
             # Otherwise, start from the beginning
             self.p0, self.lnprob, state = self.sampler.run_mcmc(pos0=self.p0, N=niter)
 
-        self.logger.debug("Finished independent sampling on nuisance parameters")
+        self.logger.debug("Finished independent sampling on Phi parameters")
         # Don't return anything to the master process.
 
     def finish(self, *args):
@@ -581,17 +581,18 @@ class SampleThetaCheb(Order):
         self.p0 = phi.cheb
         cov = np.diag(Starfish.config["cheb_jump"]**2 * np.ones(len(self.p0)))
 
-        def lnprob(p):
+        def lnfunc(p):
             # turn this into pars
             self.update_Phi(p)
             lnp = self.evaluate()
-            print(self.order, p, lnp)
+            self.logger.debug("Evaluated Phi parameters: {} {}".format(p, lnp))
             return lnp
 
-        def revertfn():
+        def rejectfn():
+            self.logger.debug("Calling Phi revertfn.")
             self.revert_Phi()
 
-        self.sampler = StateSampler(lnprob, self.p0, cov, query_lnprob=self.get_lnprob, revertfn=revertfn)
+        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
 
     def update_Phi(self, p):
         '''
@@ -603,7 +604,6 @@ class SampleThetaCheb(Order):
         super().finish(*args)
 
         self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
-
 
 
 
