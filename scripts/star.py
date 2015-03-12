@@ -139,7 +139,7 @@ if args.sample == "ThetaCheb":
             lnps[i] = pconn.recv()
 
         result = np.sum(lnps) # + lnprior
-        print(p, result)
+        print("proposed:", p, result)
         return result
 
     def query_lnprob():
@@ -151,7 +151,9 @@ if args.sample == "ThetaCheb":
         for i, pconn in enumerate(pconns.values()):
             lnps[i] = pconn.recv()
 
-        return np.sum(lnps) # + lnprior
+        result = np.sum(lnps) # + lnprior
+        print("queried:", result)
+        return result
 
     def acceptfn():
         print("Calling acceptfn")
