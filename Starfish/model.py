@@ -94,6 +94,16 @@ class PhiParam:
         self.l = l
         self.regions = regions
 
+    def toarray(self):
+        '''
+        Return parameters formatted as a numpy array.
+        '''
+        p = self.cheb.tolist() + [self.sigAmp, self.logAmp, self.l]
+        if self.regions is not None:
+            p += self.regions.flatten().tolist()
+
+        return np.array(p)
+
     def save(self, fname="phi.json"):
         f = open(Starfish.specfmt.format(self.spectrum_id, self.order) + fname, 'w')
         json.dump(self, f, cls=PhiEncoder, indent=2, sort_keys=True)

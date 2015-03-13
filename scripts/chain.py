@@ -10,8 +10,7 @@ parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.
 
 parser.add_argument("--files", nargs="+", help="The HDF5 or CSV files containing the MCMC samples, separated by whitespace.")
 
-parser.add_argument("--burn", type=int, default=0, help="How many samples to discard from the beginning of the chain "
-                                                        "for burn in.")
+parser.add_argument("--burn", type=int, default=0, help="How many samples to discard from the beginning of the chain for burn in.")
 parser.add_argument("--thin", type=int, default=1, help="Thin the chain by this factor. E.g., --thin 100 will take every 100th sample.")
 parser.add_argument("--range", nargs=2, help="start and end ranges for chain plot, separated by WHITESPACE")
 
@@ -141,11 +140,8 @@ def plot(flatchain, base=args.outdir, format=".png"):
 
     import triangle
 
-    # labels = [r"$M_\ast\quad [M_\odot]$", r"$r_c$ [AU]", r"$T_{10}$ [K]",
-    # r"$q$", r"$\log M_\textrm{CO} \quad \log [M_\oplus]$",  r"$\xi$ [km/s]",
-    # r"$d$ [pc]",
-    # r"$i_d \quad [{}^\circ]$", r"PA $[{}^\circ]$", r"$v_r$ [km/s]",
-    # r"$\mu_\alpha$ ['']", r"$\mu_\delta$ ['']"]
+    labels = [r"$T_\textrm{eff}$ [K]", r"$\log g$ [dex]", r"$Z$ [dex]",
+    r"$v_z$ [km/s]", r"$v \sin i$ [km/s]", r"$\log_{10} \Omega$"]
     figure = triangle.corner(flatchain, quantiles=[0.16, 0.5, 0.84],
         plot_contours=True, plot_datapoints=False, labels=labels, show_titles=True)
     figure.savefig(base + "triangle" + format)

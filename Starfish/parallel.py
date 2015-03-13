@@ -15,7 +15,7 @@ parser.add_argument("-r", "--run_index", help="All data will be written into thi
 # Even though these arguments aren't being used, we need to add them.
 parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
 parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
-parser.add_argument("--sample", choices=["ThetaCheb", "Phi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
 args = parser.parse_args()
 
@@ -122,11 +122,6 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)
 #         startingDict[key] += factor * np.random.normal(loc=0, scale=jumpDict[key])
 #
 
-# stellar_Starting = config['stellar_params']
-# stellar_tuple = C.dictkeys_to_tuple(stellar_Starting)
-# # go through each item in stellar_tuple, and assign the appropriate covariance to it
-# stellar_MH_cov = np.array([float(config["stellar_jump"][key]) for key in stellar_tuple])**2 * np.identity(len(stellar_Starting))
-#
 # fix_logg = config.get("fix_logg", None)
 
 # Updating specific covariances to speed mixing
@@ -573,7 +568,7 @@ class SampleThetaCheb(Order):
 
         # for now, just use white noise
         self.data_mat = self.sigma_mat.copy()
-        self.data_mat_last = self.data_mat
+        self.data_mat_last = self.data_mat.copy()
 
         #Set up p0 and the independent sampler
         fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
@@ -602,47 +597,95 @@ class SampleThetaCheb(Order):
 
     def finish(self, *args):
         super().finish(*args)
+        self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
 
+class SampleThetaPhi(Order):
+
+    def initialize(self, key):
+        # Run through the standard initialization
+        super().initialize(key)
+
+        # for now, start with white noise
+        self.data_mat = self.sigma_mat.copy()
+        self.data_mat_last = self.data_mat.copy()
+
+        #Set up p0 and the independent sampler
+        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        phi = PhiParam.load(fname)
+
+        #Loading file that was previously output
+        # Convert PhiParam object to an array
+        self.p0 = phi.toarray()
+
+        jump = Starfish.config["Phi_jump"]
+        cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
+        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov = np.diag(cov_arr)
+
+        def lnfunc(p):
+            # Convert p array into a PhiParam object
+            ind = self.npoly
+            if self.chebyshevSpectrum.fix_c0:
+                ind -= 1
+
+            cheb = p[0:ind]
+            sigAmp = p[ind]
+            ind+=1
+            logAmp = p[ind]
+            ind+=1
+            l = p[ind]
+
+            par = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
+
+            self.update_Phi(par)
+            lnp = self.evaluate()
+            self.logger.debug("Evaluated Phi parameters: {} {}".format(par, lnp))
+            return lnp
+
+        def rejectfn():
+            self.logger.debug("Calling Phi revertfn.")
+            self.revert_Phi()
+
+        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
+
+    def update_Phi(self, p):
+        self.logger.debug("Updating nuisance parameters to {}".format(p))
+
+        # Read off the Chebyshev parameters and update
+        self.chebyshevSpectrum.update(p.cheb)
+
+        # Check to make sure the global covariance parameters make sense
+        if p.sigAmp < 0.1:
+            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+
+        max_r = 6.0 * p.l # [km/s]
+
+        # # Check all regions, take the max
+        # if self.nregions > 0:
+        #     regions = params["regions"]
+        #     keys = sorted(regions)
+        #     sigmas = np.array([regions[key]["sigma"] for key in keys]) #km/s
+        #     #mus = np.array([regions[key]["mu"] for key in keys])
+        #     max_reg = 4.0 * np.max(sigmas)
+        #     #If this is a larger distance than the global length, replace it
+        #     max_r = max_reg if max_reg > max_r else max_r
+        #     #print("Max_r now set by regions {}".format(max_r))
+
+        # print("max_r is {}".format(max_r))
+
+        # Create a partial function which returns the proper element.
+        k_func = make_k_func(p)
+
+        # Store the previous data matrix in case we want to revert later
+        self.data_mat_last = self.data_mat
+        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + p.sigAmp*self.sigma_mat
+
+    def finish(self, *args):
+        super().finish(*args)
         self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
 
 
-
-class SampleThetaPhi(Order):
-    def __init__(self):
-        pass
-
-    def initialize(self, key):
-
-        # Run through the standard initialization
-        super().initialize(self, key)
-
-        # Here is where things could be abstracted out into a subclass.
-
-        cheb_MH_cov = float(config["cheb_jump"])**2 * np.ones((self.npoly,))
-        cheb_tuple = ("logc0",)
-        # add in new coefficients
-        for i in range(1, self.npoly):
-            cheb_tuple += ("c{}".format(i),)
-        # set starting position to 0
-        cheb_Starting = {k:0.0 for k in cheb_tuple}
-
-        # Design cov starting
-        cov_Starting = config['cov_params']
-        cov_tuple = C.dictkeys_to_cov_global_tuple(cov_Starting)
-        cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in cov_tuple])**2
-
-        nuisance_MH_cov = np.diag(np.concatenate((cheb_MH_cov, cov_MH_cov)))
-        nuisance_starting = {"cheb": cheb_Starting, "cov": cov_Starting, "regions":{}}
-
-        # Create the nuisance parameter sampler to run independently
-        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=nuisance_starting, cov=nuisance_MH_cov, debug=True, outdir=self.noutdir, order=self.order)
-        self.p0 = self.sampler.p0
-
-        # Udpate the nuisance parameters to the starting values so that we at
-        # least have a self.data_mat
-        self.logger.info("Updating nuisance parameter data products to starting values.")
-        self.update_nuisance(nuisance_starting)
-
+class SampleThetaPhiLines(Order):
     def instantiate(self, *args):
         # threshold for sigma clipping
         sigma=config["sigma_clip"]
@@ -729,81 +772,6 @@ class SampleThetaPhi(Order):
         print("Doing nuisance burn-in for {} samples".format(config["nuisance_burn"]))
         self.independent_sample(config["nuisance_burn"])
 
-    def evaluate(self):
-        self.lnprob_last = self.lnprob
-
-        X = (self.ChebyshevSpectrum.k * self.flux_std * np.eye(self.ndata)).dot(self.eigenspectra.T)
-
-        CC = X.dot(self.C_GP.dot(X.T)) + self.data_mat
-
-        R = self.fl - self.ChebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
-
-        try:
-            factor, flag = cho_factor(CC)
-        except np.linalg.LinAlgError as e:
-            self.logger.debug("self.sampler.params are {}".format(self.sampler.params))
-            raise C.ModelError("Can't Cholesky factor {}".format(e))
-
-        logdet = np.sum(2 * np.log((np.diag(factor))))
-
-        self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet) + self.prior
-
-        if self.counter % 100 == 0:
-            self.resid_deque.append(R)
-
-        self.counter += 1
-
-        return self.lnprob
-
-    def update_Phi(self, p):
-        self.logger.debug("Updating nuisance parameters to {}".format(params))
-        # Read off the Chebyshev parameters and update
-        self.ChebyshevSpectrum.update(p.cheb)
-
-        # Check to make sure the global covariance parameters make sense
-        if p.sigAmp < 0.1:
-            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
-
-        max_r = 6.0 * p.l # [km/s]
-
-        # Check all regions, take the max
-        if self.nregions > 0:
-            regions = params["regions"]
-            keys = sorted(regions)
-            sigmas = np.array([regions[key]["sigma"] for key in keys]) #km/s
-            #mus = np.array([regions[key]["mu"] for key in keys])
-            max_reg = 4.0 * np.max(sigmas)
-            #If this is a larger distance than the global length, replace it
-            max_r = max_reg if max_reg > max_r else max_r
-            #print("Max_r now set by regions {}".format(max_r))
-
-        # print("max_r is {}".format(max_r))
-
-        # Create a partial function which returns the proper element.
-        k_func = make_k_func(params)
-
-        # Store the previous data matrix in case we want to revert later
-        self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + sigAmp*self.sigma_mat
-
-
-    def finish(self):
-        super().finish()
-        print(self.sampler.acceptance_fraction)
-        print(self.sampler.acor)
-        self.sampler.write()
-        self.sampler.plot() # triangle_plot=True
-        print("There were {} exceptions.".format(len(self.exceptions)))
-        # print out the values of each region key.
-        for exception in self.exceptions:
-            regions = exception["regions"]
-            keys = sorted(regions)
-            for key in keys:
-                print(regions[key])
-            cov = exception["cov"]
-            print(cov)
-            print("\n\n")
-
 # We create one Order() in the main process. When the process forks, each
 # subprocess now has its own independent OrderModel instance.
 # Then, each forked model will be customized using an INIT command passed
@@ -830,9 +798,6 @@ def initialize(model):
 
     return (pconns, cconns, ps)
 
-# From here on, this script operates on the master process only.
-# if args.sample:
-#     perturb(stellar_Starting, config["stellar_jump"], factor=args.perturb)
 
 def profile_code():
     '''
@@ -860,25 +825,6 @@ def main():
     # import cProfile
     # cProfile.run("profile_code()", "prof")
     # import sys; sys.exit()
-
-    mySampler = StellarSampler(pconns=pconns, starting_param_dict=stellar_Starting,
-        cov=stellar_MH_cov, outdir=outdir, debug=True, fix_logg=fix_logg)
-
-    mySampler.run_mcmc(mySampler.p0, config['burn_in'])
-    #mySampler.reset()
-
-    self.logger.info("Instantiating Regions")
-
-    # Now that we are burned in, instantiate any regions
-    for key, pconn in pconns.items():
-        pconn.send(("INST", None))
-
-    mySampler.run_mcmc(mySampler.p0, config['samples'])
-
-    print(mySampler.acceptance_fraction)
-    print(mySampler.acor)
-    mySampler.write()
-    mySampler.plot() #triangle_plot = True
 
     # Kill all of the orders
     for pconn in pconns.values():

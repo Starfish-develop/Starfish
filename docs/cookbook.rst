@@ -37,7 +37,7 @@ Then, we will want to make the PCA grid, and do many other things regarding opti
     # Optimize the emulator using fmin
     pca.py --optimize=fmin
 
-    # Optimize the emulator starting from fresh parameter combinations
+    # Optimize the emulator starting from previous parameter estimates
     pca.py --optimize=fmin --resume
 
     # OR optimize using emcee
