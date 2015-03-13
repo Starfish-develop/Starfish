@@ -120,9 +120,12 @@ if args.optimize == "Cheb":
 
     import sys;sys.exit()
 
-if args.sample == "ThetaCheb":
+if args.sample == "ThetaCheb" or args.sample == "ThetaPhi":
 
-    model = parallel.SampleThetaCheb(debug=True)
+    if args.sample == "ThetaCheb":
+        model = parallel.SampleThetaCheb(debug=True)
+    if args.sample == "ThetaPhi":
+        model = parallel.SampleThetaPhi(debug=True)
 
     pconns, cconns, ps = parallel.initialize(model)
 

@@ -192,39 +192,52 @@ def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
 
     return mat
 
-def make_k_func(params):
-    cdef double amp = 10**params["cov"]["logAmp"]
-    cdef double l = params["cov"]["l"] #Given in Km/s
+def make_k_func(par):
+    cdef double amp = 10**par.logAmp
+    cdef double l = par.l #Given in Km/s
     cdef double r0 = 6.0 * l #Km/s
     cdef double taper
-    regions = params["regions"] #could be an empty dictionary {}
+    regions = par.regions #could be None or a 2D array
 
     cdef double a, mu, sigma, rx0, rx1, r_tap, r0_r
 
-    def k_func(wl0, wl1):
-        cdef double cov = 0.0
+    if regions is None:
+        # make a k_func that excludes regions and is faster
+        def k_func(wl0, wl1):
+            cdef double cov = 0.0
 
-        #Initialize the global covariance
-        cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
-        if r < r0:
-            taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
-            cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
+            #Initialize the global covariance
+            cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+            if r < r0:
+                taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
+                cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
 
-        #If covered by a region, instantiate
-        for rparams in regions.values():
-            a = 10**rparams["logAmp"]
-            mu = rparams["mu"]
-            sigma = rparams["sigma"]
+            return cov
+    else:
+        # make a k_func which includes regions
+        def k_func(wl0, wl1):
+            cdef double cov = 0.0
 
-            rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
-            rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
-            r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
-            r0_r = 4.0 * sigma # where the kernel goes to 0
+            #Initialize the global covariance
+            cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+            if r < r0:
+                taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
+                cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
 
-            if r_tap < r0_r:
-                taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
-                cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) +
-                                                             (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
-        return cov
+            #If covered by a region, instantiate
+            for row in regions:
+                a = 10**row[0]
+                mu = row[1]
+                sigma = row[2]
+
+                rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
+                rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
+                r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
+                r0_r = 4.0 * sigma # where the kernel goes to 0
+
+                if r_tap < r0_r:
+                    taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
+                    cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
+            return cov
 
     return k_func
