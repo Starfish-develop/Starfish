@@ -4,6 +4,10 @@
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models, however there are many potential applications to other types of spectra, such as unresolved stellar clusters or supernovae spectra.
 
+**Beta version 0.1**
+
+Please note that this software package is still under development as more features are being added. 
+
 Website: http://iancze.github.io/Starfish/
 
 Documentation: http://iancze.github.io/Starfish/current/index.html

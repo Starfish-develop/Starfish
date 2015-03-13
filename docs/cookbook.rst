@@ -84,8 +84,6 @@ Now we can plot these files using our plotting programs.
     splot.py --D3
 
 
-
-
     star.py --sample=Theta
 
 Optimize the noise parameters (:math:`\Phi`)
