@@ -208,7 +208,7 @@ if args.optimize == "emcee":
             p0 +=   [np.random.uniform(amp[0], amp[1], nwalkers)]
             for s,r in priors:
                 # Draw randomly from the gamma priors
-                p0 += [np.random.gamma(s, r, nwalkers)]
+                p0 += [np.random.gamma(s, 1./r, nwalkers)]
 
         p0 = np.array(p0).T
 
