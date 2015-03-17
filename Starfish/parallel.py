@@ -36,7 +36,7 @@ from scipy.special import j1
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.linalg import cho_factor, cho_solve
 from numpy.linalg import slogdet
-from astropy.stats.funcs import sigma_clip
+from astropy.stats import sigma_clip
 
 import gc
 import logging
@@ -177,7 +177,9 @@ class Order:
         '''
 
         self.id = key
-        self.spectrum_id, self.order_key = self.id
+        spectrum_id, self.order_key = self.id
+        # Make sure these are ints
+        self.spectrum_id = int(spectrum_id)
 
         self.instrument = Instruments[self.spectrum_id]
         self.dataSpectrum = DataSpectra[self.spectrum_id]
@@ -186,7 +188,7 @@ class Order:
         self.sigma = self.dataSpectrum.sigmas[self.order_key]
         self.ndata = len(self.wl)
         self.mask = self.dataSpectrum.masks[self.order_key]
-        self.order = self.dataSpectrum.orders[self.order_key]
+        self.order = int(self.dataSpectrum.orders[self.order_key])
 
         self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.order))
         if self.debug:
@@ -292,22 +294,6 @@ class Order:
         self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
         return self.lnprob
 
-    def revert_Theta(self):
-        '''
-        Revert the status of the model from a rejected Theta proposal.
-        '''
-
-        self.logger.debug("Reverting Theta parameters")
-
-        self.lnprob = self.lnprob_last
-
-        self.flux_mean = self.flux_mean_last
-        self.flux_std = self.flux_std_last
-        self.eigenspectra = self.eigenspectra_last
-
-        self.mus = self.mus_last
-        self.C_GP = self.C_GP_last
-
     def update_Theta(self, p):
         '''
         Update the model to the current Theta parameters.
@@ -374,6 +360,22 @@ class Order:
         # If pars are outside the grid, Emulator will raise C.ModelError
         self.emulator.params = p.grid
         self.mus, self.C_GP = self.emulator.matrix
+
+    def revert_Theta(self):
+        '''
+        Revert the status of the model from a rejected Theta proposal.
+        '''
+
+        self.logger.debug("Reverting Theta parameters")
+
+        self.lnprob = self.lnprob_last
+
+        self.flux_mean = self.flux_mean_last
+        self.flux_std = self.flux_std_last
+        self.eigenspectra = self.eigenspectra_last
+
+        self.mus = self.mus_last
+        self.C_GP = self.C_GP_last
 
     def decide_Theta(self, yes):
         '''
@@ -523,7 +525,7 @@ class Order:
     def save(self, *args):
         '''
         Using the current values for flux, write out the data, mean model, and mean
-        residuals.
+        residuals into a JSON.
         '''
 
         X = (self.chebyshevSpectrum.k * self.flux_std * np.eye(self.ndata)).dot(self.eigenspectra.T)
@@ -531,7 +533,7 @@ class Order:
         model = self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
         resid = self.fl - model
 
-        my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":model.tolist(), "resid":resid.tolist()}
+        my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":model.tolist(), "resid":resid.tolist(), "sigma":self.sigma.tolist(), "spectrum_id":self.spectrum_id, "order":self.order}
 
         fname = Starfish.specfmt.format(self.spectrum_id, self.order)
         f = open(fname + "spec.json", 'w')
