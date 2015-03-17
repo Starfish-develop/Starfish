@@ -90,8 +90,11 @@ Optimize the noise parameters (:math:`\Phi`)
 
     star.py --optimize=Phi
 
-    star.py --optimize=Phi --regions
-
 Using the parallel code, sample both :math:`\Theta` and :math:`\Phi` at the same time. This code is more robust and actually sets up directories for output and everything.
 
     pstar.py
+
+
+Search for an instantiate the regions for a given order. The JSON file includes the model, data, and residual.
+
+    regions.py s0_o23_spec.json --sigma=3 --find
