@@ -2,7 +2,7 @@
 
 import argparse
 
-parser = argparse.ArgumentParser(description="Measure statistics across multiple chains.")
+parser = argparse.ArgumentParser(description="Measure statistics from MCMC runs, either for a single chain or across multiple chains.")
 parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell expansion.")
 
 parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
