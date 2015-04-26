@@ -89,10 +89,21 @@ Optimize the noise parameters (:math:`\Phi`)
 
     star.py --optimize=Phi
 
-Using the parallel code, sample both :math:`\Theta` and :math:`\Phi` at the same time. This code is more robust and actually sets up directories for output and everything.
+Starting values for the nuisance parameters (:math:`\Phi`) are read from `*phi.json` files located in the current working directory. If you don't feel like optimizing the Chebyshev polynomials first, then to generate a set of these files for default values read from your config file, run
 
-    pstar.py
+    star.py --initPhi
 
+Note that this will overwrite any of your current `*phi.json` files in the current working directory. If you previously optimized the Cheb parameters, you may want to borrow these values and use them here.
+
+On all subsquent runs, the starting values are taken from these. So, if you are doing many iterative runs where you by now have a good estimate of the final parameter values, it might be worthwhile to use a text editor to go and edit `s0_o22phi.json` and associated files by hand to these values, in order to speed convergence.
+
+Sample in the Theta and Chebyhev parameters at the same time.
+
+    star.py --sample=ThetaCheb --samples=100
+
+Sample in the Theta, Chebyshev, and global covariance parameters at the same time.
+
+    star.py --sample=ThetaPhi --samples=100
 
 Search for an instantiate the regions for a given order. The JSON file includes the model, data, and residual.
 

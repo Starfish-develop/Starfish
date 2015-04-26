@@ -1,4 +1,4 @@
-__version__ = '1.0'
+__version__ = '0.1'
 __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers"]
 
 # Read the users config.yaml file.
@@ -19,7 +19,7 @@ except FileNotFoundError as e:
     f.close()
 
 # Format string for saving/reading orders
-specfmt = "s{}_o{}_"
+specfmt = "s{}_o{}"
 
 # Read the YAML variables into package-level dictionaries to be used by the other programs.
 name = config["name"]
