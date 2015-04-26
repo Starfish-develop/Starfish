@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish"
 parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
 # Even though these arguments aren't being used, we need to add them.
 parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
+parser.add_argument("--initPhi", action="store_true", help="Create *phi.json files for each order using values in config.yaml")
 parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
@@ -54,42 +55,45 @@ def init_directories(run_index=None):
     samples and other output products. If we're sampling, we probably want to be
     running multiple chains at once, and so we have to set things up so that they
     don't conflict.
+
+    :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.outdir + Starfish.name + "run{:0>2}/"
+    base = Starfish.outdir + Starfish.name + "/run{:0>2}/"
 
     if run_index == None:
         run_index = 0
         while os.path.exists(base.format(run_index)):
             print(base.format(run_index), "exists")
             run_index += 1
-        outdir = base.format(run_index)
+        routdir = base.format(run_index)
 
     else:
-        outdir = base.format(run_index)
-        #Delete this outdir, if it exists
-        if os.path.exists(outdir):
-            print("Deleting", outdir)
-            shutil.rmtree(outdir)
+        routdir = base.format(run_index)
+        #Delete this routdir, if it exists
+        if os.path.exists(routdir):
+            print("Deleting", routdir)
+            shutil.rmtree(routdir)
 
-    print("Creating ", outdir)
-    os.makedirs(outdir)
+    print("Creating ", routdir)
+    os.makedirs(routdir)
 
-    # Copy yaml file to outdir for archiving purposes
-    shutil.copy("config.yaml", outdir + "/config.yaml")
+    # Copy yaml file to routdir for archiving purposes
+    shutil.copy("config.yaml", routdir + "config.yaml")
 
-    for model_number in range(len(DataSpectra)):
+    # Create subdirectories
+    for model_number in range(len(Starfish.data["files"])):
         for order in Starfish.data["orders"]:
-            order_dir = "{}{}/{}".format(outdir, model_number, order)
+            order_dir = routdir + Starfish.specfmt.format(model_number, order)
             print("Creating ", order_dir)
             os.makedirs(order_dir)
 
-    return outdir
+    return routdir
 
 if args.run_index:
-    outdir = init_directories(args.run_index)
+    Starfish.routdir = init_directories(args.run_index)
 else:
-    outdir = ""
+    Starfish.routdir = ""
 
 # list of keys from 0 to (norders - 1)
 order_keys = np.arange(len(Starfish.data["orders"]))
@@ -108,7 +112,7 @@ if masks is not None:
 
 # Set up the logger
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
-    outdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
+    Starfish.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
 #
 # def perturb(startingDict, jumpDict, factor=3.):
 #     '''
@@ -238,7 +242,7 @@ class Order:
         # self.exceptions = []
 
         # Update the outdir based upon id
-        self.noutdir = outdir + "{}/{}/".format(self.spectrum_id, self.order)
+        self.noutdir = Starfish.routdir + "{}/{}/".format(self.spectrum_id, self.order)
 
     def instantiate(self, *args):
         '''
@@ -599,7 +603,8 @@ class SampleThetaCheb(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
+        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        self.sampler.write(fname=fname)
 
 class SampleThetaPhi(Order):
 
@@ -684,7 +689,8 @@ class SampleThetaPhi(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        self.sampler.write(fname=Starfish.specfmt.format(self.spectrum_id, self.order) + "mc.hdf5")
+        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        self.sampler.write(fname=fname)
 
 
 class SampleThetaPhiLines(Order):

@@ -84,7 +84,7 @@ class PhiParam:
     An object holding the collection of parameters specific to a single order.
     '''
     def __init__(self, spectrum_id, order, fix_c0=False, cheb=np.zeros((Starfish.config["cheb_degree"],)),
-        sigAmp=1.0, logAmp=0.0, l=10.0, regions=None):
+        sigAmp=Starfish.config["Phi"]["sigAmp"], logAmp=Starfish.config["Phi"]["logAmp"], l=Starfish.config["Phi"]["l"], regions=None):
         self.spectrum_id = spectrum_id
         self.order = order
         self.fix_c0 = fix_c0
@@ -136,7 +136,6 @@ class PhiEncoder(json.JSONEncoder):
     '''
     def default(self, o):
         try:
-            print("Calling O:", o)
             mydict = {"spectrum_id":o.spectrum_id,
                 "order": o.order,
                 "fix_c0": o.fix_c0,
