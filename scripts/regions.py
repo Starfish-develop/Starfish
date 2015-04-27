@@ -3,7 +3,6 @@
 import argparse
 parser = argparse.ArgumentParser(prog="regions.py", description="Identify region zones.")
 parser.add_argument("file", help="JSON file containing the data, model, and residual.")
-# parser.add_argument("--matplotlib", action="store_true", help="Plot the image using matplotlib")
 parser.add_argument("--sigma", type=float, default=4.0, help="Sigma clipping threshold.")
 parser.add_argument("--sigma0", type=float, default=2.0, help="How close (in AA) regions are allowed to be next to each other.")
 args = parser.parse_args()

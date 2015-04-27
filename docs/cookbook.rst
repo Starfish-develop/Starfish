@@ -103,8 +103,24 @@ Sample in the Theta and Chebyhev parameters at the same time.
 
 Sample in the Theta, Chebyshev, and global covariance parameters at the same time.
 
-    star.py --sample=ThetaPhi --samples=100
+    star.py --sample=ThetaPhi --samples=5
 
-Search for an instantiate the regions for a given order. The JSON file includes the model, data, and residual.
+In actuallity you will probably want something like `--samples=5000` or more to get a statistical exploration of the space, but before waiting for a long run to finish it would be good to check that the machinery worked for a small run first.
 
-    regions.py s0_o23_spec.json --sigma=3 --find
+Then, you can use the `chain.py` tool to examine and plot the parameter estimates. First, navigate to the directory that has the samples. Generally this will be something like `output/WASP14/run01` or whatever you have specified in your `config.yaml`. Then, use the tool to examine the Markov Chain
+
+    chain.py --files mc.hdf5 --chain
+
+Once you have a reasonable guess at the parameters, update your `config.yaml` file and `*phi.json` files to these best-fit parameters. Then, you'll want to create a new residual spectrum
+
+    star.py --generate
+
+Then, we can use this residual spectrum to search for and instantiate the regions for a given order. The JSON file includes the model, data, and residual.
+
+    regions.py s0_o23spec.json --sigma=3 --find
+
+This will create a file called something like `s0_o23region_list.json`, which contains a list of the centroids of each of these lines.
+
+Then, go through and optimize the regions in this list. This will attempt to optimize the line kernels in the list.
+
+    region_optimize.py s0_o23spec.json s0_o23regions.json --sigma0=2.
