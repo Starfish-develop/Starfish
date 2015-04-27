@@ -16,6 +16,7 @@ from numpy.linalg import slogdet
 import Starfish
 from Starfish.model import PhiParam
 from Starfish.covariance import get_dense_C, make_k_func
+from Starfish import constants as C
 
 # Load the spectrum and then take the data products.
 f = open(args.spectrum, "r")
@@ -45,10 +46,69 @@ fname = Starfish.specfmt.format(spectrum_id, order) + "phi.json"
 try:
     phi = PhiParam.load(fname)
 except FileNotFoundError:
-    print("No order parameter file found (e.g. sX_oXX_phi.json), please run an optimizer first.")
+    print("No order parameter file found (e.g. sX_oXXphi.json), please run `star.py --initPhi` first.")
     raise
 
-def optimize_region(wl, residuals, sigma, mu):
+# Puposely set phi.regions to none for this exercise, since we don't care about existing regions, and likely we want to overwrite them.
+phi.regions = None
+
+def optimize_region_residual(wl, residuals, sigma, mu):
+    '''
+    Determine the optimal parameters for the line kernels by fitting a Gaussian directly to the residuals.
+    '''
+    # Using sigma0, truncate the wavelength vector and residulas to include
+    # only those portions that fall in the range [mu - sigma, mu + sigma]
+    ind = (wl > mu - args.sigma0) & (wl < mu + args.sigma0)
+    wl = wl[ind]
+    R = residuals[ind]
+    sigma = sigma[ind]
+
+    sigma_mat = phi.sigAmp * sigma**2 * np.eye(len(wl))
+
+    max_r = 6.0 * phi.l # [km/s]
+    k_func = make_k_func(phi)
+
+    # Use the full covariance matrix when doing the likelihood eval
+    CC = get_dense_C(wl, k_func=k_func, max_r=max_r) + sigma_mat
+    factor, flag = cho_factor(CC)
+    logdet = np.sum(2 * np.log((np.diag(factor))))
+
+    rr = C.c_kms/mu * np.abs(mu - wl) # Km/s
+
+    def fprob(p):
+        # The likelihood function
+
+        # Requires sign about amplitude, so we can't use log.
+        amp, sig = p
+
+        gauss = amp * np.exp(-0.5 * rr**2/sig**2)
+
+        r = R - gauss
+
+        # Create a Gaussian using these parameters, and re-evaluate the residual
+        lnprob = -0.5 * (np.dot(r, cho_solve((factor, flag), r)) + logdet)
+        return lnprob
+
+    par = Starfish.config["region_params"]
+    p0 = np.array([10**par["logAmp"], par["sigma"]])
+
+    f = lambda x: -fprob(x)
+
+    try:
+        p = fmin(f, p0, maxiter=10000, maxfun=10000, disp=False)
+        # print(p)
+        return p
+    except np.linalg.linalg.LinAlgError:
+        return p0
+
+
+
+def optimize_region_covariance(wl, residuals, sigma, mu):
+    '''
+    Determine the optimal parameters for the line kernels by actually using a chunk of the covariance matrix.
+
+    Note this actually uses the assumed global parameters.
+    '''
 
     # Using sigma0, truncate the wavelength vector and residulas to include
     # only those portions that fall in the range [mu - sigma, mu + sigma]
@@ -89,12 +149,21 @@ def optimize_region(wl, residuals, sigma, mu):
     f = lambda x: -fprob(x)
 
     try:
-        p = fmin(f, p0, maxiter=10000, maxfun=10000)
+        p = fmin(f, p0, maxiter=10000, maxfun=10000, disp=False)
         # print(p)
         return p
     except np.linalg.linalg.LinAlgError:
         return p0
 
-# optimize_region(wl, resid, sigma, mus[4])
+# Regions will be a 2D array with shape (nregions, 3)
+regions = []
 for mu in mus:
-    print(mu, optimize_region(wl, resid, sigma, mu))
+    # amp, sig = optimize_region_residual(wl, resid, sigma, mu)
+    # regions.append([np.log10(np.abs(amp)), mu, sig])
+
+    logAmp, sig = optimize_region_covariance(wl, resid, sigma, mu)
+    regions.append([logAmp, mu, sig])
+
+# Add these values back to the phi parameter file and save
+phi.regions = np.array(regions)
+phi.save()

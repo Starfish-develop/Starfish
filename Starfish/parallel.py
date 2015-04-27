@@ -16,7 +16,7 @@ parser.add_argument("-r", "--run_index", help="All data will be written into thi
 parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
 parser.add_argument("--initPhi", action="store_true", help="Create *phi.json files for each order using values in config.yaml")
 parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
-parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
 args = parser.parse_args()
 
@@ -30,7 +30,7 @@ from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
 from Starfish.emulator import Emulator
 import Starfish.constants as C
-from Starfish.covariance import get_dense_C, make_k_func
+from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
 from Starfish.model import ThetaParam, PhiParam
 
 from scipy.special import j1
@@ -620,6 +620,10 @@ class SampleThetaPhi(Order):
         fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
+        # Set the regions to None, since we don't want to include them even if they
+        # are there
+        phi.regions = None
+
         #Loading file that was previously output
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
@@ -667,19 +671,6 @@ class SampleThetaPhi(Order):
 
         max_r = 6.0 * p.l # [km/s]
 
-        # # Check all regions, take the max
-        # if self.nregions > 0:
-        #     regions = params["regions"]
-        #     keys = sorted(regions)
-        #     sigmas = np.array([regions[key]["sigma"] for key in keys]) #km/s
-        #     #mus = np.array([regions[key]["mu"] for key in keys])
-        #     max_reg = 4.0 * np.max(sigmas)
-        #     #If this is a larger distance than the global length, replace it
-        #     max_r = max_reg if max_reg > max_r else max_r
-        #     #print("Max_r now set by regions {}".format(max_r))
-
-        # print("max_r is {}".format(max_r))
-
         # Create a partial function which returns the proper element.
         k_func = make_k_func(p)
 
@@ -692,93 +683,181 @@ class SampleThetaPhi(Order):
         fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
 
-
 class SampleThetaPhiLines(Order):
-    def instantiate(self, *args):
-        # threshold for sigma clipping
-        sigma=config["sigma_clip"]
 
-        # array that specifies if a pixel is already covered.
-        # to start, it should be all False
-        covered = np.zeros((self.ndata,), dtype='bool')
+    def initialize(self, key):
+        # Run through the standard initialization
+        super().initialize(key)
 
-        #average all of the spectra in the deque together
-        residual_array = np.array(self.resid_deque)
-        if len(self.resid_deque) == 0:
-            raise RuntimeError("No residual spectra stored yet.")
-        else:
-            residuals = np.average(residual_array, axis=0)
+        # for now, start with white noise
+        self.data_mat = self.sigma_mat.copy()
+        self.data_mat_last = self.data_mat.copy()
 
-        # run the sigma_clip algorithm until converged, and we've identified the outliers
-        filtered_data = sigma_clip(residuals, sig=sigma, iters=None)
-        mask = filtered_data.mask
-        wl = self.wl
+        #Set up p0 and the independent sampler
+        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        phi = PhiParam.load(fname)
 
-        sigma0 = config['region_priors']['sigma0']
-        logAmp = config["region_params"]["logAmp"]
-        sigma = config["region_params"]["sigma"]
+        # print("Phi.regions", phi.regions)
+        # import sys
+        # sys.exit()
+        # Get the regions matrix
+        region_func = make_k_func_region(phi)
 
-        # Sort in decreasing strength of residual
-        self.nregions = 0
-        regions = {}
+        max_r = 4.0 * np.max(phi.regions, axis=0)[2]
 
-        region_mus = {}
-        for w, resid in sorted(zip(wl[mask], np.abs(residuals[mask])), key=itemgetter(1), reverse=True):
-            if w in wl[covered]:
-                continue
-            else:
-                # check to make sure region is not *right* at the edge of the echelle order
-                if w <= np.min(wl) or w >= np.max(wl):
-                    continue
-                else:
-                    # instantiate region and update coverage
+        self.region_mat = get_dense_C(self.wl, k_func=region_func, max_r=max_r)
 
-                    # Default amp and sigma values
-                    regions[self.nregions] = {"logAmp":logAmp, "sigma":sigma, "mu":w}
-                    region_mus[self.nregions] = w # for evaluating the mu prior
-                    self.nregions += 1
+        print(self.region_mat)
 
-                    # determine the stretch of wl covered by this new region
-                    ind = (wl >= (w - sigma0)) & (wl <= (w + sigma0))
-                    # update the covered regions
-                    covered = covered | ind
+        # Then set phi to None
+        phi.regions = None
 
-        # Take the current nuisance positions as a starting point, and add the regions
-        starting_dict = self.sampler.params.copy()
-        starting_dict["regions"] = regions
+        #Loading file that was previously output
+        # Convert PhiParam object to an array
+        self.p0 = phi.toarray()
 
-        region_mus = np.array([region_mus[i] for i in range(self.nregions)])
+        jump = Starfish.config["Phi_jump"]
+        cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
+        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov = np.diag(cov_arr)
 
-        # Setup the priors
-        region_priors = config["region_priors"]
-        region_priors.update({"mus":region_mus})
-        prior_params = {"regions":region_priors}
+        def lnfunc(p):
+            # Convert p array into a PhiParam object
+            ind = self.npoly
+            if self.chebyshevSpectrum.fix_c0:
+                ind -= 1
 
-        # do all this crap again
-        cheb_MH_cov = float(config["cheb_jump"])**2 * np.ones((self.npoly,))
-        cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in self.sampler.cov_tup])**2
-        region_MH_cov = [float(config["region_jump"][key])**2 for key in C.cov_region_parameters]
-        regions_MH_cov = np.array([region_MH_cov for i in range(self.nregions)]).flatten()
+            cheb = p[0:ind]
+            sigAmp = p[ind]
+            ind+=1
+            logAmp = p[ind]
+            ind+=1
+            l = p[ind]
 
-        nuisance_MH_cov = np.diag(np.concatenate((cheb_MH_cov, cov_MH_cov, regions_MH_cov)))
+            phi = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
 
-        print(starting_dict)
-        print("cov shape {}".format(nuisance_MH_cov.shape))
+            self.update_Phi(phi)
+            lnp = self.evaluate()
+            self.logger.debug("Evaluated Phi parameters: {} {}".format(phi, lnp))
+            return lnp
 
-        # Initialize a new sampler, replacing the old one
-        self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov, debug=True, outdir=self.noutdir, prior_params=prior_params, order=self.order)
+        def rejectfn():
+            self.logger.debug("Calling Phi revertfn.")
+            self.revert_Phi()
 
-        self.p0 = self.sampler.p0
+        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
 
-        # Update the nuisance parameters to the starting values so that we at least have a self.data_mat
-        print("Updating nuisance parameter data products to starting values.")
-        self.update_nuisance(starting_dict)
-        self.lnprob = self.evaluate()
+    def update_Phi(self, phi):
+        self.logger.debug("Updating nuisance parameters to {}".format(phi))
 
-        # To speed up convergence, try just doing a bunch of nuisance runs before
-        # going into the iteration pattern
-        print("Doing nuisance burn-in for {} samples".format(config["nuisance_burn"]))
-        self.independent_sample(config["nuisance_burn"])
+        # Read off the Chebyshev parameters and update
+        self.chebyshevSpectrum.update(phi.cheb)
+
+        # Check to make sure the global covariance parameters make sense
+        if phi.sigAmp < 0.1:
+            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+
+        max_r = 6.0 * phi.l # [km/s]
+
+        # Create a partial function which returns the proper element.
+        k_func = make_k_func(phi)
+
+        # Store the previous data matrix in case we want to revert later
+        self.data_mat_last = self.data_mat
+        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + phi.sigAmp*self.sigma_mat + self.region_mat
+
+    def finish(self, *args):
+        super().finish(*args)
+        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        self.sampler.write(fname=fname)
+
+
+# class SampleThetaPhiLines(Order):
+#     def instantiate(self, *args):
+#         # threshold for sigma clipping
+#         sigma=config["sigma_clip"]
+#
+#         # array that specifies if a pixel is already covered.
+#         # to start, it should be all False
+#         covered = np.zeros((self.ndata,), dtype='bool')
+#
+#         #average all of the spectra in the deque together
+#         residual_array = np.array(self.resid_deque)
+#         if len(self.resid_deque) == 0:
+#             raise RuntimeError("No residual spectra stored yet.")
+#         else:
+#             residuals = np.average(residual_array, axis=0)
+#
+#         # run the sigma_clip algorithm until converged, and we've identified the outliers
+#         filtered_data = sigma_clip(residuals, sig=sigma, iters=None)
+#         mask = filtered_data.mask
+#         wl = self.wl
+#
+#         sigma0 = config['region_priors']['sigma0']
+#         logAmp = config["region_params"]["logAmp"]
+#         sigma = config["region_params"]["sigma"]
+#
+#         # Sort in decreasing strength of residual
+#         self.nregions = 0
+#         regions = {}
+#
+#         region_mus = {}
+#         for w, resid in sorted(zip(wl[mask], np.abs(residuals[mask])), key=itemgetter(1), reverse=True):
+#             if w in wl[covered]:
+#                 continue
+#             else:
+#                 # check to make sure region is not *right* at the edge of the echelle order
+#                 if w <= np.min(wl) or w >= np.max(wl):
+#                     continue
+#                 else:
+#                     # instantiate region and update coverage
+#
+#                     # Default amp and sigma values
+#                     regions[self.nregions] = {"logAmp":logAmp, "sigma":sigma, "mu":w}
+#                     region_mus[self.nregions] = w # for evaluating the mu prior
+#                     self.nregions += 1
+#
+#                     # determine the stretch of wl covered by this new region
+#                     ind = (wl >= (w - sigma0)) & (wl <= (w + sigma0))
+#                     # update the covered regions
+#                     covered = covered | ind
+#
+#         # Take the current nuisance positions as a starting point, and add the regions
+#         starting_dict = self.sampler.params.copy()
+#         starting_dict["regions"] = regions
+#
+#         region_mus = np.array([region_mus[i] for i in range(self.nregions)])
+#
+#         # Setup the priors
+#         region_priors = config["region_priors"]
+#         region_priors.update({"mus":region_mus})
+#         prior_params = {"regions":region_priors}
+#
+#         # do all this crap again
+#         cheb_MH_cov = float(config["cheb_jump"])**2 * np.ones((self.npoly,))
+#         cov_MH_cov = np.array([float(config["cov_jump"][key]) for key in self.sampler.cov_tup])**2
+#         region_MH_cov = [float(config["region_jump"][key])**2 for key in C.cov_region_parameters]
+#         regions_MH_cov = np.array([region_MH_cov for i in range(self.nregions)]).flatten()
+#
+#         nuisance_MH_cov = np.diag(np.concatenate((cheb_MH_cov, cov_MH_cov, regions_MH_cov)))
+#
+#         print(starting_dict)
+#         print("cov shape {}".format(nuisance_MH_cov.shape))
+#
+#         # Initialize a new sampler, replacing the old one
+#         self.sampler = NuisanceSampler(OrderModel=self, starting_param_dict=starting_dict, cov=nuisance_MH_cov, debug=True, outdir=self.noutdir, prior_params=prior_params, order=self.order)
+#
+#         self.p0 = self.sampler.p0
+#
+#         # Update the nuisance parameters to the starting values so that we at least have a self.data_mat
+#         print("Updating nuisance parameter data products to starting values.")
+#         self.update_nuisance(starting_dict)
+#         self.lnprob = self.evaluate()
+#
+#         # To speed up convergence, try just doing a bunch of nuisance runs before
+#         # going into the iteration pattern
+#         print("Doing nuisance burn-in for {} samples".format(config["nuisance_burn"]))
+#         self.independent_sample(config["nuisance_burn"])
 
 # We create one Order() in the main process. When the process forks, each
 # subprocess now has its own independent OrderModel instance.

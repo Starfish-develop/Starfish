@@ -241,3 +241,50 @@ def make_k_func(par):
             return cov
 
     return k_func
+
+
+# Make just the matrix for the regions
+def make_k_func_region(phi):
+
+    cdef double taper
+    regions = phi.regions #could be None or a 2D array
+
+    cdef double a, mu, sigma, rx0, rx1, r_tap, r0_r
+
+    cdef double cov = 0.0
+    # make a k_func which includes regions
+    # this is a closure so it keeps the defined regions
+    def k_func(wl0, wl1):
+
+        cov = 0.0
+        #print("cov begin", cov)
+
+        #Initialize the global covariance
+        cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+
+        #If covered by a region, instantiate
+        for row in regions:
+            # print("logAmp", row[0])
+            a = 10**row[0]
+            # print("a", a)
+            mu = row[1]
+            sigma = row[2]
+
+            rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
+            rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
+            r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
+            r0_r = 4.0 * sigma # where the kernel goes to 0
+
+            if r_tap < r0_r:
+                taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
+                #print("exp", math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma)))
+                #print("taper", taper)
+                #print("amp", a*a)
+                #print("additional", taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma)))
+                cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
+
+
+        #print("cov end", cov)
+        return cov
+
+    return k_func

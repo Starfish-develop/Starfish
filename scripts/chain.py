@@ -5,7 +5,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Measure statistics from MCMC runs, either for a single chain or across multiple chains.")
 parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell expansion.")
 
-parser.add_argument("--outdir", default="mcmcplot", help="Output directory to contain all plots.")
+parser.add_argument("--outdir", default="", help="Output directory to contain all plots.")
 parser.add_argument("--output", default="combined.hdf5", help="Output HDF5 file.")
 
 parser.add_argument("--files", nargs="+", help="The HDF5 or CSV files containing the MCMC samples, separated by whitespace.")
@@ -39,11 +39,9 @@ import sys
 import csv
 
 #Check to see if outdir exists.
-if not os.path.exists(args.outdir):
+if not os.path.exists(args.outdir) and args.outdir != "":
     os.makedirs(args.outdir)
-
-args.outdir += "/"
-
+    args.outdir += "/"
 
 def h5read(fname, burn=0, thin=1):
     '''
