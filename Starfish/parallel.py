@@ -288,15 +288,22 @@ class Order:
 
         CC = X.dot(self.C_GP.dot(X.T)) + self.data_mat
 
-        factor, flag = cho_factor(CC)
+        try:
 
-        R = self.fl - self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
+            factor, flag = cho_factor(CC)
 
-        logdet = np.sum(2 * np.log((np.diag(factor))))
-        self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
+            R = self.fl - self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
 
-        self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
-        return self.lnprob
+            logdet = np.sum(2 * np.log((np.diag(factor))))
+            self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
+
+            self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
+            return self.lnprob
+
+        # To give us some debugging information about what went wrong.
+        except np.linalg.linalg.LinAlgError:
+            print("Spectrum:", self.spectrum_id, "Order:", self.order)
+            raise
 
     def update_Theta(self, p):
         '''
