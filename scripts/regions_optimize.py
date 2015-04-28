@@ -3,8 +3,7 @@
 import argparse
 parser = argparse.ArgumentParser(prog="region_optimize.py", description="Find the kernel parameters for Gaussian region zones.")
 parser.add_argument("spectrum", help="JSON file containing the data, model, and residual.")
-parser.add_argument("regions", help="JSON file containing the mu of each spectral line.")
-parser.add_argument("--sigma0", type=float, default=2, help="Range over which regions can't overlap.")
+parser.add_argument("--sigma0", type=float, default=2, help="(AA) to use in fitting")
 args = parser.parse_args()
 
 import json
@@ -31,7 +30,8 @@ sigma = np.array(read["sigma"])
 spectrum_id = read["spectrum_id"]
 order = read["order"]
 
-f = open(args.regions, "r")
+fname = Starfish.specfmt.format(spectrum_id, order) + "regions.json"
+f = open(fname, "r")
 read = json.load(f) # read is a dictionary
 f.close()
 
@@ -149,8 +149,8 @@ def optimize_region_covariance(wl, residuals, sigma, mu):
     f = lambda x: -fprob(x)
 
     try:
-        p = fmin(f, p0, maxiter=10000, maxfun=10000, disp=False)
-        # print(p)
+        p = fmin(f, p0, maxiter=10000, maxfun=10000)
+        print(p)
         return p
     except np.linalg.linalg.LinAlgError:
         return p0
