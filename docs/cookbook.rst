@@ -124,3 +124,16 @@ This will create a file called something like `s0_o23region_list.json`, which co
 Then, go through and optimize the regions in this list. This will attempt to optimize the line kernels in the list.
 
     region_optimize.py s0_o23spec.json s0_o23regions.json --sigma0=2.
+
+
+After a run, if you want to plot everything
+
+    chain_run.py --chain
+
+or
+
+    chain_run.py -t
+
+If you want to use the last values for the new run (just for nuisances), from within the CWD.
+
+    set_params.py output/WASP14/run02/
