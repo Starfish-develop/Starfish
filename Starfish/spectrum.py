@@ -105,6 +105,32 @@ def rfftfreq(n, d=1.0):
     results = np.arange(0, N, dtype=np.int)
     return results * val
 
+def create_mask(wl, fname):
+    '''
+    Given a wavelength array (1D or 2D) and an ascii file containing the regions
+    that one wishes to mask out, return a boolean array of indices for which
+    wavelengths to KEEP in the calculation.
+
+    :param wl: wavelength array (in AA)
+    :param fname: filename of masking array
+
+    :returns mask: boolean mask
+    '''
+    data = ascii.read(fname)
+
+    ind = np.ones_like(wl, dtype="bool")
+
+    for row in data:
+        # starting and ending indices
+        start, end = row
+        print(start, end)
+
+        # All region of wavelength that do not fall in this range
+        ind = ind & ((wl < start) | (wl > end))
+
+    return ind
+
+
 class DataSpectrum:
     '''
     Object to manipulate the data spectrum.
