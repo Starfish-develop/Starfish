@@ -11,7 +11,7 @@ parser.add_argument("--generate", action="store_true", help="Write out the data,
 parser.add_argument("--optimize", action="store_true", help="Optimize the parameters.")
 parser.add_argument("--sample", action="store_true", help="Sample the parameters.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
-parser.add_argument("--cpus", type=int, default=mp.cup_count(), help="How many threads to use for emcee sampling.")
+parser.add_argument("--cpus", type=int, default=mp.cpu_count(), help="How many threads to use for emcee sampling.")
 args = parser.parse_args()
 
 import os
