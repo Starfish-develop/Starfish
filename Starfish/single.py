@@ -1,5 +1,7 @@
 # Serial implementation for sampling a single chunk of a spectrum, namely one or two spectroscopic lines.
 
+import multiprocessing as mp
+
 import argparse
 parser = argparse.ArgumentParser(prog="single.py", description="Run Starfish fitting model in parallel.")
 parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
@@ -9,6 +11,7 @@ parser.add_argument("--generate", action="store_true", help="Write out the data,
 parser.add_argument("--optimize", action="store_true", help="Optimize the parameters.")
 parser.add_argument("--sample", action="store_true", help="Sample the parameters.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
+parser.add_argument("--cpus", type=int, default=mp.cup_count(), help="How many threads to use for emcee sampling.")
 args = parser.parse_args()
 
 import os
