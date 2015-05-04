@@ -6,11 +6,10 @@
 
 # parallel.py is meant to be run by other modules that import it and use the objects.
 # It has an argparser because I think it's the easiest way to consolidate all of the
-# parameters into one place.
+# parameters into one place, but I'm open to new suggestions.
 
 import argparse
-parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish"
-" fitting model in parallel.")
+parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish fitting model in parallel.")
 parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
 # Even though these arguments aren't being used, we need to add them.
 parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
