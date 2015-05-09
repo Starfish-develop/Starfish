@@ -7,7 +7,7 @@ import multiprocessing as mp
 
 
 if args.sample:
-    print(lnprob(np.array([6350, 4.1, -0.3, -4.8, 5.3, -12.8])))
+    print(lnprob(np.array([6302, 4.38, 0.1, -39.54, 5.6, -12.221])))
     # # Use vanilla emcee to do the sampling
     from emcee import EnsembleSampler
     #
@@ -17,14 +17,14 @@ if args.sample:
     # # Load values from config file.
     # # Add scatter in
     #
-    p0 = np.array([ np.random.uniform(6300, 6600, nwalkers),
-                    np.random.uniform(3.9, 4.5, nwalkers),
-                    np.random.uniform(-0.5, -0.01, nwalkers),
-                    np.random.uniform(-5.5, -4.5, nwalkers),
-                    np.random.uniform(4.0, 5.0, nwalkers),
-                    np.random.uniform(-12.82, -12.78, nwalkers)]).T
+    p0 = np.array([ np.random.uniform(6200, 6400, nwalkers),
+                    np.random.uniform(4.0, 4.49, nwalkers),
+                    np.random.uniform(-0.2, -0.1, nwalkers),
+                    np.random.uniform(-5., -4., nwalkers),
+                    np.random.uniform(4.0, 6.0, nwalkers),
+                    np.random.uniform(-12.81, -12.80, nwalkers)]).T
 
-    sampler = EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count())
+    sampler = EnsembleSampler(nwalkers, ndim, lnprob, threads=mp.cpu_count()-1)
     #
     # # burn in
     pos, prob, state = sampler.run_mcmc(p0, args.samples)
