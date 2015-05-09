@@ -296,6 +296,11 @@ class Order:
             logdet = np.sum(2 * np.log((np.diag(factor))))
             self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
 
+            #
+            print("chi2", np.sum((R/self.sigma)**2))
+            print("mat chi2", np.dot(R, cho_solve((factor, flag), R)))
+            print("logdet", logdet)
+            print("lnprob", self.lnprob)
             self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
             return self.lnprob
 
@@ -412,9 +417,13 @@ class Order:
         optimize the Chebyshev parameters
         '''
 
-        if self.chebyshevSpectrum.fix_c0:
+        # self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False #Fix the last c0
+        # This is necessary if we want to update just a single order.
+
+        if self.chebyshevSpectrum.fix_c0 & len(self.dataSpectrum.wls) > 1:
             p0 = np.zeros((self.npoly - 1))
         else:
+            self.chebyshevSpectrum.fix_c0 = False
             p0 = np.zeros((self.npoly))
 
         def fprob(p):
@@ -540,7 +549,7 @@ class Order:
 
         X = (self.chebyshevSpectrum.k * self.flux_std * np.eye(self.ndata)).dot(self.eigenspectra.T)
 
-        model = self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
+        model = self.chebyshevSpectrum.k * self.flux_mean + X.dot(self.mus)
         resid = self.fl - model
 
         my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":model.tolist(), "resid":resid.tolist(), "sigma":self.sigma.tolist(), "spectrum_id":self.spectrum_id, "order":self.order}

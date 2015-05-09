@@ -105,7 +105,7 @@ Sample in the Theta, Chebyshev, and global covariance parameters at the same tim
 
     star.py --sample=ThetaPhi --samples=5
 
-In actuallity you will probably want something like `--samples=5000` or more to get a statistical exploration of the space, but before waiting for a long run to finish it would be good to check that the machinery worked for a small run first.
+In actuality you will probably want something like `--samples=5000` or more to get a statistical exploration of the space, but before waiting for a long run to finish it would be good to check that the machinery worked for a small run first.
 
 Then, you can use the `chain.py` tool to examine and plot the parameter estimates. First, navigate to the directory that has the samples. Generally this will be something like `output/WASP14/run01` or whatever you have specified in your `config.yaml`. Then, use the tool to examine the Markov Chain
 

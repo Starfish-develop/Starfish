@@ -92,18 +92,19 @@ order = orders[0]
 dataSpec = DataSpectrum.open(Starfish.data["files"][0], orders=Starfish.data["orders"])
 instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
 
-full_mask = create_mask(dataSpec.wls, Starfish.data["masks"][0])
-dataSpec.add_mask(full_mask)
+# full_mask = create_mask(dataSpec.wls, Starfish.data["masks"][0])
+# dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]
 
 # Truncate these to our shorter range to make it faster
 ind = (wl > 5165.) & (wl < 5185.)
-wl = wl[ind]
+wl = wl #[ind]
 
-fl = dataSpec.fls[0][ind]
-sigma = dataSpec.sigmas[0][ind]
-mask = dataSpec.masks[0][ind]
+fl = dataSpec.fls[0] #[ind]
+sigma = dataSpec.sigmas[0] #[ind]
+# mask = dataSpec.masks[0] #[ind]
+mask = np.ones_like(wl, dtype="bool")
 ndata = len(wl)
 
 print("ndata", ndata)
@@ -148,7 +149,7 @@ def lnprob(p):
     # values smaller than this.
     # FFT and convolve operations
     if vsini < 0.0:
-        raise C.ModelError("vsini must be positive")
+        return -np.inf
     elif vsini < 0.2:
         # Skip the vsini taper due to instrumental effects
         eigenspectra_full = EIGENSPECTRA.copy()
