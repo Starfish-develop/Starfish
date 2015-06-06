@@ -4,7 +4,6 @@ Cookbook
 
 Download the spectral library to a good location on your disk.
 
-
 Create a local working directory for the star you wish to process.
 
 Copy `config.yaml` to this directory and modify the settings as you wish. It is generally a good idea to keep the HDF5 paths set to this local directory.
@@ -137,3 +136,18 @@ or
 If you want to use the last values for the new run (just for nuisances), from within the CWD.
 
     set_params.py output/WASP14/run02/
+
+
+Using the linear interpolator
+=============================
+
+As a backup option to the spectral emulator, we also included an :math:`N`-dimensional linear interpolator, where :math:`N` is the number of dimensions in your synthetic library. Note that unlike the emulator, this interpolator requires that you have a grid with rectilinear spacings in paramaters.
+
+Begin by creating a local working directory and copying `config.yaml` to this directory and modify the settings as you wish. Then begin the same way
+
+    # Downsample the grid
+    grid.py create
+
+Now, instead of decomposing the library into eigenspectra and then tuning the emulator, we can hook the linear interpolator directly up to the modified grid. Beware, however, that a significant amount of error in the spectra fit is introduced by a poor linear interpolation. If you are fitting moderate to high S/N spectra, we recomend that you stick with the emulator approach for final work.
+
+We have replicated the same functionality in `star.py` in a separate script, `star_linear.py`. 

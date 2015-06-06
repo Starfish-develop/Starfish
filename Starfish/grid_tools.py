@@ -672,7 +672,7 @@ class HDF5Creator:
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
 
-        self.hdf5.close()    
+        self.hdf5.close()
 
 
 class HDF5Interface:
@@ -715,7 +715,7 @@ class HDF5Interface:
         Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
-        :type parameters: dict
+        :type parameters: np.array
 
         :raises KeyError: if spectrum is not found in the HDF5 file.
 
@@ -800,100 +800,51 @@ class IndexInterpolator:
 
 class Interpolator:
     '''
-    Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC simulation. Caches spectra for
-    easier memory load.
+    Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC
+    simulation. Caches spectra for easier memory load.
 
     :param interface: :obj:`HDF5Interface` (recommended) or :obj:`RawGridInterface` to load spectra
-    :param DataSpectrum: data spectrum that you are trying to fit. Used for truncating the synthetic spectra to the relevant region for speed.
-    :type DataSpectrum: :obj:`spectrum.DataSpectrum`
+    :param wl: data wavelength of the region you are trying to fit. Used to truncate the grid for speed.
+    :type DataSpectrum: np.array
     :param cache_max: maximum number of spectra to hold in cache
     :type cache_max: int
     :param cache_dump: how many spectra to purge from the cache once :attr:`cache_max` is reached
     :type cache_dump: int
-    :param trilinear: Should this interpolate in temp, logg, and [Fe/H] AND [alpha/Fe], or just the first three parameters.
-    :type trilinear: bool
-
-    Setting :attr:`trilinear` to **True** is useful for when you want to do a run with [Fe/H] > 0.0
 
     '''
 
-    def __init__(self, interface, DataSpectrum, cache_max=256, cache_dump=64, trilinear=False, log=True):
-        '''
-        Param log decides how to chunk up the returned spectrum. If we are using a pre-instrument convolved grid,
-        then we want to use log=True.
+    def __init__(self, wl, interface=HDF5Interface(), cache_max=256, cache_dump=64):
 
-        If we are using the raw synthetic grid, then we want to use log=False.
-        '''
         self.interface = interface
-        self.DataSpectrum = DataSpectrum
-
-        #If alpha only includes one value, then do trilinear interpolation
-        (alow, ahigh) = self.interface.bounds['alpha']
-        if (alow == ahigh) or trilinear:
-            self.parameters = C.grid_set - set(("alpha",))
-        else:
-            self.parameters = C.grid_set
-
 
         self.wl = self.interface.wl
-        self.wl_dict = self.interface.wl_header
-        if log:
-            self._determine_chunk_log()
-        else:
-            self._determine_chunk()
+        self.dv = self.interface.dv
+        self.npars = len(Starfish.grid["parname"])
+        self._determine_chunk_log(wl)
+
         self.setup_index_interpolators()
         self.cache = OrderedDict([])
         self.cache_max = cache_max
         self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
 
-    def _determine_chunk_log(self):
+    def _determine_chunk_log(self, wl):
         '''
-        Using the DataSpectrum, determine the minimum chunksize that we can use and then truncate the synthetic
-        wavelength grid and the returned spectra.
+        Using the DataSpectrum, determine the minimum chunksize that we can use and then
+        truncate the synthetic wavelength grid and the returned spectra.
 
-        Assumes HDF5Interface is LogLambda spaced, because otherwise you shouldn't need a grid with 2^n points,
-        because you would need to interpolate in wl space after this anyway.
+        Assumes HDF5Interface is LogLambda spaced, because otherwise you shouldn't need a grid
+        with 2^n points, because you would need to interpolate in wl space after this anyway.
         '''
 
-        wave_grid = self.interface.wl
-        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
-        #Length of the raw synthetic spectrum
-        len_wg = len(wave_grid)
-        #ind_wg = np.arange(len_wg) #Labels of pixels
-        #Length of the data
-        len_data = np.sum((self.wl > wl_min) & (self.wl < wl_max)) #How much of the synthetic spectrum do we need?
+        wl_interface = self.interface.wl # The grid we will be truncating.
+        wl_min, wl_max = np.min(wl), np.max(wl)
 
-        #Find the smallest length synthetic spectrum that is a power of 2 in length and larger than the data spectrum
-        chunk = len_wg
-        self.interface.ind = (0, chunk) #Set to be the full spectrum
+        # Previously this routine retuned a tuple () which was the ranges to truncate to.
+        # Now this routine returns a Boolean mask, so we need to go and find the first and last true values
+        ind = determine_chunk_log(wl_interface, wl_min, wl_max)
 
-        while chunk > len_data:
-            if chunk/2 > len_data:
-                chunk = chunk//2
-            else:
-                break
-
-        assert type(chunk) == np.int, "Chunk is no longer integer!. Chunk is {}".format(chunk)
-
-        if chunk < len_wg:
-            # Now that we have determined the length of the chunk of the synthetic spectrum, determine indices
-            # that straddle the data spectrum.
-
-            # What index corresponds to the wl at the center of the data spectrum?
-            median_wl = np.median(self.DataSpectrum.wls)
-            median_ind = (np.abs(wave_grid - median_wl)).argmin()
-
-            #Take the chunk that straddles either side.
-            ind = (median_ind - chunk//2, median_ind + chunk//2)
-
-            self.wl = self.wl[ind[0]:ind[1]]
-            assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                                    "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                           max(self.wl), wl_min, wl_max)
-
-            self.interface.ind = ind
-
-        print("Determine Chunk Log: Wl is {}".format(len(self.wl)))
+        # Find the index of the first and last true values
+        self.interface.ind = np.argwhere(ind)[0][0], np.argwhere(ind)[-1][0]
 
     def _determine_chunk(self):
         '''
@@ -901,21 +852,18 @@ class Interpolator:
         '''
 
         wave_grid = self.interface.wl
-        wl_min, wl_max = np.min(self.DataSpectrum.wls), np.max(self.DataSpectrum.wls)
+        wl_min, wl_max = np.min(self.dataSpectrum.wls), np.max(self.dataSpectrum.wls)
 
         ind_low = (np.abs(wave_grid - (wl_min - 5.))).argmin()
         ind_high = (np.abs(wave_grid - (wl_max + 5.))).argmin()
 
         self.wl = self.wl[ind_low:ind_high]
 
-        assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) " \
-                            "didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),
-                                                                                  max(self.wl), wl_min, wl_max)
+        assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),  max(self.wl), wl_min, wl_max)
 
 
         self.interface.ind = (ind_low, ind_high)
         print("Wl is {}".format(len(self.wl)))
-
 
     def __call__(self, parameters):
         '''
@@ -932,63 +880,59 @@ class Interpolator:
         return self.interpolate(parameters)
 
     def setup_index_interpolators(self):
-        #create an interpolator between grid points indices. Given a temp, produce fractional index between two points
-        self.index_interpolators = {key:IndexInterpolator(self.interface.points[key]) for key in self.parameters}
+        # create an interpolator between grid points indices.
+        # Given a parameter value, produce fractional index between two points
+        # Store the interpolators as a list
+        self.index_interpolators = [IndexInterpolator(self.interface.points[i]) for i in range(self.npars)]
 
-        lenF = self.interface.ind[1] - self.interface.ind[0]
-        self.fluxes = np.empty((2**len(self.parameters), lenF)) #8 rows, for temp, logg, Z
+        lenF = np.sum(self.ind)
+        self.fluxes = np.empty((2**self.npars, lenF)) #8 rows, for temp, logg, Z
 
     def interpolate(self, parameters):
         '''
         Interpolate a spectrum without clearing cache. Recommended to use :meth:`__call__` instead.
 
-        :param parameters: stellar parameters
-        :type parameters: dict
+        :param parameters: grid parameters
+        :type parameters: np.array
         :raises C.InterpolationError: if parameters are out of bounds.
 
-        Now the interpolator also returns the 24 error spectra along with weights.
         '''
-
-        #Here it really would be nice to return things in a predictable order
-        # (temp, logg, Z)
-        odict = OrderedDict()
-        for key in ("temp", "logg", "Z"):
-            odict[key] = parameters[key]
+        # Previously, parameters was a dictionary of the stellar parameters.
+        # Now that we have moved over to arrays, it is a numpy array.
         try:
-            edges = OrderedDict()
-            for key,value in odict.items():
-                edges[key] = self.index_interpolators[key](value)
+            edges = []
+            for i in range(self.npars):
+                edges.append(self.index_interpolators[i](parameters[i]))
         except C.InterpolationError as e:
             raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
-        #Edges is a dictionary of {"temp": ((6000, 6100), (0.2, 0.8)), "logg": (())..}
-        names = [key for key in edges.keys()] #list of ["temp", "logg", "Z"],
-        params = [edges[key][0] for key in names] #[(6000, 6100), (4.0, 4.5), ...]
-        weights = [edges[key][1] for key in names] #[(0.2, 0.8), (0.4, 0.6), ...]
+        #Edges is a list of [((6000, 6100), (0.2, 0.8)), ((), ()), ((), ())]
 
-        param_combos = itertools.product(*params) #Selects all the possible combinations of parameters
+        params = [tup[0] for tup in edges] #[(6000, 6100), (4.0, 4.5), ...]
+        weights = [tup[1] for tup in edges] #[(0.2, 0.8), (0.4, 0.6), ...]
+
+        #Selects all the possible combinations of parameters
+        param_combos = itertools.product(*params)
         #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
         weight_combos = itertools.product(*weights)
         #[(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
 
-        parameter_list = [dict(zip(names, param)) for param in param_combos]
-        if "alpha" not in parameters.keys():
-            [param.update({"alpha":C.var_default["alpha"]}) for param in parameter_list]
-        key_list = [self.interface.key_name.format(*param) for param in parameter_list]
+        # Assemble key list necessary for indexing cache
+        key_list = [self.interface.key_name.format(*param) for param_combos]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
-        #Assemble flux vector from cache
-        for i,param in enumerate(parameter_list):
+        #Assemble flux vector from cache, or load into cache if not there
+        for i,param in enumerate(param_combos):
             key = key_list[i]
             if key not in self.cache.keys():
                 try:
-                    fl = self.interface.load_flux(param) #This method allows loading only the relevant region from HDF5
+                    #This method already allows loading only the relevant region from HDF5
+                    fl = self.interface.load_flux(np.array(param))
                 except KeyError as e:
                     raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
                 self.cache[key] = fl
-                #Note: if we are dealing with a ragged grid, a C.GridError will be raised here because a Z=+1, alpha!=0 spectrum can't be found.
 
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
