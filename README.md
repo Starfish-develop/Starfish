@@ -6,7 +6,7 @@
 
 **Beta version 0.1**
 
-Please note that this software package is still under development as more features are being added. 
+Please note that this software package is still under development as more features are being added.
 
 Website: http://iancze.github.io/Starfish/
 
@@ -35,7 +35,8 @@ Starfish requires the following Python packages:
 * astropy
 * cython
 * pyyaml
-* emcee (custom version required [here](https://github.com/iancze/emcee))
+* scikit-learn
+* emcee
 
 Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater , obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
 
