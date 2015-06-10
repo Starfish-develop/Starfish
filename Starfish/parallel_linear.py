@@ -263,7 +263,7 @@ class Order:
             self.update_Theta(p)
             lnp = self.evaluate() # Also sets self.lnprob to new value
             return lnp
-        except C.ModelError:
+        except (C.ModelError, C.InterpolationError):
             self.logger.debug("ModelError in stellar parameters, sending back -np.inf {}".format(p))
             return -np.inf
 
@@ -307,7 +307,7 @@ class Order:
         self.logger.debug("Updating Theta parameters to {}".format(p))
 
         # Store the current accepted values before overwriting with new proposed values.
-        self.flux_last = self.flux.copy()
+        self.flux_last = self.flux
 
         # Local, shifted copy of wavelengths
         wl_FFT = self.wl_FFT * np.sqrt((C.c_kms + p.vz) / (C.c_kms - p.vz))
@@ -324,7 +324,7 @@ class Order:
             # Skip the vsini taper due to instrumental effects
             flux_taper = flux_raw
         else:
-            FF = np.fft.rfft(flux_raw, axis=1)
+            FF = np.fft.rfft(flux_raw)
 
             # Determine the stellar broadening kernel
             ub = 2. * np.pi * p.vsini * self.ss
@@ -336,7 +336,7 @@ class Order:
             FF_tap = FF * sb
 
             # do ifft
-            flux_taper = np.fft.irfft(FF_tap, len(self.wl_FFT), axis=1)
+            flux_taper = np.fft.irfft(FF_tap, len(self.wl_FFT))
 
         # Spectrum resample operations
         if min(self.wl) < min(wl_FFT) or max(self.wl) > max(wl_FFT):

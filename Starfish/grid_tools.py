@@ -840,11 +840,13 @@ class Interpolator:
         wl_min, wl_max = np.min(wl), np.max(wl)
 
         # Previously this routine retuned a tuple () which was the ranges to truncate to.
-        # Now this routine returns a Boolean mask, so we need to go and find the first and last true values
+        # Now this routine returns a Boolean mask,
+        # so we need to go and find the first and last true values
         ind = determine_chunk_log(wl_interface, wl_min, wl_max)
+        self.wl = self.wl[ind]
 
         # Find the index of the first and last true values
-        self.interface.ind = np.argwhere(ind)[0][0], np.argwhere(ind)[-1][0]
+        self.interface.ind = np.argwhere(ind)[0][0], np.argwhere(ind)[-1][0] + 1
 
     def _determine_chunk(self):
         '''
@@ -885,7 +887,7 @@ class Interpolator:
         # Store the interpolators as a list
         self.index_interpolators = [IndexInterpolator(self.interface.points[i]) for i in range(self.npars)]
 
-        lenF = np.sum(self.ind)
+        lenF = self.interface.ind[1] - self.interface.ind[0]
         self.fluxes = np.empty((2**self.npars, lenF)) #8 rows, for temp, logg, Z
 
     def interpolate(self, parameters):
@@ -912,13 +914,13 @@ class Interpolator:
         weights = [tup[1] for tup in edges] #[(0.2, 0.8), (0.4, 0.6), ...]
 
         #Selects all the possible combinations of parameters
-        param_combos = itertools.product(*params)
+        param_combos = list(itertools.product(*params))
         #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
-        weight_combos = itertools.product(*weights)
+        weight_combos = list(itertools.product(*weights))
         #[(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
 
         # Assemble key list necessary for indexing cache
-        key_list = [self.interface.key_name.format(*param) for param_combos]
+        key_list = [self.interface.key_name.format(*param) for param in param_combos]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
         assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
@@ -936,7 +938,10 @@ class Interpolator:
 
             self.fluxes[i,:] = self.cache[key]*weight_list[i]
 
-        return np.sum(self.fluxes, axis=0)
+        # Do the averaging and then normalize the average flux to 1.0
+        fl = np.sum(self.fluxes, axis=0)
+        fl /= np.median(fl)
+        return fl
 
 
 #Convert R to FWHM in km/s by \Delta v = c/R
