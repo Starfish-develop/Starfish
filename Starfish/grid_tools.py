@@ -60,8 +60,7 @@ def determine_chunk_log(wl, wl_min, wl_max):
     '''
 
     # wl_min and wl_max must of course be within the bounds of wl
-    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "wl_min {} and wl_max"\
-    " {} are not within the bounds of the grid.".format(wl_min, wl_max)
+    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "determine_chunk_log: wl_min {:.2f} and wl_max {:.2f} are not within the bounds of the grid {:.2f} to {:.2f}.".format(wl_min, wl_max, np.min(wl), np.max(wl))
 
     # Find the smallest length synthetic spectrum that is a power of 2 in length
     # and longer than the number of points contained between wl_min and wl_max
@@ -315,45 +314,47 @@ class KuruczGridInterface(RawGridInterface):
     and ``k2`` is the microturbulence, while ``z1`` is the macroturbulence.
     These particular values are roughly the ones appropriate for the Sun.
     '''
-    def __init__(self, air=True, norm=True, wl_range=[5000, 5400], base="libraries/raw/Kurucz/"):
+    def __init__(self, air=True, norm=True, wl_range=[5000, 5400], base=Starfish.grid["raw_path"]):
         super().__init__(name="Kurucz",
-                         points={"temp" : np.arange(3500, 9751, 250),
-                                 "logg": np.arange(0.0, 5.1, 0.5),
-                                 "Z": np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5]),
-                                 "alpha": np.array([0.0])},
-                         air=air, wl_range=wl_range, base=base)
+            param_names = ["temp", "logg", "Z"],
+            points=[np.arange(3500, 9751, 250),
+                    np.arange(0.0, 5.1, 0.5),
+                    np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5])],
+                     air=air, wl_range=wl_range, base=base)
 
-        self.Z_dict = {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}
+        self.par_dicts = [None, None, {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}]
 
         self.norm = norm #Convert to f_lam and average to 1, or leave in f_nu?
-        self.rname = base + "t{temp:0>5.0f}/g{logg:0>2.0f}/t{temp:0>5.0f}g{logg:0>2.0f}{Z}ap00k2v000z1i00.fits"
-        self.wl_full = np.load("wave_grids/kurucz_raw_wl.npy")
+        self.rname = base + "t{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits"
+        self.wl_full = np.load(base + "kurucz_raw_wl.npy")
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
 
     def load_flux(self, parameters, norm=True):
         '''
-       Load a the flux and header information.
+        Load a the flux and header information.
 
-       :param parameters: stellar parameters
-       :type parameters: dict
+        :param parameters: stellar parameters
+        :type parameters: dict
 
-       :raises C.GridError: if the file cannot be found on disk.
+        :raises C.GridError: if the file cannot be found on disk.
 
-       :returns: tuple (flux_array, header_dict)
+        :returns: tuple (flux_array, header_dict)
 
-       '''
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+        '''
+        self.check_params(parameters)
 
-        str_parameters = parameters.copy()
-        #Rewrite Z
-        Z = parameters["Z"]
-        str_parameters["Z"] = self.Z_dict[Z]
+        str_parameters = []
+        for param, par_dict in zip(parameters, self.par_dicts):
+            if par_dict is None:
+                str_parameters.append(param)
+            else:
+                str_parameters.append(par_dict[param])
 
         #Multiply logg by 10
-        str_parameters["logg"] = 10 * parameters['logg']
+        str_parameters[1] *= 10
 
-        fname = self.rname.format(**str_parameters)
+        fname = self.rname.format(*str_parameters)
 
         #Still need to check that file is in the grid, otherwise raise a C.GridError
         #Read all metadata in from the FITS header, and append to spectrum
@@ -370,11 +371,11 @@ class KuruczGridInterface(RawGridInterface):
 
         #Also, we should convert from f_nu to f_lam
         if self.norm:
-            f *= C.c_ang / self.wl** 2 #Convert from f_nu to f_lambda
+            f *= C.c_ang / self.wl**2 #Convert from f_nu to f_lambda
             f /= np.average(f) #divide by the mean flux, so avg(f) = 1
 
-        #Add temp, logg, Z, alpha, norm to the metadata
-        header = parameters
+        #Add temp, logg, Z, norm to the metadata
+        header = {}
         header["norm"] = self.norm
         header["air"] = self.air
         #Keep the relevant keywords
@@ -550,8 +551,10 @@ class HDF5Creator:
 
         # If the raw synthetic grid doesn't span the full range of the user
         # specified grid, raise an error.
+        # Instead, let's choose the maximum limit of the synthetic grid?
         if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
-            raise C.GridError("Synthetic grid does not encapsulate chosen wl_range in config.yaml")
+            print("Synthetic grid does not encapsulate chosen wl_range in config.yaml, truncating new grid to extent of synthetic grid, {}, {}".format(self.wl_native[0], self.wl_native[-1]))
+            wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
 
         # Calculate wl_FFT
         # use the dv that preserves the native quality of the raw PHOENIX grid
@@ -681,10 +684,10 @@ class HDF5Interface:
     '''
     def __init__(self, filename=Starfish.grid["hdf5_path"], key_name=Starfish.grid["key_name"]):
         '''
-            :param filename: the name of the HDF5 file
-            :type param: string
-            :param ranges: optionally select a smaller part of the grid to use.
-            :type ranges: dict
+        :param filename: the name of the HDF5 file
+        :type param: string
+        :param ranges: optionally select a smaller part of the grid to use.
+        :type ranges: dict
         '''
         self.filename = filename
         self.key_name = key_name
@@ -813,7 +816,7 @@ class Interpolator:
 
     '''
 
-    def __init__(self, wl, interface=HDF5Interface(), cache_max=256, cache_dump=64):
+    def __init__(self, wl, interface, cache_max=256, cache_dump=64):
 
         self.interface = interface
 

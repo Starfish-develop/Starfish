@@ -24,6 +24,8 @@ Then, we will want to make the PCA grid, and do many other things regarding opti
     # create the grid using settings in config.yaml
     pca.py --create
 
+    # Note, need to create a "plots" directory locally.
+
     # Plot all of the eigenspectra and the histogram of weights
     pca.py --plot=eigenspectra
 
@@ -150,4 +152,4 @@ Begin by creating a local working directory and copying `config.yaml` to this di
 
 Now, instead of decomposing the library into eigenspectra and then tuning the emulator, we can hook the linear interpolator directly up to the modified grid. Beware, however, that a significant amount of error in the spectra fit is introduced by a poor linear interpolation. If you are fitting moderate to high S/N spectra, we recomend that you stick with the emulator approach for final work.
 
-We have replicated the same functionality in `star.py` in a separate script, `star_linear.py`. 
+We have replicated the same functionality in `star.py` in a separate script, `star_linear.py`.

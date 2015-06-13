@@ -296,11 +296,6 @@ class Order:
             logdet = np.sum(2 * np.log((np.diag(factor))))
             self.lnprob = -0.5 * (np.dot(R, cho_solve((factor, flag), R)) + logdet)
 
-            #
-            print("chi2", np.sum((R/self.sigma)**2))
-            print("mat chi2", np.dot(R, cho_solve((factor, flag), R)))
-            print("logdet", logdet)
-            print("lnprob", self.lnprob)
             self.logger.debug("Evaluating lnprob={}".format(self.lnprob))
             return self.lnprob
 
