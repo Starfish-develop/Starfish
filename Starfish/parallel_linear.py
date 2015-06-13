@@ -215,7 +215,7 @@ class Order:
         self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
-        self.interpolator = Interpolator(self.wl)
+        self.interpolator = Interpolator(self.wl, HDF5Interface())
         self.flux = None # Where the interpolator will store the flux
 
         self.wl_FFT = self.interpolator.wl
