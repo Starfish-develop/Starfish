@@ -25,7 +25,7 @@ import numpy as np
 
 import Starfish
 import Starfish.grid_tools
-from Starfish.grid_tools import Interpolator
+from Starfish.grid_tools import Interpolator, HDF5Interface
 from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
 
