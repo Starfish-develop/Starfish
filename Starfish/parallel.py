@@ -312,6 +312,14 @@ class Order:
         :type p: model.ThetaParam
         '''
 
+        # durty HACK to get fixed logg
+        # Simply fixes the middle value to be 4.29
+        # Check to see if it exists, as well
+        fix_logg = Starfish.config.get("fix_logg", None)
+        if fix_logg is not None:
+            p.grid[1] = fix_logg
+        print("grid pars are", p.grid)
+
         self.logger.debug("Updating Theta parameters to {}".format(p))
 
         # Store the current accepted values before overwriting with new proposed values.
@@ -359,12 +367,16 @@ class Order:
             lres[:] = interp(self.wl)
             del interp
 
+        # Helps keep memory usage low, seems like the numpy routine is slow
+        # to clear allocated memory for each iteration.
         gc.collect()
 
         # Adjust flux_mean and flux_std by Omega
         Omega = 10**p.logOmega
         self.flux_mean *= Omega
         self.flux_std *= Omega
+
+
 
         # Now update the parameters from the emulator
         # If pars are outside the grid, Emulator will raise C.ModelError
