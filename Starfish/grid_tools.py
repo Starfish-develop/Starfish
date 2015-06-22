@@ -473,9 +473,10 @@ class HDF5Creator:
     '''
     Create a HDF5 grid to store all of the spectra from a RawGridInterface,
     along with metadata.
+
     '''
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-        key_name=Starfish.grid["key_name"]):
+        key_name=Starfish.grid["key_name"], vsinis=None):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -515,6 +516,8 @@ class HDF5Creator:
             valid_points  = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
             self.points.append(valid_points[ind])
+        if vsinis is not None:
+            self.points.append(vsinis)
 
         # the raw wl from the spectral library
         self.wl_native = self.GridInterface.wl #raw grid
@@ -567,10 +570,13 @@ class HDF5Creator:
 
         # The Fourier coordinate
         self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
+
         # The instrumental taper
         sigma = self.Instrument.FWHM / 2.35 # in km/s
         # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
         self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
+
+        self.ss[0] = 0.01 # junk so we don't get a divide by zero error
 
         # The final wavelength grid, onto which we will interpolate the
         # Fourier filtered wavelengths, is part of the Instrument object
@@ -603,8 +609,17 @@ class HDF5Creator:
             not be loaded, returns (None, None, None).
 
         '''
-        assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
+        # assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
         print("Processing", parameters)
+
+        # If the parameter length is one more than the grid pars,
+        # assume this is for vsini convolution
+        if len(parameters) == (len(Starfish.parname) + 1):
+            vsini = parameters[-1]
+            parameters = parameters[:-1]
+        else:
+            vsini = 0.0
+
         try:
             flux, header = self.GridInterface.load_flux(parameters)
 
@@ -617,8 +632,19 @@ class HDF5Creator:
             # Do the FFT
             FF = np.fft.rfft(fl)
 
-            # apply instrumental taper
-            FF_tap = FF * self.taper
+            if vsini > 0.0:
+                # Calculate the stellar broadening kernel
+                ub = 2. * np.pi * vsini * self.ss
+                sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+                # set zeroth frequency to 1 separately (DC term)
+                sb[0] = 1.
+
+                # institute vsini and instrumental taper
+                FF_tap = FF * sb * self.taper
+
+            else:
+                # apply just instrumental taper
+                FF_tap = FF * self.taper
 
             # do IFFT
             fl_tapered = np.fft.irfft(FF_tap)
@@ -709,7 +735,7 @@ class HDF5Interface:
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
         self.bounds = np.vstack((low, high)).T
-        self.points = [np.unique(self.grid_points[:, i]) for i in range(len(Starfish.parname))]
+        self.points = [np.unique(self.grid_points[:, i]) for i in range(self.grid_points.shape[1])]
 
         self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
 
