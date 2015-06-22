@@ -28,7 +28,8 @@ outdir = config["outdir"]
 grid = config["grid"]
 parname = grid["parname"]
 
-PCA = config["PCA"]
+# PCA = config["PCA"]
+PCA = config.get("PCA", None)
 
 data = config["data"]
 instruments = data["instruments"]
