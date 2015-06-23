@@ -94,7 +94,7 @@ def determine_chunk_log(wl, wl_min, wl_max):
         ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
     else:
         print("keeping grid as is")
-        ind = np.ones_like(wl, dtype="b")
+        ind = np.ones_like(wl, dtype='bool')
 
     assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model"\
         "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full"\
