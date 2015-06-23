@@ -118,7 +118,7 @@ Once you have a reasonable guess at the parameters, update your `config.yaml` fi
 
 Then, we can use this residual spectrum to search for and instantiate the regions for a given order. The JSON file includes the model, data, and residual.
 
-    regions.py s0_o23spec.json --sigma=3 --find
+    regions.py s0_o23spec.json --sigma=3 --sigma0=2
 
 This will create a file called something like `s0_o23regions.json`, which contains a list of the centroids of each of these lines.
 
