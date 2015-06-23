@@ -688,8 +688,8 @@ class SampleThetaPhi(Order):
         self.chebyshevSpectrum.update(p.cheb)
 
         # Check to make sure the global covariance parameters make sense
-        if p.sigAmp < 0.1:
-            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+        #if p.sigAmp < 0.1:
+        #   raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
 
         max_r = 6.0 * p.l # [km/s]
 
