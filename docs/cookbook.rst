@@ -120,11 +120,11 @@ Then, we can use this residual spectrum to search for and instantiate the region
 
     regions.py s0_o23spec.json --sigma=3 --find
 
-This will create a file called something like `s0_o23region_list.json`, which contains a list of the centroids of each of these lines.
+This will create a file called something like `s0_o23regions.json`, which contains a list of the centroids of each of these lines.
 
 Then, go through and optimize the regions in this list. This will attempt to optimize the line kernels in the list.
 
-    region_optimize.py s0_o23spec.json s0_o23regions.json --sigma0=2.
+    regions_optimize.py --sigma0=2. s0_o23spec.json
 
 
 After a run, if you want to plot everything
