@@ -15,6 +15,7 @@ Contents:
    model
    MCMC
    scripts
+   cookbook
 
 Copyright Ian Czekala and collaborators 2013, 2014
 
