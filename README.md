@@ -18,7 +18,7 @@ Copyright Ian Czekala 2013, 2014
 
 If you wish to use this code in your own research, please email me and I can help you get started. Please bear in mind that this package is under heavy development and features may evolve rapidly. If something doesn't work, please fill an [issue](https://github.com/iancze/Starfish/issues) on this repository. If you would like to contribute to this project (either with bugfixes, documentation, or new features) please feel free to fork the repository and submit a pull request!
 
-**Citation**: if you use this code or derivatives in your research, please cite our [paper](http://arxiv.org/abs/1412.5177)
+**Citation**: if you use this code or derivative components of this code in your research, please cite our [paper](http://arxiv.org/abs/1412.5177)
 
 # Installation Instructions
 
@@ -78,4 +78,4 @@ To test that you've properly installed *Starfish*, try doing the following insid
 
 If you see a blank line, then the package successfully installed. If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 
-Now that you've successfully installed the code, please see the [documentation]() on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook]() for a taste of a typical workflow.
+Now that you've successfully installed the code, please see the [documentation](http://iancze.github.io/Starfish/current/index.html) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](http://iancze.github.io/Starfish/current/cookbook.html) for a taste of a typical workflow.
