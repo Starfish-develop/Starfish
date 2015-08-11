@@ -10,6 +10,8 @@ Copy `config.yaml` to this directory and modify the settings as you wish. It is 
 
 From within this local directory, we will want to create the grid.
 
+.. code-block:: python
+
     # Downsample the grid
     grid.py create
 
@@ -20,6 +22,8 @@ From within this local directory, we will want to create the grid.
 Here we should also have some routines to plot the various spectra within the grid to make sure everything looks as we want.
 
 Then, we will want to make the PCA grid, and do many other things regarding optimization and final plotting. These are all done through the `pca.py` script.
+
+.. code-block:: python
 
     # create the grid using settings in config.yaml
     pca.py --create
@@ -68,17 +72,23 @@ These codes are much simpler and just output everything to the local directory.
 
 Optimize the grid and observational parameters (:math:`\Theta`)
 
+.. code-block:: python
+
     star.py --optimize=Theta
 
     star.py --optimize=Cheb
 
 This script will leave you with a single JSON file which specifies the Theta parameters. The fit might be OK, but is probably not the best you can do, especially since we haven't allowed any flexibility in the Chebyshev paramteters that take care of calibration uncertainties. Hopefully, however, your estimates of radial velocity, Omega, and vsini are in the ballpark of what you might expect. To check that this is the case, it would be a great idea to generate model spectra and plot them to examine the residuals of the fit.
 
+.. code-block:: python
+
     # Write out model, data, residuals for each order in the CWD
     star.py --generate
 
 
 Now we can plot these files using our plotting programs.
+
+.. code-block:: python
 
     splot.py s0_o23_spec.json --matplotlib
 
@@ -88,9 +98,13 @@ Now we can plot these files using our plotting programs.
 
 Optimize the noise parameters (:math:`\Phi`)
 
+.. code-block:: python
+
     star.py --optimize=Phi
 
 Starting values for the nuisance parameters (:math:`\Phi`) are read from `*phi.json` files located in the current working directory. If you don't feel like optimizing the Chebyshev polynomials first, then to generate a set of these files for default values read from your config file, run
+
+.. code-block:: python
 
     star.py --initPhi
 
@@ -100,9 +114,13 @@ On all subsquent runs, the starting values are taken from these. So, if you are 
 
 Sample in the Theta and Chebyhev parameters at the same time.
 
+.. code-block:: python
+
     star.py --sample=ThetaCheb --samples=100
 
 Sample in the Theta, Chebyshev, and global covariance parameters at the same time.
+
+.. code-block:: python
 
     star.py --sample=ThetaPhi --samples=5
 
@@ -110,13 +128,19 @@ In actuality you will probably want something like `--samples=5000` or more to g
 
 Then, you can use the `chain.py` tool to examine and plot the parameter estimates. First, navigate to the directory that has the samples. Generally this will be something like `output/WASP14/run01` or whatever you have specified in your `config.yaml`. Then, use the tool to examine the Markov Chain
 
+.. code-block:: python
+
     chain.py --files mc.hdf5 --chain
 
 Once you have a reasonable guess at the parameters, update your `config.yaml` file and `*phi.json` files to these best-fit parameters. Then, you'll want to create a new residual spectrum
 
+.. code-block:: python
+
     star.py --generate
 
 Then, we can use this residual spectrum to search for and instantiate the regions for a given order. The JSON file includes the model, data, and residual.
+
+.. code-block:: python
 
     regions.py s0_o23spec.json --sigma=3 --sigma0=2
 
@@ -124,18 +148,26 @@ This will create a file called something like `s0_o23regions.json`, which contai
 
 Then, go through and optimize the regions in this list. This will attempt to optimize the line kernels in the list.
 
+.. code-block:: python
+
     regions_optimize.py --sigma0=2. s0_o23spec.json
 
 
 After a run, if you want to plot everything
 
+.. code-block:: python
+
     chain_run.py --chain
 
 or
 
+.. code-block:: python
+
     chain_run.py -t
 
 If you want to use the last values for the new run (just for nuisances), from within the CWD.
+
+.. code-block:: python
 
     set_params.py output/WASP14/run02/
 
@@ -146,6 +178,8 @@ Using the linear interpolator
 As a backup option to the spectral emulator, we also included an :math:`N`-dimensional linear interpolator, where :math:`N` is the number of dimensions in your synthetic library. Note that unlike the emulator, this interpolator requires that you have a grid with rectilinear spacings in paramaters.
 
 Begin by creating a local working directory and copying `config.yaml` to this directory and modify the settings as you wish. Then begin the same way
+
+.. code-block:: python
 
     # Downsample the grid
     grid.py create
