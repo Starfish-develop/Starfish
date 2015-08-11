@@ -51,17 +51,16 @@ Raw Grid Interfaces
  2. Kurucz spectra by Laird and Morse (available to CfA internal only)
  3. `PHOENIX BT-Settl <http://phoenix.ens-lyon.fr/Grids/BT-Settl/>`_ spectra by France Allard
 
+There are two interfaces provided to the PHOENIX/Husser grid: one that includes alpha enhancement and another which restricts access to 0 alpha enhancement.
+
 .. inheritance-diagram:: RawGridInterface PHOENIXGridInterface KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
-Here and throughout the code, stellar spectra are referenced by a dictionary of parameter values. The use of the ``alpha`` parameter (denoting alpha
-enhancement :math:`[{\rm \alpha}/{\rm Fe}]`) is usually optional and defaults to ``0.0``. There are some instances where it may be necessary to specify alpha explicitly.
+Here and throughout the code, stellar spectra are referenced by a numpy array of parameter values, which corresponds to the parameters listed in the config file.
 
-    .. code-block:: python
+.. code-block:: python
 
-        my_params = {"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0} #or
-        other_params = {"temp":4000, "logg":4.5, "Z":-0.2}
-
+    my_params = np.array([6000, 3.5, 0.0, 0.0])
 
 Here we introduce the classes and their methods. Below is an example of how you might use the :obj:`PHOENIXGridInterface`.
 
@@ -72,13 +71,52 @@ Here we introduce the classes and their methods. Below is an example of how you 
    :members:
    :show-inheritance:
 
+.. autoclass:: PHOENIXGridInterfaceNoAlpha
+   :members:
+   :show-inheritance:
+
+
 In order to load a raw file from the PHOENIX grid, one would do
 
 .. code-block:: python
 
-   # if you downloaded the libraries elsewhere, be sure to include base="mydir"
-   mygrid = PHOENIXGridInterface(air=True, norm=True)
-   flux, hdr = mygrid.load_flux({"temp":6000, "logg":3.5, "Z":0.0, "alpha":0.0})
+    # if you downloaded the libraries elsewhere, be sure to include base="mydir"
+    import Starfish
+    from Starfish.grid_tools import PHOENIXGridInterfaceNoAlpha as PHOENIX
+    import numpy as np
+    mygrid = PHOENIX()
+    my_params = np.array([6000, 3.5, 0.0])
+    flux, hdr = mygrid.load_flux(my_params)
+
+    In [5]: flux
+    Out[5]:
+    array([ 4679672.5       ,  4595894.        ,  4203616.5       , ...,
+              11033.5625    ,    11301.25585938,    11383.8828125 ], dtype=float32)
+
+    In [6]: hdr
+    Out[6]:
+    {'PHXDUST': False,
+     'PHXLUM': 5.0287e+34,
+     'PHXVER': '16.01.00B',
+     'PHXREFF': 233350000000.0,
+     'PHXEOS': 'ACES',
+     'PHXALPHA': 0.0,
+     'PHXLOGG': 3.5,
+     'PHXTEFF': 6000.0,
+     'PHXMASS': 2.5808e+33,
+     'PHXXI_N': 1.49,
+     'PHXXI_M': 1.49,
+     'PHXXI_L': 1.49,
+     'PHXMXLEN': 1.48701064748,
+     'PHXM_H': 0.0,
+     'PHXBUILD': '02/Aug/2010',
+     'norm': True,
+     'air': True}
+
+    In [7]: mygrid.wl
+    Out[7]:
+    array([  3000.00133087,   3000.00732938,   3000.01332789, ...,
+            53999.27587687,  53999.52580875,  53999.77574063])
 
 .. autoclass:: KuruczGridInterface
    :members:
@@ -113,7 +151,25 @@ All of these reductions can be achieved using the :obj:`HDF5Creator` object.
 .. autoclass:: HDF5Creator
    :members:
 
-Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is part of the HDF5 file in 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
+Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument.
+
+.. code-block:: python
+
+    import Starfish
+    from Starfish.grid_tools import PHOENIXGridInterfaceNoAlpha as PHOENIX
+    from Starfish.grid_tools import HDF5Creator, TRES
+
+
+    mygrid = PHOENIX()
+    instrument = TRES()
+
+    creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument,
+    ranges=Starfish.grid["parrange"])
+
+    creator.process_grid()
+
+
+Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 
 .. autoclass:: HDF5Interface
    :members:
@@ -122,32 +178,27 @@ Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Int
 Examples
 --------
 
-For example, to create a master grid for the PHOENIX spectra, we use our previously created :obj:`PHOENIXGridInterface` and create a new :obj:`HDF5Creator`. Then we run ``process_grid()`` to process all of the raw files on disk into an HDF5 file.
+For example, to load a file from our recently-created HDF5 grid
 
 .. code-block:: python
 
-    #First, load a test file to determine the wldict
-    spec = myPHOENIXgrid.load_file({"temp":5000, "logg":3.5, "Z":0.0,"alpha":0.0})
-    wldict = spec.calculate_log_lam_grid() #explaned in the model.py documentation
+    import Starfish
+    from Starfish.grid_tools import HDF5Interface
+    import numpy as np
+    myHDF5 = HDF5Interface()
+    flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
 
-
-    HDF5Creator = HDF5GridCreator(myPHOENIXgrid, filename="test.hdf5", wldict=wldict, nprocesses=10, chunksize=1)
-    HDF5Creator.process_grid()
-
-
-For example, to load a file from our HDF5 grid
-
-.. code-block:: python
-
-    myHDF5 = HDF5Interface("test.hdf5")
-    spec = myHDF5.load_file({"temp":6100, "logg":4.5, "Z": 0.0, "alpha":0.0})
+    In [4]: flux
+    Out[4]:
+    array([ 10249189.,  10543461.,  10742093., ...,   9639472.,   9868226.,
+        10169717.], dtype=float32)
 
 
 Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this might be currently broken. If you have high signal-to-noise data, you might want to consider using the :doc:`emulator`.
+``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
 
 .. autoclass:: Interpolator
    :members:

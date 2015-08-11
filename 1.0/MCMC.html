@@ -5,16 +5,16 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>MCMC &mdash; Starfish 1.0 documentation</title>
+  <title>MCMC &mdash; Starfish 0.1 documentation</title>
   
 
   
   
 
   
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   
   
@@ -28,7 +28,11 @@
   
 
   
-    <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
+
+  
+    <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
+        <link rel="next" title="Scripts" href="scripts.html"/>
+        <link rel="prev" title="Model" href="model.html"/>
  
 
 <script>
@@ -44,7 +48,7 @@
 
 
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -55,20 +59,32 @@
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
-        <a href="index.html" class="fa fa-home"> Starfish</a>
-        <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Starfish
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+
+        
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
-        
-            <ul>
+          
+          
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
@@ -80,29 +96,55 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#creating-your-own-interface">Creating your own interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#examples">Examples</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#wavelength-conversions">Wavelength conversions</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spectrum">Log Lambda spectrum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spacing">Log lambda spacing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">MCMC</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-the-parameter-script">Creating the parameter script</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfcat-py">hdfcat.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfplot-py">hdfplot.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfinterplot-py">hdfinterplot.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#plotly-model-py">plotly_model.py</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
+          
         
       </div>
       &nbsp;
@@ -127,13 +169,15 @@
     <li>MCMC</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/MCMC.txt" rel="nofollow"> View page source</a>
+          
+            <a href="_sources/MCMC.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
   </ul>
   <hr/>
 </div>
-          <div role="main">
+          <div role="main" class="document">
             
   <div class="section" id="mcmc">
 <h1>MCMC<a class="headerlink" href="#mcmc" title="Permalink to this headline">¶</a></h1>
@@ -146,7 +190,7 @@
 language but it&#8217;s also very easy to use, so don&#8217;t be intimidated. It&#8217;s a highly worthwhile format to learn,
 and you can probably figure out how it works from the example scripts.</dd>
 </dl>
-<p>Additionally, you can also configure the fitting runs by directly editing the python script <tt class="docutils literal"><span class="pre">scripts/stars/base_lnrob</span></tt>
+<p>Additionally, you can also configure the fitting runs by directly editing the python script <code class="docutils literal"><span class="pre">scripts/stars/base_lnrob</span></code>
 If you wanted to, you could also remove the YAML dependencey and just declare your variables in the script, but I think
 it is nice to keep them separate for organization&#8217;s sake.</p>
 </div>
@@ -156,6 +200,15 @@ it is nice to keep them separate for organization&#8217;s sake.</p>
           </div>
           <footer>
   
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="scripts.html" class="btn btn-neutral float-right" title="Scripts" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="model.html" class="btn btn-neutral" title="Model" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
 
   <hr/>
 
@@ -164,9 +217,10 @@ it is nice to keep them separate for organization&#8217;s sake.</p>
         &copy; Copyright 2013-14, Ian Czekala.
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
-  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
 </footer>
+
         </div>
       </div>
 
@@ -181,7 +235,7 @@ it is nice to keep them separate for organization&#8217;s sake.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0',
+            VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -190,7 +244,7 @@ it is nice to keep them separate for organization&#8217;s sake.</p>
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

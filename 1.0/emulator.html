@@ -5,16 +5,16 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Spectral Emulator &mdash; Starfish 1.0 documentation</title>
+  <title>Spectral Emulator &mdash; Starfish 0.1 documentation</title>
   
 
   
   
 
   
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   
   
@@ -28,7 +28,11 @@
   
 
   
-    <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
+
+  
+    <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
+        <link rel="next" title="Model" href="model.html"/>
+        <link rel="prev" title="Spectrum" href="spectrum.html"/>
  
 
 <script>
@@ -44,7 +48,7 @@
 
 
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -55,20 +59,32 @@
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
-        <a href="index.html" class="fa fa-home"> Starfish</a>
-        <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Starfish
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+
+        
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
-        
-            <ul>
+          
+          
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
@@ -80,29 +96,59 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#creating-your-own-interface">Creating your own interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#examples">Examples</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#wavelength-conversions">Wavelength conversions</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spectrum">Log Lambda spectrum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#converting-user-spectra-to-input-format">Converting user spectra to input format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#full-featured-spectrum-objects">Full-featured spectrum objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#fast-spectrum-objects">Fast spectrum objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spacing">Log lambda spacing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MCMC.html">MCMC</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MCMC.html#creating-the-parameter-script">Creating the parameter script</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfcat-py">hdfcat.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfplot-py">hdfplot.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfinterplot-py">hdfinterplot.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#plotly-model-py">plotly_model.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cookbook.html#using-the-linear-interpolator">Using the linear interpolator</a></li>
 </ul>
 </li>
 </ul>
 
+          
         
       </div>
       &nbsp;
@@ -127,21 +173,59 @@
     <li>Spectral Emulator</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
+          
+            <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
   </ul>
   <hr/>
 </div>
-          <div role="main">
+          <div role="main" class="document">
             
-  <div class="section" id="spectral-emulator">
-<h1>Spectral Emulator<a class="headerlink" href="#spectral-emulator" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-Starfish.emulator">
+<span id="spectral-emulator"></span><h1>Spectral Emulator<a class="headerlink" href="#module-Starfish.emulator" title="Permalink to this headline">¶</a></h1>
+<p>The spectral emulator can be likened to the engine behind <em>Starfish</em>. While the novelty of <em>Starfish</em> comes from using Gaussian processes to model and account for the covariances of spectral fits, we still need a way to produce model spectra by interpolating from our synthetic library. While we could interpolate spectra from the synthetic library using something like linear interpolation in each of the library parameters, it turns out that high signal-to-noise data requires something more sophisticated. This is because the error in any interpolation can constitute a significant portion of the error budget. This means that there is a chance that non-interpolated spectra (e.g., the parameters of the synthetic spectra in the library) might be given preference over any other interpolated spectra, and the posteriors will be peaked at the grid point locations. Because the spectral emulator returns a probability distribution over possible interpolated spectra, this interpolation error can be quantified and propagated forward into the likelihood calculation.</p>
+<div class="section" id="eigenspectra-decomposition">
+<h2>Eigenspectra decomposition<a class="headerlink" href="#eigenspectra-decomposition" title="Permalink to this headline">¶</a></h2>
+<p>The first step of configuring the spectral emulator is to choose a subregion of the spectral library corresponding to the star that you will fit. Then, we want to decompose the information content in this subset of the spectral library into several <em>eigenspectra</em>. [Figure A.1 here].</p>
+<p>The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <code class="docutils literal"><span class="pre">scipy</span></code> package.</p>
+<p><code class="xref py py-obj docutils literal"><span class="pre">PCAGrid</span></code> implements the functionality to create the eigenspectra grid from a synthetic library, and then later query eigenspectra from it.</p>
+<p>For example, the following takes a bunch of spectra specified by an <code class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></code> and decomposes them into a PCA basis</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">Starfish.grid_tools</span> <span class="kn">import</span> <span class="n">HDF5Interface</span>
+<span class="kn">from</span> <span class="nn">Starfish.emulator</span> <span class="kn">import</span> <span class="n">PCAGrid</span>
+
+<span class="c"># Load the HDF5 interface using the values in config.yaml</span>
+<span class="n">myHDF5</span> <span class="o">=</span> <span class="n">HDF5Interface</span><span class="p">()</span>
+
+<span class="n">pca</span> <span class="o">=</span> <span class="n">PCAGrid</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">myHDF5</span><span class="p">)</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="optimizing-the-emulator">
+<h2>Optimizing the emulator<a class="headerlink" href="#optimizing-the-emulator" title="Permalink to this headline">¶</a></h2>
+<p>Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.</p>
+<p>The optimization of the GP hyperparameters is carried out using the <cite>numpy.optimize.fmin</cite> routine in <cite>scripts/emulator/optimize_emulator.py</cite>.</p>
+<p>Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA[&#8220;path&#8221;]).</p>
+</div>
+<div class="section" id="model-spectrum-reconstruction">
+<h2>Model spectrum reconstruction<a class="headerlink" href="#model-spectrum-reconstruction" title="Permalink to this headline">¶</a></h2>
+</div>
 </div>
 
 
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="model.html" class="btn btn-neutral float-right" title="Model" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="spectrum.html" class="btn btn-neutral" title="Spectrum" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -151,9 +235,10 @@
         &copy; Copyright 2013-14, Ian Czekala.
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
-  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
 </footer>
+
         </div>
       </div>
 
@@ -168,7 +253,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0',
+            VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -177,7 +262,7 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

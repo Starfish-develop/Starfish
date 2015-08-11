@@ -6,16 +6,16 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; Starfish 1.0 documentation</title>
+  <title>Index &mdash; Starfish 0.1 documentation</title>
   
 
   
   
 
   
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   
   
@@ -29,7 +29,9 @@
   
 
   
-    <link rel="top" title="Starfish 1.0 documentation" href="index.html"/>
+
+  
+    <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
  
 
 <script>
@@ -45,7 +47,7 @@
 
 
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -56,20 +58,32 @@
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
-        <a href="index.html" class="fa fa-home"> Starfish</a>
-        <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Starfish
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+
+        
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
-        
-            <ul>
+          
+          
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
@@ -81,32 +95,59 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#creating-your-own-interface">Creating your own interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#examples">Examples</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#wavelength-conversions">Wavelength conversions</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spacing">Log lambda spacing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="spectrum.html#spectrum-objects">Spectrum objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="MCMC.html">MCMC</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="MCMC.html#creating-the-parameter-script">Creating the parameter script</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfcat-py">hdfcat.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfplot-py">hdfplot.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfinterplot-py">hdfinterplot.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#plotly-model-py">plotly_model.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cookbook.html">Cookbook</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cookbook.html#using-the-linear-interpolator">Using the linear interpolator</a></li>
 </ul>
 </li>
 </ul>
 
+          
         
       </div>
       &nbsp;
@@ -131,214 +172,28 @@
     <li></li>
       <li class="wy-breadcrumbs-aside">
         
+          
+        
       </li>
   </ul>
   <hr/>
 </div>
-          <div role="main">
+          <div role="main" class="document">
             
 
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#_"><strong>_</strong></a>
- | <a href="#A"><strong>A</strong></a>
- | <a href="#B"><strong>B</strong></a>
- | <a href="#C"><strong>C</strong></a>
- | <a href="#D"><strong>D</strong></a>
- | <a href="#E"><strong>E</strong></a>
- | <a href="#F"><strong>F</strong></a>
- | <a href="#G"><strong>G</strong></a>
- | <a href="#H"><strong>H</strong></a>
+ <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
- | <a href="#K"><strong>K</strong></a>
- | <a href="#L"><strong>L</strong></a>
- | <a href="#M"><strong>M</strong></a>
- | <a href="#O"><strong>O</strong></a>
- | <a href="#P"><strong>P</strong></a>
- | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
- | <a href="#T"><strong>T</strong></a>
- | <a href="#U"><strong>U</strong></a>
- | <a href="#V"><strong>V</strong></a>
- | <a href="#W"><strong>W</strong></a>
  
 </div>
-<h2 id="_">_</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.__call__">__call__() (Starfish.grid_tools.Interpolator method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Instrument.__str__">__str__() (Starfish.grid_tools.Instrument method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="A">A</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.StellarSampler.acceptfn">acceptfn() (Starfish.model.StellarSampler method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.DataSpectrum.add_mask">add_mask() (Starfish.spectrum.DataSpectrum method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.air_to_vacuum">air_to_vacuum() (in module Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="B">B</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.BTSettlGridInterface">BTSettlGridInterface (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="C">C</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.calculate_dv">calculate_dv() (in module Starfish.spectrum)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.calculate_n">calculate_n() (in module Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.RawGridInterface.check_params">check_params() (Starfish.grid_tools.RawGridInterface method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.chunk_list">chunk_list() (in module Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.create_log_lam_grid">create_log_lam_grid() (in module Starfish.spectrum)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="D">D</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.DataSpectrum">DataSpectrum (class in Starfish.spectrum)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.determine_chunk_log">determine_chunk_log() (in module Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.downsample">downsample() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="E">E</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.evaluate">evaluate() (Starfish.model.Model method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.ModelHA.evaluate">(Starfish.model.ModelHA method)</a>
-  </dt>
-
-      </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.evaluate_logPrior">evaluate_logPrior() (Starfish.model.Model method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="F">F</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.fluxes">fluxes (Starfish.grid_tools.HDF5Interface attribute)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.from_json">from_json() (Starfish.model.Model class method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.ModelHA.from_json">(Starfish.model.ModelHA class method)</a>
-  </dt>
-
-      </dl></dd>
-  </dl></td>
-</tr></table>
-
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="model.html#Starfish.model.Model.get_data">get_data() (Starfish.model.Model method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.ModelHA.get_data">(Starfish.model.ModelHA method)</a>
-  </dt>
-
-      </dl></dd>
-      
   <dt><a href="grid_tools.html#Starfish.constants.GridError">GridError</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.grouper">grouper() (in module Starfish.model)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="H">H</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator">HDF5Creator (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface">HDF5Interface (class in Starfish.grid_tools)</a>
   </dt>
 
   </dl></td>
@@ -348,191 +203,7 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Instrument">Instrument (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator.interpolate">interpolate() (Starfish.grid_tools.Interpolator method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
   <dt><a href="grid_tools.html#Starfish.constants.InterpolationError">InterpolationError</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Interpolator">Interpolator (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="K">K</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.KPNO">KPNO (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.KuruczGridInterface">KuruczGridInterface (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="L">L</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.BTSettlGridInterface.load_file">load_file() (Starfish.grid_tools.BTSettlGridInterface method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.KuruczGridInterface.load_file">(Starfish.grid_tools.KuruczGridInterface method)</a>
-  </dt>
-
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.PHOENIXGridInterface.load_file">(Starfish.grid_tools.PHOENIXGridInterface method)</a>
-  </dt>
-
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.RawGridInterface.load_file">(Starfish.grid_tools.RawGridInterface method)</a>
-  </dt>
-
-      </dl></dd>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.BTSettlGridInterface.load_flux">load_flux() (Starfish.grid_tools.BTSettlGridInterface method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux">(Starfish.grid_tools.HDF5Interface method)</a>
-  </dt>
-
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.KuruczGridInterface.load_flux">(Starfish.grid_tools.KuruczGridInterface method)</a>
-  </dt>
-
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.PHOENIXGridInterface.load_flux">(Starfish.grid_tools.PHOENIXGridInterface method)</a>
-  </dt>
-
-        
-  <dt><a href="grid_tools.html#Starfish.grid_tools.RawGridInterface.load_flux">(Starfish.grid_tools.RawGridInterface method)</a>
-  </dt>
-
-      </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Interface.load_flux_hdr">load_flux_hdr() (Starfish.grid_tools.HDF5Interface method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="M">M</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model">Model (class in Starfish.model)</a>
-  </dt>
-
-      
-  <dt><a href="model.html#Starfish.model.ModelEncoder">ModelEncoder (class in Starfish.model)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.ModelHA">ModelHA (class in Starfish.model)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum">ModelSpectrum (class in Starfish.spectrum)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="O">O</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.DataSpectrum.open">open() (Starfish.spectrum.DataSpectrum class method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.DataSpectrum.open_npy">open_npy() (Starfish.spectrum.DataSpectrum class method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="P">P</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.PHOENIXGridInterface">PHOENIXGridInterface (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="model.html#Starfish.model.PSampler.plot">plot() (Starfish.model.PSampler method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.Sampler.plot">(Starfish.model.Sampler method)</a>
-  </dt>
-
-      </dl></dd>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator.process_flux">process_flux() (Starfish.grid_tools.HDF5Creator method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.HDF5Creator.process_grid">process_grid() (Starfish.grid_tools.HDF5Creator method)</a>
-  </dt>
-
-      
-  <dt><a href="model.html#Starfish.model.PSampler">PSampler (class in Starfish.model)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="R">R</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.RawGridInterface">RawGridInterface (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Reticon">Reticon (class in Starfish.grid_tools)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.revert_flux">revert_flux() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.revert_Model">revert_Model() (Starfish.model.Model method)</a>
-  </dt>
-
-      
-  <dt><a href="model.html#Starfish.model.StellarSampler.revertfn">revertfn() (Starfish.model.StellarSampler method)</a>
   </dt>
 
   </dl></td>
@@ -542,117 +213,23 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="model.html#Starfish.model.Sampler">Sampler (class in Starfish.model)</a>
+  <dt><a href="emulator.html#module-Starfish.emulator">Starfish.emulator (module)</a>
   </dt>
 
       
   <dt><a href="grid_tools.html#module-Starfish.grid_tools">Starfish.grid_tools (module)</a>
   </dt>
 
-      
-  <dt><a href="model.html#module-Starfish.model">Starfish.model (module)</a>, <a href="model.html#module-Starfish.model">[1]</a>
-  </dt>
-
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="model.html#module-Starfish.model">Starfish.model (module)</a>
+  </dt>
+
       
   <dt><a href="spectrum.html#module-Starfish.spectrum">Starfish.spectrum (module)</a>
   </dt>
 
-      
-  <dt><a href="model.html#Starfish.model.StellarSampler">StellarSampler (class in Starfish.model)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="T">T</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.to_json">to_json() (Starfish.model.Model method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.ModelHA.to_json">(Starfish.model.ModelHA method)</a>
-  </dt>
-
-      </dl></dd>
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.TRES">TRES (class in Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="U">U</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_all">update_all() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_Av">update_Av() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_grid_params">update_grid_params() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_logOmega">update_logOmega() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.Model.update_Model">update_Model() (Starfish.model.Model method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_vsini">update_vsini() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-      
-  <dt><a href="spectrum.html#Starfish.spectrum.ModelSpectrum.update_vz">update_vz() (Starfish.spectrum.ModelSpectrum method)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="V">V</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.vacuum_to_air">vacuum_to_air() (in module Starfish.grid_tools)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="W">W</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="grid_tools.html#Starfish.grid_tools.Instrument.self.wl_dict">wl_dict (Starfish.grid_tools.Instrument.self attribute)</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="model.html#Starfish.model.PSampler.write">write() (Starfish.model.PSampler method)</a>
-  </dt>
-
-      <dd><dl>
-        
-  <dt><a href="model.html#Starfish.model.Sampler.write">(Starfish.model.Sampler method)</a>
-  </dt>
-
-      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -669,9 +246,10 @@
         &copy; Copyright 2013-14, Ian Czekala.
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
-  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
 </footer>
+
         </div>
       </div>
 
@@ -686,7 +264,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0',
+            VERSION:'0.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -695,7 +273,7 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Cookbook &mdash; Starfish 0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
+        <link rel="prev" title="Scripts" href="scripts.html"/>
+ 
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-5472810-5', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Starfish
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#obtaining-model-spectra">Obtaining model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-spectral-emulator">The Spectral Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#spectrum-data-formats-and-runtime">Spectrum data formats and runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#the-mcmc-driver-script">The MCMC driver script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#memory-usage">Memory usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grid_tools.html">Grid Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#downloading-model-spectra">Downloading model spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#raw-grid-interfaces">Raw Grid Interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#creating-your-own-interface">Creating your own interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#hdf5-creators-and-fast-interfaces">HDF5 creators and Fast interfaces</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#interpolators">Interpolators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#instruments">Instruments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#utility-functions">Utility Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grid_tools.html#wavelength-conversions">Wavelength conversions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_tools.html#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="spectrum.html">Spectrum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#log-lambda-spacing">Log lambda spacing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MCMC.html">MCMC</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MCMC.html#creating-the-parameter-script">Creating the parameter script</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#hdf5-scripts">HDF5 Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfcat-py">hdfcat.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfplot-py">hdfplot.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#hdfinterplot-py">hdfinterplot.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="scripts.html#plotting-scripts">Plotting Scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="scripts.html#plotly-model-py">plotly_model.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Cookbook</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-linear-interpolator">Using the linear interpolator</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Starfish</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Cookbook</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/cookbook.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="cookbook">
+<h1>Cookbook<a class="headerlink" href="#cookbook" title="Permalink to this headline">¶</a></h1>
+<p>Download the spectral library to a good location on your disk.</p>
+<p>Create a local working directory for the star you wish to process.</p>
+<p>Copy <cite>config.yaml</cite> to this directory and modify the settings as you wish. It is generally a good idea to keep the HDF5 paths set to this local directory.</p>
+<p>From within this local directory, we will want to create the grid.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Downsample the grid</span>
+<span class="n">grid</span><span class="o">.</span><span class="n">py</span> <span class="n">create</span>
+
+<span class="c"># Plot all of the spectra in the hdf5 grid into the plotdir</span>
+<span class="n">grid</span><span class="o">.</span><span class="n">py</span> <span class="n">plot</span>
+</pre></div>
+</div>
+<p>Here we should also have some routines to plot the various spectra within the grid to make sure everything looks as we want.</p>
+<p>Then, we will want to make the PCA grid, and do many other things regarding optimization and final plotting. These are all done through the <cite>pca.py</cite> script.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># create the grid using settings in config.yaml</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">create</span>
+
+<span class="c"># Note, need to create a &quot;plots&quot; directory locally.</span>
+
+<span class="c"># Plot all of the eigenspectra and the histogram of weights</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">eigenspectra</span>
+
+<span class="c"># reconstruct the grid at the synthetic grid points, plotting the difference</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">reconstruct</span>
+
+<span class="c"># Specify and examine priors stored in config.yaml</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">priors</span>
+
+<span class="c"># Optimize the emulator using fmin</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">fmin</span>
+
+<span class="c"># Optimize the emulator starting from previous parameter estimates</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">fmin</span> <span class="o">--</span><span class="n">resume</span>
+
+<span class="c"># OR optimize using emcee</span>
+<span class="c"># default samples = 100</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">emcee</span> <span class="o">--</span><span class="n">samples</span><span class="o">=</span><span class="mi">100</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">emcee</span> <span class="o">--</span><span class="n">resume</span>
+
+<span class="c"># Make a triangle plot of the emcee output</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">emcee</span>
+
+<span class="c"># Make some plots showing weight interpolations using the emulator</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">emulator</span> <span class="o">--</span><span class="n">params</span><span class="o">=</span><span class="n">fmin</span>
+<span class="c"># OR</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">plot</span><span class="o">=</span><span class="n">emulator</span> <span class="o">--</span><span class="n">params</span><span class="o">=</span><span class="n">emcee</span>
+
+<span class="c"># Once you&#39;ve OK&#39;d the parameters, then store them to the HDF5 file</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">store</span> <span class="o">--</span><span class="n">params</span><span class="o">=</span><span class="n">fmin</span>
+<span class="c"># OR</span>
+<span class="n">pca</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">store</span> <span class="o">--</span><span class="n">params</span><span class="o">=</span><span class="n">emcee</span>
+</pre></div>
+</div>
+<p>After doing some more analysis, we&#8217;ll want to make a bunch of plots showing the scatter of interpolated spectra against what the gridpoint spectrum looks like.</p>
+<p>Now that you&#8217;ve optimized the emulator for the specific spectrum you&#8217;d like to fit, we can use a series of tools to fit the spectrum. Further customization will require writing your own python scripts.</p>
+<p>These codes are much simpler and just output everything to the local directory.</p>
+<p>Optimize the grid and observational parameters (<span class="math">\(\Theta\)</span>)</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">Theta</span>
+
+<span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">Cheb</span>
+</pre></div>
+</div>
+<p>This script will leave you with a single JSON file which specifies the Theta parameters. The fit might be OK, but is probably not the best you can do, especially since we haven&#8217;t allowed any flexibility in the Chebyshev paramteters that take care of calibration uncertainties. Hopefully, however, your estimates of radial velocity, Omega, and vsini are in the ballpark of what you might expect. To check that this is the case, it would be a great idea to generate model spectra and plot them to examine the residuals of the fit.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Write out model, data, residuals for each order in the CWD</span>
+<span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">generate</span>
+</pre></div>
+</div>
+<p>Now we can plot these files using our plotting programs.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">splot</span><span class="o">.</span><span class="n">py</span> <span class="n">s0_o23_spec</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">matplotlib</span>
+
+<span class="n">splot</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">D3</span>
+
+<span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">sample</span><span class="o">=</span><span class="n">Theta</span>
+</pre></div>
+</div>
+<p>Optimize the noise parameters (<span class="math">\(\Phi\)</span>)</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">optimize</span><span class="o">=</span><span class="n">Phi</span>
+</pre></div>
+</div>
+<p>Starting values for the nuisance parameters (<span class="math">\(\Phi\)</span>) are read from <cite>*phi.json</cite> files located in the current working directory. If you don&#8217;t feel like optimizing the Chebyshev polynomials first, then to generate a set of these files for default values read from your config file, run</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">initPhi</span>
+</pre></div>
+</div>
+<p>Note that this will overwrite any of your current <cite>*phi.json</cite> files in the current working directory. If you previously optimized the Cheb parameters, you may want to borrow these values and use them here.</p>
+<p>On all subsquent runs, the starting values are taken from these. So, if you are doing many iterative runs where you by now have a good estimate of the final parameter values, it might be worthwhile to use a text editor to go and edit <cite>s0_o22phi.json</cite> and associated files by hand to these values, in order to speed convergence.</p>
+<p>Sample in the Theta and Chebyhev parameters at the same time.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">sample</span><span class="o">=</span><span class="n">ThetaCheb</span> <span class="o">--</span><span class="n">samples</span><span class="o">=</span><span class="mi">100</span>
+</pre></div>
+</div>
+<p>Sample in the Theta, Chebyshev, and global covariance parameters at the same time.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">sample</span><span class="o">=</span><span class="n">ThetaPhi</span> <span class="o">--</span><span class="n">samples</span><span class="o">=</span><span class="mi">5</span>
+</pre></div>
+</div>
+<p>In actuality you will probably want something like <cite>&#8211;samples=5000</cite> or more to get a statistical exploration of the space, but before waiting for a long run to finish it would be good to check that the machinery worked for a small run first.</p>
+<p>Then, you can use the <cite>chain.py</cite> tool to examine and plot the parameter estimates. First, navigate to the directory that has the samples. Generally this will be something like <cite>output/WASP14/run01</cite> or whatever you have specified in your <cite>config.yaml</cite>. Then, use the tool to examine the Markov Chain</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">chain</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">files</span> <span class="n">mc</span><span class="o">.</span><span class="n">hdf5</span> <span class="o">--</span><span class="n">chain</span>
+</pre></div>
+</div>
+<p>Once you have a reasonable guess at the parameters, update your <cite>config.yaml</cite> file and <cite>*phi.json</cite> files to these best-fit parameters. Then, you&#8217;ll want to create a new residual spectrum</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">star</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">generate</span>
+</pre></div>
+</div>
+<p>Then, we can use this residual spectrum to search for and instantiate the regions for a given order. The JSON file includes the model, data, and residual.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">regions</span><span class="o">.</span><span class="n">py</span> <span class="n">s0_o23spec</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">sigma</span><span class="o">=</span><span class="mi">3</span> <span class="o">--</span><span class="n">sigma0</span><span class="o">=</span><span class="mi">2</span>
+</pre></div>
+</div>
+<p>This will create a file called something like <cite>s0_o23regions.json</cite>, which contains a list of the centroids of each of these lines.</p>
+<p>Then, go through and optimize the regions in this list. This will attempt to optimize the line kernels in the list.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">regions_optimize</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">sigma0</span><span class="o">=</span><span class="mf">2.</span> <span class="n">s0_o23spec</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>After a run, if you want to plot everything</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">chain_run</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">chain</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">chain_run</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">t</span>
+</pre></div>
+</div>
+<p>If you want to use the last values for the new run (just for nuisances), from within the CWD.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">set_params</span><span class="o">.</span><span class="n">py</span> <span class="n">output</span><span class="o">/</span><span class="n">WASP14</span><span class="o">/</span><span class="n">run02</span><span class="o">/</span>
+</pre></div>
+</div>
+<div class="section" id="using-the-linear-interpolator">
+<h2>Using the linear interpolator<a class="headerlink" href="#using-the-linear-interpolator" title="Permalink to this headline">¶</a></h2>
+<p>As a backup option to the spectral emulator, we also included an <span class="math">\(N\)</span>-dimensional linear interpolator, where <span class="math">\(N\)</span> is the number of dimensions in your synthetic library. Note that unlike the emulator, this interpolator requires that you have a grid with rectilinear spacings in paramaters.</p>
+<p>Begin by creating a local working directory and copying <cite>config.yaml</cite> to this directory and modify the settings as you wish. Then begin the same way</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Downsample the grid</span>
+<span class="n">grid</span><span class="o">.</span><span class="n">py</span> <span class="n">create</span>
+</pre></div>
+</div>
+<p>Now, instead of decomposing the library into eigenspectra and then tuning the emulator, we can hook the linear interpolator directly up to the modified grid. Beware, however, that a significant amount of error in the spectra fit is introduced by a poor linear interpolation. If you are fitting moderate to high S/N spectra, we recomend that you stick with the emulator approach for final work.</p>
+<p>We have replicated the same functionality in <cite>star.py</cite> in a separate script, <cite>star_linear.py</cite>.</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="scripts.html" class="btn btn-neutral" title="Scripts" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2013-14, Ian Czekala.
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
