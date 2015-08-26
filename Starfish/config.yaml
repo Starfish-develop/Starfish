@@ -13,6 +13,8 @@ data:
 
 outdir : output/
 
+plotdir : plots/
+
 # The parameters defining your raw spectral library live here.
 grid:
   raw_path: "libraries/raw/PHOENIX/"
@@ -25,52 +27,41 @@ grid:
   buffer: 50. # AA
 
 PCA:
-  path : "libraries/PHOENIX_TRES_PCA_test.hdf5"
+  path : "PHOENIX_TRES_PCA.hdf5"
+  threshold: 0.999 # Percentage of variance explained by components.
+  priors: [[2., 0.0075], [2., 0.75], [2., 0.75]] # len(parname) list of 2-element lists. Each 2-element list is [s, r] for the Gamma-function prior on emulator parameters
 
 #Longer strings can be written like this. This will be loaded under the "Comments" variable.
 Comments: >
   WASP14 spectrum using emulator.
 
-#Nested data structures are allowed
-stellar_params :
-    temp : 6420
-    #logg : 3.90
-    Z : -0.27
-    vsini : 4.2
-    vz : -4.57
-    logOmega: -12.714
+# The parameters shared between all orders
+Theta :
+    grid : [6109., 3.22, -0.26]
+    vz : -4.77
+    vsini : 5.79
+    logOmega: -12.80
+    Av: 0.0
 
-fix_logg : 4.29
+# Uncomment this line and set equal to the value of logg, if you'd like to fix it.
+# fix_logg : 4.29
 
-stellar_jump:
-    temp : 2
-    #logg : 0.01
-    Z : 0.001
-    vsini : 0.06
+Theta_jump :
+    grid : [3, 0.003, 0.001]
     vz : 0.01
-    logOmega: 2.5e-4
-
-use_cov: False
-stellar_cov:
-    temp_logg : 4.148e-2
-    temp_Z : 2.959e-2
-    logg_Z : 1.45e-5
-    temp_logOmega : 0.
-    factor : 0.1
+    vsini : 0.01
+    logOmega: 1.e-4
+    Av: 0.01
 
 cheb_degree: 4
-cheb_jump : 4e-4
+cheb_jump : 1.0e-4
 
-no_cov : False
+Phi :
+    sigAmp : 1.0
+    logAmp : -13.6
+    l : 20.
 
-no_region: True
-
-cov_params :
-    sigAmp : 1
-    logAmp : -14.566
-    l : 7.58
-
-cov_jump :
+Phi_jump :
     sigAmp : 0.025
     logAmp : 0.01
     l : 0.25
@@ -79,20 +70,4 @@ region_params:
     logAmp: -13.6
     sigma: 7.
 
-region_jump:
-    logAmp : 0.13
-    mu : 0.002
-    sigma : 0.7
-
-region_priors:
-    sigma0: 0.5 #AA
-    mu_width : 0.03 #AA
-    sigma_knee : 10 #km/s
-    frac_global : 0.1 #Fraction of the global amplitude lower bound
-
-sigma_clip : 4.
-
-#Burn in time
-burn_in : 3000
-nuisance_burn : 5000
-samples : 50000
+sigma_clip : 4. # how many sigma should we go in order to instantiate local kernels.
