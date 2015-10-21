@@ -17,7 +17,7 @@ Downloading model spectra
 
 Before you may begin any fitting, you must acquire a synthetic library of model spectra. If you will be fitting spectra of stars, there are many high quality synthetic and empirical spectral libraries available. In our paper, we use the freely available PHOENIX library synthesized by T.O. Husser. The library is available for download here: http://phoenix.astro.physik.uni-goettingen.de/
 
-Because spectral libraries are generally large (> 10 Gb), please make sure you available disk space before beginning the download. Downloads may take a day or longer, so it is recommended to start the download ASAP.
+Because spectral libraries are generally large (> 10 Gb), please make sure you have enough available disk space before beginning the download. Downloads may take a day or longer, so it is recommended to start the download ASAP.
 
 You may store the spectra on disk in whatever directory structure you find convenient, provided you adjust the Starfish routines that read spectra from disk. To use the default settings for the PHOENIX grid, please create a ``libraries`` directory, a ``raw`` directory within ``libraries``, and unpack the spectra in this format::
 
@@ -198,7 +198,7 @@ Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
+``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this is currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
 
 .. autoclass:: Interpolator
    :members:
