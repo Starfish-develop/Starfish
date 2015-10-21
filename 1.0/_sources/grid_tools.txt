@@ -198,7 +198,7 @@ Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
+``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this is currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
 
 .. autoclass:: Interpolator
    :members:
