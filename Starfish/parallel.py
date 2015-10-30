@@ -427,7 +427,7 @@ class Order:
         # self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False #Fix the last c0
         # This is necessary if we want to update just a single order.
 
-        if self.chebyshevSpectrum.fix_c0 & len(self.dataSpectrum.wls) > 1:
+        if self.chebyshevSpectrum.fix_c0 & (len(self.dataSpectrum.wls) > 1):
             p0 = np.zeros((self.npoly - 1))
         else:
             self.chebyshevSpectrum.fix_c0 = False
