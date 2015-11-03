@@ -220,7 +220,7 @@ def plot(flatchain, base, format=".png"):
 
     import triangle
 
-    labels = [r"$T_\textrm{eff}$ [K]", r"$\log g$ [dex]", r"$Z$ [dex]",
+    labels = [r"$T_\mathrm{eff}$ [K]", r"$\log g$ [dex]", r"$Z$ [dex]",
     r"$v_z$ [km/s]", r"$v \sin i$ [km/s]", r"$\log_{10} \Omega$"]
     figure = triangle.corner(flatchain, quantiles=[0.16, 0.5, 0.84],
         plot_contours=True, plot_datapoints=False, labels=labels, show_titles=True)
