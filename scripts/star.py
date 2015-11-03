@@ -111,7 +111,7 @@ if args.initPhi:
 
 if args.optimize == "Cheb":
 
-    model = parallel.OptimizeTheta(debug=True)
+    model = parallel.OptimizeCheb(debug=True)
 
     # Now that the different processes have been forked, initialize them
     pconns, cconns, ps = parallel.initialize(model)
