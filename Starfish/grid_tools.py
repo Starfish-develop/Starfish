@@ -1030,6 +1030,11 @@ class SPEX_SXD(Instrument):
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 26000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+class IGRINS_H(Instrument):
+    '''IGRINS H band instrument'''
+    def __init__(self, name="TRES", FWHM=7.5, wl_range=(14250, 18400)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+        #sets the FWHM and wl_range
 
 def vacuum_to_air(wl):
     '''
