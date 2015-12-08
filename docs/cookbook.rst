@@ -13,10 +13,10 @@ From within this local directory, we will want to create the grid.
 .. code-block:: python
 
     # Downsample the grid
-    grid.py create
+    grid.py --create
 
     # Plot all of the spectra in the hdf5 grid into the plotdir
-    grid.py plot
+    grid.py --plot
 
 
 Here we should also have some routines to plot the various spectra within the grid to make sure everything looks as we want.
