@@ -78,7 +78,7 @@ Once your model is "in the ballpark" of the data, you can start to visualize the
 
 .. code-block:: bash
 
-    $ splot.py s0_o21_spec.json --matplotlib
+    $ splot.py s0_o21spec.json --matplotlib
 
     $ open plots/s0_o21spec.json.png
 
