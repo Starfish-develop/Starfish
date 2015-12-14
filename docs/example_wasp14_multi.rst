@@ -85,3 +85,16 @@ Five hundred ThetaCheb samples took 36 minutes on my Macbook pro.
     user  90m17.047s
     sys 12m43.253s
 
+As usual, hand-edit your `config.yaml` file and `phi.json` files with your best guess for revised stellar and calibration parameters.  Then you can introduce yet-more-parameters.  It took my computer 40 minutes to run 500 samples with all parameters:
+
+.. code-block:: bash
+
+    $ time star.py --sample=ThetaPhi --samples=500
+
+    Final [  6.38428451e+03   4.18315434e+00  -3.21968427e-01  -4.88951948e+00
+       5.33927051e+00  -1.27197478e+01]
+
+    real  40m17.345s
+    user  106m42.716s
+    sys 14m27.443s
+
