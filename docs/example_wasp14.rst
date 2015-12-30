@@ -1,6 +1,6 @@
-========
+=================
 Example: WASP 14
-========
+=================
 
 
 Preamble
@@ -86,7 +86,7 @@ After doing all that, we can automatically generate the assumed directory and fi
 
 
 Generating the eigenspectra and their weights
-=============================
+==============================================
 
 The process of spectral emulation is the main topic of the Appendix of Czekala et al. 2015.  It gets pretty complicated, but the main idea is using a type of regression to fit the :math:`m` eigenspectra weights as a function of say 3 stellar parameters :math:`\theta_{*}`.
 
