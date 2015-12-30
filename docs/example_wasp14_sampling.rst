@@ -173,9 +173,9 @@ The chain of stellar parameters is stored in `mc.hdf5`.  The file `s0_o21phi/mc.
 
     $ open walkers.png
 
-.. image:: walkers.png
+.. image:: assets/walkers.png
 
-.. image:: residual_500mc.png
+.. image:: assets/residual_500mc.png
 
 
 Sample with the covariance kernels

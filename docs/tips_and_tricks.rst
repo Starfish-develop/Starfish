@@ -11,7 +11,7 @@ Time how long it takes your script to run.
 
 Just calling `time` before your script will output the running time:
 
-.. code-block::
+.. code-block:: bash
 
 	$ time echo $SHELL
 	/bin/bash

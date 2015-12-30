@@ -82,7 +82,7 @@ Once your model is "in the ballpark" of the data, you can start to visualize the
 
     $ open plots/s0_o21spec.json.png
 
-.. image:: temp2.png
+.. image:: assets/temp2.png
 
 
 Not bad.  You can keep tweaking the **logOmega** value in `config.yaml` to get it to work out.  Add in a `--noise` flag to the `splot.py` command to get some nice uncertainty bands, to put your residual spectrum in context.
@@ -91,6 +91,6 @@ Not bad.  You can keep tweaking the **logOmega** value in `config.yaml` to get i
 
     $ star.py --generate; splot.py s0_o21spec.json --matplotlib --noise; open plots/s0_o21spec.json.png
 
-.. image:: temp3.png
+.. image:: assets/temp3.png
 
 Much better.  Now we're ready for optimization.  
