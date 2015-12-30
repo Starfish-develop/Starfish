@@ -1032,7 +1032,13 @@ class SPEX_SXD(Instrument):
 
 class IGRINS_H(Instrument):
     '''IGRINS H band instrument'''
-    def __init__(self, name="TRES", FWHM=7.5, wl_range=(14250, 18400)):
+    def __init__(self, name="IGRINS_H", FWHM=7.5, wl_range=(14250, 18400)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+        #sets the FWHM and wl_range
+
+class IGRINS_K(Instrument):
+    '''IGRINS K band instrument'''
+    def __init__(self, name="IGRINS_K", FWHM=7.5, wl_range=(18500, 25200)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         #sets the FWHM and wl_range
 
