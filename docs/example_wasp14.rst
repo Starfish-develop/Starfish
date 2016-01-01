@@ -1,25 +1,98 @@
-========
-Cookbook
-========
-
-Download the spectral library to a good location on your disk.
-
-Create a local working directory for the star you wish to process.
-
-Copy `config.yaml` to this directory and modify the settings as you wish. It is generally a good idea to keep the HDF5 paths set to this local directory.
-
-From within this local directory, we will want to create the grid.
-
-.. code-block:: python
-
-    # Downsample the grid
-    grid.py --create
-
-    # Plot all of the spectra in the hdf5 grid into the plotdir
-    grid.py --plot
+=================
+Example: WASP 14
+=================
 
 
-Here we should also have some routines to plot the various spectra within the grid to make sure everything looks as we want.
+Preamble
+=============================
+This example replicates the WASP14 results from Czekala et al. 2015.  It's probably a good test to perform before you blindly run the code on any of your data.  All of the data to replicate this result are already a part of the repository, so you don't have to worry about any data munging.  
+
+This example assumes you have already:  
+
+1. Downloaded the synthetic spectral libraries.  
+2. Added the Starfish scripts directory to your `$PATH`.  
+3. Read the docs  
+4. Read the paper  
+5. Read the license  
+6. Installed the dependencies  
+
+
+If you've done everything in the Preamble correctly, you should be able to run this command (*n.b.* input is demarcated by the $ symbol) and see the output below it.
+
+.. code-block:: bash
+
+    $ star.py --help
+    usage: parallel.py [-h] [-r RUN_INDEX] [--generate] [--initPhi]
+                       [--optimize {Theta,Phi,Cheb}]
+                       [--sample {ThetaCheb,ThetaPhi,ThetaPhiLines}]
+                       [--samples SAMPLES]
+    Run Starfish fitting model in parallel.
+
+If not, go back and make sure your **$PATH** is set up correctly.
+
+
+Just getting set up.
+=============================
+Before you run any code, you have to get your environment set up.  
+
+1. Copy the `config.yaml` that came with the Starfish repo to some directory.  Then make empty directories for the data, libraries, output, and plots.  
+
+.. code-block:: bash
+
+    $ ls
+    config.yaml data        libraries   output      plots
+
+With your text editor of choice, you will have to change or mimic the directory structure in the config.yaml file:  
+
+1. **name** from "default" to "example_wasp14" for this demo.
+2. Mimic the structure of **files** by placing your `.hdf5` data there.
+3. Hardcode the raw library location in **raw_path**.
+
+.. code-block:: rst
+    :emphasize-lines: 3, 7, 20
+
+    # YAML configuration script
+
+    name: example_wasp14
+
+    data:
+      grid_name: "PHOENIX"
+      files: ["data/WASP14/WASP14-2009-06-14.hdf5"]
+      # data/WASP14/WASP14-2010-03-29.hdf5
+      # data/WASP14/WASP14-2010-04-24.hdf5
+      instruments : ["TRES"]
+      orders: [22]
+      #orders: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+
+    outdir : output/
+
+    plotdir : plots/
+
+    # The parameters defining your raw spectral library live here.
+    grid:
+      raw_path: "/Users/gully/GitHub/Starfish/libraries/raw/PHOENIX/"
+      hdf5_path: "libraries/PHOENIX_TRES_test.hdf5"
+
+
+
+
+After doing all that, we can automatically generate the assumed directory and file structure with the following command.  This strategy is necessary when you have many tens or hundreds of orders.
+
+.. code-block:: bash
+
+    $ star.py --run_index 1  
+    Creating  output/example_wasp14/run01/
+    Creating  output/example_wasp14/run01/s0_o22
+
+
+Generating the eigenspectra and their weights
+==============================================
+
+The process of spectral emulation is the main topic of the Appendix of Czekala et al. 2015.  It gets pretty complicated, but the main idea is using a type of regression to fit the :math:`m` eigenspectra weights as a function of say 3 stellar parameters :math:`\theta_{*}`.
+
+This regression process takes a lot of computational power, and **scales very poorly** with the size of the parameter range.  So in practice, we have to pick a small range of the grid, **parrange**, surrounding our guess of :math:`\theta_{*}`.  
+
+
 
 Then, we will want to make the PCA grid, and do many other things regarding optimization and final plotting. These are all done through the `pca.py` script.
 

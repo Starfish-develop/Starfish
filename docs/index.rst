@@ -16,8 +16,14 @@ Contents:
    MCMC
    scripts
    cookbook
+   example_wasp14
+   example_wasp14_data
+   example_wasp14_sampling
+   example_wasp14_multi
+   troubleshooting
+   tips_and_tricks
 
-Copyright Ian Czekala and collaborators 2013, 2014
+Copyright Ian Czekala and collaborators 2013, 2014, 2015
 
 Indices and tables
 ==================
