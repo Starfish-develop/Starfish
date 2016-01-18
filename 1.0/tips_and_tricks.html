@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Spectral Emulator &mdash; Starfish 0.1 documentation</title>
+  <title>Tips and Tricks &mdash; Starfish 0.1 documentation</title>
   
 
   
@@ -31,8 +31,7 @@
 
   
     <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
-        <link rel="next" title="Model" href="model.html"/>
-        <link rel="prev" title="Spectrum" href="spectrum.html"/>
+        <link rel="prev" title="Troubleshooting" href="troubleshooting.html"/>
  
 
 <script>
@@ -101,10 +100,10 @@
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Spectral Emulator</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optimizing-the-emulator">Optimizing the emulator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
@@ -155,10 +154,10 @@
 <li class="toctree-l2"><a class="reference internal" href="troubleshooting.html#fix-c0-is-incorrectly-disabled"><cite>fix_c0</cite> is incorrectly disabled</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tips_and_tricks.html">Tips and Tricks</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tips_and_tricks.html#time-how-long-it-takes-your-script-to-run">Time how long it takes your script to run.</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tips_and_tricks.html#tuning-the-mcmc-jump-sizes">Tuning the MCMC jump sizes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tips_and_tricks.html#how-many-cpus-do-you-have">How many CPUs do you have.</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Tips and Tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#time-how-long-it-takes-your-script-to-run">Time how long it takes your script to run.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tuning-the-mcmc-jump-sizes">Tuning the MCMC jump sizes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-many-cpus-do-you-have">How many CPUs do you have.</a></li>
 </ul>
 </li>
 </ul>
@@ -185,10 +184,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Spectral Emulator</li>
+    <li>Tips and Tricks</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/tips_and_tricks.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -196,34 +195,50 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="module-Starfish.emulator">
-<span id="spectral-emulator"></span><h1>Spectral Emulator<a class="headerlink" href="#module-Starfish.emulator" title="Permalink to this headline">¶</a></h1>
-<p>The spectral emulator can be likened to the engine behind <em>Starfish</em>. While the novelty of <em>Starfish</em> comes from using Gaussian processes to model and account for the covariances of spectral fits, we still need a way to produce model spectra by interpolating from our synthetic library. While we could interpolate spectra from the synthetic library using something like linear interpolation in each of the library parameters, it turns out that high signal-to-noise data requires something more sophisticated. This is because the error in any interpolation can constitute a significant portion of the error budget. This means that there is a chance that non-interpolated spectra (e.g., the parameters of the synthetic spectra in the library) might be given preference over any other interpolated spectra, and the posteriors will be peaked at the grid point locations. Because the spectral emulator returns a probability distribution over possible interpolated spectra, this interpolation error can be quantified and propagated forward into the likelihood calculation.</p>
-<div class="section" id="eigenspectra-decomposition">
-<h2>Eigenspectra decomposition<a class="headerlink" href="#eigenspectra-decomposition" title="Permalink to this headline">¶</a></h2>
-<p>The first step of configuring the spectral emulator is to choose a subregion of the spectral library corresponding to the star that you will fit. Then, we want to decompose the information content in this subset of the spectral library into several <em>eigenspectra</em>. [Figure A.1 here].</p>
-<p>The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <code class="docutils literal"><span class="pre">scipy</span></code> package.</p>
-<p><code class="xref py py-obj docutils literal"><span class="pre">PCAGrid</span></code> implements the functionality to create the eigenspectra grid from a synthetic library, and then later query eigenspectra from it.</p>
-<p>For example, the following takes a bunch of spectra specified by an <code class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></code> and decomposes them into a PCA basis</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">Starfish.grid_tools</span> <span class="kn">import</span> <span class="n">HDF5Interface</span>
-<span class="kn">from</span> <span class="nn">Starfish.emulator</span> <span class="kn">import</span> <span class="n">PCAGrid</span>
+  <div class="section" id="tips-and-tricks">
+<h1>Tips and Tricks<a class="headerlink" href="#tips-and-tricks" title="Permalink to this headline">¶</a></h1>
+<p>There are a few tips and tricks, mostly having to do with making cool plots.</p>
+<div class="section" id="time-how-long-it-takes-your-script-to-run">
+<h2>Time how long it takes your script to run.<a class="headerlink" href="#time-how-long-it-takes-your-script-to-run" title="Permalink to this headline">¶</a></h2>
+<p>Just calling <cite>time</cite> before your script will output the running time:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">time echo</span> <span class="nv">$SHELL</span>
+/bin/bash
 
-<span class="c"># Load the HDF5 interface using the values in config.yaml</span>
-<span class="n">myHDF5</span> <span class="o">=</span> <span class="n">HDF5Interface</span><span class="p">()</span>
-
-<span class="n">pca</span> <span class="o">=</span> <span class="n">PCAGrid</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">myHDF5</span><span class="p">)</span>
-<span class="n">pca</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+real    0m0.000s
+user    0m0.000s
+sys     0m0.000s
 </pre></div>
 </div>
+<p>The output is interesting.  It provides the <cite>real</cite> (wall-clock) time it took to execute.  But it also provides the <cite>user</cite> and <cite>sys</cite> times.  <cite>user</cite> is generally larger than <cite>real</cite>, due to parallel processing.  <cite>sys</cite> is usually less than <cite>real</cite> becayse your computer is doing other things other than just the shell task.  But I (gully) have seen strange behavior with <cite>time</cite> that challenges this simplistic view.  Tips here are welcome.</p>
 </div>
-<div class="section" id="optimizing-the-emulator">
-<h2>Optimizing the emulator<a class="headerlink" href="#optimizing-the-emulator" title="Permalink to this headline">¶</a></h2>
-<p>Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.</p>
-<p>The optimization of the GP hyperparameters is carried out using the <cite>numpy.optimize.fmin</cite> routine in <cite>scripts/emulator/optimize_emulator.py</cite>.</p>
-<p>Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA[&#8220;path&#8221;]).</p>
+<div class="section" id="tuning-the-mcmc-jump-sizes">
+<h2>Tuning the MCMC jump sizes<a class="headerlink" href="#tuning-the-mcmc-jump-sizes" title="Permalink to this headline">¶</a></h2>
+<p>There&#8217;s some subtlety to this that I (gully) do not fully understand.  See Section 4 of Foreman-Mackey et al. (2013) for a discussion and references.  Luckily, there are some good strategies for picking &#8220;optimal&#8221; jumps.  Try this:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>chain.py --files mc.hdf5 --cov
+
+<span class="o">[</span>...<span class="o">]</span>
+
+<span class="s1">&#39;Optimal&#39;</span> jumps
+<span class="o">[</span>  1.65734629e+01   6.46752715e-02   2.66108819e-02   4.29205617e-02
+   1.18523979e-01   5.78843022e-04<span class="o">]</span>
+</pre></div>
 </div>
-<div class="section" id="model-spectrum-reconstruction">
-<h2>Model spectrum reconstruction<a class="headerlink" href="#model-spectrum-reconstruction" title="Permalink to this headline">¶</a></h2>
+<p>Now you can just type these into the <em>Theta_jump</em> section of your <cite>config.yaml</cite> file.  You&#8217;ll probably want to update the jumps for your</p>
+</div>
+<div class="section" id="how-many-cpus-do-you-have">
+<h2>How many CPUs do you have.<a class="headerlink" href="#how-many-cpus-do-you-have" title="Permalink to this headline">¶</a></h2>
+<p>There are a few ways to do this.  In IPython:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="mi">8</span>
+</pre></div>
+</div>
+<p>In bash:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>getconf _NPROCESSORS_ONLN
+8
+</pre></div>
+</div>
 </div>
 </div>
 
@@ -233,10 +248,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="model.html" class="btn btn-neutral float-right" title="Model">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="spectrum.html" class="btn btn-neutral" title="Spectrum"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="troubleshooting.html" class="btn btn-neutral" title="Troubleshooting"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
