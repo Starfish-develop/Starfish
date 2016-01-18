@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Spectral Emulator &mdash; Starfish 0.1 documentation</title>
+  <title>Example: WASP 14 Multiple Orders &mdash; Starfish 0.1 documentation</title>
   
 
   
@@ -31,8 +31,8 @@
 
   
     <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
-        <link rel="next" title="Model" href="model.html"/>
-        <link rel="prev" title="Spectrum" href="spectrum.html"/>
+        <link rel="next" title="Troubleshooting" href="troubleshooting.html"/>
+        <link rel="prev" title="Example: WASP 14 Sampling" href="example_wasp14_sampling.html"/>
  
 
 <script>
@@ -101,10 +101,10 @@
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Spectral Emulator</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optimizing-the-emulator">Optimizing the emulator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
@@ -143,10 +143,10 @@
 <li class="toctree-l2"><a class="reference internal" href="example_wasp14_sampling.html#generate-local-kernels">Generate local kernels</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="example_wasp14_multi.html">Example: WASP 14 Multiple Orders</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_multi.html#getting-set-up">Getting set up</a></li>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_multi.html#only-spot-check-the-last-order"># Only spot check the last order</a></li>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_multi.html#mcmc"># MCMC</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Example: WASP 14 Multiple Orders</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#getting-set-up">Getting set up</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#only-spot-check-the-last-order"># Only spot check the last order</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mcmc"># MCMC</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a><ul>
@@ -185,10 +185,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Spectral Emulator</li>
+    <li>Example: WASP 14 Multiple Orders</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/example_wasp14_multi.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -196,34 +196,85 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="module-Starfish.emulator">
-<span id="spectral-emulator"></span><h1>Spectral Emulator<a class="headerlink" href="#module-Starfish.emulator" title="Permalink to this headline">¶</a></h1>
-<p>The spectral emulator can be likened to the engine behind <em>Starfish</em>. While the novelty of <em>Starfish</em> comes from using Gaussian processes to model and account for the covariances of spectral fits, we still need a way to produce model spectra by interpolating from our synthetic library. While we could interpolate spectra from the synthetic library using something like linear interpolation in each of the library parameters, it turns out that high signal-to-noise data requires something more sophisticated. This is because the error in any interpolation can constitute a significant portion of the error budget. This means that there is a chance that non-interpolated spectra (e.g., the parameters of the synthetic spectra in the library) might be given preference over any other interpolated spectra, and the posteriors will be peaked at the grid point locations. Because the spectral emulator returns a probability distribution over possible interpolated spectra, this interpolation error can be quantified and propagated forward into the likelihood calculation.</p>
-<div class="section" id="eigenspectra-decomposition">
-<h2>Eigenspectra decomposition<a class="headerlink" href="#eigenspectra-decomposition" title="Permalink to this headline">¶</a></h2>
-<p>The first step of configuring the spectral emulator is to choose a subregion of the spectral library corresponding to the star that you will fit. Then, we want to decompose the information content in this subset of the spectral library into several <em>eigenspectra</em>. [Figure A.1 here].</p>
-<p>The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <code class="docutils literal"><span class="pre">scipy</span></code> package.</p>
-<p><code class="xref py py-obj docutils literal"><span class="pre">PCAGrid</span></code> implements the functionality to create the eigenspectra grid from a synthetic library, and then later query eigenspectra from it.</p>
-<p>For example, the following takes a bunch of spectra specified by an <code class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></code> and decomposes them into a PCA basis</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">Starfish.grid_tools</span> <span class="kn">import</span> <span class="n">HDF5Interface</span>
-<span class="kn">from</span> <span class="nn">Starfish.emulator</span> <span class="kn">import</span> <span class="n">PCAGrid</span>
+  <div class="section" id="example-wasp-14-multiple-orders">
+<h1>Example: WASP 14 Multiple Orders<a class="headerlink" href="#example-wasp-14-multiple-orders" title="Permalink to this headline">¶</a></h1>
+<p>This is an example of running Starfish on multiple spectral orders with shared stellar properties.  I will mainly focus on the parts of the example that are different from Example 1.  This example assumes you have already performed Example 1 a-c.</p>
+<div class="section" id="getting-set-up">
+<h2>Getting set up<a class="headerlink" href="#getting-set-up" title="Permalink to this headline">¶</a></h2>
+<p>The first step is to copy the configuration and parameter files from Example 1 (<cite>demo1/</cite>) into this directory (<cite>demo2/</cite>).  We want to use the output parameter values from the previous run as the guesses for this run.</p>
+<p>Copy from demo1 to demo2:</p>
+<ol class="arabic simple">
+<li><cite>config.yaml</cite></li>
+<li><cite>data/</cite></li>
+<li>The directory structure</li>
+</ol>
+<p>Then we modify our configuration file to the desired orders and wavelengths:</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span class="c1"># YAML configuration script</span>
 
-<span class="c"># Load the HDF5 interface using the values in config.yaml</span>
-<span class="n">myHDF5</span> <span class="o">=</span> <span class="n">HDF5Interface</span><span class="p">()</span>
+<span class="hll">    <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">wasp14_trial1002</span>
+</span>
+    <span class="l-Scalar-Plain">data</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">grid_name</span><span class="p-Indicator">:</span> <span class="s">&quot;PHOENIX&quot;</span>
+      <span class="l-Scalar-Plain">files</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;data/WASP14/WASP14-2009-06-14.hdf5&quot;</span><span class="p-Indicator">]</span>
+      <span class="l-Scalar-Plain">instruments</span> <span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;TRES&quot;</span><span class="p-Indicator">]</span>
+<span class="hll">      <span class="l-Scalar-Plain">orders</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="nv">21</span><span class="p-Indicator">,</span> <span class="nv">22</span><span class="p-Indicator">,</span> <span class="nv">23</span><span class="p-Indicator">,</span> <span class="nv">24</span><span class="p-Indicator">]</span>
+</span>
+    <span class="l-Scalar-Plain">outdir</span> <span class="p-Indicator">:</span> <span class="l-Scalar-Plain">output/</span>
 
-<span class="n">pca</span> <span class="o">=</span> <span class="n">PCAGrid</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">myHDF5</span><span class="p">)</span>
-<span class="n">pca</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+    <span class="l-Scalar-Plain">plotdir</span> <span class="p-Indicator">:</span> <span class="l-Scalar-Plain">plots/</span>
+
+    <span class="c1"># The parameters defining your raw spectral library live here.</span>
+    <span class="l-Scalar-Plain">grid</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">raw_path</span><span class="p-Indicator">:</span> <span class="s">&quot;/Users/gully/GitHub/Starfish/libraries/raw/PHOENIX/&quot;</span>
+      <span class="l-Scalar-Plain">hdf5_path</span><span class="p-Indicator">:</span> <span class="s">&quot;libraries/PHOENIX_TRES_test.hdf5&quot;</span>
+      <span class="l-Scalar-Plain">parname</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">&quot;temp&quot;</span><span class="p-Indicator">,</span> <span class="s">&quot;logg&quot;</span><span class="p-Indicator">,</span> <span class="s">&quot;Z&quot;</span><span class="p-Indicator">]</span>
+      <span class="l-Scalar-Plain">key_name</span><span class="p-Indicator">:</span> <span class="s">&quot;t{0:.0f}g{1:.1f}z{2:.1f}&quot;</span> <span class="c1"># Specifies how the params are stored</span>
+      <span class="c1"># in the HDF5 file</span>
+<span class="hll">      <span class="l-Scalar-Plain">parrange</span><span class="p-Indicator">:</span> <span class="p-Indicator">[[</span><span class="nv">6000</span><span class="p-Indicator">,</span> <span class="nv">6400</span><span class="p-Indicator">],</span> <span class="p-Indicator">[</span><span class="nv">4.0</span><span class="p-Indicator">,</span> <span class="nv">5.0</span><span class="p-Indicator">],</span> <span class="p-Indicator">[</span><span class="nv">-1.0</span><span class="p-Indicator">,</span> <span class="nv">0.0</span><span class="p-Indicator">]]</span>
+</span><span class="hll">      <span class="l-Scalar-Plain">wl_range</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="nv">4975</span><span class="p-Indicator">,</span> <span class="nv">5415</span><span class="p-Indicator">]</span>
+</span>      <span class="l-Scalar-Plain">buffer</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">50.</span> <span class="c1"># AA</span>
 </pre></div>
 </div>
+<p>In this example I will optimize the spectral emulator with <cite>emcee</cite> MCMC sampling rather than the <cite>fmin</cite> optimization.  The main virtue of emcee, from a practical standpoint, is that it does not require user intervention (<cite>fmin</cite> usually hits a 10,000 max-iterations limit, in my experience).  So I ran <cite>pca.py &#8211;optimize=emcee &#8211;samples=5000</cite>, which took about 6 hours on my Macbook Pro.  This was probably overkill.  Recall that this process is simply optimizing the hyperparameters for the amplitude and scale of the Gaussian Process fit of the eigenspectra weights.  Here is an example image:</p>
+<img alt="_images/triangle_0.png" src="_images/triangle_0.png" />
 </div>
-<div class="section" id="optimizing-the-emulator">
-<h2>Optimizing the emulator<a class="headerlink" href="#optimizing-the-emulator" title="Permalink to this headline">¶</a></h2>
-<p>Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.</p>
-<p>The optimization of the GP hyperparameters is carried out using the <cite>numpy.optimize.fmin</cite> routine in <cite>scripts/emulator/optimize_emulator.py</cite>.</p>
-<p>Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA[&#8220;path&#8221;]).</p>
+<div class="section" id="only-spot-check-the-last-order">
+<h2># Only spot check the last order<a class="headerlink" href="#only-spot-check-the-last-order" title="Permalink to this headline">¶</a></h2>
+<p>Only spot check the last order.  Why?  Because this is the order in which the <span class="math">\(c^{0}\)</span> term is fixed.  So adjust <strong>logOmega</strong> in the <cite>config.yaml</cite> file until the continuum levels match up.  The continuum mismatches in the other orders will be taken up by the non-zero <span class="math">\(c^{0}\)</span> term in <span class="math">\(\phi{P}\)</span>.  I suspect it is faster to do this by eye, than letting the computer optimize for you.  I like to make a tweak and then run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>star.py --generate<span class="p">;</span> splot.py s0_o24spec.json --matplotlib<span class="p">;</span> open plots/s0_o24spec.json.png
+</pre></div>
 </div>
-<div class="section" id="model-spectrum-reconstruction">
-<h2>Model spectrum reconstruction<a class="headerlink" href="#model-spectrum-reconstruction" title="Permalink to this headline">¶</a></h2>
+<p>I also hand-adjusted my <cite>theta.json</cite> file, since the theta optimization was taking a long time.  The <cite>optimize=Cheb</cite> command works fine because the problem structure is natively parallelized.</p>
+</div>
+<div class="section" id="mcmc">
+<h2># MCMC<a class="headerlink" href="#mcmc" title="Permalink to this headline">¶</a></h2>
+<p>Get your run01 directory set up, and edit the <cite>config.yaml</cite> as we did in the previous example.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>ls
+config.yaml    s0_o21         s0_o22         s0_o23         s0_o24
+plots          s0_o21phi.json s0_o22phi.json s0_o23phi.json s0_o24phi.json
+</pre></div>
+</div>
+<p>Five hundred ThetaCheb samples took 36 minutes on my Macbook pro.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">time </span>star.py --sample<span class="o">=</span>ThetaCheb --samples<span class="o">=</span>500
+Final <span class="o">[</span>  6.21445629e+03   4.21662234e+00  -2.70602364e-01  -4.79946024e+00
+   5.80021176e+00  -1.27221067e+01<span class="o">]</span>
+
+real  36m12.803s
+user  90m17.047s
+sys 12m43.253s
+</pre></div>
+</div>
+<p>As usual, hand-edit your <cite>config.yaml</cite> file and <cite>phi.json</cite> files with your best guess for revised stellar and calibration parameters.  Then you can introduce yet-more-parameters.  It took my computer 40 minutes to run 500 samples with all parameters:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">time </span>star.py --sample<span class="o">=</span>ThetaPhi --samples<span class="o">=</span>500
+
+Final <span class="o">[</span>  6.38428451e+03   4.18315434e+00  -3.21968427e-01  -4.88951948e+00
+   5.33927051e+00  -1.27197478e+01<span class="o">]</span>
+
+real  40m17.345s
+user  106m42.716s
+sys 14m27.443s
+</pre></div>
+</div>
 </div>
 </div>
 
@@ -233,10 +284,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="model.html" class="btn btn-neutral float-right" title="Model">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="spectrum.html" class="btn btn-neutral" title="Spectrum"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="example_wasp14_sampling.html" class="btn btn-neutral" title="Example: WASP 14 Sampling"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

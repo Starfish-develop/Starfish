@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Spectral Emulator &mdash; Starfish 0.1 documentation</title>
+  <title>Example: WASP 14 Data Munging &mdash; Starfish 0.1 documentation</title>
   
 
   
@@ -31,8 +31,8 @@
 
   
     <link rel="top" title="Starfish 0.1 documentation" href="index.html"/>
-        <link rel="next" title="Model" href="model.html"/>
-        <link rel="prev" title="Spectrum" href="spectrum.html"/>
+        <link rel="next" title="Example: WASP 14 Sampling" href="example_wasp14_sampling.html"/>
+        <link rel="prev" title="Example: WASP 14" href="example_wasp14.html"/>
  
 
 <script>
@@ -101,10 +101,10 @@
 <li class="toctree-l2"><a class="reference internal" href="spectrum.html#data-spectrum">Data Spectrum</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Spectral Emulator</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optimizing-the-emulator">Optimizing the emulator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="emulator.html">Spectral Emulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#eigenspectra-decomposition">Eigenspectra decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#optimizing-the-emulator">Optimizing the emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="emulator.html#model-spectrum-reconstruction">Model spectrum reconstruction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
@@ -128,10 +128,10 @@
 <li class="toctree-l2"><a class="reference internal" href="example_wasp14.html#using-the-linear-interpolator">Using the linear interpolator</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="example_wasp14_data.html">Example: WASP 14 Data Munging</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_data.html#preamble">Preamble</a></li>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_data.html#set-up-the-calibration-parameters">Set up the calibration parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="example_wasp14_data.html#spot-check-your-data-and-model-parameters">Spot check your data and model parameters</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Example: WASP 14 Data Munging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#preamble">Preamble</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#set-up-the-calibration-parameters">Set up the calibration parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spot-check-your-data-and-model-parameters">Spot check your data and model parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="example_wasp14_sampling.html">Example: WASP 14 Sampling</a><ul>
@@ -185,10 +185,10 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Spectral Emulator</li>
+    <li>Example: WASP 14 Data Munging</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/emulator.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/example_wasp14_data.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -196,34 +196,78 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="module-Starfish.emulator">
-<span id="spectral-emulator"></span><h1>Spectral Emulator<a class="headerlink" href="#module-Starfish.emulator" title="Permalink to this headline">¶</a></h1>
-<p>The spectral emulator can be likened to the engine behind <em>Starfish</em>. While the novelty of <em>Starfish</em> comes from using Gaussian processes to model and account for the covariances of spectral fits, we still need a way to produce model spectra by interpolating from our synthetic library. While we could interpolate spectra from the synthetic library using something like linear interpolation in each of the library parameters, it turns out that high signal-to-noise data requires something more sophisticated. This is because the error in any interpolation can constitute a significant portion of the error budget. This means that there is a chance that non-interpolated spectra (e.g., the parameters of the synthetic spectra in the library) might be given preference over any other interpolated spectra, and the posteriors will be peaked at the grid point locations. Because the spectral emulator returns a probability distribution over possible interpolated spectra, this interpolation error can be quantified and propagated forward into the likelihood calculation.</p>
-<div class="section" id="eigenspectra-decomposition">
-<h2>Eigenspectra decomposition<a class="headerlink" href="#eigenspectra-decomposition" title="Permalink to this headline">¶</a></h2>
-<p>The first step of configuring the spectral emulator is to choose a subregion of the spectral library corresponding to the star that you will fit. Then, we want to decompose the information content in this subset of the spectral library into several <em>eigenspectra</em>. [Figure A.1 here].</p>
-<p>The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the <code class="docutils literal"><span class="pre">scipy</span></code> package.</p>
-<p><code class="xref py py-obj docutils literal"><span class="pre">PCAGrid</span></code> implements the functionality to create the eigenspectra grid from a synthetic library, and then later query eigenspectra from it.</p>
-<p>For example, the following takes a bunch of spectra specified by an <code class="xref py py-obj docutils literal"><span class="pre">HDF5Interface</span></code> and decomposes them into a PCA basis</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">Starfish.grid_tools</span> <span class="kn">import</span> <span class="n">HDF5Interface</span>
-<span class="kn">from</span> <span class="nn">Starfish.emulator</span> <span class="kn">import</span> <span class="n">PCAGrid</span>
+  <div class="section" id="example-wasp-14-data-munging">
+<h1>Example: WASP 14 Data Munging<a class="headerlink" href="#example-wasp-14-data-munging" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="preamble">
+<h2>Preamble<a class="headerlink" href="#preamble" title="Permalink to this headline">¶</a></h2>
+<p>In this example we will actually use data.  This example assumes you have already completed the spectral emulator example.</p>
+</div>
+<div class="section" id="set-up-the-calibration-parameters">
+<h2>Set up the calibration parameters<a class="headerlink" href="#set-up-the-calibration-parameters" title="Permalink to this headline">¶</a></h2>
+<p>The first step is to generate default values for the (unknown) calibration parameters.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>star.py --initPhi
 
-<span class="c"># Load the HDF5 interface using the values in config.yaml</span>
-<span class="n">myHDF5</span> <span class="o">=</span> <span class="n">HDF5Interface</span><span class="p">()</span>
-
-<span class="n">pca</span> <span class="o">=</span> <span class="n">PCAGrid</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">myHDF5</span><span class="p">)</span>
-<span class="n">pca</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+<span class="nv">$ </span>ls
+PHOENIX_TRES_PCA.hdf5 eparams_fmin.npy      output
+config.yaml           libraries             plots
+data                  log.log               s0_o21phi.json
 </pre></div>
 </div>
+<p>Notice that you&#8217;ve gained an s0_o21phi.json file:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>cat s0_o21phi.json
+<span class="o">{</span>
+  <span class="s2">&quot;cheb&quot;</span>: <span class="o">[</span>
+    0.0,
+    0.0,
+    0.0
+  <span class="o">]</span>,
+  <span class="s2">&quot;fix_c0&quot;</span>: <span class="nb">true</span>,
+  <span class="s2">&quot;l&quot;</span>: 20.0,
+  <span class="s2">&quot;logAmp&quot;</span>: -13.6,
+  <span class="s2">&quot;order&quot;</span>: 21,
+  <span class="s2">&quot;sigAmp&quot;</span>: 1.0,
+  <span class="s2">&quot;spectrum_id&quot;</span>: 0
+<span class="o">}</span>
+</pre></div>
 </div>
-<div class="section" id="optimizing-the-emulator">
-<h2>Optimizing the emulator<a class="headerlink" href="#optimizing-the-emulator" title="Permalink to this headline">¶</a></h2>
-<p>Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.</p>
-<p>The optimization of the GP hyperparameters is carried out using the <cite>numpy.optimize.fmin</cite> routine in <cite>scripts/emulator/optimize_emulator.py</cite>.</p>
-<p>Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA[&#8220;path&#8221;]).</p>
+<p>This file contains the calibration parameters, <span class="math">\(\phi_{p}\)</span>, which are unique to each order.  In this case we are only modeling one order, number 21, so there is only one <cite>phi.json</cite> file.  If you model more orders, you will have one <cite>phi.json</cite> file per order.  As explained in Section 2.2 of Czekala et al. 2015, at least one order has to have a fixed <span class="math">\(c^{(0)}\)</span> term in order for the <span class="math">\(\Omega\)</span> term to not be completely degenerate, which explains the <cite>fix_c0</cite> term above.</p>
 </div>
-<div class="section" id="model-spectrum-reconstruction">
-<h2>Model spectrum reconstruction<a class="headerlink" href="#model-spectrum-reconstruction" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="spot-check-your-data-and-model-parameters">
+<h2>Spot check your data and model parameters<a class="headerlink" href="#spot-check-your-data-and-model-parameters" title="Permalink to this headline">¶</a></h2>
+<p>The next step is to spot check your data and model parameters.  You will need an educated guess for all of the stellar intrinsic and extrinsic parameters (<span class="math">\(\Theta = [\theta_{*}, \theta_{ext}]\)</span>).  The trickiest parameter to guess might be the unusual <span class="math">\(\Omega\)</span>, the solid angle subtended by the stellar disk as seen from Earth.  This parameter only carries physical significance if you have properly flux calibrated your spectrum, a process that is rarely performed for high-resolution slit spectroscopy.  Instead, most spectra are normalized so that the continuum level is unity, or the raw counts are in analog-to-digital units (ADUs).  So to start, you can guess any value for <span class="math">\(\log{\Omega}\)</span>, and check how bad your match is by blindly calculating the residual difference of model and data.</p>
+<p><em>n.b.</em> If you encounter an error message here, visit the troubleshooting page.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>star.py --generate
+keeping grid as is
+grid pars are <span class="o">[</span>  6.10000000e+03   4.29000000e+00  -2.60000000e-01<span class="o">]</span>
+
+<span class="nv">$ </span>ls
+PHOENIX_TRES_PCA.hdf5 eparams_fmin.npy      output                s0_o21spec.json
+config.yaml           libraries             plots
+data                  log.log               s0_o21phi.json
+</pre></div>
+</div>
+<p>The new file <cite>s0_021spec.json</cite> contains the data, the model, the residual, and some other info.  At this stage, if your model is way off from the data, it is probably due to an errant <span class="math">\(\log{\Omega}\)</span> value.  Go to your <cite>config.yaml</cite> and manually edit this value to bring the model&#8217;s mean level closer to the data.</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span class="l-Scalar-Plain">Theta</span> <span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">grid</span> <span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="nv">6100.</span><span class="p-Indicator">,</span> <span class="nv">4.29</span><span class="p-Indicator">,</span> <span class="nv">-0.26</span><span class="p-Indicator">]</span>
+    <span class="l-Scalar-Plain">vz</span> <span class="p-Indicator">:</span> <span class="l-Scalar-Plain">-4.77</span>
+    <span class="l-Scalar-Plain">vsini</span> <span class="p-Indicator">:</span> <span class="l-Scalar-Plain">5.79</span>
+<span class="hll">    <span class="l-Scalar-Plain">logOmega</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">-12.80</span>
+</span>    <span class="l-Scalar-Plain">Av</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">0.0</span>
+</pre></div>
+</div>
+<p>Once your model is &#8220;in the ballpark&#8221; of the data, you can start to visualize the model and data spectra:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>splot.py s0_o21spec.json --matplotlib
+
+<span class="nv">$ </span>open plots/s0_o21spec.json.png
+</pre></div>
+</div>
+<img alt="_images/temp2.png" src="_images/temp2.png" />
+<p>Not bad.  You can keep tweaking the <strong>logOmega</strong> value in <cite>config.yaml</cite> to get it to work out.  Add in a <cite>&#8211;noise</cite> flag to the <cite>splot.py</cite> command to get some nice uncertainty bands, to put your residual spectrum in context.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>star.py --generate<span class="p">;</span> splot.py s0_o21spec.json --matplotlib --noise<span class="p">;</span> open plots/s0_o21spec.json.png
+</pre></div>
+</div>
+<img alt="_images/temp3.png" src="_images/temp3.png" />
+<p>Much better.  Now we&#8217;re ready for optimization.</p>
 </div>
 </div>
 
@@ -233,10 +277,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="model.html" class="btn btn-neutral float-right" title="Model">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="example_wasp14_sampling.html" class="btn btn-neutral float-right" title="Example: WASP 14 Sampling">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="spectrum.html" class="btn btn-neutral" title="Spectrum"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="example_wasp14.html" class="btn btn-neutral" title="Example: WASP 14"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
