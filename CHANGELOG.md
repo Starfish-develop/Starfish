@@ -2,8 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- IGRINS instrument classes
+
 ### Changed
--Minor refactoring
+- Minor refactoring
 
 ### Fixed
 - Minor documentation typos
