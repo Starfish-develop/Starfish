@@ -288,9 +288,13 @@ class Order:
         CC = X.dot(self.C_GP.dot(X.T)) + self.data_mat
 
         try:
-
             factor, flag = cho_factor(CC)
+        except np.linalg.linalg.LinAlgError:
+            print("Spectrum:", self.spectrum_id, "Order:", self.order)
+            self.CC_debugger(CC)
+            raise
 
+        try:
             R = self.fl - self.chebyshevSpectrum.k * self.flux_mean - X.dot(self.mus)
 
             logdet = np.sum(2 * np.log((np.diag(factor))))
@@ -303,6 +307,38 @@ class Order:
         except np.linalg.linalg.LinAlgError:
             print("Spectrum:", self.spectrum_id, "Order:", self.order)
             raise
+
+    def CC_debugger(self, CC):
+        '''
+        Special debugging information for the covariance matrix decomposition.
+        '''
+        print('{:-^60}'.format('CC_debugger'))
+        print("See https://github.com/iancze/Starfish/issues/26")
+        print("Covariance matrix at a glance:")
+        if (CC.diagonal().min() < 0.0):
+            print("- Negative entries on the diagonal:")
+            print("\t- Check sigAmp: should be positive")
+            print("\t- Check uncertainty estimates: should all be positive")
+        elif np.any(np.isnan(CC.diagonal())):
+            print("- Covariance matrix has a NaN value on the diagonal")
+        else:
+            if not np.allclose(CC, CC.T):
+                print("- The covariance matrix is highly asymmetric")
+
+            #Still might have an asymmetric matrix below `allclose` threshold
+            evals_CC, evecs_CC = np.linalg.eigh(CC)
+            n_neg = (evals_CC < 0).sum()
+            n_tot = len(evals_CC)
+            print("- There are {} negative eigenvalues out of {}.".format(n_neg, n_tot))
+            mark = lambda val: '>' if val < 0 else '.'
+
+            print("Covariance matrix eigenvalues:")
+            print(*["{: >6} {:{fill}>20.3e}".format(i, evals_CC[i], 
+                                                    fill=mark(evals_CC[i])) for i in range(10)], sep='\n')
+            print('{: >15}'.format('...'))
+            print(*["{: >6} {:{fill}>20.3e}".format(n_tot-10+i, evals_CC[-10+i], 
+                                                   fill=mark(evals_CC[-10+i])) for i in range(10)], sep='\n')
+        print('{:-^60}'.format('-'))
 
     def update_Theta(self, p):
         '''
@@ -671,8 +707,18 @@ class SampleThetaPhi(Order):
             par = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
 
             self.update_Phi(par)
-            lnp = self.evaluate()
-            self.logger.debug("Evaluated Phi parameters: {} {}".format(par, lnp))
+
+            # sigAmp must be positive (this is effectively a prior)
+            # See https://github.com/iancze/Starfish/issues/26
+            if not (0.0 < sigAmp): 
+                self.lnprob_last = self.lnprob
+                lnp = -np.inf
+                self.logger.debug("sigAmp was negative, returning -np.inf")
+                self.lnprob = lnp # Same behavior as self.evaluate()
+            else:
+                lnp = self.evaluate()
+                self.logger.debug("Evaluated Phi parameters: {} {}".format(par, lnp))
+
             return lnp
 
         def rejectfn():
