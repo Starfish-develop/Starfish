@@ -1042,6 +1042,12 @@ class IGRINS_K(Instrument):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         #sets the FWHM and wl_range
 
+class ESPaDOnS(Instrument):
+    '''ESPaDOnS Instrument'''
+    def __init__(self, name="ESPaDOnS", FWHM=4.4, wl_range=(3700, 10500)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+        #sets the FWHM and wl_range
+
 def vacuum_to_air(wl):
     '''
     Converts vacuum wavelengths to air wavelengths using the Ciddor 1996 formula.

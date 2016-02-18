@@ -4,6 +4,7 @@
 
 ### Added
 - IGRINS instrument classes
+- ESPaDOnS instrument classes
 
 ### Changed
 - Minor refactoring
