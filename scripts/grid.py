@@ -17,7 +17,10 @@ if args.create:
 
     # Specifically import the grid interface and instrument that we want.
     instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
-    mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"])()
+    if (Starfish.data["grid_name"] == "PHOENIX") & (len(Starfish.grid['parname']) == 3):
+        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterfaceNoAlpha")()
+    else:
+        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")()
 
     creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument,
                           ranges=Starfish.grid["parrange"])
@@ -62,7 +65,10 @@ if args.pcreate:
 
     # Specifically import the grid interface and instrument that we want.
     instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
-    mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"])()
+    if (Starfish.data["grid_name"] == "PHOENIX") & (len(Starfish.grid['parname']) == 3):
+        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterfaceNoAlpha")()
+    else:
+        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")()
 
     creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument, ranges=Starfish.grid["parrange"], key_name=Starfish.config["pCake"]["key_name"], vsinis=Starfish.config["vsinis"])
 
