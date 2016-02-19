@@ -10,6 +10,7 @@ output
 #Cython build files
 build/
 dist/
+Starfish/covariance.c
 StellarSpectra/covariance.c
 StellarSpectra/covariance.cpython-34m.so
 
