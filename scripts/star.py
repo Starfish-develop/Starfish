@@ -199,7 +199,7 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
 
     sampler = StateSampler(lnprob, p0, cov, query_lnprob=query_lnprob, acceptfn=acceptfn, rejectfn=rejectfn, debug=True, outdir=Starfish.routdir)
 
-    p, lnprob, state = sampler.run_mcmc(p0, N=args.samples)
+    p, lnprob, state = sampler.run_mcmc(p0, N=args.samples, incremental_save=args.incremental_save)
     print("Final", p)
 
     sampler.write()
