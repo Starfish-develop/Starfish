@@ -286,12 +286,12 @@ def plot_walkers(flatchain, base, start=0, end=-1, labels=None):
     fig.savefig(base + "walkers.png")
     plt.close(fig)
 
-def estimate_covariance(flatchain, base):
+def estimate_covariance(flatchain, base, ndim=0):
 
-    if args.ndim:
-        d = args.ndim
-    else:
+    if ndim == 0:
         d = flatchain.shape[1]
+    else:
+        d = ndim
 
     import matplotlib.pyplot as plt
 
@@ -322,10 +322,6 @@ def estimate_covariance(flatchain, base):
     print(std_dev)
 
     print("'Optimal' jumps")
-    if args.ndim:
-        d = args.ndim
-    else:
-        d = flatchain.shape[1]
     print(2.38/np.sqrt(d) * std_dev)
 
     np.save(base + "opt_jump.npy", opt_jump)
