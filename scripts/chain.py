@@ -25,7 +25,7 @@ parser.add_argument("--acor", action="store_true", help="Calculate the autocorre
 parser.add_argument("--acor-window", type=int, default=50, help="window to compute acor with")
 
 parser.add_argument("--cov", action="store_true", help="Estimate the covariance between two parameters.")
-parser.add_argument("--ndim", type=int, help="How many dimensions to use for estimating the 'optimal jump'.")
+parser.add_argument("--ndim", type=int, default=0, help="How many dimensions to use for estimating the 'optimal jump'.")
 parser.add_argument("--paper", action="store_true", help="Change the figure plotting options appropriate for the paper.")
 
 args = parser.parse_args()
@@ -89,7 +89,7 @@ if args.paper:
 
 if args.cov:
     assert len(flatchainList) == 1, "If estimating covariance, only specify one flatchain"
-    utils.estimate_covariance(flatchainList[0], base=args.outdir)
+    utils.estimate_covariance(flatchainList[0], base=args.outdir, ndim=args.ndim)
 
 if args.gelman:
     assert len(flatchainList) > 1, "If running Gelman-Rubin test, must provide more than one flatchain"
