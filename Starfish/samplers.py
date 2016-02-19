@@ -72,7 +72,7 @@ class StateSampler(Sampler):
         self._lnprob = np.empty(0)
 
     def sample(self, p0, lnprob0=None, randomstate=None, thin=1,
-               storechain=True, iterations=1, **kwargs):
+               storechain=True, iterations=1, incremental_save=0, **kwargs):
         """
         Advances the chain ``iterations`` steps as an iterator
 
@@ -174,6 +174,11 @@ class StateSampler(Sampler):
                 ind = i0 + int(i / thin)
                 self._chain[ind, :] = p
                 self._lnprob[ind] = lnprob0
+
+            # The default of 0 evaluates to False
+            if incremental_save:
+                if (((i+1) % incremental_save) == 0) & (i > 0): 
+                    np.save('chain_backup.npy', self._chain)
 
             # Heavy duty iterator action going on right here...
             yield p, lnprob0, self.random_state

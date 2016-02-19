@@ -17,6 +17,7 @@ parser.add_argument("--initPhi", action="store_true", help="Create *phi.json fil
 parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
+parser.add_argument("--incremental_save", type=int, default=0, help="How often to save incremental progress of MCMC samples.")
 args = parser.parse_args()
 
 from multiprocessing import Process, Pipe
