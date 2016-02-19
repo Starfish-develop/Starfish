@@ -197,6 +197,13 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
     jump = Starfish.config["Theta_jump"]
     cov = np.diag(np.array(jump["grid"] + [jump["vz"], jump["vsini"], jump["logOmega"]])**2)
 
+    if args.use_cov:
+        try:
+            cov = np.load('opt_jump.npy')
+            print("Found a local optimal jump matrix.")
+        except FileNotFoundError:
+            print("No optimal jump matrix found, using diagonal jump matrix.")
+
     sampler = StateSampler(lnprob, p0, cov, query_lnprob=query_lnprob, acceptfn=acceptfn, rejectfn=rejectfn, debug=True, outdir=Starfish.routdir)
 
     p, lnprob, state = sampler.run_mcmc(p0, N=args.samples, incremental_save=args.incremental_save)
