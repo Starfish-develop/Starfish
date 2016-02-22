@@ -12,7 +12,7 @@ Website: http://iancze.github.io/Starfish/
 
 Documentation: http://iancze.github.io/Starfish/current/index.html
 
-Copyright Ian Czekala 2013, 2014
+Copyright Ian Czekala 2013, 2014, 2015, 2016
 
 `iczekala@cfa.harvard.edu`
 
@@ -24,7 +24,7 @@ If you wish to use this code in your own research, please email me and I can hel
 
 ## Prerequisites
 
-*Starfish* has several dependencies, however most of them should be satisfied by an up-to-date scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to python 3.3 or greater. This code makes no attempt to work on the python 2.x series, and I doubt it will if you try. This package has only been tested on Linux, although it should work well on Mac OSX and Windows provided you can install the dependencies.
+*Starfish* has several dependencies, however most of them should be satisfied by an up-to-date scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to python 3.3 or greater. This code makes no attempt to work on the python 2.x series, and I doubt it will if you try. This package has been tested on Linux and Mac OSX 10.10.
 
 Starfish requires the following Python packages:
 
