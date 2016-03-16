@@ -1004,6 +1004,7 @@ class Instrument:
         return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, " \
             "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
 
+
 class TRES(Instrument):
     '''TRES instrument'''
     def __init__(self, name="TRES", FWHM=6.8, wl_range=(3500, 9500)):
@@ -1034,19 +1035,18 @@ class IGRINS_H(Instrument):
     '''IGRINS H band instrument'''
     def __init__(self, name="IGRINS_H", FWHM=7.5, wl_range=(14250, 18400)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        #sets the FWHM and wl_range
+        self.air = False
 
 class IGRINS_K(Instrument):
     '''IGRINS K band instrument'''
     def __init__(self, name="IGRINS_K", FWHM=7.5, wl_range=(18500, 25200)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        #sets the FWHM and wl_range
+        self.air = False
 
 class ESPaDOnS(Instrument):
     '''ESPaDOnS Instrument'''
     def __init__(self, name="ESPaDOnS", FWHM=4.4, wl_range=(3700, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        #sets the FWHM and wl_range
 
 def vacuum_to_air(wl):
     '''
