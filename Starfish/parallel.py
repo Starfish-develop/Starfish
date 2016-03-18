@@ -98,7 +98,7 @@ else:
 
 # list of keys from 0 to (norders - 1)
 order_keys = np.arange(len(Starfish.data["orders"]))
-DataSpectra = [DataSpectrum.open(file, orders=Starfish.data["orders"]) for file in Starfish.data["files"]]
+DataSpectra = [DataSpectrum.open(os.path.expandvars(file), orders=Starfish.data["orders"]) for file in Starfish.data["files"]]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 
