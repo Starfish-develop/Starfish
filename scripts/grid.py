@@ -30,7 +30,7 @@ if args.create:
     else:
         mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")(air=air)
 
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"]))
+    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
     creator = HDF5Creator(mygrid, hdf5_path, instrument,
                           ranges=Starfish.grid["parrange"])
 
