@@ -26,6 +26,7 @@ from Starfish import emulator
 from Starfish.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid, Gprior, Glnprior, Emulator
 from Starfish.covariance import Sigma
+import os
 
 
 if args.create:
@@ -383,7 +384,8 @@ if args.store:
         sys.exit()
 
     import h5py
-    hdf5 = h5py.File(Starfish.PCA["path"], "r+")
+    filename = os.path.expandvars(Starfish.PCA["path"])
+    hdf5 = h5py.File(filename, "r+")
 
     # check to see whether the dataset already exists
     if "eparams" in hdf5.keys():
