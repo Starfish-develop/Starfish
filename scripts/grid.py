@@ -41,8 +41,8 @@ if args.plot:
     # Check to make sure the file exists
     
     import os
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"]))
-    if not os.path.exists(hdf5_path)
+    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
+    if not os.path.exists(hdf5_path):
         print("HDF5 file does not yet exist. Please run `grid.py create` first.")
         import sys
         sys.exit()
@@ -81,7 +81,7 @@ if args.pcreate:
     else:
         mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")()
 
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"]))
+    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
     creator = HDF5Creator(mygrid, hdf5_path, instrument, ranges=Starfish.grid["parrange"], key_name=Starfish.config["pCake"]["key_name"], vsinis=Starfish.config["vsinis"])
 
     creator.process_grid()
