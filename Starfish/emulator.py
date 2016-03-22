@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 from sklearn.decomposition import PCA
 import math
+import os
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
@@ -193,6 +194,7 @@ class PCAGrid:
 
         '''
 
+        filename = os.path.expandvars(filename)
         hdf5 = h5py.File(filename, "w")
 
         hdf5.attrs["dv"] = self.dv
@@ -226,6 +228,7 @@ class PCAGrid:
         :type filename: str
         '''
 
+        filename = os.path.expandvars(filename)
         hdf5 = h5py.File(filename, "r")
         pdset = hdf5["eigenspectra"]
 
@@ -364,6 +367,7 @@ class Emulator:
         Create an Emulator object from an HDF5 file.
         '''
         #Create the PCAGrid from this filename
+        filename = os.path.expandvars(filename)
         pcagrid = PCAGrid.open(filename)
         hdf5 = h5py.File(filename, "r")
 
