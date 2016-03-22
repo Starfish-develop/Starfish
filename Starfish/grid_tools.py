@@ -132,7 +132,7 @@ class RawGridInterface:
 
         self.air = air
         self.wl_range = wl_range
-        self.base = base
+        self.base = os.path.expandvars(base)
 
     def check_params(self, parameters):
         '''
@@ -200,7 +200,8 @@ class PHOENIXGridInterface(RawGridInterface):
 
         # if air is true, convert the normally vacuum file to air wls.
         try:
-            wl_file = fits.open(self.base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+            base = os.path.expandvars(self.base)
+            wl_file = fits.open(base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
         except OSError:
             raise C.GridError("Wavelength file improperly specified.")
 
@@ -302,7 +303,8 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
                             {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
                                 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
 
-            self.rname = self.base + "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
+            base = os.path.expandvars(self.base)
+            self.rname = base + "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
                          ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
 
@@ -500,7 +502,7 @@ class HDF5Creator:
                 ranges.append([-np.inf,np.inf])
 
         self.GridInterface = GridInterface
-        self.filename = filename #only store the name to the HDF5 file, because
+        self.filename = os.path.expandvars(filename) #only store the name to the HDF5 file, because
         # otherwise the object cannot be parallelized
         self.Instrument = Instrument
 
@@ -715,7 +717,7 @@ class HDF5Interface:
         :param ranges: optionally select a smaller part of the grid to use.
         :type ranges: dict
         '''
-        self.filename = filename
+        self.filename = os.path.expandvars(filename)
         self.key_name = key_name
 
         # In order to properly interface with the HDF5 file, we need to learn
