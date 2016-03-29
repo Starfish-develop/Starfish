@@ -10,6 +10,7 @@ parser.add_argument("--pcreate", action="store_true", help="Create the grid for 
 args = parser.parse_args()
 
 import Starfish
+import os
 
 if args.create:
 
