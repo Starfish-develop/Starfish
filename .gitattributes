@@ -1,4 +1,5 @@
 attic/* linguist-vendored
+extern/tests/*ipynb linguist-vendored
 notebooks/* linguist-vendored
 docs/* linguist-documentation
 presentation/* linguist-vendored
