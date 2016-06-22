@@ -233,7 +233,10 @@ if args.plot == "emcee":
     #Make a triangle plot of the samples
     my_pca = emulator.PCAGrid.open()
     flatchain = np.load("eparams_emcee.npy")
-    import triangle
+    try:
+        import corner as triangle
+    except:
+        import triangle
 
     # figure out how many separate triangle plots we need to make
     npar = len(Starfish.parname) + 1
