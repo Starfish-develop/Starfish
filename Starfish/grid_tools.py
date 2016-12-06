@@ -386,7 +386,6 @@ class KuruczGridInterface(RawGridInterface):
 
         return (f[self.ind], header)
 
-
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the
     individual files of the BTSettl grid do not always have the same wavelength
