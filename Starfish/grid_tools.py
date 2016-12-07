@@ -1049,6 +1049,11 @@ class ESPaDOnS(Instrument):
     def __init__(self, name="ESPaDOnS", FWHM=4.4, wl_range=(3700, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+class DCT_DeVeny(Instrument):
+    '''DCT DeVeny spectrograph Instrument.'''
+    def __init__(self, name="DCT_DeVeny", FWHM=150.0, wl_range=(5500, 10500)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+
 def vacuum_to_air(wl):
     '''
     Converts vacuum wavelengths to air wavelengths using the Ciddor 1996 formula.
@@ -1136,8 +1141,7 @@ def idl_float(idl_num):
 
 
 def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
-    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
-                                                                                                   logg=logg, Z=Z)
+    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp, logg=logg, Z=Z)
     file = bz2.BZ2File(rname, 'r')
 
     lines = file.readlines()
