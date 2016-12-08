@@ -469,6 +469,90 @@ class BTSettlGridInterface(RawGridInterface):
 
         return fl_interp
 
+class CIFISTGridInterface(RawGridInterface):
+    '''CIFIST grid interface, grid available here: https://phoenix.ens-lyon.fr/Grids/BT-Settl/CIFIST2011_2015/FITS/.
+    Unlike the PHOENIX and Kurucz grids, the
+    individual files of the BTSettl grid do not always have the same wavelength
+    sampling. Therefore, each call of :meth:`load_flux` will interpolate the
+    flux onto a LogLambda spaced grid that ranges between `wl_range` and has a
+    velocity spacing of 0.08 km/s or better.
+
+    If you have a choice, it's probably easier to use the Husser PHOENIX grid.
+    '''
+    def __init__(self, air=True, norm=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
+        super().__init__(name="BTSettl",
+        points={"temp":np.arange(3000, 7001, 100),
+                "logg":np.arange(2.5, 5.6, 0.5),
+                "Z":np.arange(-0.5, 0.6, 0.5),
+                "alpha": np.array([0.0])},
+        air=air, wl_range=wl_range, base=base)
+
+        self.norm = norm #Normalize to 1 solar luminosity?
+        self.rname = self.base + "CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2"
+        # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+        self.Z_dict = {-0.5:'-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
+
+        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08/C.c_kms)
+        self.wl = wl_dict['wl']
+
+
+    def load_flux(self, parameters):
+        '''
+        Because of the crazy format of the BTSettl, we need to sort the wl to make sure
+        everything is unique, and we're not screwing ourselves with the spline.
+        '''
+
+        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+
+        str_parameters = parameters.copy()
+
+        #Rewrite Z
+        Z = parameters["Z"]
+        str_parameters["Z"] = self.Z_dict[Z]
+
+        #Multiply temp by 0.01
+        str_parameters["temp"] = 0.01 * parameters['temp']
+
+        fname = self.rname.format(**str_parameters)
+        file = bz2.BZ2File(fname, 'r')
+
+        lines = file.readlines()
+        strlines = [line.decode('utf-8') for line in lines]
+        file.close()
+
+        data = ascii.read(strlines, col_starts=[0, 13], col_ends=[12, 25], Reader=ascii.FixedWidthNoHeader)
+        wl = data['col1']
+        fl_str = data['col2']
+
+        fl = idl_float(fl_str) #convert because of "D" exponent, unreadable in Python
+        fl = 10 ** (fl - 8.) #now in ergs/cm^2/s/A
+
+        #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
+        wl, ind = np.unique(wl, return_index=True)
+        fl = fl[ind]
+
+        if self.norm:
+            F_bol = trapz(fl, wl)
+            fl = fl * (C.F_sun / F_bol)
+            # the bolometric luminosity is always 1 L_sun
+
+        # truncate the spectrum to the wl range of interest
+        # at this step, make the range a little more so that the next stage of
+        # spline interpolation is properly in bounds
+        ind = (wl >= (self.wl_range[0] - 50.)) & (wl <= (self.wl_range[1] + 50.))
+        wl = wl[ind]
+        fl = fl[ind]
+
+        if self.air:
+            #Shift the wl that correspond to the raw spectrum
+            wl = vacuum_to_air(wl)
+
+        #Now interpolate wl, fl onto self.wl
+        interp = InterpolatedUnivariateSpline(wl, fl, k=5)
+        fl_interp = interp(self.wl)
+
+        return fl_interp
+
 
 class HDF5Creator:
     '''
