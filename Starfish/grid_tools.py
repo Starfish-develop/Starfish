@@ -1135,7 +1135,12 @@ class ESPaDOnS(Instrument):
 
 class DCT_DeVeny(Instrument):
     '''DCT DeVeny spectrograph Instrument.'''
-    def __init__(self, name="DCT_DeVeny", FWHM=150.0, wl_range=(5500, 10500)):
+    def __init__(self, name="DCT_DeVeny", FWHM=105.2, wl_range=(6000, 10000)):
+        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+        
+class WIYN_Hydra(Instrument):
+    '''WIYN Hydra spectrograph Instrument.'''
+    def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500));
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 def vacuum_to_air(wl):
