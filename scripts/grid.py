@@ -5,7 +5,6 @@ parser = argparse.ArgumentParser(description="Interact with the raw" \
     " spectral libraries, including convolving with an instrumental profile.")
 parser.add_argument("--create", action="store_true", help="Create a downsampled grid convolved with the instrumental profile, following the parameter ranges specified in config.yaml.")
 parser.add_argument("--plot", action="store_true", help="plot all of the spectra in the newly downsampled grid to check whether the process worked properly.")
-parser.add_argument("--pcreate", action="store_true", help="Create the grid for Piece of Cake.")
 
 args = parser.parse_args()
 
@@ -40,7 +39,7 @@ if args.create:
 if args.plot:
 
     # Check to make sure the file exists
-    
+
     import os
     hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
     if not os.path.exists(hdf5_path):
@@ -70,19 +69,3 @@ if args.plot:
 
     p = mp.Pool(mp.cpu_count())
     p.map(plot, par_fluxes)
-
-if args.pcreate:
-
-    from Starfish.grid_tools import HDF5Creator
-
-    # Specifically import the grid interface and instrument that we want.
-    instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
-    if (Starfish.data["grid_name"] == "PHOENIX") & (len(Starfish.grid['parname']) == 3):
-        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterfaceNoAlpha")()
-    else:
-        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")()
-
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
-    creator = HDF5Creator(mygrid, hdf5_path, instrument, ranges=Starfish.grid["parrange"], key_name=Starfish.config["pCake"]["key_name"], vsinis=Starfish.config["vsinis"])
-
-    creator.process_grid()

@@ -479,21 +479,21 @@ class CIFISTGridInterface(RawGridInterface):
 
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
-    def __init__(self, air=True, norm=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
-        super().__init__(name="BTSettl",
-        points={"temp":np.arange(3000, 7001, 100),
-                "logg":np.arange(2.5, 5.6, 0.5),
-                "Z":np.arange(-0.5, 0.6, 0.5),
-                "alpha": np.array([0.0])},
-        air=air, wl_range=wl_range, base=base)
+    def __init__(self, air=True, norm=True, wl_range=[3000, 13000], base=Starfish.grid["raw_path"]):
+        super().__init__(name="CIFIST",
+        points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
+                np.arange(2.5, 5.6, 0.5)],
+                param_names = ["temp", "logg"],
+                air=air, wl_range=wl_range, base=base)
 
+        self.par_dicts = [None, None]
         self.norm = norm #Normalize to 1 solar luminosity?
-        self.rname = self.base + "CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2"
-        # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.Z_dict = {-0.5:'-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
+        self.rname = self.base + "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz"
 
-        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08/C.c_kms)
+        wl_dict = create_log_lam_grid(dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
         self.wl = wl_dict['wl']
+
+        print(self.wl)
 
 
     def load_flux(self, parameters):
@@ -502,30 +502,34 @@ class CIFISTGridInterface(RawGridInterface):
         everything is unique, and we're not screwing ourselves with the spline.
         '''
 
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+        self.check_params(parameters)
 
-        str_parameters = parameters.copy()
+        str_parameters = []
+        for param, par_dict in zip(parameters, self.par_dicts):
+            if par_dict is None:
+                str_parameters.append(param)
+            else:
+                str_parameters.append(par_dict[param])
 
-        #Rewrite Z
-        Z = parameters["Z"]
-        str_parameters["Z"] = self.Z_dict[Z]
 
         #Multiply temp by 0.01
-        str_parameters["temp"] = 0.01 * parameters['temp']
+        str_parameters[0] = 0.01 * parameters[0]
 
-        fname = self.rname.format(**str_parameters)
-        file = bz2.BZ2File(fname, 'r')
+        fname = self.rname.format(*str_parameters)
 
-        lines = file.readlines()
-        strlines = [line.decode('utf-8') for line in lines]
-        file.close()
+        #Still need to check that file is in the grid, otherwise raise a C.GridError
+        #Read all metadata in from the FITS header, and append to spectrum
+        try:
+            flux_file = fits.open(fname)
+            data = flux_file[1].data
+            hdr = flux_file[1].header
 
-        data = ascii.read(strlines, col_starts=[0, 13], col_ends=[12, 25], Reader=ascii.FixedWidthNoHeader)
-        wl = data['col1']
-        fl_str = data['col2']
+            wl = data["Wavelength"] * 1e4 # [Convert to angstroms]
+            fl = data["Flux"]
 
-        fl = idl_float(fl_str) #convert because of "D" exponent, unreadable in Python
-        fl = 10 ** (fl - 8.) #now in ergs/cm^2/s/A
+            flux_file.close()
+        except OSError:
+            raise C.GridError("{} is not on disk.".format(fname))
 
         #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
@@ -551,7 +555,15 @@ class CIFISTGridInterface(RawGridInterface):
         interp = InterpolatedUnivariateSpline(wl, fl, k=5)
         fl_interp = interp(self.wl)
 
-        return fl_interp
+        #Add temp, logg, Z, norm to the metadata
+        header = {}
+        header["norm"] = self.norm
+        header["air"] = self.air
+        #Keep the relevant keywords
+        for key, value in hdr.items():
+            header[key] = value
+
+        return (fl_interp, header)
 
 
 class HDF5Creator:
@@ -601,8 +613,9 @@ class HDF5Creator:
             valid_points  = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
             self.points.append(valid_points[ind])
-        if vsinis is not None:
-            self.points.append(vsinis)
+            # Note that at this point, this is just the grid points that fall within the rectangular
+            # bounds set by ranges. If the raw library is actually irregular (e.g. CIFIST),
+            # then self.points will contain points that don't actually exist in the raw library.
 
         # the raw wl from the spectral library
         self.wl_native = self.GridInterface.wl #raw grid
@@ -765,15 +778,17 @@ class HDF5Creator:
 
         all_params = np.array(param_list)
 
-        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip', compression_opts=9)
-        par_dset[:] = all_params
+
 
         print("Total of {} files to process.".format(len(param_list)))
 
-        for param in all_params:
+        for i,param in enumerate(all_params):
             fl, header = self.process_flux(param)
             if fl is None:
+                print("Deleting {} from all params, does not exist.".format(param))
+                all_params = np.delete(all_params, i, axis=0)
                 continue
+
 
             # The PHOENIX spectra are stored as float32, and so we do the same here.
             flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
@@ -785,6 +800,9 @@ class HDF5Creator:
             for key,value in header.items():
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
+
+        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip', compression_opts=9)
+        par_dset[:] = all_params
 
         self.hdf5.close()
 
@@ -836,6 +854,7 @@ class HDF5Interface:
         :returns: flux array
         '''
 
+
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
@@ -857,6 +876,7 @@ class HDF5Interface:
 
         Loops over parameters in the order specified by grid_points.
         '''
+
         for grid_point in self.grid_points:
             yield self.load_flux(grid_point)
 
@@ -1137,10 +1157,10 @@ class DCT_DeVeny(Instrument):
     '''DCT DeVeny spectrograph Instrument.'''
     def __init__(self, name="DCT_DeVeny", FWHM=105.2, wl_range=(6000, 10000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        
+
 class WIYN_Hydra(Instrument):
     '''WIYN Hydra spectrograph Instrument.'''
-    def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500));
+    def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 def vacuum_to_air(wl):
