@@ -3,7 +3,7 @@
 name: default
 
 data:
-  grid_name: "BTSettl"
+  grid_name: "CIFIST"
   files: ["data.hdf5"]
   instruments : ["DCT_DeVeny"]
 
@@ -13,17 +13,17 @@ plotdir : plots/
 
 # The parameters defining your raw spectral library live here.
 grid:
-  raw_path: "libraries/raw/BTSettl/"
-  hdf5_path: "libraries/BTSettl/DCT_DeVeny.hdf5"
-  parname: ["temp", "logg", "Z"]
-  key_name: "t{0:.0f}g{1:.1f}z{2:.1f}" # Specifies how the params are stored
+  raw_path: "../libraries/raw/CIFIST/"
+  hdf5_path: "grid.hdf5"
+  parname: ["temp", "logg"]
+  key_name: "t{0:.0f}g{1:.1f}" # Specifies how the params are stored
   # in the HDF5 file
-  parrange: [[2000, 4000], [4.0, 6.0], [0.0, 0.0]]
-  wl_range: [5000, 10000]
+  parrange: [[2300, 3700], [4.0, 5.5]]
+  wl_range: [6300, 6360]
   buffer: 50. # AA
 
 PCA:
-  path : "BTSettl_PCA.hdf5"
+  path : "PCA.hdf5"
   threshold: 0.999 # Percentage of variance explained by components.
   priors: [[2., 0.0075], [2., 0.75], [2., 0.75]] # len(parname) list of 2-element lists. Each 2-element list is [s, r] for the Gamma-function prior on emulator parameters
 
