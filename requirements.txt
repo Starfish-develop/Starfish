@@ -4,3 +4,5 @@ cython
 scikit-learn
 astropy
 h5py
+corner
+
