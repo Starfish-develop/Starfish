@@ -786,7 +786,6 @@ class HDF5Creator:
             fl, header = self.process_flux(param)
             if fl is None:
                 print("Deleting {} from all params, does not exist.".format(param))
-                all_params = np.delete(all_params, i, axis=0)
                 invalid_params.append(i)
                 continue
 
