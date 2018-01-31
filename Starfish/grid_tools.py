@@ -778,7 +778,7 @@ class HDF5Creator:
 
         all_params = np.array(param_list)
 
-
+        invalid_params = []
 
         print("Total of {} files to process.".format(len(param_list)))
 
@@ -786,7 +786,7 @@ class HDF5Creator:
             fl, header = self.process_flux(param)
             if fl is None:
                 print("Deleting {} from all params, does not exist.".format(param))
-                all_params = np.delete(all_params, i, axis=0)
+                invalid_params.append(i)
                 continue
 
 
@@ -800,6 +800,9 @@ class HDF5Creator:
             for key,value in header.items():
                 if key != "" and value != "": #check for empty FITS kws
                     flux.attrs[key] = value
+
+        # Remove parameters that do no exist
+        all_params = np.delete(all_params, invalid_params, axis=0)
 
         par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip', compression_opts=9)
         par_dset[:] = all_params
