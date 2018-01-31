@@ -12,4 +12,6 @@ Name, Github ID
 * Xueying Guo
 * David W. Hogg, @davidwhogg
 * Kaisey S. Mandel
+* Jason Neal, @jason-neal
 * Meredith Rawls, @mrawls
+
