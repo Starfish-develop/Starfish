@@ -7,16 +7,14 @@ __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils"
 import yaml
 
 try:
-    f = open("config.yaml")
-    config = yaml.load(f)
-    f.close()
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
 except FileNotFoundError as e:
     default = __file__[:-11]+"config.yaml"
     import warnings
     warnings.warn("Using the default config.yaml file located at {0}. This is likely NOT what you want. Please create a similar 'config.yaml' file in your current working directory.".format(default), UserWarning)
-    f = open(default)
-    config = yaml.load(f)
-    f.close()
+    with open(default) as f:
+         config = yaml.safe_load(f)
 
 # Format string for saving/reading orders
 specfmt = "s{}_o{}"
