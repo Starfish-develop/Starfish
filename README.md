@@ -36,7 +36,7 @@ Starfish requires the following Python packages:
 * cython
 * pyyaml
 * scikit-learn
-* [emcee](https://github.com/dfm/corner.py)
+* [emcee](https://github.com/dfm/emcee)
 * [corner.py](https://github.com/dfm/corner.py)
 
 Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater , obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
