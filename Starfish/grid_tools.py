@@ -469,6 +469,7 @@ class BTSettlGridInterface(RawGridInterface):
 
         return fl_interp
 
+
 class CIFISTGridInterface(RawGridInterface):
     '''CIFIST grid interface, grid available here: https://phoenix.ens-lyon.fr/Grids/BT-Settl/CIFIST2011_2015/FITS/.
     Unlike the PHOENIX and Kurucz grids, the
@@ -493,9 +494,6 @@ class CIFISTGridInterface(RawGridInterface):
         wl_dict = create_log_lam_grid(dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
         self.wl = wl_dict['wl']
 
-        print(self.wl)
-
-
     def load_flux(self, parameters):
         '''
         Because of the crazy format of the BTSettl, we need to sort the wl to make sure
@@ -510,7 +508,6 @@ class CIFISTGridInterface(RawGridInterface):
                 str_parameters.append(param)
             else:
                 str_parameters.append(par_dict[param])
-
 
         #Multiply temp by 0.01
         str_parameters[0] = 0.01 * parameters[0]
