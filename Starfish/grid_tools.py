@@ -307,6 +307,36 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
             self.rname = base + "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
                          ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
+class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
+        '''
+        An Interface to the PHOENIX/Husser synthetic library that disregards [Fe/H] as well as alpha.
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
+        '''
+        def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
+            base=Starfish.grid['raw_path']):
+
+            # Initialize according to the regular PHOENIX values
+            super().__init__(air=air, norm=norm, wl_range=wl_range, base=base)
+
+            # Now override parameters to exclude alpha
+            self.param_names = ["temp", "logg"]
+            self.points=[
+          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+          11400, 11600, 11800, 12000]),
+            np.arange(0.0, 6.1, 0.5)]
+
+            self.par_dicts = [None, None]
+
+            base = os.path.expandvars(self.base)
+            self.rname = base + "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" \
+                         ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+                
 
 class KuruczGridInterface(RawGridInterface):
     '''Kurucz grid interface.
