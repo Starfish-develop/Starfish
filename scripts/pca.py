@@ -34,6 +34,10 @@ if args.create:
     my_pca = PCAGrid.create(myHDF5)
     my_pca.write()
 
+# Create plotting directory if not already created
+if args.plot and not os.path.isdir(Starfish.config['plotdir']):
+    os.makedirs(Starfish.config['plotdir'])
+    
 if args.plot == "reconstruct":
     my_HDF5 = HDF5Interface()
     my_pca = PCAGrid.open()
