@@ -151,7 +151,8 @@ All of these reductions can be achieved using the :obj:`HDF5Creator` object.
 .. autoclass:: HDF5Creator
    :members:
 
-Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument.
+Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument. This process is also located in the ``scripts/grid.py`` if you are using the cookbook.
+
 
 .. code-block:: python
 
@@ -167,7 +168,6 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
     ranges=Starfish.grid["parrange"])
 
     creator.process_grid()
-
 
 Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 

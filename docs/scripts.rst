@@ -2,7 +2,7 @@
 Scripts
 =======
 
-StellarSpectra is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
+Starfish is accompanied by a number of helper scripts that can be useful for formatting and exploration of the
 data.
 
 You may want to add the following location to your `PATH` in order to make frequent use of these scripts.
