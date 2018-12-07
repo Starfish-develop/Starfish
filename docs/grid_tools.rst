@@ -214,18 +214,24 @@ For example, if we would like to generate a spectrum with the aforementioned par
 Instruments
 ===========
 
-In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need to convolve and resample the synthetic spectra to match the format of our data. ``Instrument`` s are a convenience object which store the relevant characteristics of a given instrument.
+In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need
+to convolve and resample the synthetic spectra to match the format of our data. :class:`~Instrument` s are a
+convenience object which store the relevant characteristics of a given instrument.
 
-.. inheritance-diagram:: Instrument KPNO TRES Reticon
+.. inheritance-diagram:: Instrument KPNO TRES Reticon SPEX SPEX_SXD IGRINS_H IGRINS_K ESPaDOnS DCT_DeVeny WIYN_Hydra
    :parts: 1
 
 .. autoclass:: Instrument
    :members:
    :special-members: __str__
 
-   .. attribute:: self.wl_dict
 
-A wl_dict that fits the instrumental properties with the correct oversampling.
+List of Instruments
+-------------------
+
+It is quite easy to use the :class:`~Instrument` class for your own data, but we provide classes for most of the
+well-known spectrographs. If you have a spectrograph that you would like to add if you think it will be used by
+others, feel free to open a pull request following the same format.
 
 .. autoclass:: TRES
    :members:
@@ -239,6 +245,33 @@ A wl_dict that fits the instrumental properties with the correct oversampling.
    :members:
    :show-inheritance:
 
+.. autoclass:: SPEX
+   :members:
+   :show-inheritance:
+
+.. autoclass:: SPEX_SXD
+   :members:
+   :show-inheritance:
+
+.. autoclass:: IGRINS_H
+   :members:
+   :show-inheritance:
+
+.. autoclass:: IGRINS_K
+   :members:
+   :show-inheritance:
+
+.. autoclass:: ESPaDOnS
+   :members:
+   :show-inheritance:
+
+.. autoclass:: DCT_DeVeny
+   :members:
+   :show-inheritance:
+
+.. autoclass:: WIYN_Hydra
+   :members:
+   :show-inheritance:
 
 Utility Functions
 =================
