@@ -46,8 +46,5 @@ Once optimized, the optimal parameters will be written into the HDF5 file that c
 Model spectrum reconstruction
 =============================
 
-.. autoclass:: WeightEmulator
-   :members:
-
 .. autoclass:: Emulator
    :members:
