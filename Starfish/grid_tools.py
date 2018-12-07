@@ -695,8 +695,6 @@ class HDF5Creator:
         :param parameters: the model parameters.
         :type parameters: 1D np.array
 
-        .. note::
-
         :raises AssertionError: if the `parameters` vector is not
             the same length as that of the raw grid.
 
@@ -1092,9 +1090,6 @@ class Instrument:
     :type wl_range: 2-tuple (low, high)
     :param oversampling: how many samples fit across the :attr:`FWHM`
     :type oversampling: float
-
-    Upon initialization, calculates a ``wl_dict`` with the properties of the
-    instrument.
     '''
     def __init__(self, name, FWHM, wl_range, oversampling=4.):
         self.name = name
@@ -1127,12 +1122,12 @@ class KPNO(Instrument):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 class SPEX(Instrument):
-    '''SPEX Instrument'''
+    '''SPEX Instrument at IRTF in Hawaii'''
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 54000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 class SPEX_SXD(Instrument):
-    '''SPEX Instrument short mode'''
+    '''SPEX Instrument at IRTF in Hawaii short mode (reduced wavelength range)'''
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 26000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
