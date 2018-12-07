@@ -151,7 +151,8 @@ All of these reductions can be achieved using the :obj:`HDF5Creator` object.
 .. autoclass:: HDF5Creator
    :members:
 
-Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument.
+Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument. This process is also located in the ``scripts/grid.py`` if you are using the cookbook.
+
 
 .. code-block:: python
 
@@ -167,7 +168,6 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
     ranges=Starfish.grid["parrange"])
 
     creator.process_grid()
-
 
 Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 
@@ -214,18 +214,24 @@ For example, if we would like to generate a spectrum with the aforementioned par
 Instruments
 ===========
 
-In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need to convolve and resample the synthetic spectra to match the format of our data. ``Instrument`` s are a convenience object which store the relevant characteristics of a given instrument.
+In order to take the theoretical synthetic stellar spectra and make meaningful comparisons to actual data, we need
+to convolve and resample the synthetic spectra to match the format of our data. :class:`~Instrument` s are a
+convenience object which store the relevant characteristics of a given instrument.
 
-.. inheritance-diagram:: Instrument KPNO TRES Reticon
+.. inheritance-diagram:: Instrument KPNO TRES Reticon SPEX SPEX_SXD IGRINS_H IGRINS_K ESPaDOnS DCT_DeVeny WIYN_Hydra
    :parts: 1
 
 .. autoclass:: Instrument
    :members:
    :special-members: __str__
 
-   .. attribute:: self.wl_dict
 
-A wl_dict that fits the instrumental properties with the correct oversampling.
+List of Instruments
+-------------------
+
+It is quite easy to use the :class:`~Instrument` class for your own data, but we provide classes for most of the
+well-known spectrographs. If you have a spectrograph that you would like to add if you think it will be used by
+others, feel free to open a pull request following the same format.
 
 .. autoclass:: TRES
    :members:
@@ -239,6 +245,33 @@ A wl_dict that fits the instrumental properties with the correct oversampling.
    :members:
    :show-inheritance:
 
+.. autoclass:: SPEX
+   :members:
+   :show-inheritance:
+
+.. autoclass:: SPEX_SXD
+   :members:
+   :show-inheritance:
+
+.. autoclass:: IGRINS_H
+   :members:
+   :show-inheritance:
+
+.. autoclass:: IGRINS_K
+   :members:
+   :show-inheritance:
+
+.. autoclass:: ESPaDOnS
+   :members:
+   :show-inheritance:
+
+.. autoclass:: DCT_DeVeny
+   :members:
+   :show-inheritance:
+
+.. autoclass:: WIYN_Hydra
+   :members:
+   :show-inheritance:
 
 Utility Functions
 =================
