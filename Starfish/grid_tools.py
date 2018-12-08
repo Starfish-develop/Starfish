@@ -201,12 +201,11 @@ class PHOENIXGridInterface(RawGridInterface):
         # if air is true, convert the normally vacuum file to air wls.
         try:
             base = os.path.expandvars(self.base)
-            wl_file = fits.open(base + "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+            wl_filename = os.path.join(base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+            w_full = fits.getdata(wl_filename)
         except OSError:
             raise C.GridError("Wavelength file improperly specified.")
 
-        w_full = wl_file[0].data
-        wl_file.close()
         if self.air:
             self.wl_full = vacuum_to_air(w_full)
         else:
@@ -214,8 +213,8 @@ class PHOENIXGridInterface(RawGridInterface):
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = self.base + "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
-                     ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+        self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
+                     ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
     def load_flux(self, parameters, norm=True):
         '''
