@@ -9,6 +9,7 @@ from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 from Starfish.covariance import Sigma, sigma, V12, V22, V12m, V22m
 from Starfish import constants as C
 
+
 def Phi(eigenspectra, M):
     '''
     Warning: for any spectra of real-world dimensions, this routine will
@@ -23,6 +24,7 @@ def Phi(eigenspectra, M):
 
     return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
 
+
 def get_w_hat(eigenspectra, fluxes, M):
     '''
     Since we will overflow memory if we actually calculate Phi, we have to
@@ -35,10 +37,10 @@ def get_w_hat(eigenspectra, fluxes, M):
         for j in range(M):
             out[i * M + j] = eigenspectra[i].T.dot(fluxes[j])
 
-
     PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
 
     return PhiPhi.dot(out)
+
 
 def skinny_kron(eigenspectra, M):
     '''
@@ -53,7 +55,7 @@ def skinny_kron(eigenspectra, M):
     dots = np.empty((m, m))
     for i in range(m):
         for j in range(m):
-            dots[i,j] = eigenspectra[i].T.dot(eigenspectra[j])
+            dots[i, j] = eigenspectra[i].T.dot(eigenspectra[j])
 
     for i in range(M * m):
         for jj in range(m):
@@ -62,11 +64,14 @@ def skinny_kron(eigenspectra, M):
             out[i, j] = dots[ii, jj]
     return out
 
+
 def Gprior(x, s, r):
-    return r**s * x**(s - 1) * np.exp(- x * r) / math.gamma(s)
+    return r ** s * x ** (s - 1) * np.exp(- x * r) / math.gamma(s)
+
 
 def Glnprior(x, s, r):
-    return s * np.log(r) + (s - 1.) * np.log(x) - r*x - math.lgamma(s)
+    return s * np.log(r) + (s - 1.) * np.log(x) - r * x - math.lgamma(s)
+
 
 class PCAGrid:
     '''
@@ -88,6 +93,8 @@ class PCAGrid:
         :type eigenspectra: 2D np.array
         :param w: weights to reproduce any spectrum in the original grid
         :type w: 2D np.array (m, M)
+        :param w_hat: maximum likelihood estimator of the grid weights
+        :type w_hat: 2D np.array (m, M)
         :param gparams: The stellar parameters of the synthetic library
         :type gparams: 2D array of parameters (nspec, nparam)
 
@@ -103,11 +110,10 @@ class PCAGrid:
         self.gparams = gparams
 
         self.npix = len(self.wl)
-        self.M = self.w.shape[1] # The number of spectra in the synthetic grid
-
+        self.M = self.w.shape[1]  # The number of spectra in the synthetic grid
 
     @classmethod
-    def create(cls, interface):
+    def create(cls, interface, ncomp=None):
         '''
         Create a PCA grid object from a synthetic spectral library, with
         configuration options specified in a dictionary.
@@ -123,19 +129,18 @@ class PCAGrid:
         dv = interface.dv
 
         npix = len(wl)
+
         # number of spectra in the synthetic library
         M = len(interface.grid_points)
 
         fluxes = np.empty((M, npix))
 
-        z = 0
         for i, spec in enumerate(interface.fluxes):
-            fluxes[z,:] = spec
-            z += 1
+            fluxes[i] = spec
 
         # Normalize all of the fluxes to an average value of 1
         # In order to remove uninteresting correlations
-        fluxes = fluxes/np.average(fluxes, axis=1)[np.newaxis].T
+        fluxes = fluxes / np.average(fluxes, axis=1)[np.newaxis].T
 
         # Subtract the mean from all of the fluxes.
         flux_mean = np.average(fluxes, axis=0)
@@ -148,17 +153,18 @@ class PCAGrid:
         # Use the scikit-learn PCA module
         # Automatically select enough components to explain > threshold (say
         # 0.99, or 99%) of the variance.
-        pca = PCA(n_components=Starfish.PCA["threshold"])
+        pca = PCA(n_components=Starfish.PCA["threshold"], svd_solver='full')
         pca.fit(fluxes)
         comp = pca.transform(fluxes)
         components = pca.components_
         mean = pca.mean_
         variance_ratio = pca.explained_variance_ratio_
 
-        ncomp = len(components)
+        if ncomp is None:
+            ncomp = len(components)
 
         print("found {} components explaining {}% of the" \
-              " variance".format(ncomp, 100* Starfish.PCA["threshold"]))
+              " variance (threshold was {}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.PCA["threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
 
@@ -167,18 +173,16 @@ class PCAGrid:
             sys.exit("PCA mean is more than just numerical noise. Something's wrong!")
             # Otherwise, the PCA mean is just numerical noise that we can ignore.
 
-        #print("Keeping only the first {} components".format(ncomp))
-        #eigenspectra = components[0:ncomp]
-        eigenspectra = components[:]
+        print("Keeping only the first {} components".format(ncomp))
+        eigenspectra = components[:ncomp]
 
         gparams = interface.grid_points
 
         # Create w, the weights corresponding to the synthetic grid
-
         w = np.empty((ncomp, M))
-        for i,pcomp in enumerate(eigenspectra):
-            for j,spec in enumerate(fluxes):
-                w[i,j] = np.sum(pcomp * spec)
+        for i, pcomp in enumerate(eigenspectra):
+            for j, spec in enumerate(fluxes):
+                w[i, j] = np.sum(pcomp * spec)
 
         # Calculate w_hat, Eqn 20 Habib
         w_hat = get_w_hat(eigenspectra, fluxes, M)
@@ -201,20 +205,22 @@ class PCAGrid:
 
         # Store the eigenspectra plus the wavelength, mean, and std arrays.
         pdset = hdf5.create_dataset("eigenspectra", (self.m + 3, self.npix),
-            compression='gzip', dtype="f8", compression_opts=9)
-        pdset[0,:] = self.wl
-        pdset[1,:] = self.flux_mean
-        pdset[2,:] = self.flux_std
+                                    compression='gzip', dtype="f8", compression_opts=9)
+        pdset[0, :] = self.wl
+        pdset[1, :] = self.flux_mean
+        pdset[2, :] = self.flux_std
         pdset[3:, :] = self.eigenspectra
 
         wdset = hdf5.create_dataset("w", (self.m, self.M), compression='gzip',
-            dtype="f8", compression_opts=9)
+                                    dtype="f8", compression_opts=9)
         wdset[:] = self.w
 
-        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M,), compression='gzip', dtype="f8", compression_opts=9)
+        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M,), compression='gzip', dtype="f8",
+                                        compression_opts=9)
         w_hatdset[:] = self.w_hat
 
-        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.parname)), compression='gzip', dtype="f8", compression_opts=9)
+        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.parname)), compression='gzip', dtype="f8",
+                                    compression_opts=9)
         gdset[:] = self.gparams
 
         hdf5.close()
@@ -234,11 +240,11 @@ class PCAGrid:
 
         dv = hdf5.attrs["dv"]
 
-        wl = pdset[0,:]
+        wl = pdset[0, :]
 
-        flux_mean = pdset[1,:]
-        flux_std = pdset[2,:]
-        eigenspectra = pdset[3:,:]
+        flux_mean = pdset[1, :]
+        flux_std = pdset[2, :]
+        eigenspectra = pdset[3:, :]
 
         wdset = hdf5["w"]
         w = wdset[:]
@@ -272,10 +278,10 @@ class PCAGrid:
 
         ind = determine_chunk_log(self.wl, wl_min, wl_max)
 
-        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max),\
+        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max), \
             "PCA/emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
-            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),\
-            max(self.wl[ind]), wl_min, wl_max)
+            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]), \
+                                                     max(self.wl[ind]), wl_min, wl_max)
 
         self.wl = self.wl[ind]
         self.npix = len(self.wl)
@@ -299,7 +305,7 @@ class PCAGrid:
         '''
 
         ii = self.get_index(params)
-        return self.w[:,ii]
+        return self.w[:, ii]
 
     def reconstruct(self, weights):
         '''
@@ -320,7 +326,7 @@ class PCAGrid:
         recon_fluxes = np.empty((self.M, self.npix))
         for i in range(self.M):
             f = np.empty((self.m, self.npix))
-            for j, (pcomp, weight) in enumerate(zip(self.eigenspectra, self.w[:,i])):
+            for j, (pcomp, weight) in enumerate(zip(self.eigenspectra, self.w[:, i])):
                 f[j, :] = pcomp * weight
             recon_fluxes[i, :] = np.sum(f, axis=0) * self.flux_std + self.flux_mean
 
@@ -340,21 +346,21 @@ class Emulator:
 
         self.pca = pca
         self.lambda_xi = eparams[0]
-        self.h2params = eparams[1:].reshape(self.pca.m, -1)**2
+        self.h2params = eparams[1:].reshape(self.pca.m, -1) ** 2
 
-        #Determine the minimum and maximum bounds of the grid
+        # Determine the minimum and maximum bounds of the grid
         self.min_params = np.min(self.pca.gparams, axis=0)
         self.max_params = np.max(self.pca.gparams, axis=0)
 
-        #self.eigenspectra = self.PCAGrid.eigenspectra
+        # self.eigenspectra = self.PCAGrid.eigenspectra
         self.dv = self.pca.dv
         self.wl = self.pca.wl
 
-        self.iPhiPhi = (1./self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
+        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
 
         self.V11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
 
-        self._params = None # Where we want to interpolate
+        self._params = None  # Where we want to interpolate
 
         self.V12 = None
         self.V22 = None
@@ -366,7 +372,7 @@ class Emulator:
         '''
         Create an Emulator object from an HDF5 file.
         '''
-        #Create the PCAGrid from this filename
+        # Create the PCAGrid from this filename
         filename = os.path.expandvars(filename)
         pcagrid = PCAGrid.open(filename)
         hdf5 = h5py.File(filename, "r")
@@ -431,7 +437,6 @@ class Emulator:
 
         return weights
 
-
     def draw_weights(self):
         '''
         Using the current settings, draw a sample of PCA weights
@@ -452,9 +457,3 @@ class Emulator:
 
         weights = self.draw_weights()
         return self.pca.reconstruct(weights)
-
-def main():
-    pass
-
-if __name__=="__main__":
-    main()
