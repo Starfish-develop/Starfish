@@ -346,13 +346,14 @@ class PCAGrid:
         """
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
 
+        print('Starting optimization...')
         if method == 'fmin':
             eparams = self._optimize_fmin()
         elif method == 'emcee':
             eparams = self._optimize_emcee()
         else:
             raise ValueError("Did not provide valid method, please choose from ['fmin', 'emceee']")
-
+        print('Parameters Found')
         filename = os.path.expandvars(Starfish.PCA["path"])
         hdf5 = h5py.File(filename, "r+")
 
@@ -372,7 +373,7 @@ class PCAGrid:
         :type p: 1D np.array
         Calculate the lnprob using Habib's posterior formula for the emulator.
         '''
-
+        print('Trying {}'.format(p), end=' ')
         # We don't allow negative parameters.
         if np.any(p < 0.):
             if fmin:
@@ -405,7 +406,7 @@ class PCAGrid:
         # Negate this when using the fmin algorithm
         if fmin:
             lnp *= -1
-
+        print('log-l={}             '.format(lnp), end='\r')
         return lnp
 
     def _optimize_fmin(self):
