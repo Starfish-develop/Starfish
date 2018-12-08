@@ -1,8 +1,12 @@
+import math
+import os
+import multiprocessing as mp
+
 import numpy as np
 import h5py
 from sklearn.decomposition import PCA
-import math
-import os
+from scipy.optimize import fmin
+import emcee
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
@@ -332,6 +336,128 @@ class PCAGrid:
 
         return recon_fluxes
 
+    def optimize(self, method='fmin'):
+        """
+        Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
+        For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
+
+        :param method: The method to use for optimization; one of ['fmin', 'emcee'].
+        :type method: string
+        """
+        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
+
+        if method == 'fmin':
+            eparams = self._optimize_fmin()
+        elif method == 'emcee':
+            eparams = self._optimize_emcee()
+        else:
+            raise ValueError("Did not provide valid method, please choose from ['fmin', 'emceee']")
+
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        hdf5 = h5py.File(filename, "r+")
+
+        # check to see whether the dataset already exists
+        if "eparams" in hdf5.keys():
+            pdset = hdf5["eparams"]
+        else:
+            pdset = hdf5.create_dataset("eparams", eparams.shape, compression="gzip", compression_opts=9, dtype="f8")
+
+        pdset[:] = eparams
+        hdf5.close()
+
+    def _lnprob(self, p, priors, fmin=False):
+        '''
+        The log-likelihood method for use in optimization
+        :param p: Gaussian Processes hyper-parameters
+        :type p: 1D np.array
+        Calculate the lnprob using Habib's posterior formula for the emulator.
+        '''
+
+        # We don't allow negative parameters.
+        if np.any(p < 0.):
+            if fmin:
+                return 1e99
+            else:
+                return -np.inf
+
+        lambda_xi = p[0]
+        hparams = p[1:].reshape((self.m, -1))
+
+        # Calculate the prior for parname variables
+        # We have two separate sums here, since hparams is a 2D array
+        # hparams[:, 0] are the amplitudes, so we index i+1 here
+        lnpriors = 0.0
+        for i in range(len(Starfish.parname)):
+            lnpriors += np.sum(Glnprior(hparams[:, i + 1], *priors[i]))
+
+        h2params = hparams ** 2
+        # Fold hparams into the new shape
+        Sig_w = Sigma(self.gparams, h2params)
+
+        C = (1. / lambda_xi) * self.PhiPhi + Sig_w
+
+        sign, pref = np.linalg.slogdet(C)
+
+        central = self.w_hat.T.dot(np.linalg.solve(C, self.w_hat))
+
+        lnp = -0.5 * (pref + central + self.M * self.m * np.log(2. * np.pi)) + lnpriors
+
+        # Negate this when using the fmin algorithm
+        if fmin:
+            lnp *= -1
+
+        return lnp
+
+    def _optimize_fmin(self):
+        """
+        Optimize the emulator using the downhill simplex algorithm from `numpy.optimize.fmin`
+        """
+        priors = Starfish.PCA["priors"]
+        amp = 100.
+        # Use the mean of the gamma distribution to start
+        eigpars = np.array([amp] + [s / r for s, r in priors])
+        p0 = np.hstack((np.array([1., ]),  # lambda_xi
+                        np.hstack([eigpars for _ in range(self.m)])))
+
+
+        func = lambda p: self._lnprob(p, priors, fmin=True)
+        result = fmin(func, p0, maxiter=10000, maxfun=10000)
+        return result
+
+    def _optimize_emcee(self, nburn=100, nsamples=100):
+        """
+        Optimize the emulator using monte carlo sampling from `emcee`
+        """
+        priors = Starfish.PCA["priors"]
+        ndim = 1 + (1 + len(Starfish.parname)) * self.m
+        nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
+
+        # Assemble p0 based off either a guess or the previous state of walkers
+        p0 = []
+        # p0 is a (nwalkers, ndim) array
+        amp = [10.0, 150]
+
+        p0.append(np.random.uniform(0.01, 1.0, nwalkers))
+        for i in range(self.m):
+            p0 += [np.random.uniform(amp[0], amp[1], nwalkers)]
+            for s, r in priors:
+                # Draw randomly from the gamma priors
+                p0 += [np.random.gamma(s, 1. / r, nwalkers)]
+
+        p0 = np.array(p0).T
+
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, self._lnprob, threads=mp.cpu_count())
+
+        # burn in
+        pos, prob, state = sampler.run_mcmc(p0, nburn)
+        sampler.reset()
+        print("Burned in")
+
+        # actual run
+        pos, prob, state = sampler.run_mcmc(pos, nsamples)
+
+        return np.median(sampler.flatchain, axis=0)
+
 
 class Emulator:
     def __init__(self, pca, eparams):
@@ -457,3 +583,5 @@ class Emulator:
 
         weights = self.draw_weights()
         return self.pca.reconstruct(weights)
+
+
