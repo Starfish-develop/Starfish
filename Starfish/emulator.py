@@ -162,7 +162,7 @@ class PCAGrid:
         comp = pca.transform(fluxes)
         components = pca.components_
         mean = pca.mean_
-        variance_ratio = pca.explained_variance_ratio_
+        variance_ratio = np.sum(pca.explained_variance_ratio_)
 
         if ncomp is None:
             ncomp = len(components)
