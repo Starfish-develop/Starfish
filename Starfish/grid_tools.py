@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq, rfftfreq
-from astropy.io import ascii,fits
+from astropy.io import ascii, fits
 from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.integrate import trapz
 from scipy.special import j1
@@ -19,6 +19,7 @@ import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
+
 def chunk_list(mylist, n=mp.cpu_count()):
     '''
     Divide a lengthy parameter list into chunks for parallel processing and
@@ -35,12 +36,13 @@ def chunk_list(mylist, n=mp.cpu_count()):
     '''
     length = len(mylist)
     size = int(length / n)
-    chunks = [mylist[0+size*i : size*(i+1)] for i in range(n)] #fill with evenly divisible
-    leftover = length - size*n
-    edge = size*n
-    for i in range(leftover): #backfill each with the last item
-        chunks[i%n].append(mylist[edge+i])
+    chunks = [mylist[0 + size * i: size * (i + 1)] for i in range(n)]  # fill with evenly divisible
+    leftover = length - size * n
+    edge = size * n
+    for i in range(leftover):  # backfill each with the last item
+        chunks[i % n].append(mylist[edge + i])
     return chunks
+
 
 def determine_chunk_log(wl, wl_min, wl_max):
     '''
@@ -60,7 +62,9 @@ def determine_chunk_log(wl, wl_min, wl_max):
     '''
 
     # wl_min and wl_max must of course be within the bounds of wl
-    assert wl_min >= np.min(wl) and wl_max <= np.max(wl), "determine_chunk_log: wl_min {:.2f} and wl_max {:.2f} are not within the bounds of the grid {:.2f} to {:.2f}.".format(wl_min, wl_max, np.min(wl), np.max(wl))
+    assert wl_min >= np.min(wl) and wl_max <= np.max(
+        wl), "determine_chunk_log: wl_min {:.2f} and wl_max {:.2f} are not within the bounds of the grid {:.2f} to {:.2f}.".format(
+        wl_min, wl_max, np.min(wl), np.max(wl))
 
     # Find the smallest length synthetic spectrum that is a power of 2 in length
     # and longer than the number of points contained between wl_min and wl_max
@@ -72,11 +76,10 @@ def determine_chunk_log(wl, wl_min, wl_max):
     # This loop will exit with chunk being the smallest power of 2 that is
     # larger than npoints
     while chunk > npoints:
-        if chunk/2 > npoints:
-            chunk = chunk//2
+        if chunk / 2 > npoints:
+            chunk = chunk // 2
         else:
             break
-
 
     assert type(chunk) == np.int, "Chunk is not an integer!. Chunk is {}".format(chunk)
 
@@ -85,20 +88,22 @@ def determine_chunk_log(wl, wl_min, wl_max):
         # spectrum, determine indices that straddle the data spectrum.
 
         # Find the index that corresponds to the wl at the center of the data spectrum
-        center_wl = (wl_min + wl_max)/2.
+        center_wl = (wl_min + wl_max) / 2.
         center_ind = (np.abs(wl - center_wl)).argmin()
 
-        #Take a chunk that straddles either side.
-        inds = (center_ind - chunk//2, center_ind + chunk//2)
+        # Take a chunk that straddles either side.
+        inds = (center_ind - chunk // 2, center_ind + chunk // 2)
 
         ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
     else:
         print("keeping grid as is")
         ind = np.ones_like(wl, dtype='bool')
 
-    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model"\
-        "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full"\
-        " wl range ({:.2f}, {:.2f}).".format(min(wl[ind]), max(wl[ind]), wl_min, wl_max)
+    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model" \
+                                                                  "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full" \
+                                                                  " wl range ({:.2f}, {:.2f}).".format(min(wl[ind]),
+                                                                                                       max(wl[ind]),
+                                                                                                       wl_min, wl_max)
 
     return ind
 
@@ -124,7 +129,8 @@ class RawGridInterface:
     :type base: string
 
     '''
-    def __init__(self, name, param_names, points, air=True, wl_range=[3000,13000], base=None):
+
+    def __init__(self, name, param_names, points, air=True, wl_range=[3000, 13000], base=None):
         self.name = name
 
         self.param_names = param_names
@@ -163,6 +169,7 @@ class RawGridInterface:
         '''
         pass
 
+
 class PHOENIXGridInterface(RawGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library.
@@ -171,37 +178,35 @@ class PHOENIXGridInterface(RawGridInterface):
     :type norm: bool
 
     '''
-    def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
-        base=Starfish.grid["raw_path"]):
+
+    def __init__(self, air=True, wl_range=[3000, 54000], base=Starfish.grid["raw_path"]):
 
         super().__init__(name="PHOENIX",
-            param_names = ["temp", "logg", "Z", "alpha"],
-            points=[
-          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
-          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
-          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
-          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
-          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
-          11400, 11600, 11800, 12000]),
-            np.arange(0.0, 6.1, 0.5),
-            np.arange(-2., 1.1, 0.5),
-            np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
-            air=air, wl_range=wl_range, base=base) #wl_range used to be [2999, 13001]
+                         param_names=["temp", "logg", "Z", "alpha"],
+                         points=[
+                             np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+                                       3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+                                       4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+                                       5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+                                       6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+                                       9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+                                       11400, 11600, 11800, 12000]),
+                             np.arange(0.0, 6.1, 0.5),
+                             np.arange(-2., 1.1, 0.5),
+                             np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
+                         air=air, wl_range=wl_range, base=base)  # wl_range used to be [2999, 13001]
 
-        self.norm = norm #Normalize to 1 solar luminosity?
         self.par_dicts = [None,
-                        None,
-                        {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
-                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
-                        {-0.4:".Alpha=-0.40", -0.2:".Alpha=-0.20",
-                            0.0: "", 0.2:".Alpha=+0.20", 0.4:".Alpha=+0.40",
-                            0.6:".Alpha=+0.60", 0.8:".Alpha=+0.80"}]
+                          None,
+                          {-2 : "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
+                           0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
+                          {-0.4: ".Alpha=-0.40", -0.2: ".Alpha=-0.20",
+                           0.0 : "", 0.2: ".Alpha=+0.20", 0.4: ".Alpha=+0.40",
+                           0.6 : ".Alpha=+0.60", 0.8: ".Alpha=+0.80"}]
 
         # if air is true, convert the normally vacuum file to air wls.
         try:
-            base = os.path.expandvars(self.base)
-            wl_filename = os.path.join(base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+            wl_filename = os.path.join(self.base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
             w_full = fits.getdata(wl_filename)
         except OSError:
             raise C.GridError("Wavelength file improperly specified.")
@@ -214,7 +219,7 @@ class PHOENIXGridInterface(RawGridInterface):
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
         self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
-                     ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+                                             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
     def load_flux(self, parameters, norm=True):
         '''
@@ -228,7 +233,7 @@ class PHOENIXGridInterface(RawGridInterface):
        :returns: tuple (flux_array, header_dict)
 
        '''
-        self.check_params(parameters) # Check to make sure that the keys are
+        self.check_params(parameters)  # Check to make sure that the keys are
         # allowed and that the values are in the grid
 
         # Create a list of the parameters to be fed to the format string
@@ -243,8 +248,8 @@ class PHOENIXGridInterface(RawGridInterface):
 
         fname = self.rname.format(*str_parameters)
 
-        #Still need to check that file is in the grid, otherwise raise a C.GridError
-        #Read all metadata in from the FITS header, and append to spectrum
+        # Still need to check that file is in the grid, otherwise raise a C.GridError
+        # Read all metadata in from the FITS header, and append to spectrum
         try:
             flux_file = fits.open(fname)
             f = flux_file[0].data
@@ -253,89 +258,89 @@ class PHOENIXGridInterface(RawGridInterface):
         except OSError:
             raise C.GridError("{} is not on disk.".format(fname))
 
-        #If we want to normalize the spectra, we must do it now since later we won't have the full EM range
-        if self.norm:
-            f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
+        # If we want to normalize the spectra, we must do it now since later we won't have the full EM range
+        if norm:
+            f *= 1e-8  # convert from erg/cm^2/s/cm to erg/cm^2/s/A
             F_bol = trapz(f, self.wl_full)
-            f = f * (C.F_sun / F_bol) #bolometric luminosity is always 1 L_sun
+            f = f * (C.F_sun / F_bol)  # bolometric luminosity is always 1 L_sun
 
-        #Add temp, logg, Z, alpha, norm to the metadata
+        # Add temp, logg, Z, alpha, norm to the metadata
         header = {}
-        header["norm"] = self.norm
+        header["norm"] = norm
         header["air"] = self.air
-        #Keep only the relevant PHOENIX keywords, which start with PHX
+        # Keep only the relevant PHOENIX keywords, which start with PHX
         for key, value in hdr.items():
             if key[:3] == "PHX":
                 header[key] = value
 
         return (f[self.ind], header)
 
+
 class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
-        '''
-        An Interface to the PHOENIX/Husser synthetic library.
+    '''
+    An Interface to the PHOENIX/Husser synthetic library.
 
-        :param norm: normalize the spectrum to solar luminosity?
-        :type norm: bool
+    :param norm: normalize the spectrum to solar luminosity?
+    :type norm: bool
 
-        '''
-        def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
-            base=Starfish.grid["raw_path"]):
+    '''
 
-            # Initialize according to the regular PHOENIX values
-            super().__init__(air=air, norm=norm, wl_range=wl_range, base=base)
+    def __init__(self, air=True, wl_range=[3000, 54000],
+                 base=Starfish.grid["raw_path"]):
+        # Initialize according to the regular PHOENIX values
+        super().__init__(air=air, wl_range=wl_range, base=base)
 
-            # Now override parameters to exclude alpha
-            self.param_names = ["temp", "logg", "Z"]
-            self.points=[
-          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
-          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
-          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
-          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
-          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
-          11400, 11600, 11800, 12000]),
+        # Now override parameters to exclude alpha
+        self.param_names = ["temp", "logg", "Z"]
+        self.points = [
+            np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+                      3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+                      4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+                      5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+                      6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+                      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+                      11400, 11600, 11800, 12000]),
             np.arange(0.0, 6.1, 0.5),
             np.arange(-2., 1.1, 0.5)]
 
-            self.par_dicts = [None,
-                            None,
-                            {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5',
-                                0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
+        self.par_dicts = [None,
+                          None,
+                          {-2 : "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
+                           0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
 
-            base = os.path.expandvars(self.base)
-            self.rname = base + "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
-                         ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+        self.rname = os.path.join(self.base, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
+                                             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+
 
 class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
-        '''
-        An Interface to the PHOENIX/Husser synthetic library that disregards [Fe/H] as well as alpha.
-        :param norm: normalize the spectrum to solar luminosity?
-        :type norm: bool
-        '''
-        def __init__(self, air=True, norm=True, wl_range=[3000, 54000],
-            base=Starfish.grid['raw_path']):
+    '''
+    An Interface to the PHOENIX/Husser synthetic library that disregards [Fe/H] as well as alpha.
+    :param norm: normalize the spectrum to solar luminosity?
+    :type norm: bool
+    '''
 
-            # Initialize according to the regular PHOENIX values
-            super().__init__(air=air, norm=norm, wl_range=wl_range, base=base)
+    def __init__(self, air=True, wl_range=[3000, 54000],
+                 base=Starfish.grid['raw_path']):
+        # Initialize according to the regular PHOENIX values
+        super().__init__(air=air, wl_range=wl_range, base=base)
 
-            # Now override parameters to exclude alpha
-            self.param_names = ["temp", "logg"]
-            self.points=[
-          np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
-          3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
-          4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
-          5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
-          6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-          9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
-          11400, 11600, 11800, 12000]),
+        # Now override parameters to exclude alpha
+        self.param_names = ["temp", "logg"]
+        self.points = [
+            np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
+                      3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
+                      4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
+                      5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
+                      6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
+                      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
+                      11400, 11600, 11800, 12000]),
             np.arange(0.0, 6.1, 0.5)]
 
-            self.par_dicts = [None, None]
+        self.par_dicts = [None, None]
 
-            base = os.path.expandvars(self.base)
-            self.rname = base + "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" \
-                         ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
-                
+        self.rname = os.path.join(self.base + "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" \
+                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+
 
 class KuruczGridInterface(RawGridInterface):
     '''Kurucz grid interface.
@@ -345,19 +350,21 @@ class KuruczGridInterface(RawGridInterface):
     and ``k2`` is the microturbulence, while ``z1`` is the macroturbulence.
     These particular values are roughly the ones appropriate for the Sun.
     '''
-    def __init__(self, air=True, norm=True, wl_range=[5000, 5400], base=Starfish.grid["raw_path"]):
+
+    def __init__(self, air=True, wl_range=[5000, 5400], base=Starfish.grid["raw_path"]):
         super().__init__(name="Kurucz",
-            param_names = ["temp", "logg", "Z"],
-            points=[np.arange(3500, 9751, 250),
-                    np.arange(0.0, 5.1, 0.5),
-                    np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5])],
-                     air=air, wl_range=wl_range, base=base)
+                         param_names=["temp", "logg", "Z"],
+                         points=[np.arange(3500, 9751, 250),
+                                 np.arange(0.0, 5.1, 0.5),
+                                 np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5])],
+                         air=air, wl_range=wl_range, base=base)
 
-        self.par_dicts = [None, None, {-2.5:"m25", -2.0:"m20", -1.5:"m15", -1.0:"m10", -0.5:"m05", 0.0:"p00", 0.5:"p05"}]
+        self.par_dicts = [None, None,
+                          {-2.5: "m25", -2.0: "m20", -1.5: "m15", -1.0: "m10", -0.5: "m05", 0.0: "p00", 0.5: "p05"}]
 
-        self.norm = norm #Convert to f_lam and average to 1, or leave in f_nu?
-        self.rname = base + "t{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits"
-        self.wl_full = np.load(base + "kurucz_raw_wl.npy")
+        # Convert to f_lam and average to 1, or leave in f_nu?
+        self.rname = os.path.join(base, "t{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits")
+        self.wl_full = np.load(os.path.join(base, "kurucz_raw_wl.npy"))
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
 
@@ -382,13 +389,13 @@ class KuruczGridInterface(RawGridInterface):
             else:
                 str_parameters.append(par_dict[param])
 
-        #Multiply logg by 10
+        # Multiply logg by 10
         str_parameters[1] *= 10
 
         fname = self.rname.format(*str_parameters)
 
-        #Still need to check that file is in the grid, otherwise raise a C.GridError
-        #Read all metadata in from the FITS header, and append to spectrum
+        # Still need to check that file is in the grid, otherwise raise a C.GridError
+        # Read all metadata in from the FITS header, and append to spectrum
         try:
             flux_file = fits.open(fname)
             f = flux_file[0].data
@@ -397,23 +404,24 @@ class KuruczGridInterface(RawGridInterface):
         except OSError:
             raise C.GridError("{} is not on disk.".format(fname))
 
-        #We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
-        #flux to be 1
+        # We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
+        # flux to be 1
 
-        #Also, we should convert from f_nu to f_lam
-        if self.norm:
-            f *= C.c_ang / self.wl**2 #Convert from f_nu to f_lambda
-            f /= np.average(f) #divide by the mean flux, so avg(f) = 1
+        # Also, we should convert from f_nu to f_lam
+        if norm:
+            f *= C.c_ang / self.wl ** 2  # Convert from f_nu to f_lambda
+            f /= np.average(f)  # divide by the mean flux, so avg(f) = 1
 
-        #Add temp, logg, Z, norm to the metadata
+        # Add temp, logg, Z, norm to the metadata
         header = {}
-        header["norm"] = self.norm
+        header["norm"] = norm
         header["air"] = self.air
-        #Keep the relevant keywords
+        # Keep the relevant keywords
         for key, value in hdr.items():
             header[key] = value
 
         return (f[self.ind], header)
+
 
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the
@@ -424,38 +432,39 @@ class BTSettlGridInterface(RawGridInterface):
 
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
-    def __init__(self, air=True, norm=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
+
+    def __init__(self, air=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
         super().__init__(name="BTSettl",
-        points={"temp":np.arange(3000, 7001, 100),
-                "logg":np.arange(2.5, 5.6, 0.5),
-                "Z":np.arange(-0.5, 0.6, 0.5),
-                "alpha": np.array([0.0])},
-        air=air, wl_range=wl_range, base=base)
+                         points={"temp" : np.arange(3000, 7001, 100),
+                                 "logg" : np.arange(2.5, 5.6, 0.5),
+                                 "Z"    : np.arange(-0.5, 0.6, 0.5),
+                                 "alpha": np.array([0.0])},
+                         air=air, wl_range=wl_range, base=base)
 
-        self.norm = norm #Normalize to 1 solar luminosity?
-        self.rname = self.base + "CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2"
+        # Normalize to 1 solar luminosity?
+        self.rname = os.path.join(self.base, "CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2")
         # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.Z_dict = {-0.5:'-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
+        self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
 
-        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08/C.c_kms)
+        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08 / C.c_kms)
         self.wl = wl_dict['wl']
 
-
-    def load_flux(self, parameters):
+    def load_flux(self, parameters, norm=True):
         '''
         Because of the crazy format of the BTSettl, we need to sort the wl to make sure
         everything is unique, and we're not screwing ourselves with the spline.
         '''
 
-        super().load_file(parameters) #Check to make sure that the keys are allowed and that the values are in the grid
+        super().load_file(
+            parameters)  # Check to make sure that the keys are allowed and that the values are in the grid
 
         str_parameters = parameters.copy()
 
-        #Rewrite Z
+        # Rewrite Z
         Z = parameters["Z"]
         str_parameters["Z"] = self.Z_dict[Z]
 
-        #Multiply temp by 0.01
+        # Multiply temp by 0.01
         str_parameters["temp"] = 0.01 * parameters['temp']
 
         fname = self.rname.format(**str_parameters)
@@ -469,14 +478,14 @@ class BTSettlGridInterface(RawGridInterface):
         wl = data['col1']
         fl_str = data['col2']
 
-        fl = idl_float(fl_str) #convert because of "D" exponent, unreadable in Python
-        fl = 10 ** (fl - 8.) #now in ergs/cm^2/s/A
+        fl = idl_float(fl_str)  # convert because of "D" exponent, unreadable in Python
+        fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
 
-        #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
+        # "Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
         fl = fl[ind]
 
-        if self.norm:
+        if norm:
             F_bol = trapz(fl, wl)
             fl = fl * (C.F_sun / F_bol)
             # the bolometric luminosity is always 1 L_sun
@@ -489,10 +498,10 @@ class BTSettlGridInterface(RawGridInterface):
         fl = fl[ind]
 
         if self.air:
-            #Shift the wl that correspond to the raw spectrum
+            # Shift the wl that correspond to the raw spectrum
             wl = vacuum_to_air(wl)
 
-        #Now interpolate wl, fl onto self.wl
+        # Now interpolate wl, fl onto self.wl
         interp = InterpolatedUnivariateSpline(wl, fl, k=5)
         fl_interp = interp(self.wl)
 
@@ -509,21 +518,21 @@ class CIFISTGridInterface(RawGridInterface):
 
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
-    def __init__(self, air=True, norm=True, wl_range=[3000, 13000], base=Starfish.grid["raw_path"]):
+
+    def __init__(self, air=True, wl_range=[3000, 13000], base=Starfish.grid["raw_path"]):
         super().__init__(name="CIFIST",
-        points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
-                np.arange(2.5, 5.6, 0.5)],
-                param_names = ["temp", "logg"],
-                air=air, wl_range=wl_range, base=base)
+                         points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
+                                 np.arange(2.5, 5.6, 0.5)],
+                         param_names=["temp", "logg"],
+                         air=air, wl_range=wl_range, base=base)
 
         self.par_dicts = [None, None]
-        self.norm = norm #Normalize to 1 solar luminosity?
-        self.rname = self.base + "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz"
+        self.rname = os.path.join(self.base, "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz")
 
         wl_dict = create_log_lam_grid(dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
         self.wl = wl_dict['wl']
 
-    def load_flux(self, parameters):
+    def load_flux(self, parameters, norm=True):
         '''
         Because of the crazy format of the BTSettl, we need to sort the wl to make sure
         everything is unique, and we're not screwing ourselves with the spline.
@@ -538,30 +547,30 @@ class CIFISTGridInterface(RawGridInterface):
             else:
                 str_parameters.append(par_dict[param])
 
-        #Multiply temp by 0.01
+        # Multiply temp by 0.01
         str_parameters[0] = 0.01 * parameters[0]
 
         fname = self.rname.format(*str_parameters)
 
-        #Still need to check that file is in the grid, otherwise raise a C.GridError
-        #Read all metadata in from the FITS header, and append to spectrum
+        # Still need to check that file is in the grid, otherwise raise a C.GridError
+        # Read all metadata in from the FITS header, and append to spectrum
         try:
             flux_file = fits.open(fname)
             data = flux_file[1].data
             hdr = flux_file[1].header
 
-            wl = data["Wavelength"] * 1e4 # [Convert to angstroms]
+            wl = data["Wavelength"] * 1e4  # [Convert to angstroms]
             fl = data["Flux"]
 
             flux_file.close()
         except OSError:
             raise C.GridError("{} is not on disk.".format(fname))
 
-        #"Clean" the wl and flux points. Remove duplicates, sort in increasing wl
+        # "Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
         fl = fl[ind]
 
-        if self.norm:
+        if norm:
             F_bol = trapz(fl, wl)
             fl = fl * (C.F_sun / F_bol)
             # the bolometric luminosity is always 1 L_sun
@@ -574,18 +583,18 @@ class CIFISTGridInterface(RawGridInterface):
         fl = fl[ind]
 
         if self.air:
-            #Shift the wl that correspond to the raw spectrum
+            # Shift the wl that correspond to the raw spectrum
             wl = vacuum_to_air(wl)
 
-        #Now interpolate wl, fl onto self.wl
+        # Now interpolate wl, fl onto self.wl
         interp = InterpolatedUnivariateSpline(wl, fl, k=5)
         fl_interp = interp(self.wl)
 
-        #Add temp, logg, Z, norm to the metadata
+        # Add temp, logg, Z, norm to the metadata
         header = {}
-        header["norm"] = self.norm
+        header["norm"] = norm
         header["air"] = self.air
-        #Keep the relevant keywords
+        # Keep the relevant keywords
         for key, value in hdr.items():
             header[key] = value
 
@@ -598,8 +607,9 @@ class HDF5Creator:
     along with metadata.
 
     '''
+
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-        key_name=Starfish.grid["key_name"], vsinis=None):
+                 key_name=Starfish.grid["key_name"], vsinis=None):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -620,10 +630,10 @@ class HDF5Creator:
             # Programatically define each range to be (-np.inf, np.inf)
             ranges = []
             for par in Starfish.parname:
-                ranges.append([-np.inf,np.inf])
+                ranges.append([-np.inf, np.inf])
 
         self.GridInterface = GridInterface
-        self.filename = os.path.expandvars(filename) #only store the name to the HDF5 file, because
+        self.filename = os.path.expandvars(filename)  # only store the name to the HDF5 file, because
         # otherwise the object cannot be parallelized
         self.Instrument = Instrument
 
@@ -635,8 +645,8 @@ class HDF5Creator:
         self.points = []
 
         # We know which subset we want, so use these.
-        for i,(low, high) in enumerate(ranges):
-            valid_points  = self.GridInterface.points[i]
+        for i, (low, high) in enumerate(ranges):
+            valid_points = self.GridInterface.points[i]
             ind = (valid_points >= low) & (valid_points <= high)
             self.points.append(valid_points[ind])
             # Note that at this point, this is just the grid points that fall within the rectangular
@@ -644,7 +654,7 @@ class HDF5Creator:
             # then self.points will contain points that don't actually exist in the raw library.
 
         # the raw wl from the spectral library
-        self.wl_native = self.GridInterface.wl #raw grid
+        self.wl_native = self.GridInterface.wl  # raw grid
         self.dv_native = calculate_dv(self.wl_native)
 
         self.hdf5 = h5py.File(self.filename, "w")
@@ -670,9 +680,9 @@ class HDF5Creator:
         # the synthetic library or the instrument library is smaller than this range,
         # raise an error.
 
-        #inst_min, inst_max = self.Instrument.wl_range
+        # inst_min, inst_max = self.Instrument.wl_range
         wl_min, wl_max = Starfish.grid["wl_range"]
-        buffer = Starfish.grid["buffer"] # [AA]
+        buffer = Starfish.grid["buffer"]  # [AA]
         wl_min -= buffer
         wl_max += buffer
 
@@ -680,7 +690,9 @@ class HDF5Creator:
         # specified grid, raise an error.
         # Instead, let's choose the maximum limit of the synthetic grid?
         if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
-            print("Synthetic grid does not encapsulate chosen wl_range in config.yaml, truncating new grid to extent of synthetic grid, {}, {}".format(self.wl_native[0], self.wl_native[-1]))
+            print(
+                "Synthetic grid does not encapsulate chosen wl_range in config.yaml, truncating new grid to extent of synthetic grid, {}, {}".format(
+                    self.wl_native[0], self.wl_native[-1]))
             wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
 
         # Calculate wl_FFT
@@ -696,25 +708,25 @@ class HDF5Creator:
         self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
 
         # The instrumental taper
-        sigma = self.Instrument.FWHM / 2.35 # in km/s
+        sigma = self.Instrument.FWHM / 2.35  # in km/s
         # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
         self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
 
-        self.ss[0] = 0.01 # junk so we don't get a divide by zero error
+        self.ss[0] = 0.01  # junk so we don't get a divide by zero error
 
         # The final wavelength grid, onto which we will interpolate the
         # Fourier filtered wavelengths, is part of the Instrument object
-        dv_temp = self.Instrument.FWHM/self.Instrument.oversampling
+        dv_temp = self.Instrument.FWHM / self.Instrument.oversampling
         wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
         self.wl_final = wl_dict["wl"]
         self.dv_final = calculate_dv_dict(wl_dict)
 
-        #Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_final),), dtype="f8", compression='gzip', compression_opts=9)
+        # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
+        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_final),), dtype="f8", compression='gzip',
+                                           compression_opts=9)
         wl_dset[:] = self.wl_final
         wl_dset.attrs["air"] = self.GridInterface.air
         wl_dset.attrs["dv"] = self.dv_final
-
 
     def process_flux(self, parameters):
         '''
@@ -806,29 +818,29 @@ class HDF5Creator:
 
         print("Total of {} files to process.".format(len(param_list)))
 
-        for i,param in enumerate(all_params):
+        for i, param in enumerate(all_params):
             fl, header = self.process_flux(param)
             if fl is None:
                 print("Deleting {} from all params, does not exist.".format(param))
                 invalid_params.append(i)
                 continue
 
-
             # The PHOENIX spectra are stored as float32, and so we do the same here.
             flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
-                shape=(len(fl),), dtype="f", compression='gzip',
-                compression_opts=9)
+                                                    shape=(len(fl),), dtype="f", compression='gzip',
+                                                    compression_opts=9)
             flux[:] = fl
 
             # Store header keywords as attributes in HDF5 file
-            for key,value in header.items():
-                if key != "" and value != "": #check for empty FITS kws
+            for key, value in header.items():
+                if key != "" and value != "":  # check for empty FITS kws
                     flux.attrs[key] = value
 
         # Remove parameters that do no exist
         all_params = np.delete(all_params, invalid_params, axis=0)
 
-        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip', compression_opts=9)
+        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip',
+                                            compression_opts=9)
         par_dset[:] = all_params
 
         self.hdf5.close()
@@ -838,6 +850,7 @@ class HDF5Interface:
     '''
     Connect to an HDF5 file that stores spectra.
     '''
+
     def __init__(self, filename=Starfish.grid["hdf5_path"], key_name=Starfish.grid["key_name"]):
         '''
         :param filename: the name of the HDF5 file
@@ -861,13 +874,13 @@ class HDF5Interface:
             self.dv = self.wl_header["dv"]
             self.grid_points = hdf5["pars"][:]
 
-        #determine the bounding regions of the grid by sorting the grid_points
+        # determine the bounding regions of the grid by sorting the grid_points
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
         self.bounds = np.vstack((low, high)).T
         self.points = [np.unique(self.grid_points[:, i]) for i in range(self.grid_points.shape[1])]
 
-        self.ind = None #Overwritten by other methods using this as part of a ModelInterpolator
+        self.ind = None  # Overwritten by other methods using this as part of a ModelInterpolator
 
     def load_flux(self, parameters):
         '''
@@ -881,7 +894,6 @@ class HDF5Interface:
         :returns: flux array
         '''
 
-
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
@@ -892,7 +904,7 @@ class HDF5Interface:
             except KeyError as e:
                 raise C.GridError(e)
 
-        #Note: will raise a KeyError if the file is not found.
+        # Note: will raise a KeyError if the file is not found.
 
         return fl
 
@@ -922,9 +934,10 @@ class HDF5Interface:
             except KeyError as e:
                 raise C.GridError(e)
 
-        #Note: will raise a KeyError if the file is not found.
+        # Note: will raise a KeyError if the file is not found.
 
         return (fl, hdr)
+
 
 class IndexInterpolator:
     '''
@@ -959,6 +972,7 @@ class IndexInterpolator:
         frac_index = index - low
         return ((self.parameter_list[low], self.parameter_list[high]), ((1 - frac_index), frac_index))
 
+
 class Interpolator:
     '''
     Quickly and efficiently interpolate a synthetic spectrum for use in an MCMC
@@ -986,7 +1000,7 @@ class Interpolator:
         self.setup_index_interpolators()
         self.cache = OrderedDict([])
         self.cache_max = cache_max
-        self.cache_dump = cache_dump #how many to clear once the maximum cache has been reached
+        self.cache_dump = cache_dump  # how many to clear once the maximum cache has been reached
 
     def _determine_chunk_log(self, wl):
         '''
@@ -997,7 +1011,7 @@ class Interpolator:
         with 2^n points, because you would need to interpolate in wl space after this anyway.
         '''
 
-        wl_interface = self.interface.wl # The grid we will be truncating.
+        wl_interface = self.interface.wl  # The grid we will be truncating.
         wl_min, wl_max = np.min(wl), np.max(wl)
 
         # Previously this routine retuned a tuple () which was the ranges to truncate to.
@@ -1022,8 +1036,9 @@ class Interpolator:
 
         self.wl = self.wl[ind_low:ind_high]
 
-        assert min(self.wl) < wl_min and max(self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(min(self.wl),  max(self.wl), wl_min, wl_max)
-
+        assert min(self.wl) < wl_min and max(
+            self.wl) > wl_max, "ModelInterpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full DataSpectrum range ({:.2f}, {:.2f}).".format(
+            min(self.wl), max(self.wl), wl_min, wl_max)
 
         self.interface.ind = (ind_low, ind_high)
         print("Wl is {}".format(len(self.wl)))
@@ -1049,7 +1064,7 @@ class Interpolator:
         self.index_interpolators = [IndexInterpolator(self.interface.points[i]) for i in range(self.npars)]
 
         lenF = self.interface.ind[1] - self.interface.ind[0]
-        self.fluxes = np.empty((2**self.npars, lenF)) #8 rows, for temp, logg, Z
+        self.fluxes = np.empty((2 ** self.npars, lenF))  # 8 rows, for temp, logg, Z
 
     def interpolate(self, parameters):
         '''
@@ -1069,35 +1084,36 @@ class Interpolator:
         except C.InterpolationError as e:
             raise C.InterpolationError("Parameters {} are out of bounds. {}".format(parameters, e))
 
-        #Edges is a list of [((6000, 6100), (0.2, 0.8)), ((), ()), ((), ())]
+        # Edges is a list of [((6000, 6100), (0.2, 0.8)), ((), ()), ((), ())]
 
-        params = [tup[0] for tup in edges] #[(6000, 6100), (4.0, 4.5), ...]
-        weights = [tup[1] for tup in edges] #[(0.2, 0.8), (0.4, 0.6), ...]
+        params = [tup[0] for tup in edges]  # [(6000, 6100), (4.0, 4.5), ...]
+        weights = [tup[1] for tup in edges]  # [(0.2, 0.8), (0.4, 0.6), ...]
 
-        #Selects all the possible combinations of parameters
+        # Selects all the possible combinations of parameters
         param_combos = list(itertools.product(*params))
-        #[(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
+        # [(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
         weight_combos = list(itertools.product(*weights))
-        #[(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
+        # [(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
 
         # Assemble key list necessary for indexing cache
         key_list = [self.interface.key_name.format(*param) for param in param_combos]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
-        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
+        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(
+            np.sum(weight_list))
 
-        #Assemble flux vector from cache, or load into cache if not there
-        for i,param in enumerate(param_combos):
+        # Assemble flux vector from cache, or load into cache if not there
+        for i, param in enumerate(param_combos):
             key = key_list[i]
             if key not in self.cache.keys():
                 try:
-                    #This method already allows loading only the relevant region from HDF5
+                    # This method already allows loading only the relevant region from HDF5
                     fl = self.interface.load_flux(np.array(param))
                 except KeyError as e:
                     raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
                 self.cache[key] = fl
 
-            self.fluxes[i,:] = self.cache[key]*weight_list[i]
+            self.fluxes[i, :] = self.cache[key] * weight_list[i]
 
         # Do the averaging and then normalize the average flux to 1.0
         fl = np.sum(self.fluxes, axis=0)
@@ -1105,7 +1121,7 @@ class Interpolator:
         return fl
 
 
-#Convert R to FWHM in km/s by \Delta v = c/R
+# Convert R to FWHM in km/s by \Delta v = c/R
 class Instrument:
     '''
     Object describing an instrument. This will be used by other methods for
@@ -1120,9 +1136,10 @@ class Instrument:
     :param oversampling: how many samples fit across the :attr:`FWHM`
     :type oversampling: float
     '''
+
     def __init__(self, name, FWHM, wl_range, oversampling=4.):
         self.name = name
-        self.FWHM = FWHM #km/s
+        self.FWHM = FWHM  # km/s
         self.oversampling = oversampling
         self.wl_range = wl_range
 
@@ -1131,61 +1148,81 @@ class Instrument:
         Prints the relevant properties of the instrument.
         '''
         return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, " \
-            "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
+               "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
 
 
 class TRES(Instrument):
     '''TRES instrument'''
+
     def __init__(self, name="TRES", FWHM=6.8, wl_range=(3500, 9500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        #sets the FWHM and wl_range
+        # sets the FWHM and wl_range
+
 
 class Reticon(Instrument):
     '''Reticon Instrument'''
-    def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5145,5250)):
+
+    def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5145, 5250)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+
 
 class KPNO(Instrument):
     '''KNPO Instrument'''
-    def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6250,6650)):
+
+    def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6250, 6650)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+
 
 class SPEX(Instrument):
     '''SPEX Instrument at IRTF in Hawaii'''
+
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 54000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+
 class SPEX_SXD(Instrument):
     '''SPEX Instrument at IRTF in Hawaii short mode (reduced wavelength range)'''
+
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 26000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+
 class IGRINS_H(Instrument):
     '''IGRINS H band instrument'''
+
     def __init__(self, name="IGRINS_H", FWHM=7.5, wl_range=(14250, 18400)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         self.air = False
 
+
 class IGRINS_K(Instrument):
     '''IGRINS K band instrument'''
+
     def __init__(self, name="IGRINS_K", FWHM=7.5, wl_range=(18500, 25200)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
         self.air = False
 
+
 class ESPaDOnS(Instrument):
     '''ESPaDOnS Instrument'''
+
     def __init__(self, name="ESPaDOnS", FWHM=4.4, wl_range=(3700, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+
 class DCT_DeVeny(Instrument):
     '''DCT DeVeny spectrograph Instrument.'''
+
     def __init__(self, name="DCT_DeVeny", FWHM=105.2, wl_range=(6000, 10000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
+
 class WIYN_Hydra(Instrument):
     '''WIYN Hydra spectrograph Instrument.'''
+
     def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+
 
 def vacuum_to_air(wl):
     '''
@@ -1204,6 +1241,7 @@ def vacuum_to_air(wl):
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
     return wl / f
 
+
 def calculate_n(wl):
     '''
     Calculate *n*, the refractive index of light at a given wavelength.
@@ -1216,8 +1254,9 @@ def calculate_n(wl):
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
     new_wl = wl / f
-    n = wl/new_wl
+    n = wl / new_wl
     print(n)
+
 
 def vacuum_to_air_SLOAN(wl):
     '''
@@ -1231,6 +1270,7 @@ def vacuum_to_air_SLOAN(wl):
     AIR = VAC / (1.0 + 2.735182E-4 + 131.4182 / VAC^2 + 2.76249E8 / VAC^4)'''
     air = wl / (1.0 + 2.735182E-4 + 131.4182 / wl ** 2 + 2.76249E8 / wl ** 4)
     return air
+
 
 def air_to_vacuum(wl):
     '''
@@ -1249,6 +1289,7 @@ def air_to_vacuum(wl):
     vac = wl + wl * (6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2))
     return vac
 
+
 def get_wl_kurucz(filename):
     '''The Kurucz grid is log-linear spaced.'''
     flux_file = fits.open(filename)
@@ -1260,6 +1301,7 @@ def get_wl_kurucz(filename):
     wl = 10 ** (w1 + dw * p)
     return wl
 
+
 @np.vectorize
 def idl_float(idl_num):
     '''
@@ -1269,12 +1311,13 @@ def idl_float(idl_num):
     :param idl_num:
         the idl number in sci_notation'''
 
-    #replace 'D' with 'E', convert to float
+    # replace 'D' with 'E', convert to float
     return np.float(idl_num.replace("D", "E"))
 
 
 def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
-    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp, logg=logg, Z=Z)
+    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
+                                                                                                   logg=logg, Z=Z)
     file = bz2.BZ2File(rname, 'r')
 
     lines = file.readlines()
@@ -1285,16 +1328,16 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
     wl = data['col1']
     fl_str = data['col2']
 
-    fl = idl_float(fl_str) #convert because of "D" exponent, unreadable in Python
-    fl = 10 ** (fl - 8.) #now in ergs/cm^2/s/A
+    fl = idl_float(fl_str)  # convert because of "D" exponent, unreadable in Python
+    fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
 
     if norm:
         F_bol = trapz(fl, wl)
         fl = fl * (C.F_sun / F_bol)
-        #this also means that the bolometric luminosity is always 1 L_sun
+        # this also means that the bolometric luminosity is always 1 L_sun
 
     if trunc:
-        #truncate to only the wl of interest
+        # truncate to only the wl of interest
         ind = (wl > 3000) & (wl < 13000)
         wl = wl[ind]
         fl = fl[ind]
@@ -1304,37 +1347,6 @@ def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
 
     return [wl, fl]
 
-def load_flux_full(temp, logg, Z, alpha=None, norm=False, vsini=0, grid="PHOENIX"):
-    '''Load a raw PHOENIX or kurucz spectrum based upon temp, logg, and Z. Normalize to C.F_sun if desired.'''
-
-    if grid == "PHOENIX":
-        if alpha is not None:
-            rname = "raw_grids/PHOENIX/Z{Z:}{alpha:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}{alpha:}" \
-                ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg, alpha=alpha)
-        else:
-            rname = "raw_grids/PHOENIX/Z{Z:}/lte{temp:0>5.0f}-{logg:.2f}{Z:}" \
-                    ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits".format(Z=Z, temp=temp, logg=logg)
-    elif grid == "kurucz":
-        rname = "raw_grids/Kurucz/TRES/t{temp:0>5.0f}g{logg:.0f}{Z:}v{vsini:0>3.0f}.fits".format(temp=temp,
-                                                                                       logg=10 * logg, Z=Z, vsini=vsini)
-    else:
-        print("No grid %s" % (grid))
-        return 1
-
-    flux_file = fits.open(rname)
-    f = flux_file[0].data
-
-    if norm:
-        f *= 1e-8 #convert from erg/cm^2/s/cm to erg/cm^2/s/A
-        F_bol = trapz(f, w_full)
-        f = f * (C.F_sun / F_bol)
-        #this also means that the bolometric luminosity is always 1 L_sun
-    if grid == "kurucz":
-        f *= C.c_ang / wave_grid_kurucz_raw ** 2 #Convert from f_nu to f_lambda
-
-    flux_file.close()
-    #print("Loaded " + rname)
-    return f
 
 def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
     '''Assumes that wl is already log lambda spaced'''
@@ -1355,6 +1367,7 @@ def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
 
     hdu.writeto(filename)
 
+
 class MasterToFITSIndividual:
     '''
     Object used to create one FITS file at a time.
@@ -1370,11 +1383,9 @@ class MasterToFITSIndividual:
         self.instrument = instrument
         self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
 
-        #Create a master wl_dict which correctly oversamples the instrumental kernel
+        # Create a master wl_dict which correctly oversamples the instrumental kernel
         self.wl_dict = self.instrument.wl_dict
         self.wl = self.wl_dict["wl"]
-
-
 
     def process_spectrum(self, parameters, out_unit, out_dir=""):
         '''
@@ -1389,25 +1400,26 @@ class MasterToFITSIndividual:
         Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
         '''
 
-        #Preserve the "popping of parameters"
+        # Preserve the "popping of parameters"
         parameters = parameters.copy()
 
-        #Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
+        # Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
         if parameters["Z"] < 0:
             zflag = "m"
         else:
             zflag = "p"
 
-        filename = out_dir + self.filename.format(temp=parameters["temp"], logg=10*parameters["logg"],
-                                                  Z=np.abs(10*parameters["Z"]), Z_flag=zflag, vsini=parameters["vsini"])
+        filename = out_dir + self.filename.format(temp=parameters["temp"], logg=10 * parameters["logg"],
+                                                  Z=np.abs(10 * parameters["Z"]), Z_flag=zflag,
+                                                  vsini=parameters["vsini"])
         vsini = parameters.pop("vsini")
         try:
             spec = self.interpolator(parameters)
             # Using the ``out_unit``, determine if we should also integrate while doing the downsampling
-            if out_unit=="counts/pix":
-                integrate=True
+            if out_unit == "counts/pix":
+                integrate = True
             else:
-                integrate=False
+                integrate = False
             # Downsample the spectrum to the instrumental resolution.
             spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate)
             spec.write_to_FITS(out_unit, filename)
@@ -1415,6 +1427,7 @@ class MasterToFITSIndividual:
             print("{} cannot be interpolated from the grid.".format(parameters))
 
         print("Processed spectrum {}".format(parameters))
+
 
 class MasterToFITSGridProcessor:
     '''
@@ -1434,10 +1447,11 @@ class MasterToFITSGridProcessor:
 
     '''
 
-    def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False, processes=mp.cpu_count()):
+    def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False,
+                 processes=mp.cpu_count()):
         self.interface = interface
         self.instrument = instrument
-        self.points = points #points is a dictionary with which values to spit out for each parameter
+        self.points = points  # points is a dictionary with which values to spit out for each parameter
         self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
         self.flux_unit = flux_unit
         self.integrate = integrate
@@ -1449,24 +1463,23 @@ class MasterToFITSGridProcessor:
         self.vsini_points = self.points.pop("vsini")
         names = self.points.keys()
 
-        #Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
-        #which does not contain vsini
-        self.param_list = [dict(zip(names,params)) for params in itertools.product(*self.points.values())]
+        # Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
+        # which does not contain vsini
+        self.param_list = [dict(zip(names, params)) for params in itertools.product(*self.points.values())]
 
-        #Create a master wl_dict which correctly oversamples the instrumental kernel
+        # Create a master wl_dict which correctly oversamples the instrumental kernel
         self.wl_dict = self.instrument.wl_dict
         self.wl = self.wl_dict["wl"]
 
-        #Check that temp, logg, Z are within the bounds of the interface
-        for key,value in self.points.items():
+        # Check that temp, logg, Z are within the bounds of the interface
+        for key, value in self.points.items():
             min_val, max_val = self.interface.bounds[key]
-            assert np.min(self.points[key]) >= min_val,"Points below interface bound {}={}".format(key, min_val)
-            assert np.max(self.points[key]) <= max_val,"Points above interface bound {}={}".format(key, max_val)
+            assert np.min(self.points[key]) >= min_val, "Points below interface bound {}={}".format(key, min_val)
+            assert np.max(self.points[key]) <= max_val, "Points above interface bound {}={}".format(key, max_val)
 
-        #Create a temporary grid to resample to that matches the bounds of the instrument.
+        # Create a temporary grid to resample to that matches the bounds of the instrument.
         low, high = self.instrument.wl_range
         self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, min_vc=0.1)['wl']
-
 
     def process_spectrum_vsini(self, parameters):
         '''
@@ -1479,7 +1492,7 @@ class MasterToFITSGridProcessor:
         '''
 
         try:
-            #Check to see if alpha, otherwise append alpha=0 to the parameter list.
+            # Check to see if alpha, otherwise append alpha=0 to the parameter list.
             if not self.alpha:
                 parameters.update({"alpha": 0.0})
             print(parameters)
@@ -1489,22 +1502,24 @@ class MasterToFITSGridProcessor:
             else:
                 zflag = "p"
 
-            #This is a Base1DSpectrum
+            # This is a Base1DSpectrum
             base_spec = self.interface.load_file(parameters)
 
-            master_spec = base_spec.to_LogLambda(instrument=self.instrument, min_vc=0.1/C.c_kms) #convert the Base1DSpectrum to a LogLamSpectrum
+            master_spec = base_spec.to_LogLambda(instrument=self.instrument,
+                                                 min_vc=0.1 / C.c_kms)  # convert the Base1DSpectrum to a LogLamSpectrum
 
-            #Now process the spectrum for all values of vsini
+            # Now process the spectrum for all values of vsini
 
             for vsini in self.vsini_points:
                 spec = master_spec.copy()
-                #Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
+                # Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
                 spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate=self.integrate)
 
-                #Update spectrum with vsini
-                spec.metadata.update({"vsini":vsini})
-                filename = self.outdir + self.filename.format(temp=parameters["temp"], logg=10*parameters["logg"],
-                                                              Z=np.abs(10*parameters["Z"]), Z_flag=zflag, vsini=vsini)
+                # Update spectrum with vsini
+                spec.metadata.update({"vsini": vsini})
+                filename = self.outdir + self.filename.format(temp=parameters["temp"], logg=10 * parameters["logg"],
+                                                              Z=np.abs(10 * parameters["Z"]), Z_flag=zflag,
+                                                              vsini=vsini)
 
                 spec.write_to_FITS(self.flux_unit, filename)
 
@@ -1534,8 +1549,9 @@ class MasterToFITSGridProcessor:
             self.pids.append(p)
 
         for p in self.pids:
-            #Make sure all threads have finished
+            # Make sure all threads have finished
             p.join()
+
 
 def main():
     pass
