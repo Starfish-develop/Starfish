@@ -12,7 +12,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.integrate import trapz
 from scipy.special import j1
 import multiprocessing as mp
-import tqdm
+from tqdm import tqdm
 
 import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
