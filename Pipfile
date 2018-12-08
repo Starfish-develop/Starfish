@@ -14,6 +14,8 @@ scikit-learn = "*"
 astropy = "*"
 "h5py" = "*"
 corner = "*"
+tqdm = "*"
+pyyaml = "*"
 
 
 [dev-packages]

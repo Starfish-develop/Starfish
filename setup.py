@@ -58,7 +58,8 @@ if __name__=="__main__":
                 "Topic :: Scientific/Engineering :: Astronomy",
                 "Topic :: Scientific/Engineering :: Physics"
             ],
-            install_requires = ['numpy', 'scipy', 'cython', 'scikit-learn', 'emcee', 'h5py', 'corner'],
+            install_requires = ['numpy', 'scipy', 'cython', 'scikit-learn', 'emcee', 'h5py', 'corner', 'astropy',
+                                'tqdm', 'pyyaml'],
             maintainer = "Ian Czekala",
             maintainer_email = "iancze@gmail.com",
             cmdclass = {'build_ext' :build_ext},

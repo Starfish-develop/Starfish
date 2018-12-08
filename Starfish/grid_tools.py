@@ -1,3 +1,10 @@
+import gc
+import os
+import bz2
+import h5py
+import itertools
+from collections import OrderedDict
+
 import numpy as np
 from numpy.fft import fft, ifft, fftfreq, rfftfreq
 from astropy.io import ascii, fits
@@ -5,15 +12,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.integrate import trapz
 from scipy.special import j1
 import multiprocessing as mp
-
-import sys
-import gc
-import os
-import bz2
-import h5py
-from functools import partial
-import itertools
-from collections import OrderedDict
+import tqdm
 
 import Starfish
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
@@ -744,7 +743,6 @@ class HDF5Creator:
 
         '''
         # assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
-        print("Processing", parameters)
 
         # If the parameter length is one more than the grid pars,
         # assume this is for vsini convolution
@@ -818,7 +816,9 @@ class HDF5Creator:
 
         print("Total of {} files to process.".format(len(param_list)))
 
-        for i, param in enumerate(all_params):
+        pbar = tqdm(all_params)
+        for i, param in enumerate(pbar):
+            pbar.set_description("Processing {}".format(param))
             fl, header = self.process_flux(param)
             if fl is None:
                 print("Deleting {} from all params, does not exist.".format(param))
