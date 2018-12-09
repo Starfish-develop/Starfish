@@ -3,6 +3,7 @@ import multiprocessing as mp
 
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface
@@ -160,6 +161,38 @@ def plot_eigenspectra(show=False, save=True):
     plotdir = os.path.expandvars(Starfish.config["plotdir"])
     if save:
         fig.savefig(os.path.join(plotdir, "eigenspectra.png"))
+    if show:
+        plt.show()
+    else:
+        plt.close("all")
+
+
+def plot_priors(show=False, save=True):
+    """
+    Plot the gamma priors for the PCA optimization problem.
+
+    .. seealso:: :func:`PCAGrid.optimize`
+
+    :param show: If True, will show the plot. (Default is False)
+    :type show: bool
+    :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
+    :type save: bool
+    """
+    # Read the priors on each of the parameters from Starfish config.yaml
+    priors = Starfish.PCA["priors"]
+    plotdir = os.path.expandvars(Starfish.config["plotdir"])
+    for i, par in enumerate(Starfish.parname):
+        s, r = priors[i]
+        mu = s / r
+        x = np.linspace(0.01, 2 * mu)
+        prob = stats.gamma.pdf(x, s, shape=1/r)
+        plt.plot(x, prob)
+        plt.xlabel(par)
+        plt.ylabel("Probability")
+        plt.tight_layout()
+        if save:
+            plt.savefig(os.path.join(plotdir, "prior_{}.png".format(par)))
+
     if show:
         plt.show()
     else:
