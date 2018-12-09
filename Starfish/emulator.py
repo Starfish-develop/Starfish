@@ -396,8 +396,8 @@ class PCAGrid:
 
         print("lam_xi = {}".format(p[0]))
         print("Hyper Parameters:")
-        [print(ps) for ps in p[1:]]
-        print("logl = {}".format(lnp))
+        [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
+        print("logl = {}".format(lnp), end='\n\n')
 
         # Negate this when using the fmin algorithm
         if minim:
