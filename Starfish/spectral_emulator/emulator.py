@@ -5,7 +5,7 @@ import h5py
 
 import Starfish
 from Starfish.covariance import Sigma, V12, V22, V12m, V22m
-from Starfish import constants as C
+import Starfish.constants as C
 from .pca import PCAGrid, skinny_kron
 
 
@@ -45,9 +45,9 @@ class Emulator:
 
     @classmethod
     def open(cls, filename=Starfish.PCA["path"]):
-        '''
+        """
         Create an Emulator object from an HDF5 file.
-        '''
+        """
         # Create the PCAGrid from this filename
         filename = os.path.expandvars(filename)
         pcagrid = PCAGrid.open(filename)
@@ -58,9 +58,9 @@ class Emulator:
         return cls(pcagrid, eparams)
 
     def determine_chunk_log(self, wl_data):
-        '''
+        """
         Possibly truncate the wl grid in response to some data. Also truncate eigenspectra, and flux_mean and flux_std.
-        '''
+        """
         self.pca.determine_chunk_log(wl_data)
         self.wl = self.pca.wl
 
@@ -91,13 +91,13 @@ class Emulator:
 
     @property
     def matrix(self):
-        return (self.mu, self.sig)
+        return self.mu, self.sig
 
     def draw_many_weights(self, params):
-        '''
+        """
         :param params: multiple parameters to produce weight draws at.
         :type params: 2D np.array
-        '''
+        """
 
         # Local variables, different from instance attributes
         v12 = V12m(params, self.pca.gparams, self.h2params, self.pca.m)
@@ -114,9 +114,9 @@ class Emulator:
         return weights
 
     def draw_weights(self):
-        '''
+        """
         Using the current settings, draw a sample of PCA weights
-        '''
+        """
 
         if self.V12 is None:
             print("No parameters are set, yet. Must set parameters first.")
@@ -125,13 +125,11 @@ class Emulator:
         return np.random.multivariate_normal(self.mu, self.sig)
 
     def reconstruct(self):
-        '''
+        """
         Reconstructing a spectrum using a random draw of weights. In this case,
         we are making the assumption that we are always drawing a weight at a
         single stellar value.
-        '''
+        """
 
         weights = self.draw_weights()
         return self.pca.reconstruct(weights)
-
-
