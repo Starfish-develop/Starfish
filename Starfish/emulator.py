@@ -5,7 +5,8 @@ import multiprocessing as mp
 import numpy as np
 import h5py
 from sklearn.decomposition import PCA
-from scipy.optimize import fmin
+from scipy.optimize import minimize
+import scipy.stats as stats
 import emcee
 
 import Starfish
@@ -67,14 +68,6 @@ def skinny_kron(eigenspectra, M):
             j = jj * M + (i % M)
             out[i, j] = dots[ii, jj]
     return out
-
-
-def Gprior(x, s, r):
-    return r ** s * x ** (s - 1) * np.exp(- x * r) / math.gamma(s)
-
-
-def Glnprior(x, s, r):
-    return s * np.log(r) + (s - 1.) * np.log(x) - r * x - math.lgamma(s)
 
 
 class PCAGrid:
@@ -336,23 +329,24 @@ class PCAGrid:
 
         return recon_fluxes
 
-    def optimize(self, method='fmin'):
+    def optimize(self, method='min'):
         """
         Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
         For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
 
-        :param method: The method to use for optimization; one of ['fmin', 'emcee'].
+        :param method: The method to use for optimization; one of ['min', 'emcee'].
         :type method: string
         """
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
+        self.priors = Starfish.PCA["priors"]
 
         print('Starting optimization...')
-        if method == 'fmin':
-            eparams = self._optimize_fmin()
+        if method == 'min':
+            eparams = self._optimize_min()
         elif method == 'emcee':
             eparams = self._optimize_emcee()
         else:
-            raise ValueError("Did not provide valid method, please choose from ['fmin', 'emceee']")
+            raise ValueError("Did not provide valid method, please choose from ['min', 'emceee']")
         print('Parameters Found')
         filename = os.path.expandvars(Starfish.PCA["path"])
         hdf5 = h5py.File(filename, "r+")
@@ -366,22 +360,23 @@ class PCAGrid:
         pdset[:] = eparams
         hdf5.close()
 
-    def _lnprob(self, p, priors, fmin=False):
+
+    def _lnprob(self, p, minim=False):
         '''
         The log-likelihood method for use in optimization
         :param p: Gaussian Processes hyper-parameters
         :type p: 1D np.array
         Calculate the lnprob using Habib's posterior formula for the emulator.
         '''
-        print('Trying {}'.format(p), end=' ')
         # We don't allow negative parameters.
         if np.any(p < 0.):
-            if fmin:
+            if minim:
                 return 1e99
             else:
                 return -np.inf
 
         lambda_xi = p[0]
+        # Fold hparams into the new shape
         hparams = p[1:].reshape((self.m, -1))
 
         # Calculate the prior for parname variables
@@ -389,47 +384,46 @@ class PCAGrid:
         # hparams[:, 0] are the amplitudes, so we index i+1 here
         lnpriors = 0.0
         for i in range(len(Starfish.parname)):
-            lnpriors += np.sum(Glnprior(hparams[:, i + 1], *priors[i]))
+            a, r = self.priors[i]
+            lnpriors += np.sum(stats.gamma.logpdf(hparams[:, i + 1], a, scale=1/r))
 
         h2params = hparams ** 2
-        # Fold hparams into the new shape
         Sig_w = Sigma(self.gparams, h2params)
-
         C = (1. / lambda_xi) * self.PhiPhi + Sig_w
-
         sign, pref = np.linalg.slogdet(C)
-
         central = self.w_hat.T.dot(np.linalg.solve(C, self.w_hat))
-
         lnp = -0.5 * (pref + central + self.M * self.m * np.log(2. * np.pi)) + lnpriors
 
         # Negate this when using the fmin algorithm
-        if fmin:
+        if minim:
             lnp *= -1
-        print('log-l={}             '.format(lnp), end='\r')
         return lnp
 
-    def _optimize_fmin(self):
+    def _optimize_min(self):
         """
         Optimize the emulator using the downhill simplex algorithm from `numpy.optimize.fmin`
         """
-        priors = Starfish.PCA["priors"]
         amp = 100.
         # Use the mean of the gamma distribution to start
-        eigpars = np.array([amp] + [s / r for s, r in priors])
+        eigpars = np.array([amp] + [s / r for s, r in self.priors])
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
+        def callback(pk, state):
+            print("Iteration {}: lam_xi = {}".format(state.nit, pk[0]))
+            print("Hyper Parameters:")
+            for ps in pk[1:]:
+                print(ps)
+            print("-logl = {}".format(state.fun))
+            return False
 
-        func = lambda p: self._lnprob(p, priors, fmin=True)
-        result = fmin(func, p0, maxiter=10000, maxfun=10000)
-        return result
+        result = minimize(self._lnprob, p0, args=(True,), callback=callback)
+        return result.x
 
     def _optimize_emcee(self, nburn=100, nsamples=100):
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
-        priors = Starfish.PCA["priors"]
         ndim = 1 + (1 + len(Starfish.parname)) * self.m
         nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
 
@@ -441,7 +435,7 @@ class PCAGrid:
         p0.append(np.random.uniform(0.01, 1.0, nwalkers))
         for i in range(self.m):
             p0 += [np.random.uniform(amp[0], amp[1], nwalkers)]
-            for s, r in priors:
+            for s, r in self.priors:
                 # Draw randomly from the gamma priors
                 p0 += [np.random.gamma(s, 1. / r, nwalkers)]
 
