@@ -11,8 +11,66 @@ import h5py
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 from Starfish.covariance import Sigma
-from .utils import get_w_hat
 
+
+def Phi(eigenspectra, M):
+    """
+    Warning: for any spectra of real-world dimensions, this routine will
+    likely over flow memory.
+
+    :param eigenspectra:
+    :type eigenspectra: 2D array
+    :param M: number of spectra in the synthetic library
+    :type M: int
+    Calculate the matrix Phi using the kronecker products.
+    """
+
+    return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
+
+
+def get_w_hat(eigenspectra, fluxes, M):
+    """
+    Since we will overflow memory if we actually calculate Phi, we have to
+    determine w_hat in a memory-efficient manner.
+
+    """
+    m = len(eigenspectra)
+    out = np.empty((M * m,))
+    for i in range(m):
+        for j in range(M):
+            out[i * M + j] = eigenspectra[i].T.dot(fluxes[j])
+
+    PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
+
+    return PhiPhi.dot(out)
+
+def skinny_kron(eigenspectra, M):
+    """
+    Compute Phi.T.dot(Phi) in a memory efficient manner.
+
+    eigenspectra is a list of 1D numpy arrays.
+    """
+    m = len(eigenspectra)
+    out = np.zeros((m * M, m * M))
+
+    # Compute all of the dot products pairwise, beforehand
+    dots = np.empty((m, m))
+    for i in range(m):
+        for j in range(m):
+            dots[i, j] = eigenspectra[i].T.dot(eigenspectra[j])
+
+    for i in range(M * m):
+        for jj in range(m):
+            ii = i // M
+            j = jj * M + (i % M)
+            out[i, j] = dots[ii, jj]
+    return out
+
+def _lnprior(x, s, r):
+    return stats.gamma.logpdf(x, s, scale=1/r)
+
+def _prior(x, s, r):
+    return np.exp(_lnprior(x, s, r))
 
 class PCAGrid:
     """
@@ -289,7 +347,7 @@ class PCAGrid:
 
         return recon_fluxes
 
-    def optimize(self, method='min'):
+    def optimize(self, method='min', fit_kwargs=None):
         """
         Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
         For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator,
@@ -297,29 +355,44 @@ class PCAGrid:
 
         :param method: The method to use for optimization; one of ['min', 'emcee'].
         :type method: string
+        :param fit_kwargs: The keyword arguments to pass to the optimization methods.
+        :type fit_kwargs: dict
+
+        Example optimizing using minimization optimizer
+
+        .. code-block:: python
+
+            from Starfish.emulator import PCAGrid
+
+            # Assuming you have already generated the initial PCA file
+            pca = PCAGrid.open()
+            pca.optimize()
+
+        Example using the emcee optimizer
+
+        .. code-block:: python
+
+            from Starfish.emulator import PCAGrid
+
+            # Assuming you have already generated the inital PCA file
+            pca = PCAGrid.open()
+            pca.optimize(method='emcee', nburn=100, nsamples=400)
+
+        .. warning::
+            This optimization may take a very long time to run (multiple hours). We recommend running the code on a server
+            and running it in the background. For each PCAGrid you only have to optimize once, thankfully.
         """
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
         self.priors = Starfish.PCA["priors"]
 
         print('Starting optimization...')
         if method == 'min':
-            eparams = self._optimize_min()
+            self._optimize_min(**fit_kwargs)
         elif method == 'emcee':
-            eparams = self._optimize_emcee()
+            self._optimize_emcee(**fit_kwargs)
         else:
             raise ValueError("Did not provide valid method, please choose from ['min', 'emceee']")
         print('Parameters Found')
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        hdf5 = h5py.File(filename, "r+")
-
-        # check to see whether the dataset already exists
-        if "eparams" in hdf5.keys():
-            pdset = hdf5["eparams"]
-        else:
-            pdset = hdf5.create_dataset("eparams", eparams.shape, compression="gzip", compression_opts=9, dtype="f8")
-
-        pdset[:] = eparams
-        hdf5.close()
 
     def _lnprob(self, p, minim=False):
         """
@@ -345,7 +418,7 @@ class PCAGrid:
         lnpriors = 0.0
         for i in range(len(Starfish.parname)):
             a, r = self.priors[i]
-            lnpriors += np.sum(stats.gamma.logpdf(hparams[:, i + 1], a, scale=1 / r))
+            lnpriors += np.sum(_lnprior(hparams[:, i + 1], a, r))
 
         h2params = hparams ** 2
         Sig_w = Sigma(self.gparams, h2params)
@@ -375,7 +448,19 @@ class PCAGrid:
                         np.hstack([eigpars for _ in range(self.m)])))
 
         result = minimize(self._lnprob, p0, args=(True,))
-        return result.x
+
+        eparams = result.x
+
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        hdf5 = h5py.File(filename, "r+")
+
+        # check to see whether the dataset already exists
+        if "eparams" in hdf5:
+            hdf5["eparams"][:] = eparams
+        else:
+            hdf5.create_dataset("eparams", data=eparams, compression="gzip", compression_opts=9)
+
+        hdf5.close()
 
     def _optimize_emcee(self, nburn=100, nsamples=100):
         """
@@ -408,4 +493,30 @@ class PCAGrid:
         # actual run
         pos, prob, state = sampler.run_mcmc(pos, nsamples)
 
-        return np.median(sampler.flatchain, axis=0)
+        eparams = np.median(sampler.flatchain, axis=0)
+
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        hdf5 = h5py.File(filename, "r+")
+
+        # check to see whether the dataset already exists
+        if "eparams" in hdf5:
+            hdf5["eparams"][:] = eparams
+        else:
+            hdf5.create_dataset("eparams", data=eparams, compression="gzip", compression_opts=9)
+        # check to see whether the dataset already exists
+        if "emcee" in hdf5:
+            emcee_group = hdf5["emcee"]
+        else:
+            emcee_group = hdf5.create_group("emcee")
+
+        if "chain" in emcee_group:
+            emcee_group["chain"][:] = sampler.flatchain
+        else:
+            emcee_group.create_dataset("chain", data=sampler.flatchain, compression="gzip", compression_opts=9)
+
+        if "walkers" in emcee_group:
+            emcee_group["walkers"][:] = pos
+        else:
+            emcee_group.create_dataset("walkers", data=pos, compression="gzip", compression_opts=9)
+
+        hdf5.close()

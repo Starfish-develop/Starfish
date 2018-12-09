@@ -29,7 +29,7 @@ import Starfish
 import Starfish.grid_tools
 from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
-from Starfish.emulator import Emulator
+from Starfish.spectral_emulator import Emulator
 import Starfish.constants as C
 from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
 from Starfish.model import ThetaParam, PhiParam
