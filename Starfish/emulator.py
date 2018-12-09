@@ -394,6 +394,11 @@ class PCAGrid:
         central = self.w_hat.T.dot(np.linalg.solve(C, self.w_hat))
         lnp = -0.5 * (pref + central + self.M * self.m * np.log(2. * np.pi)) + lnpriors
 
+        print("lam_xi = {}".format(p[0]))
+        print("Hyper Parameters:")
+        [print(ps) for ps in p[1:]]
+        print("logl = {}".format(lnp))
+
         # Negate this when using the fmin algorithm
         if minim:
             lnp *= -1
@@ -409,15 +414,9 @@ class PCAGrid:
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
-        def callback(pk, state):
-            print("Iteration {}: lam_xi = {}".format(state.nit, pk[0]))
-            print("Hyper Parameters:")
-            for ps in pk[1:]:
-                print(ps)
-            print("-logl = {}".format(state.fun))
-            return False
 
-        result = minimize(self._lnprob, p0, args=(True,), callback=callback)
+
+        result = minimize(self._lnprob, p0, args=(True,))
         return result.x
 
     def _optimize_emcee(self, nburn=100, nsamples=100):
