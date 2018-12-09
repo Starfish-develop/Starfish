@@ -1,22 +1,20 @@
-import math
 import os
 import multiprocessing as mp
 
-import numpy as np
-import h5py
 from sklearn.decomposition import PCA
 from scipy.optimize import minimize
 import scipy.stats as stats
+import numpy as np
 import emcee
+import h5py
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
-from Starfish.covariance import Sigma, sigma, V12, V22, V12m, V22m
-from Starfish import constants as C
+from Starfish.covariance import Sigma
 
 
 def Phi(eigenspectra, M):
-    '''
+    """
     Warning: for any spectra of real-world dimensions, this routine will
     likely over flow memory.
 
@@ -25,17 +23,17 @@ def Phi(eigenspectra, M):
     :param M: number of spectra in the synthetic library
     :type M: int
     Calculate the matrix Phi using the kronecker products.
-    '''
+    """
 
     return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
 
 
 def get_w_hat(eigenspectra, fluxes, M):
-    '''
+    """
     Since we will overflow memory if we actually calculate Phi, we have to
     determine w_hat in a memory-efficient manner.
 
-    '''
+    """
     m = len(eigenspectra)
     out = np.empty((M * m,))
     for i in range(m):
@@ -48,11 +46,11 @@ def get_w_hat(eigenspectra, fluxes, M):
 
 
 def skinny_kron(eigenspectra, M):
-    '''
+    """
     Compute Phi.T.dot(Phi) in a memory efficient manner.
 
     eigenspectra is a list of 1D numpy arrays.
-    '''
+    """
     m = len(eigenspectra)
     out = np.zeros((m * M, m * M))
 
@@ -71,12 +69,12 @@ def skinny_kron(eigenspectra, M):
 
 
 class PCAGrid:
-    '''
+    """
     Create and query eigenspectra.
-    '''
+    """
 
     def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams):
-        '''
+        """
 
         :param wl: wavelength array
         :type wl: 1D np.array
@@ -95,7 +93,7 @@ class PCAGrid:
         :param gparams: The stellar parameters of the synthetic library
         :type gparams: 2D array of parameters (nspec, nparam)
 
-        '''
+        """
         self.wl = wl
         self.dv = dv
         self.flux_mean = flux_mean
@@ -111,7 +109,7 @@ class PCAGrid:
 
     @classmethod
     def create(cls, interface, ncomp=None):
-        '''
+        """
         Create a PCA grid object from a synthetic spectral library, with
         configuration options specified in a dictionary.
 
@@ -120,7 +118,7 @@ class PCAGrid:
         :param ncomp: number of eigenspectra to keep. Default is to keep all.
         :type ncomp: int
 
-        '''
+        """
 
         wl = interface.wl
         dv = interface.dv
@@ -152,7 +150,6 @@ class PCAGrid:
         # 0.99, or 99%) of the variance.
         pca = PCA(n_components=Starfish.PCA["threshold"], svd_solver='full')
         pca.fit(fluxes)
-        comp = pca.transform(fluxes)
         components = pca.components_
         mean = pca.mean_
         variance_ratio = np.sum(pca.explained_variance_ratio_)
@@ -160,7 +157,7 @@ class PCAGrid:
         if ncomp is None:
             ncomp = len(components)
 
-        print("found {} components explaining {:.2f}% of the" \
+        print("found {} components explaining {:.2f}% of the"
               " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.PCA["threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
@@ -187,13 +184,13 @@ class PCAGrid:
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 
     def write(self, filename=Starfish.PCA["path"]):
-        '''
+        """
         Write the PCA decomposition to an HDF5 file.
 
         :param filename: name of the HDF5 to create. Defaults to the ``PCA["path"]`` in ``config.yaml``.
         :type filename: str
 
-        '''
+        """
 
         filename = os.path.expandvars(filename)
         hdf5 = h5py.File(filename, "w")
@@ -224,12 +221,13 @@ class PCAGrid:
 
     @classmethod
     def open(cls, filename=Starfish.PCA["path"]):
-        '''
+        """
         Initialize an object using the PCA already stored to an HDF5 file.
 
-        :param filename: filename of an HDF5 object containing the PCA components. Defaults to the ``PCA["path"]`` in ``config.yaml``.
+        :param filename: filename of an HDF5 object containing the PCA components. Defaults to the
+            ``PCA["path"]`` in ``config.yaml``.
         :type filename: str
-        '''
+        """
 
         filename = os.path.expandvars(filename)
         hdf5 = h5py.File(filename, "r")
@@ -279,7 +277,7 @@ class PCAGrid:
 
         assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max), \
             "PCA/emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
-            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]), \
+            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),
                                                      max(self.wl[ind]), wl_min, wl_max)
 
         self.wl = self.wl[ind]
@@ -333,9 +331,9 @@ class PCAGrid:
         return np.sum(f, axis=0) * self.flux_std + self.flux_mean
 
     def reconstruct_all(self):
-        '''
+        """
         Return a (M, npix) array with all of the spectra reconstructed.
-        '''
+        """
         recon_fluxes = np.empty((self.M, self.npix))
         for i in range(self.M):
             f = np.empty((self.m, self.npix))
@@ -348,7 +346,8 @@ class PCAGrid:
     def optimize(self, method='min'):
         """
         Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
-        For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
+        For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator,
+        see the appendix of our paper.
 
         :param method: The method to use for optimization; one of ['min', 'emcee'].
         :type method: string
@@ -376,14 +375,13 @@ class PCAGrid:
         pdset[:] = eparams
         hdf5.close()
 
-
     def _lnprob(self, p, minim=False):
-        '''
+        """
         The log-likelihood method for use in optimization
         :param p: Gaussian Processes hyper-parameters
         :type p: 1D np.array
         Calculate the lnprob using Habib's posterior formula for the emulator.
-        '''
+        """
         # We don't allow negative parameters.
         if np.any(p < 0.):
             if minim:
@@ -401,7 +399,7 @@ class PCAGrid:
         lnpriors = 0.0
         for i in range(len(Starfish.parname)):
             a, r = self.priors[i]
-            lnpriors += np.sum(stats.gamma.logpdf(hparams[:, i + 1], a, scale=1/r))
+            lnpriors += np.sum(stats.gamma.logpdf(hparams[:, i + 1], a, scale=1 / r))
 
         h2params = hparams ** 2
         Sig_w = Sigma(self.gparams, h2params)
@@ -429,8 +427,6 @@ class PCAGrid:
         eigpars = np.array([amp] + [s / r for s, r in self.priors])
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
-
-
 
         result = minimize(self._lnprob, p0, args=(True,))
         return result.x
@@ -467,131 +463,3 @@ class PCAGrid:
         pos, prob, state = sampler.run_mcmc(pos, nsamples)
 
         return np.median(sampler.flatchain, axis=0)
-
-
-class Emulator:
-    def __init__(self, pca, eparams):
-        '''
-        Provide the emulation products.
-
-        :param pca: object storing the principal components, the eigenpsectra
-        :type pca: PCAGrid
-        :param eparams: Optimized GP hyperparameters.
-        :type eparams: 1D np.array
-        '''
-
-        self.pca = pca
-        self.lambda_xi = eparams[0]
-        self.h2params = eparams[1:].reshape(self.pca.m, -1) ** 2
-
-        # Determine the minimum and maximum bounds of the grid
-        self.min_params = np.min(self.pca.gparams, axis=0)
-        self.max_params = np.max(self.pca.gparams, axis=0)
-
-        # self.eigenspectra = self.PCAGrid.eigenspectra
-        self.dv = self.pca.dv
-        self.wl = self.pca.wl
-
-        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
-
-        self.V11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
-
-        self._params = None  # Where we want to interpolate
-
-        self.V12 = None
-        self.V22 = None
-        self.mu = None
-        self.sig = None
-
-    @classmethod
-    def open(cls, filename=Starfish.PCA["path"]):
-        '''
-        Create an Emulator object from an HDF5 file.
-        '''
-        # Create the PCAGrid from this filename
-        filename = os.path.expandvars(filename)
-        pcagrid = PCAGrid.open(filename)
-        hdf5 = h5py.File(filename, "r")
-
-        eparams = hdf5["eparams"][:]
-        hdf5.close()
-        return cls(pcagrid, eparams)
-
-    def determine_chunk_log(self, wl_data):
-        '''
-        Possibly truncate the wl grid in response to some data. Also truncate eigenspectra, and flux_mean and flux_std.
-        '''
-        self.pca.determine_chunk_log(wl_data)
-        self.wl = self.pca.wl
-
-    @property
-    def params(self):
-        return self._params
-
-    @params.setter
-    def params(self, pars):
-
-        # If the pars is outside of the range of emulator values, raise a ModelError
-        if np.any(pars < self.min_params) or np.any(pars > self.max_params):
-            raise C.ModelError("Querying emulator outside of original PCA parameter range.")
-
-        # Assumes pars is a single parameter combination, as a 1D np.array
-        self._params = pars
-
-        # Do this according to R&W eqn 2.18, 2.19
-
-        # Recalculate V12, V21, and V22.
-        self.V12 = V12(self._params, self.pca.gparams, self.h2params, self.pca.m)
-        self.V22 = V22(self._params, self.h2params, self.pca.m)
-
-        # Recalculate the covariance
-        self.mu = self.V12.T.dot(np.linalg.solve(self.V11, self.pca.w_hat))
-        self.mu.shape = (-1)
-        self.sig = self.V22 - self.V12.T.dot(np.linalg.solve(self.V11, self.V12))
-
-    @property
-    def matrix(self):
-        return (self.mu, self.sig)
-
-    def draw_many_weights(self, params):
-        '''
-        :param params: multiple parameters to produce weight draws at.
-        :type params: 2D np.array
-        '''
-
-        # Local variables, different from instance attributes
-        v12 = V12m(params, self.pca.gparams, self.h2params, self.pca.m)
-        v22 = V22m(params, self.h2params, self.pca.m)
-
-        mu = v12.T.dot(np.linalg.solve(self.V11, self.pca.w_hat))
-        sig = v22 - v12.T.dot(np.linalg.solve(self.V11, v12))
-
-        weights = np.random.multivariate_normal(mu, sig)
-
-        # Reshape these weights into a 2D matrix
-        weights.shape = (len(params), self.pca.m)
-
-        return weights
-
-    def draw_weights(self):
-        '''
-        Using the current settings, draw a sample of PCA weights
-        '''
-
-        if self.V12 is None:
-            print("No parameters are set, yet. Must set parameters first.")
-            return
-
-        return np.random.multivariate_normal(self.mu, self.sig)
-
-    def reconstruct(self):
-        '''
-        Reconstructing a spectrum using a random draw of weights. In this case,
-        we are making the assumption that we are always drawing a weight at a
-        single stellar value.
-        '''
-
-        weights = self.draw_weights()
-        return self.pca.reconstruct(weights)
-
-
