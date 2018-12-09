@@ -117,7 +117,7 @@ class PCAGrid:
 
         :param interface: HDF5Interface containing the instrument-processed spectra.
         :type interface: HDF5Interface
-        :param ncomp: number of eigenspectra to keep
+        :param ncomp: number of eigenspectra to keep. Default is to keep all.
         :type ncomp: int
 
         '''
@@ -160,8 +160,8 @@ class PCAGrid:
         if ncomp is None:
             ncomp = len(components)
 
-        print("found {} components explaining {}% of the" \
-              " variance (threshold was {}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.PCA["threshold"]))
+        print("found {} components explaining {:.2f}% of the" \
+              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.PCA["threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
 
@@ -190,7 +190,7 @@ class PCAGrid:
         '''
         Write the PCA decomposition to an HDF5 file.
 
-        :param filename: name of the HDF5 to create.
+        :param filename: name of the HDF5 to create. Defaults to the ``PCA["path"]`` in ``config.yaml``.
         :type filename: str
 
         '''
@@ -227,7 +227,7 @@ class PCAGrid:
         '''
         Initialize an object using the PCA already stored to an HDF5 file.
 
-        :param filename: filename of an HDF5 object containing the PCA components.
+        :param filename: filename of an HDF5 object containing the PCA components. Defaults to the ``PCA["path"]`` in ``config.yaml``.
         :type filename: str
         '''
 
@@ -258,14 +258,16 @@ class PCAGrid:
         return pcagrid
 
     def determine_chunk_log(self, wl_data, buffer=Starfish.grid["buffer"]):
-        '''
+        """
         Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
         response to some data.
 
         :param wl_data: The spectrum dataset you want to fit.
         :type wl_data: np.array
-
-        '''
+        :param buffer: The length (in Angstrom) of the wavelength buffer at the edges of the spectrum.
+            Defaults to the value specified in ``grid["buffer"]`` in ``config.yaml``.
+        :type buffer: float
+        """
 
         # determine the indices
         wl_min, wl_max = np.min(wl_data), np.max(wl_data)
@@ -287,29 +289,43 @@ class PCAGrid:
         self.flux_std = self.flux_std[ind]
 
     def get_index(self, params):
-        '''
-        Given a np.array of stellar params (corresponding to a grid point),
+        """
+        Given a list of stellar parameters (corresponding to a grid point),
         deliver the index that corresponds to the
-        entry in the fluxes, list_grid_points, and weights
-        '''
+        entry in the fluxes, list_grid_points, and weights.
+
+        :param params: The parameters at a grid point. It should have the same length as the parameters in ``grid[
+            "parnames"]`` in ``config.yaml``
+        :type params: iterable
+        """
+        params = np.array(params)
         return np.sum(np.abs(self.gparams - params), axis=1).argmin()
 
     def get_weights(self, params):
-        '''
-        Given a np.array of parameters (corresponding to a grid point),
+        """
+        Given a list of parameters (corresponding to a grid point),
         deliver the weights that reconstruct this spectrum out of eigenspectra.
 
-        '''
+        :param params: The parameters at a grid point. It should have the same length as the parameters in ``grid[
+            "parnames"]`` in ``config.yaml``
+        :type params: iterable
+        """
 
+        params = np.array(params)
         ii = self.get_index(params)
         return self.w[:, ii]
 
     def reconstruct(self, weights):
-        '''
+        """
         Reconstruct a spectrum given some weights.
 
         Also correct for original scaling.
-        '''
+
+        :param weights: THe weights for reconstructing a spectrum
+        :type weights: NDarray
+        :return: The reconstructed spectrum
+        :rtype: NDarray
+        """
 
         f = np.empty((self.m, self.npix))
         for i, (pcomp, weight) in enumerate(zip(self.eigenspectra, weights)):

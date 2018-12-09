@@ -16,6 +16,7 @@ astropy = "*"
 corner = "*"
 tqdm = "*"
 pyyaml = "*"
+emcee = "*"
 
 
 [dev-packages]
