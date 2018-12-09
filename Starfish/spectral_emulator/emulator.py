@@ -6,7 +6,8 @@ import h5py
 import Starfish
 from Starfish.covariance import Sigma, V12, V22, V12m, V22m
 import Starfish.constants as C
-from .pca import PCAGrid, skinny_kron
+from .pca import PCAGrid
+from .utils import skinny_kron
 
 
 class Emulator:
