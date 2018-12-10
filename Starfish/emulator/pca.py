@@ -1,5 +1,6 @@
 import os
 import multiprocessing as mp
+from functools import partial
 
 from sklearn.decomposition import PCA
 from scipy.optimize import minimize
@@ -501,7 +502,6 @@ class PCAGrid:
             self._optimize_emcee(**fit_kwargs)
         else:
             raise ValueError("Did not provide valid method, please choose from ['min', 'emceee']")
-        print('Parameters Found')
 
     def _optimize_min(self):
         """
@@ -513,8 +513,10 @@ class PCAGrid:
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
-        f = lambda p: _neg_ln_posterior(p, self.gparams, self.PhiPhi, self.w_hat, self.M, self.m, self.priors, False)
-        result = minimize(f, p0, callback=print)
+        f = partial(_neg_ln_posterior, gparams=self.gparams, PhiPhi=self.PhiPhi, w_hat=self.w_hat, M=self.M, m=self.m,
+                    priors=self.priors, verbose=False)
+        result = minimize(f, p0)
+        print(result)
         self.eparams = result.x
 
     def _optimize_emcee(self, resume=True, max_iterations=200, max_cpus=24, filename='emcee_progress.hdf5'):
@@ -525,25 +527,29 @@ class PCAGrid:
         nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
 
         # Assemble p0 based off either a guess or the previous state of walkers
-        p0 = []
-        # p0 is a (nwalkers, ndim) array
-        amp = [10.0, 150]
+        try:
+            p0 = np.random.normal(self.eparams, size=(nwalkers, ndim))
+        except:
+            p0 = []
+            # p0 is a (nwalkers, ndim) array
+            amp = [10.0, 150]
 
-        p0.append(np.random.uniform(0.01, 1.0, nwalkers))
-        for i in range(self.m):
-            p0 += [np.random.uniform(amp[0], amp[1], nwalkers)]
-            for s, r in self.priors:
-                # Draw randomly from the gamma priors
-                p0 += [np.random.gamma(s, 1. / r, nwalkers)]
+            p0.append(np.random.uniform(0.01, 1.0, nwalkers))
+            for i in range(self.m):
+                p0 += [np.random.uniform(amp[0], amp[1], nwalkers)]
+                for s, r in self.priors:
+                    # Draw randomly from the gamma priors
+                    p0 += [np.random.gamma(s, 1. / r, nwalkers)]
 
-        p0 = np.array(p0).T
+            p0 = np.array(p0).T
 
         backend = emcee.backends.HDFBackend(filename)
         # If we want to start from scratch need to reset backend
         if not resume:
             backend.reset(nwalkers, ndim)
 
-        f = lambda p: _ln_posterior(p, self.gparams, self.PhiPhi, self.w_hat, self.M, self.m, self.priors, False)
+        f = partial(_ln_posterior, gparams=self.gparams, PhiPhi=self.PhiPhi, w_hat=self.w_hat, M=self.M, m=self.m,
+                    priors=self.priors, verbose=False)
 
         if mp.cpu_count() > max_cpus:
             processes = max_cpus
