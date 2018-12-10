@@ -2,7 +2,7 @@
 Spectral Emulator
 =================
 
-.. py:module:: Starfish.spectral_emulator
+.. py:module:: Starfish.emulator
    :synopsis: Return a probability distribution over possible interpolated spectra.
 
 The spectral emulator can be likened to the engine behind *Starfish*. While the novelty of *Starfish* comes from using Gaussian processes to model and account for the covariances of spectral fits, we still need a way to produce model spectra by interpolating from our synthetic library. While we could interpolate spectra from the synthetic library using something like linear interpolation in each of the library parameters, it turns out that high signal-to-noise data requires something more sophisticated. This is because the error in any interpolation can constitute a significant portion of the error budget. This means that there is a chance that non-interpolated spectra (e.g., the parameters of the synthetic spectra in the library) might be given preference over any other interpolated spectra, and the posteriors will be peaked at the grid point locations. Because the spectral emulator returns a probability distribution over possible interpolated spectra, this interpolation error can be quantified and propagated forward into the likelihood calculation.
@@ -23,7 +23,7 @@ PCA basis
 .. code-block:: python
 
     from Starfish.grid_tools import HDF5Interface
-    from Starfish.spectral_emulator import PCAGrid
+    from Starfish.emulator import PCAGrid
 
     # Load the HDF5 interface using the values in config.yaml
     myHDF5 = HDF5Interface()
@@ -46,7 +46,7 @@ Example optimizing using minimization optimizer
 
 .. code-block:: python
 
-    from Starfish.spectral_emulator import PCAGrid
+    from Starfish.emulator import PCAGrid
 
     # Assuming you have already generated the initial PCA file
     pca = PCAGrid.open()
@@ -56,7 +56,7 @@ Example using the ``emcee`` optimizer
 
 .. code-block:: python
 
-    from Starfish.spectral_emulator import PCAGrid
+    from Starfish.emulator import PCAGrid
 
     # Assuming you have already generated the inital PCA file
     pca = PCAGrid.open()
@@ -83,18 +83,38 @@ Model spectrum reconstruction
 =============================
 
 Once the PCAGrid has been optimized, we can finally use the emulator as a means of interpolating spectra. Using the
-emulator is very similar to using a :class:`RawGridInterface`.
+emulator is very similar to using a :class:`GridInterface`.
 
 .. code-block:: python
 
-    from Starfish.spectral_emulator import Emulator
+    from Starfish.emulator import Emulator
 
     emu = Emulator.open()
+    flux = emu.load_flux([7054, 4.0324, 0.01])
+    wl = emu.wl
+
+
+Utility Plotting Methods
+========================
+
+.. autofunction:: plot_reconstructed
+.. autofunction:: plot_eigenspectra
+.. autofunction:: plot_priors
+.. autofunction:: plot_corner
+.. autofunction:: plot_emulator
+
 
 Reference
 =========
+
+Emulator
+--------
+
 .. autoclass:: Emulator
     :members:
+
+PCAGrid
+-------
 
 .. autoclass:: PCAGrid
     :members:
