@@ -44,6 +44,7 @@ def get_w_hat(eigenspectra, fluxes, M):
 
     return PhiPhi.dot(out)
 
+
 def skinny_kron(eigenspectra, M):
     """
     Compute Phi.T.dot(Phi) in a memory efficient manner.
@@ -66,11 +67,55 @@ def skinny_kron(eigenspectra, M):
             out[i, j] = dots[ii, jj]
     return out
 
+
 def _lnprior(x, s, r):
-    return stats.gamma.logpdf(x, s, scale=1/r)
+    return stats.gamma.logpdf(x, s, scale=1 / r)
+
 
 def _prior(x, s, r):
     return np.exp(_lnprior(x, s, r))
+
+
+def _lnprob(self, p, PCA, minim=False):
+    """
+    Calculate the lnprob using Habib's posterior formula for the emulator.
+    """
+    # We don't allow negative parameters.
+    if np.any(p < 0.):
+        if minim:
+            return 1e99
+        else:
+            return -np.inf
+
+    lambda_xi = p[0]
+    # Fold hparams into the new shape
+    hparams = p[1:].reshape((PCA.m, -1))
+
+    # Calculate the prior for parname variables
+    # We have two separate sums here, since hparams is a 2D array
+    # hparams[:, 0] are the amplitudes, so we index i+1 here
+    lnpriors = 0.0
+    for i in range(len(Starfish.parname)):
+        a, r = PCA.priors[i]
+        lnpriors += np.sum(_lnprior(hparams[:, i + 1], a, r))
+
+    h2params = hparams ** 2
+    Sig_w = Sigma(PCA.gparams, h2params)
+    C = (1. / lambda_xi) * PCA.PhiPhi + Sig_w
+    sign, pref = np.linalg.slogdet(C)
+    central = PCA.w_hat.T.dot(np.linalg.solve(C, PCA.w_hat))
+    lnp = -0.5 * (pref + central + PCA.M * PCA.m * np.log(2. * np.pi)) + lnpriors
+
+    print("lam_xi = {}".format(p[0]))
+    print("Hyper Parameters:")
+    [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
+    print("logl = {}".format(lnp), end='\n\n')
+
+    # Negate this when using the fmin algorithm
+    if minim:
+        lnp *= -1
+    return lnp
+
 
 class PCAGrid:
     """
@@ -110,6 +155,9 @@ class PCAGrid:
 
         self.npix = len(self.wl)
         self.M = self.w.shape[1]  # The number of spectra in the synthetic grid
+        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
+        self.priors = Starfish.PCA["priors"]
+
 
     @classmethod
     def create(cls, interface, ncomp=None):
@@ -347,6 +395,73 @@ class PCAGrid:
 
         return recon_fluxes
 
+    @property
+    def eparams(self):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            try:
+                return hdf5["eparams"]
+            except:
+                raise AttributeError("The grid has not been optimized. Please use `PCAGrid.optimize` before trying to "
+                                     "access eparams.")
+
+    @eparams.setter
+    def eparams(self, params):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            if "eparams" in hdf5:
+                hdf5["eparams"][:] = params
+            else:
+                hdf5.create_dataset("eparams", data=params, compression="gzip", compression_opts=9)
+
+    @property
+    def emcee_chain(self):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            try:
+                return hdf5["emcee"]["chain"]
+            except:
+                raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
+                                     "emcee method before trying to access.")
+
+    @emcee_chain.setter
+    def emcee_chain(self, chain):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            if "emcee" in hdf5:
+                emcee_group = hdf5["emcee"]
+            else:
+                emcee_group = hdf5.create_group("emcee")
+
+            if "chain" in emcee_group:
+                emcee_group["chain"][:] = chain
+            else:
+                emcee_group.create_dataset("chain", data=chain, compression="gzip", compression_opts=9)
+
+    @property
+    def emcee_walkers(self):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            try:
+                return hdf5["emcee"]["walkers"]
+            except:
+                raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
+                                     "emcee method before trying to access.")
+
+    @emcee_walkers.setter
+    def emcee_walkers(self, pos):
+        filename = os.path.expandvars(Starfish.PCA["path"])
+        with h5py.File(filename, "r+") as hdf5:
+            if "emcee" in hdf5:
+                emcee_group = hdf5["emcee"]
+            else:
+                emcee_group = hdf5.create_group("emcee")
+
+            if "walkers" in emcee_group:
+                emcee_group["walkers"][:] = pos
+            else:
+                emcee_group.create_dataset("walkers", data=pos, compression="gzip", compression_opts=9)
+
     def optimize(self, method='min', fit_kwargs=None):
         """
         Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
@@ -379,63 +494,17 @@ class PCAGrid:
             pca.optimize(method='emcee', nburn=100, nsamples=400)
 
         .. warning::
-            This optimization may take a very long time to run (multiple hours). We recommend running the code on a server
-            and running it in the background. For each PCAGrid you only have to optimize once, thankfully.
+            This optimization may take a very long time to run (multiple hours). We recommend running the code on a
+            server and running it in the background. For each PCAGrid you only have to optimize once, thankfully.
         """
-        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
-        self.priors = Starfish.PCA["priors"]
-
         print('Starting optimization...')
         if method == 'min':
-            self._optimize_min(**fit_kwargs)
+            self._optimize_min()
         elif method == 'emcee':
             self._optimize_emcee(**fit_kwargs)
         else:
             raise ValueError("Did not provide valid method, please choose from ['min', 'emceee']")
         print('Parameters Found')
-
-    def _lnprob(self, p, minim=False):
-        """
-        The log-likelihood method for use in optimization
-        :param p: Gaussian Processes hyper-parameters
-        :type p: 1D np.array
-        Calculate the lnprob using Habib's posterior formula for the emulator.
-        """
-        # We don't allow negative parameters.
-        if np.any(p < 0.):
-            if minim:
-                return 1e99
-            else:
-                return -np.inf
-
-        lambda_xi = p[0]
-        # Fold hparams into the new shape
-        hparams = p[1:].reshape((self.m, -1))
-
-        # Calculate the prior for parname variables
-        # We have two separate sums here, since hparams is a 2D array
-        # hparams[:, 0] are the amplitudes, so we index i+1 here
-        lnpriors = 0.0
-        for i in range(len(Starfish.parname)):
-            a, r = self.priors[i]
-            lnpriors += np.sum(_lnprior(hparams[:, i + 1], a, r))
-
-        h2params = hparams ** 2
-        Sig_w = Sigma(self.gparams, h2params)
-        C = (1. / lambda_xi) * self.PhiPhi + Sig_w
-        sign, pref = np.linalg.slogdet(C)
-        central = self.w_hat.T.dot(np.linalg.solve(C, self.w_hat))
-        lnp = -0.5 * (pref + central + self.M * self.m * np.log(2. * np.pi)) + lnpriors
-
-        print("lam_xi = {}".format(p[0]))
-        print("Hyper Parameters:")
-        [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
-        print("logl = {}".format(lnp), end='\n\n')
-
-        # Negate this when using the fmin algorithm
-        if minim:
-            lnp *= -1
-        return lnp
 
     def _optimize_min(self):
         """
@@ -447,20 +516,9 @@ class PCAGrid:
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
-        result = minimize(self._lnprob, p0, args=(True,))
+        result = minimize(_lnprob, p0, args=(self, True))
 
-        eparams = result.x
-
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        hdf5 = h5py.File(filename, "r+")
-
-        # check to see whether the dataset already exists
-        if "eparams" in hdf5:
-            hdf5["eparams"][:] = eparams
-        else:
-            hdf5.create_dataset("eparams", data=eparams, compression="gzip", compression_opts=9)
-
-        hdf5.close()
+        self.eparams = result.x
 
     def _optimize_emcee(self, nburn=100, nsamples=100):
         """
@@ -483,7 +541,7 @@ class PCAGrid:
 
         p0 = np.array(p0).T
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, self._lnprob, threads=mp.cpu_count())
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, _lnprob, args=(self, False), threads=mp.cpu_count())
 
         # burn in
         pos, prob, state = sampler.run_mcmc(p0, nburn)
@@ -493,30 +551,6 @@ class PCAGrid:
         # actual run
         pos, prob, state = sampler.run_mcmc(pos, nsamples)
 
-        eparams = np.median(sampler.flatchain, axis=0)
-
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        hdf5 = h5py.File(filename, "r+")
-
-        # check to see whether the dataset already exists
-        if "eparams" in hdf5:
-            hdf5["eparams"][:] = eparams
-        else:
-            hdf5.create_dataset("eparams", data=eparams, compression="gzip", compression_opts=9)
-        # check to see whether the dataset already exists
-        if "emcee" in hdf5:
-            emcee_group = hdf5["emcee"]
-        else:
-            emcee_group = hdf5.create_group("emcee")
-
-        if "chain" in emcee_group:
-            emcee_group["chain"][:] = sampler.flatchain
-        else:
-            emcee_group.create_dataset("chain", data=sampler.flatchain, compression="gzip", compression_opts=9)
-
-        if "walkers" in emcee_group:
-            emcee_group["walkers"][:] = pos
-        else:
-            emcee_group.create_dataset("walkers", data=pos, compression="gzip", compression_opts=9)
-
-        hdf5.close()
+        self.eparams = np.median(sampler.flatchain, axis=0)
+        self.emcee_chain = sampler.flatchain
+        self.emcee_walkers = pos

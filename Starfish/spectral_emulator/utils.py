@@ -1,5 +1,6 @@
 import os
 import multiprocessing as mp
+import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ import h5py
 import Starfish
 from Starfish.grid_tools import HDF5Interface
 from .pca import PCAGrid, _prior
+from .emulator import Emulator
 
 
 def plot_reconstructed(show=False, save=True, parallel=True):
@@ -18,6 +20,7 @@ def plot_reconstructed(show=False, save=True, parallel=True):
     :param show: If True, will show each plot. (Default is False)
     :type show: bool
     :param save: If True, will save each plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
+    :type save: bool
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
 
@@ -201,3 +204,139 @@ def plot_corner(show=False, save=True):
         plt.show()
     else:
         plt.close("all")
+
+
+def plot_emulator(show=False, save=True, parallel=True):
+    """
+    Plot the emulator
+
+    :param show: If True, will show each plot. (Default is False)
+    :type show: bool
+    :param save: If True, will save each plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
+    :type save: bool
+    :param parallel: If True, will pool the creation of the plots. (Default is True)
+    :type parallel: bool
+
+    .. warning::
+        It is highly recommended to not show the plots, since the number of grid points can be very large. If you do
+        show these you are prone to crashing your computer.
+    """
+    if not show and not save:
+        raise ValueError("If you don't save OR show the plots nothing will happen.")
+
+    pca_grid = PCAGrid.open()
+
+    # Print out the emulator parameters in an easily-readable format
+    eparams = pca_grid.eparams
+    lambda_xi = eparams[0]
+    hparams = eparams[1:].reshape((pca_grid.m, -1))
+
+    print("Emulator parameters are:")
+    print("lambda_xi", lambda_xi)
+    for row in hparams:
+        print(row)
+
+    emulator = Emulator(pca_grid, eparams)
+
+    # We will want to produce interpolated plots spanning each parameter dimension,
+    # for each eigenspectrum.
+
+    # Create a list of parameter blocks.
+    # Go through each parameter, and create a list of all parameter combination of
+    # the other two parameters.
+    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(Starfish.parname))]
+    blocks = []
+    for ipar, pname in enumerate(Starfish.parname):
+        upars = unique_points.copy()
+        dim = upars.pop(ipar)
+        ndim = len(dim)
+
+        # use itertools.product to create permutations of all possible values
+        par_combos = itertools.product(*upars)
+
+        # Now, we want to create a list of parameters in the original order.
+        for static_pars in par_combos:
+            par_list = []
+            for par in static_pars:
+                par_list.append(par * np.ones((ndim,)))
+
+            # Insert the changing dim in the right location
+            par_list.insert(ipar, dim)
+
+            blocks.append(np.vstack(par_list).T)
+
+    # Now, this function takes a parameter block and plots all of the eigenspectra.
+    npoints = 40  # How many points to include across the active dimension
+    ndraw = 8  # How many draws from the emulator to use
+
+    def plot_block(block):
+        # block specifies the parameter grid points
+        # fblock defines a parameter grid that is finer spaced than the gridpoints
+
+        # Query for the weights at the grid points.
+        ww = np.empty((len(block), pca_grid.m))
+        for i, param in enumerate(block):
+            weights = pca_grid.get_weights(param)
+            ww[i, :] = weights
+
+        # Determine the active dimension by finding the one that has unique > 1
+        uni = np.array([len(np.unique(block[:, i])) for i in range(len(Starfish.parname))])
+        active_dim = np.where(uni > 1)[0][0]
+
+        ublock = block.copy()
+        ablock = ublock[:, active_dim]
+        ublock = np.delete(ublock, active_dim, axis=1)
+        nactive = len(ablock)
+
+        fblock = []
+        for par in ublock[0, :]:
+            # Create a space of the parameter the same length as the active
+            fblock.append(par * np.ones((npoints,)))
+
+        # find min and max of active dim. Create a linspace of `npoints` spanning from
+        # min to max
+        active = np.linspace(ablock[0], ablock[-1], npoints)
+
+        fblock.insert(active_dim, active)
+        fgrid = np.vstack(fblock).T
+
+        # Draw multiple times at the location.
+        weight_draws = []
+        for i in range(ndraw):
+            weight_draws.append(emulator.draw_many_weights(fgrid))
+
+        # Now make all of the plots
+        for eig_i in range(pca_grid.m):
+            fig, ax = plt.subplots(nrows=1, figsize=(6, 6))
+
+            x0 = block[:, active_dim]  # x-axis
+            # Weight values at grid points
+            y0 = ww[:, eig_i]
+            ax.plot(x0, y0, "bo")
+
+            x1 = fgrid[:, active_dim]
+            for i in range(ndraw):
+                y1 = weight_draws[i][:, eig_i]
+                ax.plot(x1, y1)
+
+            ax.set_ylabel(r"$w_{:}$".format(eig_i))
+            ax.set_xlabel(Starfish.parname[active_dim])
+            plt.tight_layout()
+
+            if save:
+                fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(
+                    ["{:.1f}".format(ub) for ub in ublock[0, :]])
+                plotdir = os.path.expandvars(Starfish.config["plotdir"])
+                fig.savefig(os.path.join(plotdir, fstring + ".png"))
+
+    # Create a pool of workers and map the plotting to these.
+    if parallel:
+        with mp.Pool(mp.cpu_count() - 1) as p:
+            p.map(plot_block, blocks)
+    else:
+        map(plot_block, blocks)
+
+    if show:
+        plt.show()
+    else:
+        plt.close('all')
