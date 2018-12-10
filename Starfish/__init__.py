@@ -11,14 +11,15 @@ if not __STARFISH_SETUP__:
     import os
     import warnings
 
-    from .config import Config
+    from ._config import Config
 
     if os.path.exists("config.yaml"):
         config = Config("config.yaml")
     else:
-        base_dir = os.path.dirname(__file__)
+        base_dir = os.path.dirname(os.path.dirname(__file__))
         default = os.path.join(base_dir, "config.yaml")
-        warnings.warn("Using the default config.yaml file located at {0}. This is likely NOT what you want. Please create a similar 'config.yaml' file in your current working directory.".format(default), UserWarning)
+        warnings.warn("Using the default config file located at {}. This is likely NOT what you want. Please "
+                      "create a similar 'config.yaml' file in your current working directory.".format(default), UserWarning)
         config = Config(default)
 
 
