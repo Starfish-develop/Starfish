@@ -49,4 +49,4 @@ if __name__ == '__main__':
     if args.optimize == 'min':
         pca_grid.optimize(method='min')
     elif args.optimize == 'emcee':
-        pca_grid.optimize(method='emcee', nsamples=args.samples)
+        pca_grid.optimize(method='emcee', nburn=int(args.samples / 4), nsamples=args.samples)

@@ -60,7 +60,17 @@ Example using the ``emcee`` optimizer
 
     # Assuming you have already generated the inital PCA file
     pca = PCAGrid.open()
-    pca.optimize(method='emcee', nburn=100, nsamples=400)
+    pca.optimize(method='emcee')
+
+
+You can stop and resume  the optimizer if you are using the ``emcee`` method due to the convenient HDF5 backend
+available in ``emcee>=3.0``. Samplers will automatically resume from their previous state unless told not to. To
+restart the sampler either delete the ``emcee_progress.hdf5`` file that was produced or issue
+
+.. code-block:: python
+
+    pca.optimize(method='emcee', resume=False)
+
 
 .. warning::
     This optimization may take a very long time to run (multiple hours). We recommend running the code on a server

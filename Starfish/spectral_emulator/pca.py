@@ -76,7 +76,7 @@ def _prior(x, s, r):
     return np.exp(_lnprior(x, s, r))
 
 
-def _lnprob(p, PCA, minim=False):
+def _lnprob(p, PCA, minim=False, verbose=False):
     """
     Calculate the lnprob using Habib's posterior formula for the emulator.
     """
@@ -106,10 +106,11 @@ def _lnprob(p, PCA, minim=False):
     central = PCA.w_hat.T.dot(np.linalg.solve(C, PCA.w_hat))
     lnp = -0.5 * (pref + central + PCA.M * PCA.m * np.log(2. * np.pi)) + lnpriors
 
-    print("lam_xi = {}".format(p[0]))
-    print("Hyper Parameters:")
-    [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
-    print("logl = {}".format(lnp), end='\n\n')
+    if verbose:
+        print("lam_xi = {}".format(p[0]))
+        print("Hyper Parameters:")
+        [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
+        print("logl = {}".format(lnp), end='\n\n')
 
     # Negate this when using the fmin algorithm
     if minim:
@@ -512,11 +513,11 @@ class PCAGrid:
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
-        result = minimize(_lnprob, p0, args=(self, True))
+        result = minimize(_lnprob, p0, args=(self, True, True))
 
         self.eparams = result.x
 
-    def _optimize_emcee(self, nburn=100, nsamples=100):
+    def _optimize_emcee(self, resume=False, max_samples=200):
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
@@ -536,20 +537,37 @@ class PCAGrid:
                 p0 += [np.random.gamma(s, 1. / r, nwalkers)]
 
         p0 = np.array(p0).T
+        filename = 'emcee_progress.hdf5'
+        backend = emcee.backends.HDFBackend(filename)
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, _lnprob, args=(self, False), threads=mp.cpu_count())
-
-        # burn in
-        if nburn > 0:
-            pos, prob, state = sampler.run_mcmc(p0, nburn)
-            sampler.reset()
-            print("Burned in")
+        # If we want to start from scratch need to reset backend
+        if resume:
+            max_samples -= len(backend.get_chain(flat=True))
         else:
-            pos = p0
+            backend.reset(nwalkers, ndim)
 
-        # actual run
-        pos, prob, state = sampler.run_mcmc(pos, nsamples)
+        p = mp.Pool()
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, _lnprob, args=(self, False, False), backend=backend, pool=p)
 
-        self.eparams = np.median(sampler.flatchain, axis=0)
-        self.emcee_chain = sampler.flatchain
-        self.emcee_walkers = pos
+        # Set up loop for auto-checking the correlation
+        old_tau = np.inf
+        autocorr = np.empty(max_samples)
+
+        # Using thin_by=5 to only calculate autocorr every 5 samples
+        for sample in sampler.sample(p0, iterations=max_samples, thin_by=5, progress=True):
+            # Get the autocorrelation time. tol=0 avoids getting an error on call
+            tau = sampler.get_autocorr_time(tol=0)
+            autocorr[sampler.iteration] = np.mean(tau)
+            # Check if chain is longer than 50 times the autocorr time
+            converged = np.all(tau * 50 < sampler.iteration)
+            # Check if tau has changed by more than 5% since last check
+            converged &= np.all(np.abs(old_tau - tau) / tau < 0.05)
+            if converged:
+                break
+            old_tau = tau
+
+        p.close()
+        samples = sampler.get_chain(flat=True)
+
+        self.eparams = np.median(samples, axis=0)
+        self.emcee_chain = samples
