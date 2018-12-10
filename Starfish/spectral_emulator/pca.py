@@ -76,7 +76,7 @@ def _prior(x, s, r):
     return np.exp(_lnprior(x, s, r))
 
 
-def _lnprob(self, p, PCA, minim=False):
+def _lnprob(p, PCA, minim=False):
     """
     Calculate the lnprob using Habib's posterior formula for the emulator.
     """
@@ -122,7 +122,7 @@ class PCAGrid:
     Create and query eigenspectra.
     """
 
-    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams):
+    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, filename):
         """
 
         :param wl: wavelength array
@@ -141,6 +141,8 @@ class PCAGrid:
         :type w_hat: 2D np.array (m, M)
         :param gparams: The stellar parameters of the synthetic library
         :type gparams: 2D array of parameters (nspec, nparam)
+        :param filename: The filename associated with this PCA Grid
+        :type filename: str
 
         """
         self.wl = wl
@@ -152,6 +154,7 @@ class PCAGrid:
         self.w = w
         self.w_hat = w_hat
         self.gparams = gparams
+        self.filename = filename
 
         self.npix = len(self.wl)
         self.M = self.w.shape[1]  # The number of spectra in the synthetic grid
@@ -233,9 +236,9 @@ class PCAGrid:
         # Calculate w_hat, Eqn 20 Habib
         w_hat = get_w_hat(eigenspectra, fluxes, M)
 
-        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
+        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, Starfish.PCA["path"])
 
-    def write(self, filename=Starfish.PCA["path"]):
+    def write(self):
         """
         Write the PCA decomposition to an HDF5 file.
 
@@ -244,8 +247,7 @@ class PCAGrid:
 
         """
 
-        filename = os.path.expandvars(filename)
-        hdf5 = h5py.File(filename, "w")
+        hdf5 = h5py.File(self.filename, "w")
 
         hdf5.attrs["dv"] = self.dv
 
@@ -302,7 +304,7 @@ class PCAGrid:
         gdset = hdf5["gparams"]
         gparams = gdset[:]
 
-        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
+        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, filename)
         hdf5.close()
 
         return pcagrid
@@ -397,8 +399,7 @@ class PCAGrid:
 
     @property
     def eparams(self):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             try:
                 return hdf5["eparams"][:]
             except:
@@ -407,8 +408,7 @@ class PCAGrid:
 
     @eparams.setter
     def eparams(self, params):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             if "eparams" in hdf5:
                 hdf5["eparams"][:] = params
             else:
@@ -416,8 +416,7 @@ class PCAGrid:
 
     @property
     def emcee_chain(self):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             try:
                 return hdf5["emcee"]["chain"][:]
             except:
@@ -426,8 +425,7 @@ class PCAGrid:
 
     @emcee_chain.setter
     def emcee_chain(self, chain):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             if "emcee" in hdf5:
                 emcee_group = hdf5["emcee"]
             else:
@@ -440,8 +438,7 @@ class PCAGrid:
 
     @property
     def emcee_walkers(self):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             try:
                 return hdf5["emcee"]["walkers"][:]
             except:
@@ -450,8 +447,7 @@ class PCAGrid:
 
     @emcee_walkers.setter
     def emcee_walkers(self, pos):
-        filename = os.path.expandvars(Starfish.PCA["path"])
-        with h5py.File(filename, "r+") as hdf5:
+        with h5py.File(self.filename, "r+") as hdf5:
             if "emcee" in hdf5:
                 emcee_group = hdf5["emcee"]
             else:
@@ -462,7 +458,7 @@ class PCAGrid:
             else:
                 emcee_group.create_dataset("walkers", data=pos, compression="gzip", compression_opts=9)
 
-    def optimize(self, method='min', fit_kwargs=None):
+    def optimize(self, method='min', **fit_kwargs):
         """
         Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
         For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator,
