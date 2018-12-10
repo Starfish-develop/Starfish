@@ -13,7 +13,7 @@ from .pca import PCAGrid, _prior
 from .emulator import Emulator
 
 
-def plot_reconstructed(save=True, parallel=True):
+def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=True):
     """
     Plot the reconstructed spectra at each grid point.
 
@@ -21,7 +21,7 @@ def plot_reconstructed(save=True, parallel=True):
     :type parallel: bool
     """
     grid = HDF5Interface()
-    pca_grid = PCAGrid.open()
+    pca_grid = PCAGrid.open(pca_filename)
 
     recon_fluxes = pca_grid.reconstruct_all()
 
@@ -66,7 +66,7 @@ def plot_reconstructed(save=True, parallel=True):
         list(map(plot, data))
 
 
-def plot_eigenspectra(show=False, save=True):
+def plot_eigenspectra(pca_filename=Starfish.PCA["path"], show=False, save=True):
     """
     Plot the eigenspectra for a PCA Grid
 
@@ -77,7 +77,7 @@ def plot_eigenspectra(show=False, save=True):
     """
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
-    pca_grid = PCAGrid.open()
+    pca_grid = PCAGrid.open(pca_filename)
 
     row_height = 3  # in
     margin = 0.5  # in
@@ -125,25 +125,27 @@ def plot_priors(show=False, save=True):
     # Read the priors on each of the parameters from Starfish config.yaml
     priors = Starfish.PCA["priors"]
     plotdir = os.path.expandvars(Starfish.config["plotdir"])
+    fig, axes = plt.subplots(1, len(Starfish.parname), sharey=True, figsize=(4*len(Starfish.parname), 4))
+    axes[0].set_ylabel("Probability")
     for i, par in enumerate(Starfish.parname):
         s, r = priors[i]
         mu = s / r
         x = np.linspace(0.01, 2 * mu)
         prob = _prior(x, s, r)
-        plt.plot(x, prob)
-        plt.xlabel(par)
-        plt.ylabel("Probability")
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(plotdir, "prior_{}.png".format(par)))
+        axes[i].plot(x, prob, label='s={:.2f}, r={:.2f}'.format(s, r))
+        axes[i].axvline(mu, ls='--', c='k', label='$\mu$={:.1f}'.format(mu))
+        axes[i].set_xlabel(par)
+        axes[i].legend()
 
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.05)
     if show:
         plt.show()
-    else:
-        plt.close("all")
+    if save:
+        plt.savefig(os.path.join(plotdir, "prior_{}.png".format(par)))
 
 
-def plot_corner(show=False, save=True):
+def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
     """
     Plot the corner plots for the ``emcee`` PCA hyper parameters
 
@@ -155,11 +157,8 @@ def plot_corner(show=False, save=True):
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
     # Load in file
-    filename = os.path.expandvars(Starfish.PCA["path"])
-    with h5py.File(filename, 'r') as hdf5:
-        flatchain = hdf5["emcee"]["chain"]
-
-    pca_grid = PCAGrid.open()
+    pca_grid = PCAGrid.open(pca_filename)
+    flatchain = pca_grid.emcee_chain
 
     # figure out how many separate triangle plots we need to make
     npar = len(Starfish.parname) + 1
@@ -191,14 +190,14 @@ def plot_corner(show=False, save=True):
         plt.close("all")
 
 
-def plot_emulator(parallel=True):
+def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
     """
     Plot the emulator
 
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
     """
-    pca_grid = PCAGrid.open()
+    pca_grid = PCAGrid.open(pca_filename)
 
     # Print out the emulator parameters in an easily-readable format
     eparams = pca_grid.eparams
