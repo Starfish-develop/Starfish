@@ -1,6 +1,6 @@
 import pytest
 from Starfish.spectrum import *
-from Starfish.grid_tools import *
+from Starfish.config.grid_tools import *
 import numpy as np
 
 class TestRealSpectrum:

@@ -13,10 +13,10 @@ import os
 
 if args.create:
 
-    from Starfish.grid_tools import HDF5Creator
+    from Starfish.config.grid_tools import HDF5Creator
 
     # Specifically import the grid interface and instrument that we want.
-    instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
+    instrument = eval("Starfish.config.grid_tools." + Starfish.data["instruments"][0])()
 
     #If the instrument has an explicit air/vacuum state, use it.  Otherwise assume air.  #Issue 57
     try:
@@ -25,14 +25,14 @@ if args.create:
     except AttributeError:
         air = True
 
-    if (Starfish.data["grid_name"] == "PHOENIX") & (len(Starfish.grid['parname']) == 3):
-        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterfaceNoAlpha")(air=air)
+    if (Starfish.data["grid_name"] == "PHOENIX") & (len(Starfish.config.grid['parname']) == 3):
+        mygrid = eval("Starfish.config.grid_tools." + Starfish.data["grid_name"]+ "GridInterfaceNoAlpha")(air=air)
     else:
-        mygrid = eval("Starfish.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")(air=air)
+        mygrid = eval("Starfish.config.grid_tools." + Starfish.data["grid_name"]+ "GridInterface")(air=air)
 
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
+    hdf5_path = os.path.expandvars(Starfish.config.grid["hdf5_path"])
     creator = HDF5Creator(mygrid, hdf5_path, instrument,
-                          ranges=Starfish.grid["parrange"])
+                          ranges=Starfish.config.grid["parrange"])
 
     creator.process_grid()
 
@@ -41,7 +41,7 @@ if args.plot:
     # Check to make sure the file exists
 
     import os
-    hdf5_path = os.path.expandvars(Starfish.grid["hdf5_path"])
+    hdf5_path = os.path.expandvars(Starfish.config.grid["hdf5_path"])
     if not os.path.exists(hdf5_path):
         print("HDF5 file does not yet exist. Please run `grid.py create` first.")
         import sys
@@ -49,7 +49,7 @@ if args.plot:
 
     import multiprocessing as mp
     import matplotlib.pyplot as plt
-    from Starfish.grid_tools import HDF5Interface
+    from Starfish.config.grid_tools import HDF5Interface
     interface = HDF5Interface()
 
     par_fluxes = zip(interface.grid_points, interface.fluxes)
