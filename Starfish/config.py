@@ -16,10 +16,7 @@ class Config:
             base = yaml.safe_load(f)
             return base[item]
 
-    def __getattribute__(self, item):
-        # Short circuit on filename or else infinite recursion
-        if item == 'filename':
-            return super().__getattribute__(item)
+    def __getattr__(self, item):
         with open(self.filename) as f:
             base = yaml.safe_load(f)
             if item == 'name':
@@ -37,4 +34,4 @@ class Config:
             elif item == 'instruments':
                 return base['instruments']
             else:
-                return super().__getattribute__(item)
+                return super().__getattr__(item)
