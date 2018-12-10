@@ -433,9 +433,9 @@ class PCAGrid:
                 emcee_group = hdf5.create_group("emcee")
 
             if "chain" in emcee_group:
-                emcee_group["chain"][:] = chain
-            else:
-                emcee_group.create_dataset("chain", data=chain, compression="gzip", compression_opts=9)
+                del emcee_group["chain"]
+
+            emcee_group.create_dataset("chain", data=chain, compression="gzip", compression_opts=9)
 
     @property
     def emcee_walkers(self):
@@ -517,7 +517,7 @@ class PCAGrid:
 
         self.eparams = result.x
 
-    def _optimize_emcee(self, resume=False, max_samples=200):
+    def _optimize_emcee(self, resume=True, max_samples=200):
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
@@ -541,9 +541,7 @@ class PCAGrid:
         backend = emcee.backends.HDFBackend(filename)
 
         # If we want to start from scratch need to reset backend
-        if resume:
-            max_samples -= len(backend.get_chain(flat=True))
-        else:
+        if not resume:
             backend.reset(nwalkers, ndim)
 
         p = mp.Pool()
@@ -551,13 +549,11 @@ class PCAGrid:
 
         # Set up loop for auto-checking the correlation
         old_tau = np.inf
-        autocorr = np.empty(max_samples)
 
         # Using thin_by=5 to only calculate autocorr every 5 samples
         for sample in sampler.sample(p0, iterations=max_samples, thin_by=5, progress=True):
             # Get the autocorrelation time. tol=0 avoids getting an error on call
             tau = sampler.get_autocorr_time(tol=0)
-            autocorr[sampler.iteration] = np.mean(tau)
             # Check if chain is longer than 50 times the autocorr time
             converged = np.all(tau * 50 < sampler.iteration)
             # Check if tau has changed by more than 5% since last check

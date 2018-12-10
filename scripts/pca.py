@@ -2,7 +2,7 @@ import argparse
 
 import Starfish
 from Starfish.grid_tools import HDF5Interface
-from Starfish.spectral_emulator import *
+from Starfish.emulator import *
 import os
 
 if __name__ == '__main__':

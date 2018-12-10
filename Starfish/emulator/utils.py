@@ -15,10 +15,16 @@ from .emulator import Emulator
 
 def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=True):
     """
-    Plot the reconstructed spectra at each grid point.
+    Plot the reconstructed spectra and residual at each grid point.
 
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
+
+    Example of a reconstructed spectrum at [7200, 5.5, 0.5]
+
+    .. figure:: assets/PCA_7200.00_5.50_0.50.png
+        :align: center
+        :width: 80%
     """
     grid = HDF5Interface()
     pca_grid = PCAGrid.open(pca_filename)
@@ -74,6 +80,12 @@ def plot_eigenspectra(pca_filename=Starfish.PCA["path"], show=False, save=True):
     :type show: bool
     :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
     :type save: bool
+
+    Example of a deconstructed set of eigenspectra
+
+    .. figure:: assets/eigenspectra.png
+        :align: center
+
     """
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
@@ -113,12 +125,17 @@ def plot_priors(show=False, save=True):
     """
     Plot the gamma priors for the PCA optimization problem.
 
-    .. seealso:: :func:`PCAGrid.optimize`
-
     :param show: If True, will show the plot. (Default is False)
     :type show: bool
     :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
     :type save: bool
+
+    Example prior plot
+
+    .. figure:: assets/prior.png
+        :align: center
+
+    .. seealso:: :func:`PCAGrid.optimize`
     """
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
@@ -153,6 +170,12 @@ def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
     :type show: bool
     :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
     :type save: bool
+
+    Example corner plot
+
+    .. figure:: assets/triangle_0.png
+        :width: 90%
+        :align: center
     """
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
@@ -192,10 +215,16 @@ def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
 
 def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
     """
-    Plot the emulator
+    Plot the optimized fits for the weights of each eigenspectrum for each parameter.
 
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
+
+    Example Plot of the weights for the second eigenspectra for temperature when logg=4.0 and [Fe/H]=-0.5
+
+    .. figure:: assets/w2temp4.0-0.5.png
+        :width: 60%
+        :align: center
     """
     pca_grid = PCAGrid.open(pca_filename)
 
