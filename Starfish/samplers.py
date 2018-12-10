@@ -522,7 +522,7 @@ class StateSampler(Sampler):
 #     def reset(self):
 #         super(GibbsSampler, self).reset()
 #         self._chain = np.empty((0, self.dim))
-#         self._lnprob = np.empty(0)
+#         self._ln_posterior = np.empty(0)
 #
 #     def sample(self, p0, lnprob0=None, randomstate=None, thin=1,
 #                storechain=True, iterations=1, **kwargs):
@@ -576,7 +576,7 @@ class StateSampler(Sampler):
 #             N = int(iterations / thin)
 #             self._chain = np.concatenate((self._chain,
 #                                           np.zeros((N, self.dim))), axis=0)
-#             self._lnprob = np.append(self._lnprob, np.zeros(N))
+#             self._ln_posterior = np.append(self._ln_posterior, np.zeros(N))
 #
 #         i0 = self.iterations
 #         # Use range instead of xrange for python 3 compatability
@@ -615,7 +615,7 @@ class StateSampler(Sampler):
 #             if storechain and i % thin == 0:
 #                 ind = i0 + int(i / thin)
 #                 self._chain[ind, :] = p
-#                 self._lnprob[ind] = lnprob0
+#                 self._ln_posterior[ind] = lnprob0
 #
 #             # Heavy duty iterator action going on right here...
 #             yield p, lnprob0, self.random_state

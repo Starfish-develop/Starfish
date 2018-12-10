@@ -76,46 +76,46 @@ def _prior(x, s, r):
     return np.exp(_lnprior(x, s, r))
 
 
-def _lnprob(p, PCA, minim=False, verbose=False):
+def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
     """
     Calculate the lnprob using Habib's posterior formula for the emulator.
     """
     # We don't allow negative parameters.
     if np.any(p < 0.):
-        if minim:
-            return 1e99
-        else:
-            return -np.inf
+        return -np.inf
 
     lambda_xi = p[0]
     # Fold hparams into the new shape
-    hparams = p[1:].reshape((PCA.m, -1))
+    hparams = p[1:].reshape((m, -1))
 
     # Calculate the prior for parname variables
     # We have two separate sums here, since hparams is a 2D array
     # hparams[:, 0] are the amplitudes, so we index i+1 here
     lnpriors = 0.0
     for i in range(len(Starfish.parname)):
-        a, r = PCA.priors[i]
-        lnpriors += np.sum(_lnprior(hparams[:, i + 1], a, r))
+        s, r = priors[i]
+        lnpriors += np.sum(_lnprior(hparams[:, i + 1], s, r))
 
     h2params = hparams ** 2
-    Sig_w = Sigma(PCA.gparams, h2params)
-    C = (1. / lambda_xi) * PCA.PhiPhi + Sig_w
+    Sig_w = Sigma(gparams, h2params)
+    C = (1. / lambda_xi) * PhiPhi + Sig_w
     sign, pref = np.linalg.slogdet(C)
-    central = PCA.w_hat.T.dot(np.linalg.solve(C, PCA.w_hat))
-    lnp = -0.5 * (pref + central + PCA.M * PCA.m * np.log(2. * np.pi)) + lnpriors
+    central = w_hat.T.dot(np.linalg.solve(C, w_hat))
+    lnp = -0.5 * (pref + central + M * m * np.log(2. * np.pi)) + lnpriors
 
     if verbose:
         print("lam_xi = {}".format(p[0]))
         print("Hyper Parameters:")
-        [print("w{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
+        [print("phi_{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
         print("logl = {}".format(lnp), end='\n\n')
 
-    # Negate this when using the fmin algorithm
-    if minim:
-        lnp *= -1
     return lnp
+
+def _neg_ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
+    if np.any(p < 0):
+        return 1e99
+
+    return -1 * _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose)
 
 
 class PCAGrid:
@@ -513,11 +513,11 @@ class PCAGrid:
         p0 = np.hstack((np.array([1., ]),  # lambda_xi
                         np.hstack([eigpars for _ in range(self.m)])))
 
-        result = minimize(_lnprob, p0, args=(self, True, True))
-
+        f = lambda p: _neg_ln_posterior(p, self.gparams, self.PhiPhi, self.w_hat, self.M, self.m, self.priors, False)
+        result = minimize(f, p0, callback=print)
         self.eparams = result.x
 
-    def _optimize_emcee(self, resume=True, max_samples=200):
+    def _optimize_emcee(self, resume=True, max_iterations=200, max_cpus=24, filename='emcee_progress.hdf5'):
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
@@ -537,32 +537,36 @@ class PCAGrid:
                 p0 += [np.random.gamma(s, 1. / r, nwalkers)]
 
         p0 = np.array(p0).T
-        filename = 'emcee_progress.hdf5'
-        backend = emcee.backends.HDFBackend(filename)
 
+        backend = emcee.backends.HDFBackend(filename)
         # If we want to start from scratch need to reset backend
         if not resume:
             backend.reset(nwalkers, ndim)
 
-        p = mp.Pool()
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, _lnprob, args=(self, False, False), backend=backend, pool=p)
+        f = lambda p: _ln_posterior(p, self.gparams, self.PhiPhi, self.w_hat, self.M, self.m, self.priors, False)
 
-        # Set up loop for auto-checking the correlation
-        old_tau = np.inf
+        if mp.cpu_count() > max_cpus:
+            processes = max_cpus
+        else:
+            processes = mp.cpu_count()
+        with mp.Pool(processes=processes) as pool:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, f, backend=backend, pool=pool)
 
-        # Using thin_by=5 to only calculate autocorr every 5 samples
-        for sample in sampler.sample(p0, iterations=max_samples, thin_by=5, progress=True):
-            # Get the autocorrelation time. tol=0 avoids getting an error on call
-            tau = sampler.get_autocorr_time(tol=0)
-            # Check if chain is longer than 50 times the autocorr time
-            converged = np.all(tau * 50 < sampler.iteration)
-            # Check if tau has changed by more than 5% since last check
-            converged &= np.all(np.abs(old_tau - tau) / tau < 0.05)
-            if converged:
-                break
-            old_tau = tau
+            # Set up loop for auto-checking the correlation
+            old_tau = np.inf
 
-        p.close()
+            # Using thin_by=5 to only calculate autocorr every 5 samples
+            for sample in sampler.sample(p0, iterations=max_iterations, thin_by=5, progress=True):
+                # Get the autocorrelation time. tol=0 avoids getting an error on call
+                tau = sampler.get_autocorr_time(tol=0)
+                # Check if chain is longer than 50 times the autocorr time
+                converged = np.all(tau * 50 < sampler.iteration)
+                # Check if tau has changed by more than 5% since last check
+                converged &= np.all(np.abs(old_tau - tau) / tau < 0.05)
+                if converged:
+                    break
+                old_tau = tau
+
         samples = sampler.get_chain(flat=True)
 
         self.eparams = np.median(samples, axis=0)
