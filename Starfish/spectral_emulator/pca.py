@@ -540,9 +540,12 @@ class PCAGrid:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, _lnprob, args=(self, False), threads=mp.cpu_count())
 
         # burn in
-        pos, prob, state = sampler.run_mcmc(p0, nburn)
-        sampler.reset()
-        print("Burned in")
+        if nburn > 0:
+            pos, prob, state = sampler.run_mcmc(p0, nburn)
+            sampler.reset()
+            print("Burned in")
+        else:
+            pos = p0
 
         # actual run
         pos, prob, state = sampler.run_mcmc(pos, nsamples)
