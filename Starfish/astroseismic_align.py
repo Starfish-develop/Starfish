@@ -84,8 +84,7 @@ mus, C_GP, data_mat = None, None, None
 grid = np.array(Starfish.config["Theta"]["grid"])
 # Now update the parameters for the emulator
 # If pars are outside the grid, Emulator will raise C.ModelError
-emulator.params = grid
-mus, C_GP = emulator.matrix
+mus, C_GP = emulator.get_matrix(grid)
 
 npoly = Starfish.config["cheb_degree"]
 chebyshevSpectrum = ChebyshevSpectrum(dataSpec, 0, npoly=npoly)

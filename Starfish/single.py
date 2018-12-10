@@ -189,8 +189,7 @@ def lnprob(p):
     # Now update the parameters from the emulator
     # If pars are outside the grid, Emulator will raise C.ModelError
     try:
-        emulator.params = grid
-        mus, C_GP = emulator.matrix
+        mus, C_GP = emulator.get_matrix(grid)
     except C.ModelError:
         return -np.inf
 

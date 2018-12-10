@@ -418,8 +418,7 @@ class Order:
 
         # Now update the parameters from the emulator
         # If pars are outside the grid, Emulator will raise C.ModelError
-        self.emulator.params = p.grid
-        self.mus, self.C_GP = self.emulator.matrix
+        self.mus, self.C_GP = self.emulator.get_matrix(p.grid)
 
     def revert_Theta(self):
         '''

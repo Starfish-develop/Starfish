@@ -42,6 +42,33 @@ class Emulator:
         pca_grid = PCAGrid.open(filename)
         return cls(pca_grid, pca_grid.eparams)
 
+    def get_matrix(self, params):
+        """
+        Gets the mu and cov matrix for a given set of params
+
+        :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
+        :type: iterable
+        :return: ``tuple`` of mu, cov
+        """
+        params = np.array(params)
+        # If the pars is outside of the range of emulator values, raise a ModelError
+        if np.any(params < self.min_params) or np.any(params > self.max_params):
+            raise C.ModelError("Querying emulator outside of original PCA parameter range.")
+
+        iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
+        v11 = iPhiPhi + Sigma(self.pca.gparams, self.h2params)
+
+        # Do this according to R&W eqn 2.18, 2.19
+        # Recalculate V12, V21, and V22.
+        v12 = V12(params, self.pca.gparams, self.h2params, self.pca.m)
+        v22 = V22(params, self.h2params, self.pca.m)
+
+        # Recalculate the covariance
+        mu = v12.T.dot(np.linalg.solve(v11, self.pca.w_hat))
+        mu.shape = (-1)
+        sig = v22 - v12.T.dot(np.linalg.solve(v11, v12))
+        return mu, sig
+
     def load_flux(self, params):
         """
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
@@ -63,23 +90,7 @@ class Emulator:
         self.wl = self.pca.wl
 
     def draw_weights(self, params):
-        params = np.array(params)
-        # If the pars is outside of the range of emulator values, raise a ModelError
-        if np.any(params < self.min_params) or np.any(params > self.max_params):
-            raise C.ModelError("Querying emulator outside of original PCA parameter range.")
-
-        iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
-        v11 = iPhiPhi + Sigma(self.pca.gparams, self.h2params)
-
-        # Do this according to R&W eqn 2.18, 2.19
-        # Recalculate V12, V21, and V22.
-        v12 = V12(params, self.pca.gparams, self.h2params, self.pca.m)
-        v22 = V22(params, self.h2params, self.pca.m)
-
-        # Recalculate the covariance
-        mu = v12.T.dot(np.linalg.solve(v11, self.pca.w_hat))
-        mu.shape = (-1)
-        sig = v22 - v12.T.dot(np.linalg.solve(v11, v12))
+        mu, sig = self.get_matrix(params)
 
         return np.random.multivariate_normal(mu, sig)
 
