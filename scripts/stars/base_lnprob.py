@@ -1,6 +1,6 @@
 from Starfish.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
 from Starfish.spectrum import DataSpectrum, Mask
-from Starfish.grid_tools import TRES, HDF5Interface
+from Starfish.config.grid_tools import TRES, HDF5Interface
 from Starfish.emulator import Emulator
 import Starfish.constants as C
 import numpy as np

@@ -59,7 +59,7 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.outdir + Starfish.name + "/run{:0>2}/"
+    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
 
     if run_index == None:
         run_index = 0
@@ -82,8 +82,8 @@ def init_directories(run_index=None):
     shutil.copy("config.yaml", routdir + "config.yaml")
 
     # Create subdirectories
-    for model_number in range(len(Starfish.data["files"])):
-        for order in Starfish.data["orders"]:
+    for model_number in range(len(Starfish.config.data["files"])):
+        for order in Starfish.config.data["orders"]:
             order_dir = routdir + Starfish.specfmt.format(model_number, order)
             print("Creating ", order_dir)
             os.makedirs(order_dir)
@@ -96,18 +96,18 @@ else:
     Starfish.routdir = ""
 
 # list of keys from 0 to (norders - 1)
-order_keys = np.arange(len(Starfish.data["orders"]))
-DataSpectra = [DataSpectrum.open(file, orders=Starfish.data["orders"]) for file in Starfish.data["files"]]
+order_keys = np.arange(len(Starfish.config.data["orders"]))
+DataSpectra = [DataSpectrum.open(file, orders=Starfish.config.data["orders"]) for file in Starfish.config.data["files"]]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 
 #Instruments are provided as one per dataset
-Instruments = [eval("Starfish.grid_tools." + inst)() for inst in Starfish.data["instruments"]]
+Instruments = [eval("Starfish.grid_tools." + inst)() for inst in Starfish.config.data["instruments"]]
 
 masks = Starfish.config.get("mask", None)
 if masks is not None:
     for mask, dataSpec in zip(masks, DataSpectra):
-        myMask = Mask(mask, orders=Starfish.data["orders"])
+        myMask = Mask(mask, orders=Starfish.config.data["orders"])
         dataSpec.add_mask(myMask.masks)
 
 # Set up the logger

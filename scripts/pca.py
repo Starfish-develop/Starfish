@@ -23,7 +23,7 @@ import numpy as np
 import itertools
 import Starfish
 from Starfish import emulator
-from Starfish.grid_tools import HDF5Interface
+from Starfish.config.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid, Gprior, Glnprior, Emulator
 from Starfish.covariance import Sigma
 import os
@@ -107,7 +107,7 @@ if args.plot == "eigenspectra":
 
 if args.plot == "priors":
     # Read the priors on each of the parameters from Starfish config.yaml
-    priors = Starfish.PCA["priors"]
+    priors = Starfish.config.PCA["priors"]
     for i,par in enumerate(Starfish.parname):
         s, r = priors[i]
         mu = s/r
@@ -123,7 +123,7 @@ if args.plot == "priors":
 if args.optimize:
     my_pca = emulator.PCAGrid.open()
     PhiPhi = np.linalg.inv(emulator.skinny_kron(my_pca.eigenspectra, my_pca.M))
-    priors = Starfish.PCA["priors"]
+    priors = Starfish.config.PCA["priors"]
 
     def lnprob(p, fmin=False):
         '''
@@ -391,7 +391,7 @@ if args.store:
         sys.exit()
 
     import h5py
-    filename = os.path.expandvars(Starfish.PCA["path"])
+    filename = os.path.expandvars(Starfish.config.PCA["path"])
     hdf5 = h5py.File(filename, "r+")
 
     # check to see whether the dataset already exists
