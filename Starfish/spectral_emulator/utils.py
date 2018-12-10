@@ -13,23 +13,13 @@ from .pca import PCAGrid, _prior
 from .emulator import Emulator
 
 
-def plot_reconstructed(show=False, save=True, parallel=True):
+def plot_reconstructed(save=True, parallel=True):
     """
     Plot the reconstructed spectra at each grid point.
 
-    :param show: If True, will show each plot. (Default is False)
-    :type show: bool
-    :param save: If True, will save each plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
-    :type save: bool
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
-
-    .. warning::
-        It is highly recommended to not show the reconstructed plots, since the number of grid points can be in the
-        100s. If you do show these you are prone to crashing your computer.
     """
-    if not show and not save:
-        raise ValueError("If you don't save OR show the plots nothing will happen.")
     grid = HDF5Interface()
     pca_grid = PCAGrid.open()
 
@@ -65,20 +55,15 @@ def plot_reconstructed(show=False, save=True, parallel=True):
         name = fmt.format(*[p for p in par])
         ax[0].set_title(name)
         plt.tight_layout()
-        if save:
-            filename = os.path.join(plotdir, "PCA_{}.png".format(name))
-            fig.savefig(filename)
+        filename = os.path.join(plotdir, "PCA_{}.png".format(name))
+        fig.savefig(filename)
+        plt.close()
 
     if parallel:
         with mp.Pool() as p:
             p.map(plot, data)
     else:
-        map(plot, data)
-
-    if show:
-        plt.show()
-    else:
-        plt.close("all")
+        list(map(plot, data))
 
 
 def plot_eigenspectra(show=False, save=True):
@@ -206,24 +191,13 @@ def plot_corner(show=False, save=True):
         plt.close("all")
 
 
-def plot_emulator(show=False, save=True, parallel=True):
+def plot_emulator(parallel=True):
     """
     Plot the emulator
 
-    :param show: If True, will show each plot. (Default is False)
-    :type show: bool
-    :param save: If True, will save each plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
-    :type save: bool
     :param parallel: If True, will pool the creation of the plots. (Default is True)
     :type parallel: bool
-
-    .. warning::
-        It is highly recommended to not show the plots, since the number of grid points can be very large. If you do
-        show these you are prone to crashing your computer.
     """
-    if not show and not save:
-        raise ValueError("If you don't save OR show the plots nothing will happen.")
-
     pca_grid = PCAGrid.open()
 
     # Print out the emulator parameters in an easily-readable format
@@ -323,20 +297,17 @@ def plot_emulator(show=False, save=True, parallel=True):
             ax.set_xlabel(Starfish.parname[active_dim])
             plt.tight_layout()
 
-            if save:
-                fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(
-                    ["{:.1f}".format(ub) for ub in ublock[0, :]])
-                plotdir = os.path.expandvars(Starfish.config["plotdir"])
-                fig.savefig(os.path.join(plotdir, fstring + ".png"))
+            fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(
+                ["{:.1f}".format(ub) for ub in ublock[0, :]])
+            plotdir = os.path.expandvars(Starfish.config["plotdir"])
+            fig.savefig(os.path.join(plotdir, fstring + ".png"))
+            plt.close()
 
     # Create a pool of workers and map the plotting to these.
     if parallel:
         with mp.Pool(mp.cpu_count() - 1) as p:
             p.map(plot_block, blocks)
     else:
-        map(plot_block, blocks)
+        list(map(plot_block, blocks))
 
-    if show:
-        plt.show()
-    else:
-        plt.close('all')
+    plt.close('all')

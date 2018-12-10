@@ -400,7 +400,7 @@ class PCAGrid:
         filename = os.path.expandvars(Starfish.PCA["path"])
         with h5py.File(filename, "r+") as hdf5:
             try:
-                return hdf5["eparams"]
+                return hdf5["eparams"][:]
             except:
                 raise AttributeError("The grid has not been optimized. Please use `PCAGrid.optimize` before trying to "
                                      "access eparams.")
@@ -419,7 +419,7 @@ class PCAGrid:
         filename = os.path.expandvars(Starfish.PCA["path"])
         with h5py.File(filename, "r+") as hdf5:
             try:
-                return hdf5["emcee"]["chain"]
+                return hdf5["emcee"]["chain"][:]
             except:
                 raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
                                      "emcee method before trying to access.")
@@ -443,7 +443,7 @@ class PCAGrid:
         filename = os.path.expandvars(Starfish.PCA["path"])
         with h5py.File(filename, "r+") as hdf5:
             try:
-                return hdf5["emcee"]["walkers"]
+                return hdf5["emcee"]["walkers"][:]
             except:
                 raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
                                      "emcee method before trying to access.")
