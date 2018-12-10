@@ -33,6 +33,7 @@ if sys.version < '3.3':
 # avoid attempting to load components that aren't built yet.  While ugly, it's
 # a lot more robust than what was previously being used.
 builtins.__STARFISH_SETUP__ = True
+import Starfish
 
 # Use this custom class to be able to force numpy installation before using it.
 class CustomBuildExt(build_ext):
@@ -43,7 +44,7 @@ class CustomBuildExt(build_ext):
 
 setup(
         name="Starfish",
-        version="0.1",
+        version=Starfish.__version__,
         author="Ian Czekala",
         author_email="iancze",
         packages=["Starfish"],

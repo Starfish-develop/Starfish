@@ -37,9 +37,9 @@ Starfish requires the following Python packages:
 * pyyaml
 * scikit-learn
 * [emcee](https://github.com/dfm/emcee)
-* [corner.py](https://github.com/dfm/corner.py)
+* [corner](https://github.com/dfm/corner.py)
 
-Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater , obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
+Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
 
 To make sure you are running the correct version of python, start a python interpreter via the system shell and you should see something similar
 
@@ -52,31 +52,61 @@ If your shell says Python 2.x, try using the `python3` command instead of `pytho
 
 ## Installation
 
-For now, we recommended building *Starfish* from source on your machine. Once the features stabilize, there will be an option to install via `pip`.
+For now, we recommended building *Starfish* from source on your machine.
 
-First, if you have not already done so, create a github [user account](https://github.com/) and [install git](http://git-scm.com/downloads) on your computer.
+First, if you have not already done so install [install git](http://git-scm.com/downloads) on your computer.
 
 In order to download a local copy of this repository, ``cd`` to the location where you want it to live and then do
 
-    git clone git@github.com:iancze/Starfish.git
+    git clone https://github.com:iancze/Starfish.git
     cd Starfish
 
-To build the cython extensions
+Now we can install the code. We recommend to install using the develop flag so that you can make modifications to 
+the source code.
+    
+    pip install -e .
 
-    $ python setup.py build_ext --inplace
+If you don't care to download the code and would rather install directly into a virtual environment, you can do so with
 
-Since you may want to edit files during active development, it is best to install in `develop` mode
-
-    $ sudo python setup.py develop
-
-You should now be done. Once the package has stabilized, the `develop` command may change to
-
-    $ sudo python setup.py install
+    pip install git+https://github.com/iancze/Starfiish.git#egg=Starfish
 
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
-
-    >>> import Starfish
-
-If you see a blank line, then the package successfully installed. If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
+```python
+>>> import Starfish
+>>> print(Starfish.__version__)
+'0.1'
+```
+If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 
 Now that you've successfully installed the code, please see the [documentation](http://iancze.github.io/Starfish/current/index.html) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](http://iancze.github.io/Starfish/current/cookbook.html) for a taste of a typical workflow.
+
+
+## Contributing
+If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into 
+making our project better. To get set up in a development environment, it is highly recommended to develop in a 
+virtual environment. If you are a fan of *pipenv* go ahead and set up using
+    
+    pipenv install
+    
+which will automatically process the dependencies from `Pipfile.lock`. If you prefer `conda` go ahead 
+with
+
+    conda create --name starfish
+
+if you are on windows:
+
+    activate starfish
+   
+otherwise
+
+    source activate starfish
+    
+followed by 
+    
+    pip install -r requirements.txt
+    
+Take a look through the [issues](https://github.com/iancze/Starfish/issues) if you are looking for a place to start improving *Starfish*!
+
+## Contributors
+
+See `CONTRIBUTORS.md` for a full list of contributors.
