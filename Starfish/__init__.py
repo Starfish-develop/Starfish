@@ -13,15 +13,15 @@ if not __STARFISH_SETUP__:
 
     from ._config import Config
 
-    if os.path.exists("config.yaml"):
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    default_config_file = os.path.join(base_dir, "config.yaml")
+
+    if os.path.exists("config.yaml") and os.path.abspath("config.yaml") != default_config_file:
         config = Config("config.yaml")
     else:
-        base_dir = os.path.dirname(os.path.dirname(__file__))
-        default = os.path.join(base_dir, "config.yaml")
         warnings.warn("Using the default config file located at {}. This is likely NOT what you want. Please "
-                      "create a similar 'config.yaml' file in your current working directory.".format(default), UserWarning)
-        config = Config(default)
-
-
+                      "create a similar 'config.yaml' file in your current working directory.".format(
+            default_config_file), UserWarning)
+        config = Config(default_config_file)
 
     __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]
