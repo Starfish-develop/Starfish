@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import yaml
 
 from Starfish import config, default_config_file
 
@@ -70,3 +71,18 @@ class TestConfig:
 
     def test_instruments(self):
         assert config.instruments == config.data['instruments']
+
+    def test_lazy_load(self):
+        previous = config.outdir
+        with open(config.filename, 'r+') as f:
+            base = yaml.safe_load(f)
+            base['outdir'] = 'test_output/'
+            yaml.dump(base, f)
+
+        assert config.outdir != previous
+        assert config.outdir == 'test_output/'
+
+        with open(config.filename, 'r+') as f:
+            base = yaml.safe_load(f)
+            base['outdir'] = previous
+            yaml.dump(base, f)
