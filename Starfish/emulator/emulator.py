@@ -69,18 +69,25 @@ class Emulator:
         sig = v22 - v12.T.dot(np.linalg.solve(v11, v12))
         return mu, sig
 
-    def load_flux(self, params):
+    def load_flux(self, params, return_cov=False):
         """
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
         by sampling from the weight distributions.
 
         :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
         :type: iterable
-        :return: NDarray
+        :param return_cov: If true, will return the covariance matrix for the weights
+        :type return_cov: bool
+        :return: NDarray if return_cov is False, otherwise tuple of (NDarray, NDarray)
         """
         params = np.array(params)
-        weights = self.draw_weights(params)
-        return self.reconstruct(weights)
+        mu, sig = self.get_matrix(params)
+        weights = self.draw_weights(mu, sig)
+        if return_cov:
+            return self.reconstruct(weights), sig
+        else:
+            return self.reconstruct(weights)
+
 
     def determine_chunk_log(self, wl_data):
         """
@@ -89,8 +96,7 @@ class Emulator:
         self.pca.determine_chunk_log(wl_data)
         self.wl = self.pca.wl
 
-    def draw_weights(self, params):
-        mu, sig = self.get_matrix(params)
+    def draw_weights(self, mu, sig):
 
         return np.random.multivariate_normal(mu, sig)
 
