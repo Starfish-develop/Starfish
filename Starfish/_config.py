@@ -20,18 +20,18 @@ class Config:
         with open(self.filename) as f:
             base = yaml.safe_load(f)
             if item == 'name':
-                return base['namen']
+                return base['name']
             elif item == 'outdir':
                 return base['outdir']
             elif item == 'grid':
                 return base['grid']
             elif item == 'parname':
-                return base['parname']
+                return base['grid']['parname']
             elif item == 'PCA':
                 return base['PCA']
             elif item == 'data':
                 return base['data']
             elif item == 'instruments':
-                return base['instruments']
+                return base['data']['instruments']
             else:
                 return super().__getattr__(item)
