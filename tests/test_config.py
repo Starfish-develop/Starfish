@@ -2,14 +2,14 @@ import os
 
 import pytest
 
-from Starfish import config
-
-default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
+from Starfish import config, default_config_file
 
 
 class TestConfig:
 
     def test_default_filename(self):
+        default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
+        assert default_config_file == default_config
         assert os.path.abspath(config.filename) == default_config
 
     @pytest.mark.parametrize('key, value', [
