@@ -10,7 +10,7 @@ default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'confi
 class TestConfig:
 
     def test_default_filename(self):
-        assert config.filename == default_config
+        assert os.path.abspath(config.filename) == default_config
 
     @pytest.mark.parametrize('key, value', [
         ('plotdir', 'plots/'),
