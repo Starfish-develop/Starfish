@@ -31,6 +31,9 @@ class Emulator:
         # self.eigenspectra = self.PCAGrid.eigenspectra
         self.dv = self.pca.dv
         self.wl = self.pca.wl
+        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
+        self.v11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
+
 
     @classmethod
     def open(cls, filename=Starfish.PCA["path"]):
@@ -55,18 +58,14 @@ class Emulator:
         if np.any(params < self.min_params) or np.any(params > self.max_params):
             raise C.ModelError("Querying emulator outside of original PCA parameter range.")
 
-        iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
-        v11 = iPhiPhi + Sigma(self.pca.gparams, self.h2params)
-
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
         v12 = V12(params, self.pca.gparams, self.h2params, self.pca.m)
         v22 = V22(params, self.h2params, self.pca.m)
 
         # Recalculate the covariance
-        mu = v12.T.dot(np.linalg.solve(v11, self.pca.w_hat))
-        mu.shape = (-1)
-        sig = v22 - v12.T.dot(np.linalg.solve(v11, v12))
+        mu = v12.T.dot(np.linalg.solve(self.v11, self.pca.w_hat)).squeeze()
+        sig = v22 - v12.T.dot(np.linalg.solve(self.v11, v12))
         return mu, sig
 
     def load_flux(self, params, return_cov=False):
@@ -111,15 +110,12 @@ class Emulator:
         :param params: multiple parameters to produce weight draws at.
         :type params: 2D np.array
         """
-        iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
-        v11 = iPhiPhi + Sigma(self.pca.gparams, self.h2params)
-
         # Local variables, different from instance attributes
         v12 = V12m(params, self.pca.gparams, self.h2params, self.pca.m)
         v22 = V22m(params, self.h2params, self.pca.m)
 
-        mu = v12.T.dot(np.linalg.solve(v11, self.pca.w_hat))
-        sig = v22 - v12.T.dot(np.linalg.solve(v11, v12))
+        mu = v12.T.dot(np.linalg.solve(self.v11, self.pca.w_hat))
+        sig = v22 - v12.T.dot(np.linalg.solve(self.v11, v12))
 
         weights = np.random.multivariate_normal(mu, sig)
 
