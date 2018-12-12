@@ -44,9 +44,6 @@ class TestConfig:
     def test_grid_keys(self, key, value):
         assert config.grid[key] == value
 
-    def test_parname(self):
-        assert config.parname == config.grid['parname']
-
     def test_PCA(self):
         assert isinstance(config.PCA, dict)
 
@@ -68,9 +65,6 @@ class TestConfig:
     ])
     def test_data_keys(self, key, value):
         assert config.data[key] == value
-
-    def test_instruments(self):
-        assert config.instruments == config.data['instruments']
 
     def test_lazy_load(self):
         previous = config.outdir

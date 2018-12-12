@@ -56,7 +56,7 @@ def plot_reconstructed(pca_filename=config.PCA["path"], save=True, parallel=True
         ax[1].set_xlabel(r"$\lambda$ [AA]")
         ax[1].set_ylabel(r"$f_\lambda$")
 
-        fmt = "=".join(["{:.2f}" for _ in range(len(config.parname))])
+        fmt = "=".join(["{:.2f}" for _ in range(len(config.grid["parname"]))])
         name = fmt.format(*[p for p in par])
         ax[0].set_title(name)
         plt.tight_layout()
@@ -141,9 +141,9 @@ def plot_priors(show=False, save=True):
     # Read the priors on each of the parameters from config.yaml
     priors = config.PCA["priors"]
     plotdir = os.path.expandvars(config["plotdir"])
-    fig, axes = plt.subplots(1, len(config.parname), sharey=True, figsize=(4 * len(config.parname), 4))
+    fig, axes = plt.subplots(1, len(config.grid["parname"]), sharey=True, figsize=(4 * len(config.grid["parname"]), 4))
     axes[0].set_ylabel("Probability")
-    for i, par in enumerate(config.parname):
+    for i, par in enumerate(config.grid["parname"]):
         s, r = priors[i]
         mu = s / r
         x = np.linspace(0.01, 2 * mu)
@@ -183,8 +183,8 @@ def plot_corner(pca_filename=config.PCA["path"], show=False, save=True):
     flatchain = pca_grid.emcee_chain
 
     # figure out how many separate triangle plots we need to make
-    npar = len(config.parname) + 1
-    labels = ["amp"] + config.parname
+    npar = len(config.grid["parname"]) + 1
+    labels = ["amp"] + config.grid["parname"]
 
     # Make a histogram of lambda xi
     plt.hist(flatchain[:, 0], histtype="step", normed=True)
@@ -245,9 +245,9 @@ def plot_emulator(pca_filename=config.PCA["path"], parallel=True):
     # Create a list of parameter blocks.
     # Go through each parameter, and create a list of all parameter combination of
     # the other two parameters.
-    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(config.parname))]
+    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(config.grid["parname"]))]
     blocks = []
-    for ipar, pname in enumerate(config.parname):
+    for ipar, pname in enumerate(config.grid["parname"]):
         upars = unique_points.copy()
         dim = upars.pop(ipar)
         ndim = len(dim)
@@ -281,7 +281,7 @@ def plot_emulator(pca_filename=config.PCA["path"], parallel=True):
             ww[i, :] = weights
 
         # Determine the active dimension by finding the one that has unique > 1
-        uni = np.array([len(np.unique(block[:, i])) for i in range(len(config.parname))])
+        uni = np.array([len(np.unique(block[:, i])) for i in range(len(config.grid["parname"]))])
         active_dim = np.where(uni > 1)[0][0]
 
         ublock = block.copy()
@@ -321,10 +321,10 @@ def plot_emulator(pca_filename=config.PCA["path"], parallel=True):
                 ax.plot(x1, y1)
 
             ax.set_ylabel(r"$w_{:}$".format(eig_i))
-            ax.set_xlabel(config.parname[active_dim])
+            ax.set_xlabel(config.grid["parname"][active_dim])
             plt.tight_layout()
 
-            fstring = "w{:}".format(eig_i) + config.parname[active_dim] + "".join(
+            fstring = "w{:}".format(eig_i) + config.grid["parname"][active_dim] + "".join(
                 ["{:.1f}".format(ub) for ub in ublock[0, :]])
             plotdir = os.path.expandvars(config["plotdir"])
             fig.savefig(os.path.join(plotdir, fstring + ".png"))

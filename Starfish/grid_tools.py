@@ -629,7 +629,7 @@ class HDF5Creator:
         if ranges is None:
             # Programatically define each range to be (-np.inf, np.inf)
             ranges = []
-            for par in config.parname:
+            for par in config.grid["parname"]:
                 ranges.append([-np.inf, np.inf])
 
         self.GridInterface = GridInterface
@@ -743,11 +743,11 @@ class HDF5Creator:
             not be loaded, returns (None, None, None).
 
         '''
-        # assert len(parameters) == len(config.parname), "Must pass numpy array {}".format(config.parname)
+        # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
 
         # If the parameter length is one more than the grid pars,
         # assume this is for vsini convolution
-        if len(parameters) == (len(config.parname) + 1):
+        if len(parameters) == (len(config.grid["parname"]) + 1):
             vsini = parameters[-1]
             parameters = parameters[:-1]
         else:

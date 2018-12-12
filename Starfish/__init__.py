@@ -10,6 +10,7 @@ __version__ = '0.1'
 if not __STARFISH_SETUP__:
     import os
     import warnings
+    import logging
 
     from ._config import Config
 
@@ -23,5 +24,15 @@ if not __STARFISH_SETUP__:
                       "create a similar 'config.yaml' file in your current working directory.".format(
             default_config_file), UserWarning)
         config = Config(default_config_file)
+
+        level = "INFO"
+        log_file = "starfish.log"
+        log_format = ""
+
+    if "log" in config:
+        level = config["log"].get("level", "INFO")
+        log_file = config["log"].get("file", "starfish.log")
+        log_format = config["log"].get("format", "")
+
 
     __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]

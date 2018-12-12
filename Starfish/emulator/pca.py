@@ -93,7 +93,7 @@ def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
     # We have two separate sums here, since hparams is a 2D array
     # hparams[:, 0] are the amplitudes, so we index i+1 here
     lnpriors = 0.0
-    for i in range(len(config.parname)):
+    for i in range(len(config.grid["parname"])):
         s, r = priors[i]
         lnpriors += np.sum(_lnprior(hparams[:, i + 1], s, r))
 
@@ -273,7 +273,7 @@ class PCAGrid:
                                         compression_opts=9)
         w_hatdset[:] = self.w_hat
 
-        gdset = hdf5.create_dataset("gparams", (self.M, len(config.parname)), compression='gzip', dtype="f8",
+        gdset = hdf5.create_dataset("gparams", (self.M, len(config.grid["parname"])), compression='gzip', dtype="f8",
                                     compression_opts=9)
         gdset[:] = self.gparams
 
@@ -525,7 +525,7 @@ class PCAGrid:
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
-        ndim = 1 + (1 + len(config.parname)) * self.m
+        ndim = 1 + (1 + len(config.grid["parname"])) * self.m
         nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
 
         # Assemble p0 based off either a guess or the previous state of walkers
