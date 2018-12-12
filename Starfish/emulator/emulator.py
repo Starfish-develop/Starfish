@@ -1,3 +1,4 @@
+import logging
 import os
 
 import numpy as np
@@ -18,7 +19,8 @@ class Emulator:
         :param eparams: Optimized GP hyperparameters.
         :type eparams: 1D np.array
         """
-
+        self.log = logging.getLogger(self.__name__)
+        self.log.info("Creating emulator based on '{}'".format(pca.filename))
         self.pca = pca
         self.lambda_xi = eparams[0]
         self.h2params = eparams[1:].reshape(self.pca.m, -1) ** 2
@@ -38,6 +40,7 @@ class Emulator:
         """
         Create an Emulator object from an HDF5 file.
         """
+
         # Create the PCAGrid from this filename
         filename = os.path.expandvars(filename)
         pca_grid = PCAGrid.open(filename)
