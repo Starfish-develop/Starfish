@@ -14,4 +14,5 @@ Name, Github ID
 * Kaisey S. Mandel
 * Jason Neal, @jason-neal
 * Meredith Rawls, @mrawls
+* Miles Lucas, @mileslucas
 
