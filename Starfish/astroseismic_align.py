@@ -31,15 +31,15 @@ import yaml
 import shutil
 import json
 
-orders = Starfish.data["orders"]
+orders = Starfish.config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.data["files"][0], orders=Starfish.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
+dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
+instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]
@@ -188,7 +188,7 @@ def generate():
     my_dict = {"wl":wl_shift.tolist(), "data":fl.tolist(), "model":mean_spec.tolist(), "resid":R.tolist(), "sigma":sigma.tolist(), "spectrum_id":0, "order":order}
 
     fname = Starfish.specfmt.format(0, order)
-    f = open(Starfish.name + fname + "spec.json", 'w')
+    f = open(Starfish.config.name + fname + "spec.json", 'w')
     json.dump(my_dict, f, indent=2, sort_keys=True)
     f.close()
 

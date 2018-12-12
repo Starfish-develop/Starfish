@@ -51,7 +51,7 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.outdir + Starfish.name + "/run{:0>2}/"
+    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
 
     if run_index == None:
         run_index = 0
@@ -84,15 +84,15 @@ else:
 # list of keys from 0 to (norders - 1)
 # For now, we will only load one order because we plan on fitting very narrow chunks of the spectrum
 
-orders = Starfish.data["orders"]
+orders = Starfish.config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.data["files"][0], orders=Starfish.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.data["instruments"][0])()
+dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
+instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]

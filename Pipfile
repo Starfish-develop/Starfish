@@ -12,13 +12,16 @@ scipy = "*"
 cython = "*"
 scikit-learn = "*"
 astropy = "*"
-"h5py" = "*"
+h5py = "*"
 corner = "*"
+tqdm = "*"
+pyyaml = "*"
+emcee = "*"
 
 
 [dev-packages]
 
 sphinx = "*"
-pyyaml = "*"
 sphinx-rtd-theme = "*"
 graphviz = "*"
+pytest = "*"
