@@ -25,14 +25,24 @@ if not __STARFISH_SETUP__:
             default_config_file), UserWarning)
         config = Config(default_config_file)
 
-        level = "INFO"
-        log_file = "starfish.log"
-        log_format = ""
+    level = "INFO"
+    log_file = "starfish.log"
+    log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
-    if "log" in config:
-        level = config["log"].get("level", "INFO")
-        log_file = config["log"].get("file", "starfish.log")
-        log_format = config["log"].get("format", "")
+    if "logging" in config:
+        level = config["logging"].get("level", level)
+        log_file = config["logging"].get("file", log_file)
+        log_format = config["logging"].get("format", log_format)
 
+    logging.basicConfig(
+        level=level,
+        format=log_format,
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ],
+    )
+
+    logging.debug("Initialized logger")
 
     __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]

@@ -2,6 +2,10 @@
 
 name: default
 
+logging:
+  level: INFO
+  file: starfish.log
+
 data:
   grid_name: "CIFIST"
   files: ["data.hdf5"]
