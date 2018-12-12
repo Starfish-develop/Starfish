@@ -5,12 +5,15 @@ A Metropolis-Hastings and Gibbs samplers for a state-ful model.
 
 """
 
+import logging
+
+import h5py
 import numpy as np
 from emcee import autocorr
 from emcee.sampler import Sampler
-import logging
-import h5py
+
 from Starfish import constants as C
+
 
 class StateSampler(Sampler):
     """
@@ -49,8 +52,9 @@ class StateSampler(Sampler):
         will be called with the sequence ``lnpostfn(p, *args, **kwargs)``.
 
     """
+
     def __init__(self, lnprob, p0, cov, query_lnprob=None, rejectfn=None,
-        acceptfn=None, debug=False, outdir="", *args, **kwargs):
+                 acceptfn=None, debug=False, outdir="", *args, **kwargs):
         dim = len(p0)
         super().__init__(dim, lnprob, *args, **kwargs)
         self.cov = cov
@@ -156,13 +160,13 @@ class StateSampler(Sampler):
             if diff < 0:
                 diff = np.exp(diff) - self._random.rand()
                 if diff < 0:
-                    #Reject the proposal and revert the state of the model
+                    # Reject the proposal and revert the state of the model
                     self.logger.debug("Proposal rejected")
                     if self.rejectfn is not None:
                         self.rejectfn()
 
             if diff > 0:
-                #Accept the new proposal
+                # Accept the new proposal
                 self.logger.debug("Proposal accepted")
                 p = q
                 lnprob0 = newlnprob
@@ -177,7 +181,7 @@ class StateSampler(Sampler):
 
             # The default of 0 evaluates to False
             if incremental_save:
-                if (((i+1) % incremental_save) == 0) & (i > 0): 
+                if (((i + 1) % incremental_save) == 0) & (i > 0):
                     np.save('chain_backup.npy', self._chain)
 
             # Heavy duty iterator action going on right here...
@@ -225,7 +229,6 @@ class StateSampler(Sampler):
         dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
         dset.attrs["commit"] = "{}".format(C.get_git_commit())
         hdf5.close()
-
 
 # class PSampler(ParallelSampler):
 #     '''

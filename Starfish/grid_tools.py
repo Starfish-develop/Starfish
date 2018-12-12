@@ -1,22 +1,22 @@
-import gc
-import os
 import bz2
-import h5py
+import gc
 import itertools
+import multiprocessing as mp
+import os
 from collections import OrderedDict
 
+import h5py
 import numpy as np
-from numpy.fft import fft, ifft, fftfreq, rfftfreq
 from astropy.io import ascii, fits
-from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
+from numpy.fft import rfftfreq
 from scipy.integrate import trapz
+from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.special import j1
-import multiprocessing as mp
 from tqdm import tqdm
 
-import Starfish
-from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
+from Starfish import config
 from . import constants as C
+from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 
 
 def chunk_list(mylist, n=mp.cpu_count()):
@@ -129,7 +129,7 @@ class RawGridInterface:
 
     '''
 
-    def __init__(self, name, param_names, points, air=True, wl_range=[3000, 13000], base=None):
+    def __init__(self, name, param_names, points, air=True, wl_range=(3000, 13000), base=None):
         self.name = name
 
         self.param_names = param_names
@@ -178,7 +178,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000], base=Starfish.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(3000, 54000), base=config.grid["raw_path"]):
 
         super().__init__(name="PHOENIX",
                          param_names=["temp", "logg", "Z", "alpha"],
@@ -217,7 +217,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
+        self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}"
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
     def load_flux(self, parameters, norm=True):
@@ -284,8 +284,8 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000],
-                 base=Starfish.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(3000, 54000),
+                 base=config.grid["raw_path"]):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
 
@@ -307,7 +307,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
                           {-2 : "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
 
-        self.rname = os.path.join(self.base, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}" \
+        self.rname = os.path.join(self.base, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}"
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
 
@@ -318,8 +318,8 @@ class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
     :type norm: bool
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000],
-                 base=Starfish.grid['raw_path']):
+    def __init__(self, air=True, wl_range=(3000, 54000),
+                 base=config.grid['raw_path']):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
 
@@ -350,7 +350,7 @@ class KuruczGridInterface(RawGridInterface):
     These particular values are roughly the ones appropriate for the Sun.
     '''
 
-    def __init__(self, air=True, wl_range=[5000, 5400], base=Starfish.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(5000, 5400), base=config.grid["raw_path"]):
         super().__init__(name="Kurucz",
                          param_names=["temp", "logg", "Z"],
                          points=[np.arange(3500, 9751, 250),
@@ -432,12 +432,13 @@ class BTSettlGridInterface(RawGridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
 
-    def __init__(self, air=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
+    def __init__(self, air=True, wl_range=(2999, 13000), base="libraries/raw/BTSettl/"):
         super().__init__(name="BTSettl",
-                         points={"temp" : np.arange(3000, 7001, 100),
-                                 "logg" : np.arange(2.5, 5.6, 0.5),
-                                 "Z"    : np.arange(-0.5, 0.6, 0.5),
-                                 "alpha": np.array([0.0])},
+                         param_names=["temp", "logg", "Z", "alpha"],
+                         points=[np.arange(3000, 7001, 100),
+                                 np.arange(2.5, 5.6, 0.5),
+                                 np.arange(-0.5, 0.6, 0.5),
+                                 np.array([0.0])],
                          air=air, wl_range=wl_range, base=base)
 
         # Normalize to 1 solar luminosity?
@@ -445,7 +446,7 @@ class BTSettlGridInterface(RawGridInterface):
         # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
 
-        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08 / C.c_kms)
+        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], dv=0.08 / C.c_kms)
         self.wl = wl_dict['wl']
 
     def load_flux(self, parameters, norm=True):
@@ -454,7 +455,7 @@ class BTSettlGridInterface(RawGridInterface):
         everything is unique, and we're not screwing ourselves with the spline.
         '''
 
-        super().load_file(
+        super().load_flux(
             parameters)  # Check to make sure that the keys are allowed and that the values are in the grid
 
         str_parameters = parameters.copy()
@@ -518,7 +519,7 @@ class CIFISTGridInterface(RawGridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 13000], base=Starfish.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(3000, 13000), base=config.grid["raw_path"]):
         super().__init__(name="CIFIST",
                          points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
                                  np.arange(2.5, 5.6, 0.5)],
@@ -608,7 +609,7 @@ class HDF5Creator:
     '''
 
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-                 key_name=Starfish.grid["key_name"], vsinis=None):
+                 key_name=config.grid["key_name"], vsinis=None):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -628,7 +629,7 @@ class HDF5Creator:
         if ranges is None:
             # Programatically define each range to be (-np.inf, np.inf)
             ranges = []
-            for par in Starfish.parname:
+            for par in config.parname:
                 ranges.append([-np.inf, np.inf])
 
         self.GridInterface = GridInterface
@@ -680,8 +681,8 @@ class HDF5Creator:
         # raise an error.
 
         # inst_min, inst_max = self.Instrument.wl_range
-        wl_min, wl_max = Starfish.grid["wl_range"]
-        buffer = Starfish.grid["buffer"]  # [AA]
+        wl_min, wl_max = config.grid["wl_range"]
+        buffer = config.grid["buffer"]  # [AA]
         wl_min -= buffer
         wl_max += buffer
 
@@ -742,11 +743,11 @@ class HDF5Creator:
             not be loaded, returns (None, None, None).
 
         '''
-        # assert len(parameters) == len(Starfish.parname), "Must pass numpy array {}".format(Starfish.parname)
+        # assert len(parameters) == len(config.parname), "Must pass numpy array {}".format(config.parname)
 
         # If the parameter length is one more than the grid pars,
         # assume this is for vsini convolution
-        if len(parameters) == (len(Starfish.parname) + 1):
+        if len(parameters) == (len(config.parname) + 1):
             vsini = parameters[-1]
             parameters = parameters[:-1]
         else:
@@ -851,12 +852,9 @@ class HDF5Interface:
     Connect to an HDF5 file that stores spectra.
     '''
 
-    def __init__(self, filename=Starfish.grid["hdf5_path"], key_name=Starfish.grid["key_name"]):
+    def __init__(self, filename=config.grid["hdf5_path"], key_name=config.grid["key_name"]):
         '''
         :param filename: the name of the HDF5 file
-        :type param: string
-        :param ranges: optionally select a smaller part of the grid to use.
-        :type ranges: dict
         '''
         self.filename = os.path.expandvars(filename)
         self.key_name = key_name
@@ -994,7 +992,7 @@ class Interpolator:
 
         self.wl = self.interface.wl
         self.dv = self.interface.dv
-        self.npars = len(Starfish.grid["parname"])
+        self.npars = len(config.grid["parname"])
         self._determine_chunk_log(wl)
 
         self.setup_index_interpolators()
@@ -1479,7 +1477,7 @@ class MasterToFITSGridProcessor:
 
         # Create a temporary grid to resample to that matches the bounds of the instrument.
         low, high = self.instrument.wl_range
-        self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, min_vc=0.1)['wl']
+        self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, dv=0.1)['wl']
 
     def process_spectrum_vsini(self, parameters):
         '''

@@ -1,19 +1,18 @@
-import os
-import multiprocessing as mp
 import itertools
+import multiprocessing as mp
+import os
 
-import numpy as np
-import matplotlib.pyplot as plt
 import corner
-import h5py
+import matplotlib.pyplot as plt
+import numpy as np
 
-import Starfish
+from Starfish import config
 from Starfish.grid_tools import HDF5Interface
-from .pca import PCAGrid, _prior
 from .emulator import Emulator
+from .pca import PCAGrid, _prior
 
 
-def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=True):
+def plot_reconstructed(pca_filename=config.PCA["path"], save=True, parallel=True):
     """
     Plot the reconstructed spectra and residual at each grid point.
 
@@ -43,7 +42,7 @@ def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=Tr
 
     data = zip(grid.grid_points, fluxes, recon_fluxes)
 
-    plotdir = os.path.expandvars(Starfish.config["plotdir"])
+    plotdir = os.path.expandvars(config["plotdir"])
 
     # Define the plotting function
     def plot(data):
@@ -57,7 +56,7 @@ def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=Tr
         ax[1].set_xlabel(r"$\lambda$ [AA]")
         ax[1].set_ylabel(r"$f_\lambda$")
 
-        fmt = "=".join(["{:.2f}" for _ in range(len(Starfish.parname))])
+        fmt = "=".join(["{:.2f}" for _ in range(len(config.parname))])
         name = fmt.format(*[p for p in par])
         ax[0].set_title(name)
         plt.tight_layout()
@@ -72,7 +71,7 @@ def plot_reconstructed(pca_filename=Starfish.PCA["path"], save=True, parallel=Tr
         list(map(plot, data))
 
 
-def plot_eigenspectra(pca_filename=Starfish.PCA["path"], show=False, save=True):
+def plot_eigenspectra(pca_filename=config.PCA["path"], show=False, save=True):
     """
     Plot the eigenspectra for a PCA Grid
 
@@ -112,7 +111,7 @@ def plot_eigenspectra(pca_filename=Starfish.PCA["path"], show=False, save=True):
 
     plt.tight_layout()
     fig.subplots_adjust(wspace=0.3, left=0.1, right=0.98, bottom=0.1, top=0.98)
-    plotdir = os.path.expandvars(Starfish.config["plotdir"])
+    plotdir = os.path.expandvars(config["plotdir"])
     if save:
         fig.savefig(os.path.join(plotdir, "eigenspectra.png"))
     if show:
@@ -139,12 +138,12 @@ def plot_priors(show=False, save=True):
     """
     if not show and not save:
         raise ValueError("If you don't save OR show the plots nothing will happen.")
-    # Read the priors on each of the parameters from Starfish config.yaml
-    priors = Starfish.PCA["priors"]
-    plotdir = os.path.expandvars(Starfish.config["plotdir"])
-    fig, axes = plt.subplots(1, len(Starfish.parname), sharey=True, figsize=(4*len(Starfish.parname), 4))
+    # Read the priors on each of the parameters from config.yaml
+    priors = config.PCA["priors"]
+    plotdir = os.path.expandvars(config["plotdir"])
+    fig, axes = plt.subplots(1, len(config.parname), sharey=True, figsize=(4 * len(config.parname), 4))
     axes[0].set_ylabel("Probability")
-    for i, par in enumerate(Starfish.parname):
+    for i, par in enumerate(config.parname):
         s, r = priors[i]
         mu = s / r
         x = np.linspace(0.01, 2 * mu)
@@ -159,10 +158,10 @@ def plot_priors(show=False, save=True):
     if show:
         plt.show()
     if save:
-        plt.savefig(os.path.join(plotdir, "prior_{}.png".format(par)))
+        plt.savefig(os.path.join(plotdir, "prior.png"))
 
 
-def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
+def plot_corner(pca_filename=config.PCA["path"], show=False, save=True):
     """
     Plot the corner plots for the ``emcee`` PCA hyper parameters
 
@@ -184,8 +183,8 @@ def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
     flatchain = pca_grid.emcee_chain
 
     # figure out how many separate triangle plots we need to make
-    npar = len(Starfish.parname) + 1
-    labels = ["amp"] + Starfish.parname
+    npar = len(config.parname) + 1
+    labels = ["amp"] + config.parname
 
     # Make a histogram of lambda xi
     plt.hist(flatchain[:, 0], histtype="step", normed=True)
@@ -193,7 +192,7 @@ def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
     plt.xlabel(r"$\lambda_\xi$")
     plt.ylabel("prob")
     plt.tight_layout()
-    plotdir = os.path.expandvars(Starfish.config["plotdir"])
+    plotdir = os.path.expandvars(config["plotdir"])
     if save:
         plt.savefig(os.path.join(plotdir, "triangle_lambda_xi.png"))
 
@@ -213,7 +212,7 @@ def plot_corner(pca_filename=Starfish.PCA["path"], show=False, save=True):
         plt.close("all")
 
 
-def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
+def plot_emulator(pca_filename=config.PCA["path"], parallel=True):
     """
     Plot the optimized fits for the weights of each eigenspectrum for each parameter.
 
@@ -246,9 +245,9 @@ def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
     # Create a list of parameter blocks.
     # Go through each parameter, and create a list of all parameter combination of
     # the other two parameters.
-    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(Starfish.parname))]
+    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(config.parname))]
     blocks = []
-    for ipar, pname in enumerate(Starfish.parname):
+    for ipar, pname in enumerate(config.parname):
         upars = unique_points.copy()
         dim = upars.pop(ipar)
         ndim = len(dim)
@@ -282,7 +281,7 @@ def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
             ww[i, :] = weights
 
         # Determine the active dimension by finding the one that has unique > 1
-        uni = np.array([len(np.unique(block[:, i])) for i in range(len(Starfish.parname))])
+        uni = np.array([len(np.unique(block[:, i])) for i in range(len(config.parname))])
         active_dim = np.where(uni > 1)[0][0]
 
         ublock = block.copy()
@@ -322,12 +321,12 @@ def plot_emulator(pca_filename=Starfish.PCA["path"], parallel=True):
                 ax.plot(x1, y1)
 
             ax.set_ylabel(r"$w_{:}$".format(eig_i))
-            ax.set_xlabel(Starfish.parname[active_dim])
+            ax.set_xlabel(config.parname[active_dim])
             plt.tight_layout()
 
-            fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(
+            fstring = "w{:}".format(eig_i) + config.parname[active_dim] + "".join(
                 ["{:.1f}".format(ub) for ub in ublock[0, :]])
-            plotdir = os.path.expandvars(Starfish.config["plotdir"])
+            plotdir = os.path.expandvars(config["plotdir"])
             fig.savefig(os.path.join(plotdir, fstring + ".png"))
             plt.close()
 

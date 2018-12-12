@@ -6,40 +6,28 @@
 
 # We could also use emcee to check, later
 
-import os
-import numpy as np
-
-import Starfish
-import Starfish.grid_tools
-from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum, create_mask
-from Starfish.emulator import Emulator
-import Starfish.constants as C
-from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
-from Starfish.model import ThetaParam, PhiParam
-
-from scipy.special import j1
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.linalg import cho_factor, cho_solve
-from numpy.linalg import slogdet
-
 import gc
-import logging
-
-from itertools import chain
-from operator import itemgetter
-import yaml
-import shutil
 import json
+from itertools import chain
 
-orders = Starfish.config.data["orders"]
+import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.special import j1
+
+import Starfish.constants as C
+from Starfish import config
+from Starfish.emulator import Emulator
+from Starfish.spectrum import DataSpectrum, ChebyshevSpectrum
+
+orders = config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
+dataSpec = DataSpectrum.open(config.data["files"][0], orders=config.data["orders"])
+instrument = eval("Starfish.grid_tools." + config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]
@@ -48,8 +36,8 @@ wl = dataSpec.wls[0]
 # ind = (wl > 5165.) & (wl < 5185.)
 # wl = wl[ind]
 #
-fl = dataSpec.fls[0] #[ind]
-sigma = dataSpec.sigmas[0] #[ind]
+fl = dataSpec.fls[0]  # [ind]
+sigma = dataSpec.sigmas[0]  # [ind]
 # mask = dataSpec.masks[0][ind]
 ndata = len(wl)
 
@@ -68,27 +56,28 @@ print("FFT length", len(wl_FFT_orig))
 print(wl_FFT_orig[0], wl_FFT_orig[-1])
 
 # The raw eigenspectra and mean flux components
-EIGENSPECTRA = np.vstack((pca.flux_mean[np.newaxis,:], pca.flux_std[np.newaxis,:], pca.eigenspectra))
+EIGENSPECTRA = np.vstack((pca.flux_mean[np.newaxis, :], pca.flux_std[np.newaxis, :], pca.eigenspectra))
 
 ss = np.fft.rfftfreq(pca.npix, d=emulator.dv)
-ss[0] = 0.01 # junk so we don't get a divide by zero error
+ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-sigma_mat = sigma**2 * np.eye(ndata)
-mus, C_GP, data_mat = None, None, None
+sigma_mat = sigma ** 2 * np.eye(ndata)
+data_mat = None
 
 # For each star
 
 
 # In the config file, list the astroseismic parameters as the starting grid parameters
 # Read this into a ThetaParam object
-grid = np.array(Starfish.config["Theta"]["grid"])
+grid = np.array(config["Theta"]["grid"])
 # Now update the parameters for the emulator
 # If pars are outside the grid, Emulator will raise C.ModelError
 mus, C_GP = emulator.get_matrix(grid)
 
-npoly = Starfish.config["cheb_degree"]
+npoly = config["cheb_degree"]
 chebyshevSpectrum = ChebyshevSpectrum(dataSpec, 0, npoly=npoly)
-chebyshevSpectrum.update(np.array(Starfish.config["chebs"]))
+chebyshevSpectrum.update(np.array(config["chebs"]))
+
 
 def lnprob(p):
     vz, vsini, logOmega = p[:3]
@@ -130,7 +119,10 @@ def lnprob(p):
 
     # Spectrum resample operations
     if min(wl) < min(wl_FFT) or max(wl) > max(wl_FFT):
-        raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(wl), max(wl), min(wl_FFT), max(wl_FFT)))
+        raise RuntimeError(
+            "Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(wl), max(wl),
+                                                                                                      min(wl_FFT),
+                                                                                                      max(wl_FFT)))
 
     # Take the output from the FFT operation (eigenspectra_full), and stuff them
     # into respective data products
@@ -142,7 +134,7 @@ def lnprob(p):
     gc.collect()
 
     # Adjust flux_mean and flux_std by Omega
-    Omega = 10**logOmega
+    Omega = 10 ** logOmega
     flux_mean *= Omega
     flux_std *= Omega
 
@@ -153,8 +145,9 @@ def lnprob(p):
     R = fl - mean_spec
 
     # Evaluate chi2
-    lnp = -0.5 * np.sum((R/sigma)**2)
+    lnp = -0.5 * np.sum((R / sigma) ** 2)
     return [lnp, mean_spec, R]
+
 
 def fprob(p):
     print(p)
@@ -166,17 +159,18 @@ def fprob(p):
 
 
 def optimize():
-    start = Starfish.config["Theta"]
-    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
+    start = config["Theta"]
+    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly - 1)))
     print("p0", p0)
 
     from scipy.optimize import fmin
     p = fmin(fprob, p0, maxiter=10000, maxfun=10000)
     print(p)
 
+
 def generate():
-    start = Starfish.config["Theta"]
-    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
+    start = config["Theta"]
+    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly - 1)))
 
     lnp, mean_spec, R = lnprob(p0)
 
@@ -184,13 +178,12 @@ def generate():
     wl_shift = wl * np.sqrt((C.c_kms - start["vz"]) / (C.c_kms + start["vz"]))
 
     # Write these to JSON
-    my_dict = {"wl":wl_shift.tolist(), "data":fl.tolist(), "model":mean_spec.tolist(), "resid":R.tolist(), "sigma":sigma.tolist(), "spectrum_id":0, "order":order}
+    my_dict = {"wl"   : wl_shift.tolist(), "data": fl.tolist(), "model": mean_spec.tolist(), "resid": R.tolist(),
+               "sigma": sigma.tolist(), "spectrum_id": 0, "order": order}
 
-    fname = Starfish.specfmt.format(0, order)
-    f = open(Starfish.config.name + fname + "spec.json", 'w')
+    fname = config.specfmt.format(0, order)
+    f = open(config.name + fname + "spec.json", 'w')
     json.dump(my_dict, f, indent=2, sort_keys=True)
     f.close()
-
-
 
 # Later on, use the value of RV to shift the residuals back to restframe, and if necessary do some interpolation to resample it.

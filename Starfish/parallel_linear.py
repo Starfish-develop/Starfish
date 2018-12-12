@@ -9,13 +9,19 @@
 # parameters into one place, but I'm open to new suggestions.
 
 import argparse
+
 parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish fitting model in parallel.")
-parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
+parser.add_argument("-r", "--run_index",
+                    help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
 # Even though these arguments aren't being used, we need to add them.
-parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
-parser.add_argument("--initPhi", action="store_true", help="Create *phi.json files for each order using values in config.yaml")
-parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
-parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--generate", action="store_true",
+                    help="Write out the data, mean model, and residuals for each order.")
+parser.add_argument("--initPhi", action="store_true",
+                    help="Create *phi.json files for each order using values in config.yaml")
+parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"],
+                    help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"],
+                    help="Sample the parameters, keeping the alternate set of parameters fixed.")
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
 args = parser.parse_args()
 
@@ -23,31 +29,26 @@ from multiprocessing import Process, Pipe
 import os
 import numpy as np
 
-import Starfish
-import Starfish.grid_tools
+from Starfish import config
 from Starfish.grid_tools import Interpolator, HDF5Interface
 from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
 
 import Starfish.constants as C
 from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
-from Starfish.model import ThetaParam, PhiParam
+from Starfish.model import PhiParam
 
 from scipy.special import j1
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.linalg import cho_factor, cho_solve
-from numpy.linalg import slogdet
-from astropy.stats import sigma_clip
 
 import gc
 import logging
 
-from itertools import chain
 from collections import deque
-from operator import itemgetter
-import yaml
 import shutil
 import json
+
 
 def init_directories(run_index=None):
     '''
@@ -59,7 +60,7 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
+    base = config.outdir + config.name + "/run{:0>2}/"
 
     if run_index == None:
         run_index = 0
@@ -70,7 +71,7 @@ def init_directories(run_index=None):
 
     else:
         routdir = base.format(run_index)
-        #Delete this routdir, if it exists
+        # Delete this routdir, if it exists
         if os.path.exists(routdir):
             print("Deleting", routdir)
             shutil.rmtree(routdir)
@@ -82,37 +83,38 @@ def init_directories(run_index=None):
     shutil.copy("config.yaml", routdir + "config.yaml")
 
     # Create subdirectories
-    for model_number in range(len(Starfish.config.data["files"])):
-        for order in Starfish.config.data["orders"]:
-            order_dir = routdir + Starfish.specfmt.format(model_number, order)
+    for model_number in range(len(config.data["files"])):
+        for order in config.data["orders"]:
+            order_dir = routdir + config.specfmt.format(model_number, order)
             print("Creating ", order_dir)
             os.makedirs(order_dir)
 
     return routdir
 
+
 if args.run_index:
-    Starfish.routdir = init_directories(args.run_index)
+    config.outdir = init_directories(args.run_index)
 else:
-    Starfish.routdir = ""
+    config.outdir = ""
 
 # list of keys from 0 to (norders - 1)
-order_keys = np.arange(len(Starfish.config.data["orders"]))
-DataSpectra = [DataSpectrum.open(file, orders=Starfish.config.data["orders"]) for file in Starfish.config.data["files"]]
+order_keys = np.arange(len(config.data["orders"]))
+DataSpectra = [DataSpectrum.open(file, orders=config.data["orders"]) for file in config.data["files"]]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 
-#Instruments are provided as one per dataset
-Instruments = [eval("Starfish.grid_tools." + inst)() for inst in Starfish.config.data["instruments"]]
+# Instruments are provided as one per dataset
+Instruments = [eval("Starfish.grid_tools." + inst)() for inst in config.data["instruments"]]
 
-masks = Starfish.config.get("mask", None)
+masks = config.get("mask", None)
 if masks is not None:
     for mask, dataSpec in zip(masks, DataSpectra):
-        myMask = Mask(mask, orders=Starfish.config.data["orders"])
+        myMask = Mask(mask, orders=config.data["orders"])
         dataSpec.add_mask(myMask.masks)
 
 # Set up the logger
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
-    Starfish.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
+    config.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
 #
 # def perturb(startingDict, jumpDict, factor=3.):
 #     '''
@@ -129,9 +131,10 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)
 # fix_logg = config.get("fix_logg", None)
 
 # Updating specific covariances to speed mixing
-if Starfish.config.get("use_cov", None):
+if config.get("use_cov", None):
     # Use an emprically determined covariance matrix to for the jumps.
     pass
+
 
 def info(title):
     '''
@@ -157,13 +160,13 @@ class Order:
         self.lnprob = -np.inf
         self.lnprob_last = -np.inf
 
-        self.func_dict = {"INIT": self.initialize,
-                          "DECIDE": self.decide_Theta,
-                          "INST": self.instantiate,
-                          "LNPROB": self.lnprob_Theta,
-                          "GET_LNPROB": self.get_lnprob,
-                          "FINISH": self.finish,
-                          "SAVE": self.save,
+        self.func_dict = {"INIT"         : self.initialize,
+                          "DECIDE"       : self.decide_Theta,
+                          "INST"         : self.instantiate,
+                          "LNPROB"       : self.lnprob_Theta,
+                          "GET_LNPROB"   : self.get_lnprob,
+                          "FINISH"       : self.finish,
+                          "SAVE"         : self.save,
                           "OPTIMIZE_CHEB": self.optimize_Cheb
                           }
 
@@ -202,38 +205,38 @@ class Order:
 
         self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_key))
 
-        self.npoly = Starfish.config["cheb_degree"]
+        self.npoly = config["cheb_degree"]
         self.chebyshevSpectrum = ChebyshevSpectrum(self.dataSpectrum, self.order_key, npoly=self.npoly)
 
         # If the file exists, optionally initiliaze to the chebyshev values
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         if os.path.exists(fname):
             self.logger.debug("Loading stored Chebyshev parameters.")
             phi = PhiParam.load(fname)
             self.chebyshevSpectrum.update(phi.cheb)
 
-        self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
+        self.resid_deque = deque(maxlen=500)  # Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
         self.interpolator = Interpolator(self.wl, HDF5Interface())
-        self.flux = None # Where the interpolator will store the flux
+        self.flux = None  # Where the interpolator will store the flux
 
         self.wl_FFT = self.interpolator.wl
 
         # The raw eigenspectra and mean flux components
 
         self.ss = np.fft.rfftfreq(len(self.wl_FFT), d=self.interpolator.interface.dv)
-        self.ss[0] = 0.01 # junk so we don't get a divide by zero error
+        self.ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-        self.sigma_mat = self.sigma**2 * np.eye(self.ndata)
+        self.sigma_mat = self.sigma ** 2 * np.eye(self.ndata)
 
-        self.lnprior = 0.0 # Modified and set by NuisanceSampler.lnprob
+        self.lnprior = 0.0  # Modified and set by NuisanceSampler.lnprob
 
         # self.nregions = 0
         # self.exceptions = []
 
         # Update the outdir based upon id
-        self.noutdir = Starfish.routdir + "{}/{}/".format(self.spectrum_id, self.order)
+        self.noutdir = config.routdir + "{}/{}/".format(self.spectrum_id, self.order)
 
     def instantiate(self, *args):
         '''
@@ -261,7 +264,7 @@ class Order:
         '''
         try:
             self.update_Theta(p)
-            lnp = self.evaluate() # Also sets self.lnprob to new value
+            lnp = self.evaluate()  # Also sets self.lnprob to new value
             return lnp
         except (C.ModelError, C.InterpolationError):
             self.logger.debug("ModelError in stellar parameters, sending back -np.inf {}".format(p))
@@ -305,7 +308,7 @@ class Order:
         '''
 
         # Dirty hack
-        fix_logg = Starfish.config.get("fix_logg", None)
+        fix_logg = config.get("fix_logg", None)
         if fix_logg is not None:
             p.grid[1] = fix_logg
         print("grid pars are", p.grid)
@@ -346,7 +349,11 @@ class Order:
 
         # Spectrum resample operations
         if min(self.wl) < min(wl_FFT) or max(self.wl) > max(wl_FFT):
-            raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(self.wl), max(self.wl), min(wl_FFT), max(wl_FFT)))
+            raise RuntimeError(
+                "Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(self.wl),
+                                                                                                          max(self.wl),
+                                                                                                          min(wl_FFT),
+                                                                                                          max(wl_FFT)))
 
         # Take the output from the FFT operation and stuff it into the respective data products
         interp = InterpolatedUnivariateSpline(wl_FFT, flux_taper, k=5)
@@ -356,7 +363,7 @@ class Order:
         gc.collect()
 
         # Adjust flux_mean and flux_std by Omega
-        Omega = 10**p.logOmega
+        Omega = 10 ** p.logOmega
         self.flux *= Omega
 
     def revert_Theta(self):
@@ -420,7 +427,8 @@ class Order:
         # Due to a JSON bug, np.int64 type objects will get read twice,
         # and cause this routine to fail. Therefore we have to be careful
         # to convert these to ints.
-        phi = PhiParam(spectrum_id=int(self.spectrum_id), order=int(self.order), fix_c0=self.chebyshevSpectrum.fix_c0, cheb=result)
+        phi = PhiParam(spectrum_id=int(self.spectrum_id), order=int(self.order), fix_c0=self.chebyshevSpectrum.fix_c0,
+                       cheb=result)
         phi.save()
 
     def update_Phi(self, p):
@@ -486,9 +494,9 @@ class Order:
         self.conn = conn
         alive = True
         while alive:
-            #Keep listening for messages put on the Pipe
+            # Keep listening for messages put on the Pipe
             alive = self.interpret()
-            #Once self.interpret() returns `False`, this loop will die.
+            # Once self.interpret() returns `False`, this loop will die.
         self.conn.send("DEAD")
 
     def interpret(self):
@@ -498,9 +506,9 @@ class Order:
         Right now we only expect one function and one argument but this could
         be generalized to **args.
         '''
-        #info("brain")
+        # info("brain")
 
-        fname, arg = self.conn.recv() # Waits here to receive a new message
+        fname, arg = self.conn.recv()  # Waits here to receive a new message
         self.logger.debug("{} received message {}".format(os.getpid(), (fname, arg)))
 
         func = self.func_dict.get(fname, False)
@@ -527,9 +535,11 @@ class Order:
 
         resid = self.fl - self.flux
 
-        my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":self.flux.tolist(), "resid":resid.tolist(), "sigma":self.sigma.tolist(), "spectrum_id":self.spectrum_id, "order":self.order}
+        my_dict = {"wl"   : self.wl.tolist(), "data": self.fl.tolist(), "model": self.flux.tolist(),
+                   "resid": resid.tolist(), "sigma": self.sigma.tolist(), "spectrum_id": self.spectrum_id,
+                   "order": self.order}
 
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order)
+        fname = config.specfmt.format(self.spectrum_id, self.order)
         f = open(fname + "spec.json", 'w')
         json.dump(my_dict, f, indent=2, sort_keys=True)
         f.close()
@@ -555,8 +565,8 @@ class OptimizeCheb(Order):
 
 
 class OptimizePhi(Order):
-    def __init__(self):
-        pass
+    pass
+
 
 class SampleThetaCheb(Order):
     def initialize(self, key):
@@ -566,11 +576,11 @@ class SampleThetaCheb(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        # Set up p0 and the independent sampler
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
         self.p0 = phi.cheb
-        cov = np.diag(Starfish.config["cheb_jump"]**2 * np.ones(len(self.p0)))
+        cov = np.diag(config["cheb_jump"] ** 2 * np.ones(len(self.p0)))
 
         def lnfunc(p):
             # turn this into pars
@@ -593,8 +603,9 @@ class SampleThetaCheb(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
+
 
 class SampleThetaPhi(Order):
 
@@ -606,21 +617,22 @@ class SampleThetaPhi(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        # Set up p0 and the independent sampler
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
         # Set the regions to None, since we don't want to include them even if they
         # are there
         phi.regions = None
 
-        #Loading file that was previously output
+        # Loading file that was previously output
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
-        jump = Starfish.config["Phi_jump"]
+        jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate((config.config["cheb_jump"] ** 2 * np.ones((cheb_len,)),
+                                  np.array([jump["sigAmp"], jump["logAmp"], jump["l"]]) ** 2))
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -631,9 +643,9 @@ class SampleThetaPhi(Order):
 
             cheb = p[0:ind]
             sigAmp = p[ind]
-            ind+=1
+            ind += 1
             logAmp = p[ind]
-            ind+=1
+            ind += 1
             l = p[ind]
 
             par = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
@@ -659,19 +671,20 @@ class SampleThetaPhi(Order):
         if p.sigAmp < 0.1:
             raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
 
-        max_r = 6.0 * p.l # [km/s]
+        max_r = 6.0 * p.l  # [km/s]
 
         # Create a partial function which returns the proper element.
         k_func = make_k_func(p)
 
         # Store the previous data matrix in case we want to revert later
         self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + p.sigAmp*self.sigma_mat
+        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + p.sigAmp * self.sigma_mat
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
+
 
 class SampleThetaPhiLines(Order):
 
@@ -683,8 +696,8 @@ class SampleThetaPhiLines(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        # Set up p0 and the independent sampler
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
         # print("Phi.regions", phi.regions)
@@ -702,13 +715,14 @@ class SampleThetaPhiLines(Order):
         # Then set phi to None
         phi.regions = None
 
-        #Loading file that was previously output
+        # Loading file that was previously output
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
-        jump = Starfish.config["Phi_jump"]
+        jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate((config["cheb_jump"] ** 2 * np.ones((cheb_len,)),
+                                  np.array([jump["sigAmp"], jump["logAmp"], jump["l"]]) ** 2))
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -719,9 +733,9 @@ class SampleThetaPhiLines(Order):
 
             cheb = p[0:ind]
             sigAmp = p[ind]
-            ind+=1
+            ind += 1
             logAmp = p[ind]
-            ind+=1
+            ind += 1
             l = p[ind]
 
             phi = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
@@ -747,18 +761,19 @@ class SampleThetaPhiLines(Order):
         if phi.sigAmp < 0.1:
             raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
 
-        max_r = 6.0 * phi.l # [km/s]
+        max_r = 6.0 * phi.l  # [km/s]
 
         # Create a partial function which returns the proper element.
         k_func = make_k_func(phi)
 
         # Store the previous data matrix in case we want to revert later
         self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + phi.sigAmp*self.sigma_mat + self.region_mat
+        self.data_mat = get_dense_C(self.wl, k_func=k_func,
+                                    max_r=max_r) + phi.sigAmp * self.sigma_mat + self.region_mat
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
 
 
@@ -856,9 +871,9 @@ class SampleThetaPhiLines(Order):
 
 def initialize(model):
     # Fork a subprocess for each key: (spectra, order)
-    pconns = {} # Parent connections
-    cconns = {} # Child connections
-    ps = {} # Process objects
+    pconns = {}  # Parent connections
+    cconns = {}  # Child connections
+    ps = {}  # Process objects
     # Create all of the pipes
     for spectrum_key in spectra_keys:
         for order_key in order_keys:
@@ -874,50 +889,3 @@ def initialize(model):
         pconn.send(("INIT", key))
 
     return (pconns, cconns, ps)
-
-
-def profile_code():
-    '''
-    Test hook designed to be used by cprofile or kernprof. Does not include any
-    network latency from communicating or synchronizing between processes
-    because we run on just one process.
-    '''
-
-    #Evaluate one complete iteration from delivery of stellar parameters from master process
-
-    #Master proposal
-    stellar_Starting.update({"logg":4.29})
-    model.stellar_lnprob(stellar_Starting)
-    #Assume we accepted
-    model.decide_stellar(True)
-
-    #Right now, assumes Kurucz order 23
-
-
-def main():
-
-    # Uncomment these lines to profile
-    # #Initialize the current model for profiling purposes
-    # model.initialize((0, 0))
-    # import cProfile
-    # cProfile.run("profile_code()", "prof")
-    # import sys; sys.exit()
-
-    # Kill all of the orders
-    for pconn in pconns.values():
-        pconn.send(("FINISH", None))
-        pconn.send(("DIE", None))
-
-    # Join on everything and terminate
-    for p in ps.values():
-        p.join()
-        p.terminate()
-
-    import sys;sys.exit()
-
-if __name__=="__main__":
-    main()
-
-# All subprocesses will inherit pipe file descriptors created in the master process.
-# http://www.pushingbits.net/posts/python-multiprocessing-with-pipes/
-# thus, to really close a pipe, you need to close it in every subprocess.

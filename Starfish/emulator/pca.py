@@ -1,17 +1,17 @@
-import os
 import multiprocessing as mp
+import os
 from functools import partial
 
-from sklearn.decomposition import PCA
-from scipy.optimize import minimize
-import scipy.stats as stats
-import numpy as np
 import emcee
 import h5py
-
-import Starfish
-from Starfish.grid_tools import HDF5Interface, determine_chunk_log
+import numpy as np
+import scipy.stats as stats
 from Starfish.covariance import Sigma
+from scipy.optimize import minimize
+from sklearn.decomposition import PCA
+
+from Starfish import config
+from Starfish.grid_tools import HDF5Interface, determine_chunk_log
 
 
 def Phi(eigenspectra, M):
@@ -93,7 +93,7 @@ def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
     # We have two separate sums here, since hparams is a 2D array
     # hparams[:, 0] are the amplitudes, so we index i+1 here
     lnpriors = 0.0
-    for i in range(len(Starfish.parname)):
+    for i in range(len(config.parname)):
         s, r = priors[i]
         lnpriors += np.sum(_lnprior(hparams[:, i + 1], s, r))
 
@@ -111,6 +111,7 @@ def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
         print("logl = {}".format(lnp), end='\n\n')
 
     return lnp
+
 
 def _neg_ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
     if np.any(p < 0):
@@ -161,8 +162,7 @@ class PCAGrid:
         self.npix = len(self.wl)
         self.M = self.w.shape[1]  # The number of spectra in the synthetic grid
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
-        self.priors = Starfish.PCA["priors"]
-
+        self.priors = config.PCA["priors"]
 
     @classmethod
     def create(cls, interface, ncomp=None):
@@ -205,7 +205,7 @@ class PCAGrid:
         # Use the scikit-learn PCA module
         # Automatically select enough components to explain > threshold (say
         # 0.99, or 99%) of the variance.
-        pca = PCA(n_components=Starfish.PCA["threshold"], svd_solver='full')
+        pca = PCA(n_components=config.PCA["threshold"], svd_solver='full')
         pca.fit(fluxes)
         components = pca.components_
         mean = pca.mean_
@@ -215,7 +215,8 @@ class PCAGrid:
             ncomp = len(components)
 
         print("found {} components explaining {:.2f}% of the"
-              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.PCA["threshold"]))
+              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * config.PCA[
+            "threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
 
@@ -238,9 +239,9 @@ class PCAGrid:
         # Calculate w_hat, Eqn 20 Habib
         w_hat = get_w_hat(eigenspectra, fluxes, M)
 
-        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, Starfish.PCA["path"])
+        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, config.PCA["path"])
 
-    def write(self):
+    def write(self, filename=None):
         """
         Write the PCA decomposition to an HDF5 file.
 
@@ -248,8 +249,11 @@ class PCAGrid:
         :type filename: str
 
         """
-
-        hdf5 = h5py.File(self.filename, "w")
+        if filename is None:
+            hdf5 = h5py.File(self.filename, "w")
+        else:
+            self.filename = filename
+            hdf5 = h5py.File(filename, "w")
 
         hdf5.attrs["dv"] = self.dv
 
@@ -269,14 +273,14 @@ class PCAGrid:
                                         compression_opts=9)
         w_hatdset[:] = self.w_hat
 
-        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.parname)), compression='gzip', dtype="f8",
+        gdset = hdf5.create_dataset("gparams", (self.M, len(config.parname)), compression='gzip', dtype="f8",
                                     compression_opts=9)
         gdset[:] = self.gparams
 
         hdf5.close()
 
     @classmethod
-    def open(cls, filename=Starfish.PCA["path"]):
+    def open(cls, filename=config.PCA["path"]):
         """
         Initialize an object using the PCA already stored to an HDF5 file.
 
@@ -311,7 +315,7 @@ class PCAGrid:
 
         return pcagrid
 
-    def determine_chunk_log(self, wl_data, buffer=Starfish.grid["buffer"]):
+    def determine_chunk_log(self, wl_data, buffer=config.grid["buffer"]):
         """
         Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
         response to some data.
@@ -521,7 +525,7 @@ class PCAGrid:
         """
         Optimize the emulator using monte carlo sampling from `emcee`
         """
-        ndim = 1 + (1 + len(Starfish.parname)) * self.m
+        ndim = 1 + (1 + len(config.parname)) * self.m
         nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
 
         # Assemble p0 based off either a guess or the previous state of walkers

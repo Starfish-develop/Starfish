@@ -1,12 +1,14 @@
 # Serial implementation for sampling a single chunk of a spectrum, namely one or two spectroscopic lines.
 
+import argparse
 import multiprocessing as mp
 
-import argparse
 parser = argparse.ArgumentParser(prog="single.py", description="Run Starfish fitting model in parallel.")
-parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
+parser.add_argument("-r", "--run_index",
+                    help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
 # Even though these arguments aren't being used, we need to add them.
-parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for current parameter settings.")
+parser.add_argument("--generate", action="store_true",
+                    help="Write out the data, mean model, and residuals for current parameter settings.")
 # parser.add_argument("--initPhi", action="store_true", help="Create *phi.json files for each order using values in config.yaml")
 parser.add_argument("--optimize", action="store_true", help="Optimize the parameters.")
 parser.add_argument("--sample", action="store_true", help="Sample the parameters.")
@@ -17,29 +19,20 @@ args = parser.parse_args()
 import os
 import numpy as np
 
-import Starfish
+from Starfish import config
 import Starfish.grid_tools
-from Starfish.samplers import StateSampler
-from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum, create_mask
+from Starfish.spectrum import DataSpectrum
 from Starfish.emulator import Emulator
 import Starfish.constants as C
-from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
-from Starfish.model import ThetaParam, PhiParam
 
 from scipy.special import j1
 from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.linalg import cho_factor, cho_solve
-from numpy.linalg import slogdet
 
 import gc
-import logging
 
 from itertools import chain
-from collections import deque
-from operator import itemgetter
-import yaml
 import shutil
-import json
+
 
 def init_directories(run_index=None):
     '''
@@ -51,7 +44,7 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
+    base = config.outdir + config.name + "/run{:0>2}/"
 
     if run_index == None:
         run_index = 0
@@ -62,7 +55,7 @@ def init_directories(run_index=None):
 
     else:
         routdir = base.format(run_index)
-        #Delete this routdir, if it exists
+        # Delete this routdir, if it exists
         if os.path.exists(routdir):
             print("Deleting", routdir)
             shutil.rmtree(routdir)
@@ -73,8 +66,8 @@ def init_directories(run_index=None):
     # Copy yaml file to routdir for archiving purposes
     shutil.copy("config.yaml", routdir + "config.yaml")
 
-
     return routdir
+
 
 if args.run_index:
     Starfish.routdir = init_directories(args.run_index)
@@ -84,25 +77,25 @@ else:
 # list of keys from 0 to (norders - 1)
 # For now, we will only load one order because we plan on fitting very narrow chunks of the spectrum
 
-orders = Starfish.config.data["orders"]
+orders = config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
+dataSpec = DataSpectrum.open(config.data["files"][0], orders=config.data["orders"])
+instrument = eval("Starfish.grid_tools." + config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]
 
 # Truncate these to our shorter range to make it faster
 ind = (wl > 5165.) & (wl < 5185.)
-wl = wl #[ind]
+wl = wl  # [ind]
 
-fl = dataSpec.fls[0] #[ind]
-sigma = dataSpec.sigmas[0] #[ind]
+fl = dataSpec.fls[0]  # [ind]
+sigma = dataSpec.sigmas[0]  # [ind]
 # mask = dataSpec.masks[0] #[ind]
 mask = np.ones_like(wl, dtype="bool")
 ndata = len(wl)
@@ -121,18 +114,17 @@ print("FFT length", len(wl_FFT_orig))
 print(wl_FFT_orig[0], wl_FFT_orig[-1])
 
 # The raw eigenspectra and mean flux components
-EIGENSPECTRA = np.vstack((pca.flux_mean[np.newaxis,:], pca.flux_std[np.newaxis,:], pca.eigenspectra))
+EIGENSPECTRA = np.vstack((pca.flux_mean[np.newaxis, :], pca.flux_std[np.newaxis, :], pca.eigenspectra))
 
 ss = np.fft.rfftfreq(pca.npix, d=emulator.dv)
-ss[0] = 0.01 # junk so we don't get a divide by zero error
+ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-sigma_mat = sigma**2 * np.eye(ndata)
+sigma_mat = sigma ** 2 * np.eye(ndata)
 mus, C_GP, data_mat = None, None, None
 
 
 # This single line will be sampled by emcee
 def lnprob(p):
-
     grid = p[:3]
     vz, vsini, logOmega = p[3:]
 
@@ -170,7 +162,10 @@ def lnprob(p):
 
     # Spectrum resample operations
     if min(wl) < min(wl_FFT) or max(wl) > max(wl_FFT):
-        raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(wl), max(wl), min(wl_FFT), max(wl_FFT)))
+        raise RuntimeError(
+            "Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(wl), max(wl),
+                                                                                                      min(wl_FFT),
+                                                                                                      max(wl_FFT)))
 
     # Take the output from the FFT operation (eigenspectra_full), and stuff them
     # into respective data products
@@ -182,7 +177,7 @@ def lnprob(p):
     gc.collect()
 
     # Adjust flux_mean and flux_std by Omega
-    Omega = 10**logOmega
+    Omega = 10 ** logOmega
     flux_mean *= Omega
     flux_std *= Omega
 
@@ -199,7 +194,7 @@ def lnprob(p):
     R = fl - mean_spec
 
     # Evaluate chi2
-    lnp = -0.5 * np.sum((R[mask]/sigma[mask])**2)
+    lnp = -0.5 * np.sum((R[mask] / sigma[mask]) ** 2)
     return lnp
 
     # Necessary to interpolate over all spectru

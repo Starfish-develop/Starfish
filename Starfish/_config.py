@@ -1,5 +1,6 @@
 import yaml
 
+
 class Config:
     """
     This is a class to allow lazy-loading of config files. This means that the atributes are only read from the file

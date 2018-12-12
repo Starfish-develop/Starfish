@@ -1,11 +1,10 @@
 import os
 
 import numpy as np
-import h5py
-
-import Starfish
 from Starfish.covariance import Sigma, V12, V22, V12m, V22m
+
 import Starfish.constants as C
+from Starfish import config
 from .pca import PCAGrid, skinny_kron
 
 
@@ -34,9 +33,8 @@ class Emulator:
         self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
         self.v11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
 
-
     @classmethod
-    def open(cls, filename=Starfish.PCA["path"]):
+    def open(cls, filename=config.PCA["path"]):
         """
         Create an Emulator object from an HDF5 file.
         """
@@ -92,7 +90,6 @@ class Emulator:
             return self.reconstruct(weights), C
         else:
             return self.reconstruct(weights)
-
 
     def determine_chunk_log(self, wl_data):
         """
