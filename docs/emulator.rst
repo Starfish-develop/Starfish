@@ -39,9 +39,25 @@ Optimizing the emulator
 
 Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
 
-The optimization of the GP hyperparameters is carried out using the `numpy.optimize.fmin` routine in `scripts/emulator/optimize_emulator.py`.
+The optimization of the GP hyperparameters can be carried out using either a minimization method or an MCMC sampler.
+ We provide functionality based on both `scipy.optimize.minimize` and `emcee`
 
-Once optimized, the optimal parameters will be written into the HDF5 file that contains the PCA grid. (Located in config.yaml as PCA["path"]).
+To optimize the code, we will use the :func:`PCAGrid.optimize` routine.
+
+.. code-block:: python
+
+    from Starfish.emulator import PCAGrid
+
+    # Assuming you have already generated the initial PCA file
+    pca = PCAGrid.open()
+    pca.optimize()
+
+.. warning::
+    This optimization may take a very long time to run (multiple hours). We recommend running the code on a server
+    and running it in the background. For each PCAGrid you only have to optimize once, thankfully.
+
+Once optimized, the optimal parameters will be written into the HDF5 file that contains the
+PCA grid. (Located in ``config.yaml`` as ``PCA["path"]``). They are stored under the ``eparams`` key.
 
 Model spectrum reconstruction
 =============================

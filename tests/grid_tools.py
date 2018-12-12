@@ -1,6 +1,6 @@
 import pytest
 
-from Starfish.grid_tools import *
+from Starfish.config.grid_tools import *
 import numpy as np
 from Starfish.spectrum import create_log_lam_grid
 import Starfish.constants as C

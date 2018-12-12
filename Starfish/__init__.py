@@ -1,33 +1,27 @@
-__version__ = '0.1'
-__all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers"]
-
-# Read the users config.yaml file.
-# If it doesn't exist, print a useful help message
-
-import yaml
-
+# We first need to detect if we're being called as part of the numpy setup
+# procedure itself in a reliable manner.
 try:
-    with open("config.yaml") as f:
-        config = yaml.safe_load(f)
-except FileNotFoundError as e:
-    default = __file__[:-11]+"config.yaml"
+    __STARFISH_SETUP__
+except NameError:
+    __STARFISH_SETUP__ = False
+
+__version__ = '0.1'
+
+if not __STARFISH_SETUP__:
+    import os
     import warnings
-    warnings.warn("Using the default config.yaml file located at {0}. This is likely NOT what you want. Please create a similar 'config.yaml' file in your current working directory.".format(default), UserWarning)
-    with open(default) as f:
-         config = yaml.safe_load(f)
 
-# Format string for saving/reading orders
-specfmt = "s{}_o{}"
+    from ._config import Config
 
-# Read the YAML variables into package-level dictionaries to be used by the other programs.
-name = config["name"]
-outdir = config["outdir"]
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    default_config_file = os.path.join(base_dir, "config.yaml")
 
-grid = config["grid"]
-parname = grid["parname"]
+    if os.path.exists("config.yaml") and os.path.abspath("config.yaml") != default_config_file:
+        config = Config("config.yaml")
+    else:
+        warnings.warn("Using the default config file located at {}. This is likely NOT what you want. Please "
+                      "create a similar 'config.yaml' file in your current working directory.".format(
+            default_config_file), UserWarning)
+        config = Config(default_config_file)
 
-# PCA = config["PCA"]
-PCA = config.get("PCA", None)
-
-data = config["data"]
-instruments = data["instruments"]
+    __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]
