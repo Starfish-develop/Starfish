@@ -66,6 +66,7 @@ class TestConfig:
     def test_data_keys(self, key, value):
         assert config.data[key] == value
 
+    @pytest.mark.skip('Need to reimplement to avoid altering default config.yaml')
     def test_lazy_load(self):
         previous = config.outdir
         with open(config.filename, 'r+') as f:
