@@ -381,10 +381,8 @@ class PCAGrid:
         :rtype: NDarray
         """
 
-        f = np.empty((self.m, self.npix))
-        for i, (pcomp, weight) in enumerate(zip(self.eigenspectra, weights)):
-            f[i, :] = pcomp * weight
-        return np.sum(f, axis=0) * self.flux_std + self.flux_mean
+        M = self.eigenspectra.T.dot(weights)
+        return M * self.flux_std + self.flux_mean
 
     def reconstruct_all(self):
         """

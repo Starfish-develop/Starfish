@@ -79,12 +79,18 @@ class Emulator:
         :param return_cov: If true, will return the covariance matrix for the weights
         :type return_cov: bool
         :return: NDarray if return_cov is False, otherwise tuple of (NDarray, NDarray)
+
+        .. warning::
+            When returning the emulator covariance matrix, this is a costly operation and will return a
+            datastructure with (N_pix x N_pix) data points. For now, don't do it.
         """
         params = np.array(params)
         mu, sig = self.get_matrix(params)
         weights = self.draw_weights(mu, sig)
         if return_cov:
-            return self.reconstruct(weights), sig
+            X = self.pca.eigenspectra.T
+            C = np.linalg.multi_dot([X, sig, X.T])
+            return self.reconstruct(weights), C
         else:
             return self.reconstruct(weights)
 
