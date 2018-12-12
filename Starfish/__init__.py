@@ -27,7 +27,7 @@ if not __STARFISH_SETUP__:
 
     level = "INFO"
     log_file = "starfish.log"
-    log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    log_format = "%(asctime)s [PID %(process)d | %(levelname)s | %(name)s] %(message)s"
 
     if "logging" in config:
         level = config["logging"].get("level", level)
@@ -42,7 +42,7 @@ if not __STARFISH_SETUP__:
             logging.StreamHandler()
         ],
     )
-
-    logging.debug("Initialized logger")
+    log = logging.getLogger(__name__)
+    log.info("Initialized logger")
 
     __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]

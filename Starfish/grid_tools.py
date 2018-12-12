@@ -1,6 +1,7 @@
 import bz2
 import gc
 import itertools
+import logging
 import multiprocessing as mp
 import os
 from collections import OrderedDict
@@ -14,9 +15,10 @@ from scipy.interpolate import InterpolatedUnivariateSpline, interp1d
 from scipy.special import j1
 from tqdm import tqdm
 
-from Starfish import config
-from . import constants as C
+from . import config, constants as C
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
+
+log = logging.getLogger(__name__)
 
 
 def chunk_list(mylist, n=mp.cpu_count()):
@@ -95,7 +97,7 @@ def determine_chunk_log(wl, wl_min, wl_max):
 
         ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
     else:
-        print("keeping grid as is")
+        log.info("keeping grid as is")
         ind = np.ones_like(wl, dtype='bool')
 
     assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model" \
@@ -690,7 +692,7 @@ class HDF5Creator:
         # specified grid, raise an error.
         # Instead, let's choose the maximum limit of the synthetic grid?
         if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
-            print(
+            log.warning(
                 "Synthetic grid does not encapsulate chosen wl_range in config.yaml, truncating new grid to extent of synthetic grid, {}, {}".format(
                     self.wl_native[0], self.wl_native[-1]))
             wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
@@ -701,8 +703,8 @@ class HDF5Creator:
         self.wl_FFT = wl_dict["wl"]
         self.dv_FFT = calculate_dv_dict(wl_dict)
 
-        print("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
-        print("wl_FFT dv is {} km/s".format(self.dv_FFT))
+        log.info("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
+        log.info("wl_FFT dv is {} km/s".format(self.dv_FFT))
 
         # The Fourier coordinate
         self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
@@ -791,7 +793,7 @@ class HDF5Creator:
             return (fl_final, header)
 
         except C.GridError as e:
-            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
+            log.exception("No file with parameters {}. C.GridError: {}".format(parameters, e))
             return (None, None)
 
     def process_grid(self):
@@ -815,14 +817,14 @@ class HDF5Creator:
 
         invalid_params = []
 
-        print("Total of {} files to process.".format(len(param_list)))
+        log.info("Total of {} files to process.".format(len(param_list)))
 
         pbar = tqdm(all_params)
         for i, param in enumerate(pbar):
             pbar.set_description("Processing {}".format(param))
             fl, header = self.process_flux(param)
             if fl is None:
-                print("Deleting {} from all params, does not exist.".format(param))
+                log.warning("Deleting {} from all params, does not exist.".format(param))
                 invalid_params.append(i)
                 continue
 
@@ -1039,7 +1041,7 @@ class Interpolator:
             min(self.wl), max(self.wl), wl_min, wl_max)
 
         self.interface.ind = (ind_low, ind_high)
-        print("Wl is {}".format(len(self.wl)))
+        log.info("Wl is {}".format(len(self.wl)))
 
     def __call__(self, parameters):
         '''
@@ -1253,7 +1255,8 @@ def calculate_n(wl):
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
     new_wl = wl / f
     n = wl / new_wl
-    print(n)
+    log.debug(n)
+    return n
 
 
 def vacuum_to_air_SLOAN(wl):
@@ -1422,9 +1425,9 @@ class MasterToFITSIndividual:
             spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate)
             spec.write_to_FITS(out_unit, filename)
         except C.InterpolationError as e:
-            print("{} cannot be interpolated from the grid.".format(parameters))
+            log.exception("{} cannot be interpolated from the grid.".format(parameters))
 
-        print("Processed spectrum {}".format(parameters))
+        log.info("Processed spectrum {}".format(parameters))
 
 
 class MasterToFITSGridProcessor:
@@ -1493,7 +1496,7 @@ class MasterToFITSGridProcessor:
             # Check to see if alpha, otherwise append alpha=0 to the parameter list.
             if not self.alpha:
                 parameters.update({"alpha": 0.0})
-            print(parameters)
+            log.info(parameters)
 
             if parameters["Z"] < 0:
                 zflag = "m"
@@ -1522,7 +1525,7 @@ class MasterToFITSGridProcessor:
                 spec.write_to_FITS(self.flux_unit, filename)
 
         except KeyError as e:
-            print("{} cannot be loaded from the interface.".format(parameters))
+            log.exception("{} cannot be loaded from the interface.".format(parameters))
 
     def process_chunk(self, chunk):
         '''
@@ -1531,7 +1534,7 @@ class MasterToFITSGridProcessor:
         :param chunk: stellar parameter dicts
         :type chunk: 1-D list
         '''
-        print("Process {} processing chunk {}".format(os.getpid(), chunk))
+        log.info("Processing chunk {}".format(os.getpid(), chunk))
         for param in chunk:
             self.process_spectrum_vsini(param)
 
@@ -1539,7 +1542,7 @@ class MasterToFITSGridProcessor:
         '''
         Process all parameters in :attr:`points` to FITS by chopping them into chunks.
         '''
-        print("Total of {} FITS files to create.".format(len(self.vsini_points) * len(self.param_list)))
+        log.info("Total of {} FITS files to create.".format(len(self.vsini_points) * len(self.param_list)))
         chunks = chunk_list(self.param_list, n=self.processes)
         for chunk in chunks:
             p = mp.Process(target=self.process_chunk, args=(chunk,))
@@ -1549,11 +1552,3 @@ class MasterToFITSGridProcessor:
         for p in self.pids:
             # Make sure all threads have finished
             p.join()
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
