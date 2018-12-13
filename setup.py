@@ -64,7 +64,7 @@ setup(
                             'scipy',
                             'cython',
                             'scikit-learn',
-                            'emcee==3.0rc2',
+                            'emcee',
                             'h5py',
                             'corner',
                             'astropy',
