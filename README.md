@@ -68,7 +68,11 @@ the source code.
 
 If you don't care to download the code and would rather install directly into a virtual environment, you can do so with
 
-    pip install git+https://github.com/iancze/Starfiish.git#egg=Starfish
+    pip install git+https://github.com/iancze/Starfiish.git#egg=astrostarfish
+    
+If you'd like to download the `v0.2` version of the code from PyPi,
+
+    pip install astrostarfish 
 
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
 ```python

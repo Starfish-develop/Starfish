@@ -43,12 +43,12 @@ class CustomBuildExt(build_ext):
         return super().run()
 
 setup(
-        name="Starfish",
+        name="astrotarfish",
         version=Starfish.__version__,
         author="Ian Czekala",
         author_email="iancze",
         packages=["Starfish"],
-        url="https://github.com/iancze/Starfish",
+        url="https://github.com/iancze/starfish",
         download_url="https://github.com/iancze/Starfish/archive/master.zip",
         license="BSD",
         description="Covariance tools for fitting stellar spectra",
