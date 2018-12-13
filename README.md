@@ -70,6 +70,10 @@ If you don't care to download the code and would rather install directly into a 
 
     pip install git+https://github.com/iancze/Starfiish.git#egg=Starfish
 
+or 
+
+    pip install astrostarfsih
+
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
 ```python
 >>> import Starfish
