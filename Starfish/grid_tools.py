@@ -161,6 +161,8 @@ class RawGridInterface:
 
         :param parameters: stellar parameters describing a spectrum
         :type parameters: np.array
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
 
          .. note::
 
@@ -172,9 +174,6 @@ class RawGridInterface:
 class PHOENIXGridInterface(RawGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library.
-
-    :param norm: normalize the spectrum to solar luminosity?
-    :type norm: bool
 
     '''
 
@@ -226,6 +225,8 @@ class PHOENIXGridInterface(RawGridInterface):
 
        :param parameters: stellar parameters
        :type parameters: np.array
+       :param norm: normalize the spectrum to solar luminosity?
+       :type norm: bool
 
        :raises C.GridError: if the file cannot be found on disk.
 
@@ -279,9 +280,6 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library.
 
-    :param norm: normalize the spectrum to solar luminosity?
-    :type norm: bool
-
     '''
 
     def __init__(self, air=True, wl_range=[3000, 54000],
@@ -314,8 +312,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library that disregards [Fe/H] as well as alpha.
-    :param norm: normalize the spectrum to solar luminosity?
-    :type norm: bool
+
     '''
 
     def __init__(self, air=True, wl_range=[3000, 54000],
@@ -373,7 +370,9 @@ class KuruczGridInterface(RawGridInterface):
 
         :param parameters: stellar parameters
         :type parameters: dict
-
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
+        
         :raises C.GridError: if the file cannot be found on disk.
 
         :returns: tuple (flux_array, header_dict)
@@ -452,6 +451,12 @@ class BTSettlGridInterface(RawGridInterface):
         '''
         Because of the crazy format of the BTSettl, we need to sort the wl to make sure
         everything is unique, and we're not screwing ourselves with the spline.
+        
+        :param parameters: stellar parameters
+        :type parameters: dict
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
+
         '''
 
         super().load_file(
@@ -535,6 +540,12 @@ class CIFISTGridInterface(RawGridInterface):
         '''
         Because of the crazy format of the BTSettl, we need to sort the wl to make sure
         everything is unique, and we're not screwing ourselves with the spline.
+        
+        :param parameters: stellar parameters
+        :type parameters: dict
+        :param norm: normalize the spectrum to solar luminosity?
+        :type norm: bool
+        
         '''
 
         self.check_params(parameters)
