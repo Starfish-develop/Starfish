@@ -206,8 +206,8 @@ class PHOENIXGridInterface(RawGridInterface):
         try:
             wl_filename = os.path.join(self.base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
             w_full = fits.getdata(wl_filename)
-        except OSError:
-            raise C.GridError("Wavelength file improperly specified.")
+        except:
+            raise ValueError("Wavelength file '{}' improperly specified.".format(wl_filename))
 
         if self.air:
             self.wl_full = vacuum_to_air(w_full)
@@ -251,11 +251,10 @@ class PHOENIXGridInterface(RawGridInterface):
         # Still need to check that file is in the grid, otherwise raise a C.GridError
         # Read all metadata in from the FITS header, and append to spectrum
         try:
-            flux_file = fits.open(fname)
-            f = flux_file[0].data
-            hdr = flux_file[0].header
-            flux_file.close()
-        except OSError:
+            with fits.open(fname) as hdus:
+                f = hdus[0].data
+                hdr = hdus[0].header
+        except:
             raise C.GridError("{} is not on disk.".format(fname))
 
         # If we want to normalize the spectra, we must do it now since later we won't have the full EM range
