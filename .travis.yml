@@ -2,14 +2,12 @@
 
 language: python
 
-matrix:
-  include:
-  # All the versions of Python.
-  - python: 3.3
-  - python: 3.4
-  - python: 3.5
-  - python: 3.6
-  - python: 3.7
+python:
+  - 3.3
+  - 3.4
+  - 3.5
+  - 3.6
+  - 3.7
 
 cache:
   pip: true
