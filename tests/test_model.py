@@ -1,40 +1,52 @@
+import os
+
 import pytest
 
-import Starfish
+from Starfish import config
 from Starfish.model import ThetaParam, PhiParam
 import numpy as np
 
 class TestThetaParam:
-    def setup_class(self):
-        self.thetaparam = ThetaParam(grid=np.array([4000., 4.32, -0.2]),
+
+    @pytest.fixture(scope='class')
+    def thetaparam(self):
+        yield ThetaParam(grid=np.array([4000., 4.32, -0.2]),
         vz=10., vsini=4.0, logOmega=-0.2, Av=0.3)
 
-    def test_save(self):
-        self.thetaparam.save(fname="theta_test.json")
+    @pytest.fixture
+    def saved_file(self, thetaparam, tmpdir):
+        outname = tmpdir.join("theta_test.json")
+        thetaparam.save(fname=outname)
+        yield outname
 
-    def test_load(self):
-        load = ThetaParam.load("theta_test.json")
-        print(load.grid)
-        print(load.vz)
-        print(load.vsini)
-        print(load.logOmega)
-        print(load.Av)
+    def test_load(self, saved_file):
+        loaded = ThetaParam.load(saved_file)
+        np.testing.assert_array_equal(loaded.grid, np.array([4000., 4.32, -0.2]))
+        assert loaded.vz == 10.
+        assert loaded.vsini == 4.
+        assert loaded.logOmega == -0.2
+        assert loaded.Av == 0.3
 
 class TestPhiParam:
-    def setup_class(self):
-        self.phiparam = PhiParam(spectrum_id=0, order=22, fix_c0=True,
+
+    @pytest.fixture(scope='class')
+    def phiparam(self):
+        yield PhiParam(spectrum_id=0, order=22, fix_c0=True,
         cheb=np.zeros((4,)), sigAmp=1.0, logAmp=-5.0, l=20., regions=np.ones((4, 3)))
 
-    def test_save(self):
-        self.phiparam.save(fname="phi_test.json")
+    @pytest.fixture
+    def saved_file(self, phiparam, tmpdir):
+        yield phiparam.save(fname=tmpdir.join("phi_test.json"))
 
-    def test_load(self):
-        load = PhiParam.load(Starfish.specfmt.format(0, 22) + "phi_test.json")
-        print(load.spectrum_id)
-        print(load.order)
-        print(load.fix_c0)
-        print(load.cheb)
-        print(load.sigAmp)
-        print(load.logAmp)
-        print(load.l)
-        print(load.regions)
+    def test_load(self, saved_file):
+        spectrum_id = 0
+        order = 22
+        loaded = PhiParam.load(saved_file)
+        assert loaded.spectrum_id == spectrum_id
+        assert loaded.order == order
+        assert loaded.fix_c0 == True
+        np.testing.assert_array_equal(loaded.cheb, np.zeros((4,)))
+        assert loaded.sigAmp == 1.0
+        assert loaded.logAmp == -5.0
+        assert loaded.l == 20.0
+        np.testing.assert_array_equal(loaded.regions, np.ones((4, 3)))

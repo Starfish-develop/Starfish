@@ -7,19 +7,22 @@ Spectroscopic inference is typically a complicated process, requiring customizat
 Installation
 ============
 
-The source code and installation instructions can be found at the Github repository for Starfish at https://github
-.com/iancze/Starfish but it should be easy enough to run
+The source code and installation instructions can be found at the Github repository for Starfish at
+https://github.com/iancze/Starfish but it should be easy enough to run
 
 .. code-block:: console
 
-    pip install git+https://github.com/iancze/Starfish.git#egg=Starfish
+    pip install astrostarfish
 
-or if you prefer an editable version
+If you prefer to play with some of our new features, check out the develop branch
 
 .. code-block:: console
 
-    git clone https://github.com/iancze/Starfish.git starfish
-    pip install -e starfish
+    pip install git+https://github.com/iancze/Starfish.git@develop#egg=astrostarfish
+
+or if you prefer an editable version just add the ``-e`` flag to ``pip``
+
+
 
 Obtaining model spectra
 ========================
