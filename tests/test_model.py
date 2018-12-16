@@ -15,7 +15,7 @@ class TestThetaParam:
 
     @pytest.fixture
     def saved_file(self, thetaparam, tmpdir):
-        outname = str(tmpdir.join("theta_test.json"))
+        outname = tmpdir.join("theta_test.json")
         thetaparam.save(fname=outname)
         yield outname
 
@@ -36,7 +36,7 @@ class TestPhiParam:
 
     @pytest.fixture
     def saved_file(self, phiparam, tmpdir):
-        yield phiparam.save(fname=str(tmpdir.join("phi_test.json")))
+        yield phiparam.save(fname=tmpdir.join("phi_test.json"))
 
     def test_load(self, saved_file):
         spectrum_id = 0
