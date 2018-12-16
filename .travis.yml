@@ -7,9 +7,7 @@ python:
   - 3.4
   - 3.5
   - 3.6
-  - 3.7
-  sudo: required
-  dist: xenial
+
 
 cache:
   pip: true
@@ -21,7 +19,7 @@ before_install:
   - pip install -U pipenv
 
 install:
-  - pipenv install --deploy -d python=$TRAVIS_PYTHON_VERSION
+  - pipenv install --deploy -d --python $TRAVIS_PYTHON_VERSION
 
 script:
   - pipenv run pytest
