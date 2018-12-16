@@ -12,6 +12,9 @@ Website: http://iancze.github.io/Starfish/
 
 Documentation: http://iancze.github.io/Starfish/current/index.html
 
+Paper: http://arxiv.org/abs/1412.5177
+
+
 Copyright Ian Czekala 2013, 2014, 2015, 2016
 
 `iczekala@cfa.harvard.edu`

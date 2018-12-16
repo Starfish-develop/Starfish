@@ -21,5 +21,8 @@ before_install:
 install:
   - pipenv install --deploy -d --python $TRAVIS_PYTHON_VERSION
 
+before_script:
+  - pipenv run python setup.py build_ext --inplace
+
 script:
   - pipenv run pytest
