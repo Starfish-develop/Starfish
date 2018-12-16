@@ -74,6 +74,10 @@ If you'd like to download the `v0.2` version of the code from PyPi,
 
     pip install astrostarfish 
 
+or 
+
+    pip install astrostarfsih
+
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
 ```python
 >>> import Starfish
