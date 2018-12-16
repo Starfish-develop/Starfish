@@ -137,7 +137,7 @@ class RawGridInterface:
 
         self.air = air
         self.wl_range = wl_range
-        self.base = os.path.expandvars(base)
+        self.base = base
 
     def check_params(self, parameters):
         '''
@@ -149,11 +149,13 @@ class RawGridInterface:
         :raises C.GridError: if the parameter values are outside of the grid bounds
 
         '''
-        assert len(parameters) == len(self.param_names)
+        if len(parameters) != len(self.param_names):
+            raise ValueError("Length of given parameters ({}) does not match length of grid parameters ({})".format(
+                len(parameters), len(self.param_names)))
 
         for param, ppoints in zip(parameters, self.points):
             if param not in ppoints:
-                raise C.GridError("{} not in the grid points {}".format(param, ppoints))
+                raise ValueError("{} not in the grid points {}".format(param, ppoints))
 
     def load_flux(self, parameters, norm=True):
         '''
@@ -168,7 +170,7 @@ class RawGridInterface:
 
             This method is designed to be extended by the inheriting class
         '''
-        pass
+        raise NotImplementedError("`load_flux` is abstract and must be implemented by subclasses")
 
 
 class PHOENIXGridInterface(RawGridInterface):
@@ -206,8 +208,8 @@ class PHOENIXGridInterface(RawGridInterface):
         try:
             wl_filename = os.path.join(self.base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
             w_full = fits.getdata(wl_filename)
-        except OSError:
-            raise C.GridError("Wavelength file improperly specified.")
+        except:
+            raise ValueError("Wavelength file improperly specified.")
 
         if self.air:
             self.wl_full = vacuum_to_air(w_full)
@@ -255,8 +257,8 @@ class PHOENIXGridInterface(RawGridInterface):
             f = flux_file[0].data
             hdr = flux_file[0].header
             flux_file.close()
-        except OSError:
-            raise C.GridError("{} is not on disk.".format(fname))
+        except:
+            raise ValueError("{} is not on disk.".format(fname))
 
         # If we want to normalize the spectra, we must do it now since later we won't have the full EM range
         if norm:
@@ -399,8 +401,8 @@ class KuruczGridInterface(RawGridInterface):
             f = flux_file[0].data
             hdr = flux_file[0].header
             flux_file.close()
-        except OSError:
-            raise C.GridError("{} is not on disk.".format(fname))
+        except:
+            raise ValueError("{} is not on disk.".format(fname))
 
         # We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
         # flux to be 1
