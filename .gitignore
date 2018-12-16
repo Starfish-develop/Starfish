@@ -15,7 +15,7 @@ StellarSpectra/covariance.c
 StellarSpectra/covariance.cpython-34m.so
 
 #Python install files
-StellarSpectra.egg-info/
+Starfish.egg-info/
 
 #Profile output
 prof
@@ -156,3 +156,5 @@ target/
 Session.vim
 .netrwhist
 *~
+
+tests/data/phoenix
