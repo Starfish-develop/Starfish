@@ -72,6 +72,7 @@ class TestConfig:
     def test_instruments(self):
         assert config.instruments == config.data['instruments']
 
+    @pytest.mark.skip("Need to reimplement and avoid rewriting file")
     def test_lazy_load(self):
         previous = config.outdir
         with open(config.filename, 'r+') as f:
