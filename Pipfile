@@ -16,7 +16,7 @@ h5py = "*"
 corner = "*"
 tqdm = "*"
 pyyaml = "*"
-emcee = "*"
+emcee = "<3"
 
 
 [dev-packages]
