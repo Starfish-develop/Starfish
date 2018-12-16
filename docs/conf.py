@@ -20,8 +20,6 @@ base_dir = os.path.dirname(os.path.dirname(__file__))
 
 sys.path.append(base_dir)
 
-builtins.__STARFISH_SETUP__ = True
-
 import Starfish
 
 version = Starfish.__version__
