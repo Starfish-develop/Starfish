@@ -16,6 +16,7 @@ cache:
   directories:
     - $HOME/.virtualenvs
     - tests/data
+
 before_install:
   - pip install -U pipenv
 
@@ -23,5 +24,4 @@ install:
   - pipenv install --deploy -d python=$TRAVIS_PYTHON_VERSION
 
 script:
-  # Run the tests
   - pipenv run pytest
