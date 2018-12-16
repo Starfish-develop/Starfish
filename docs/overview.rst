@@ -7,8 +7,8 @@ Spectroscopic inference is typically a complicated process, requiring customizat
 Installation
 ============
 
-The source code and installation instructions can be found at the Github repository for Starfish at https://github
-.com/iancze/Starfish but it should be easy enough to run
+The source code and installation instructions can be found at the Github repository for Starfish at
+https://github.com/iancze/Starfish but it should be easy enough to run
 
 .. code-block:: console
 
