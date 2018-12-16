@@ -27,10 +27,12 @@ sys.path.insert(0, os.path.abspath('..'))
 
 print("sys.path is", sys.path)
 
+import builtins
+builtins.__STARFISH_SETUP__ = True
+
 import Starfish
 version = Starfish.__version__
 release = version
-print("imported Starfish version {}".format(version))
 
 # -- General configuration -----------------------------------------------------
 

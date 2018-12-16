@@ -1,6 +1,7 @@
 # Starfish
 
 [![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
+[![Doc Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models, however there are many potential applications to other types of spectra, such as unresolved stellar clusters or supernovae spectra.
 
@@ -42,14 +43,15 @@ Starfish requires the following Python packages:
 * [emcee](https://github.com/dfm/emcee)
 * [corner](https://github.com/dfm/corner.py)
 
-Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
+Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda 
+distribution with python 3.6 or greater, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
 
 To make sure you are running the correct version of python, start a python interpreter via the system shell and you should see something similar
 
     $ python
-    Python 3.4.1 (default, May 19 2014, 17:23:49)
-    [GCC 4.9.0 20140507 (prerelease)] on linux  
+    Python 3.6.1 |Anaconda custom (64-bit)| (default, May 11 2017, 13:25:24) [MSC v.1900 64 bit (AMD64)] on win32
     Type "help", "copyright", "credits" or "license" for more information.
+
 
 If your shell says Python 2.x, try using the `python3` command instead of `python`.
 
@@ -71,11 +73,11 @@ the source code.
 
 If you don't care to download the code and would rather install directly into a virtual environment, you can do so with
 
-    pip install git+https://github.com/iancze/Starfiish.git#egg=Starfish
+    pip install git+https://github.com/iancze/Starfiish.git#egg=astrostarfish
 
 or 
 
-    pip install astrostarfsih
+    pip install astrostarfish
 
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
 ```python
