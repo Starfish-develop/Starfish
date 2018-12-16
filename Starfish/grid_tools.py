@@ -129,7 +129,7 @@ class RawGridInterface:
 
     '''
 
-    def __init__(self, name, param_names, points, air=True, wl_range=(3000, 13000), base=None):
+    def __init__(self, name, param_names, points, wl_range, air=True, base=None):
         self.name = name
 
         self.param_names = param_names
@@ -137,7 +137,7 @@ class RawGridInterface:
 
         self.air = air
         self.wl_range = wl_range
-        self.base = os.path.expandvars(base)
+        self.base = base
 
     def check_params(self, parameters):
         '''
@@ -146,14 +146,14 @@ class RawGridInterface:
         :param parameters: parameter set to check
         :type parameters: np.array
 
-        :raises C.GridError: if the parameter values are outside of the grid bounds
+        :raises ValueError: if the parameter values are outside of the grid bounds
 
         '''
         assert len(parameters) == len(self.param_names)
 
         for param, ppoints in zip(parameters, self.points):
             if param not in ppoints:
-                raise C.GridError("{} not in the grid points {}".format(param, ppoints))
+                raise ValueError("{} not in the grid points {}".format(param, ppoints))
 
     def load_flux(self, parameters, norm=True):
         '''
@@ -168,7 +168,7 @@ class RawGridInterface:
 
             This method is designed to be extended by the inheriting class
         '''
-        pass
+        raise NotImplementedError("load_flux is required to be implemented by each subclass.")
 
 
 class PHOENIXGridInterface(RawGridInterface):
