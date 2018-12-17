@@ -69,7 +69,7 @@ setup(
                             'corner',
                             'astropy',
                             'tqdm',
-                            'pyyaml'],
+                            'oyaml'],
         maintainer = "Ian Czekala",
         maintainer_email = "iancze@gmail.com",
         cmdclass = {'build_ext' : CustomBuildExt},
