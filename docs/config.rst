@@ -50,29 +50,67 @@ This defines the output directory for the plots produced by the different plotti
     config.plotdir
     'plots/'
 
-
 cheb_degree
 ^^^^^^^^^^^^^
+This is the degree of the Chebyshev polynomial to use for flux-calibration correction. See eqn. 4 from Czekala 2015.
+
+.. code-block:: python
+
+    config.cheb_degree
+    2
 
 cheb_jump
 ^^^^^^^^^^^^^
+This defines the smallest iteration amount on the Chebyshev polynomial optimization. See ``Order.update_phi``
+
+.. code-block:: python
+
+    config.cheb_jump
+    1e-4
 
 specfmt
 ^^^^^^^^^^^^^
+This is the format string for writing use in writing out information to files during the optimization and sampling.
+It must resemble a python format string that will take in two integer parameters- the ``spectrum_id`` and the ``order``.
+
+.. code-block:: python
+
+    config.specfmt
+    's{}_o{}'
+
 
 chunk_ID
 ^^^^^^^^^^^^^
+This is the ID of the chunk that is currently being optimized.
+
+.. code-block:: python
+
+    config.chunk_ID
+    0
 
 spectrum_ID
 ^^^^^^^^^^^^^
+This is the ID of the spectrum that is currently being optimized.
+
+.. code-block:: python
+
+    config.spectrum_ID
+    0
 
 instrument_ID
 ^^^^^^^^^^^^^
+This is the ID of the Instrument for the data that is currently being optimized. This must represent and index
+in the ``config.data.instruments`` list.
 
+.. code-block:: python
+
+    config.instrument_ID
+    0
 
 
 Data
 ----
+
 
 
 Grid
