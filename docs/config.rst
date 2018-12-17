@@ -33,8 +33,7 @@ This is the name of the configuration. It will return a string.
 
 outdir
 ^^^^^^^^^^^^^
-This defines the output directory for the many files produced by the sampler during runs of sampling. This is
-interpreted as a path and therefore any environment variables will be expanded.
+This defines the output directory for the many files produced by the sampler during runs of sampling.
 
 .. code-block:: python
 
@@ -44,8 +43,7 @@ interpreted as a path and therefore any environment variables will be expanded.
 
 plotdir
 ^^^^^^^^^^^^^
-This defines the output directory for the plots produced by the different plotting utilities. This is
-interpreted as a path and therefore any environment variables will be expanded.
+This defines the output directory for the plots produced by the different plotting utilities.
 
 .. code-block:: python
 
