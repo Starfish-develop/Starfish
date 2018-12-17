@@ -54,9 +54,6 @@ class TestConfig:
     def test_grid_keys(self, key, value):
         assert config.grid[key] == value
 
-    def test_parname(self):
-        assert config.parname == config.grid['parname']
-
     @pytest.mark.parametrize('key, value', [
         ('path', 'PCA.hdf5'),
         ('threshold', 0.999),
@@ -65,7 +62,6 @@ class TestConfig:
     def test_PCA_keys(self, key, value):
         assert config.PCA[key] == value
 
-
     @pytest.mark.parametrize('key, value', [
         ('grid_name', 'CIFIST'),
         ('files', ['data.hdf5']),
@@ -73,9 +69,6 @@ class TestConfig:
     ])
     def test_data_keys(self, key, value):
         assert config.data[key] == value
-
-    def test_instruments(self):
-        assert config.instruments == config.data['instruments']
 
     def test_change_file(self):
         previous = config.name
@@ -98,7 +91,7 @@ class TestConfig:
 
     def test_set_non_base_attr(self, test_config):
         old_path = test_config.PCA['path']
-        test_config.PCA['path'] =  'testpath.hdf5'
+        test_config.PCA['path'] = 'testpath.hdf5'
         assert test_config.PCA['path'] == 'testpath.hdf5'
         test_config.PCA['path'] = old_path
         assert test_config.PCA['path'] == old_path
