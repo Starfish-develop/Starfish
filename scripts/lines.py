@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import Starfish
+from Starfish import config
 from Starfish.single import args, lnprob
 import multiprocessing as mp
 

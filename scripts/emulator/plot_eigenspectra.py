@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter as FSF
 from matplotlib.ticker import MaxNLocator
 from matplotlib.ticker import MultipleLocator
-from config.grid_tools import HDF5Interface
+from Starfish.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid
 
 pcagrid = PCAGrid.from_cfg(cfg)

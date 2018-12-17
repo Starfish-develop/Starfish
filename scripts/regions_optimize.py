@@ -12,7 +12,7 @@ from scipy.optimize import fmin
 from scipy.linalg import cho_factor, cho_solve
 from numpy.linalg import slogdet
 
-import Starfish
+from Starfish import config
 from Starfish.model import PhiParam
 from Starfish.covariance import get_dense_C, make_k_func
 from Starfish import constants as C
