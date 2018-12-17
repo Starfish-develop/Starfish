@@ -1193,27 +1193,32 @@ class SPEX(Instrument):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
-class SPEX_SXD(Instrument):
+class SPEX_SXD(SPEX):
     '''SPEX Instrument at IRTF in Hawaii short mode (reduced wavelength range)'''
 
-    def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 26000)):
-        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
+    def __init__(self, name="SPEX_SXD"):
+        super().__init__(name=name, wl_range=(7500, 26000))
 
 
-class IGRINS_H(Instrument):
+class IGRINS(Instrument):
+    '''IGRINS Instruments Abstract Class'''
+
+    def __init__(self, wl_range, name="IGRINS"):
+        super().__init__(name=name, FWHM=7.5, wl_range=wl_range)
+        self.air = False
+
+
+class IGRINS_H(IGRINS):
     '''IGRINS H band instrument'''
 
-    def __init__(self, name="IGRINS_H", FWHM=7.5, wl_range=(14250, 18400)):
-        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        self.air = False
+    def __init__(self, name="IGRINS_H", wl_range=(14250, 18400)):
+        super().__init__(name=name, wl_range=wl_range)
 
+class IGRINS_K(IGRINS):
+    '''IGRINS H band instrument'''
 
-class IGRINS_K(Instrument):
-    '''IGRINS K band instrument'''
-
-    def __init__(self, name="IGRINS_K", FWHM=7.5, wl_range=(18500, 25200)):
-        super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-        self.air = False
+    def __init__(self, name="IGRINS_K", wl_range=(18500, 25200)):
+        super().__init__(name=name, wl_range=wl_range)
 
 
 class ESPaDOnS(Instrument):
