@@ -20,6 +20,13 @@ class Config:
         return self._config[key]
 
     def __init__(self, path):
+        """
+        Creates a persistent Config object from the give file. This class is not meant to be instantiated by the User,
+        but rather to be used via ``Starfish.config``.
+
+        :param path: The filename for creating the Config. Must be YAML.
+        :type path: str or path-like
+        """
         self._path = path
         self._protect_rewrites = True
 
@@ -65,11 +72,39 @@ class Config:
         self._rewrite()
 
     def change_file(self, filename):
+        """
+        Change the current configuration to use the given YAML file.
+
+        :param filename: The YAML file to switch to using for config.
+        :type filename: str or path-like
+
+        Usage:
+
+        .. code-block:: python
+
+            Starfish.config.change_file('new_config.yaml')
+
+        """
         self._path = filename
         with open(self._path, 'r') as fd:
             self._config = yaml.safe_load(fd)
 
-    def copy_file(self, directory, switch=True):
+    def copy_file(self, directory=os.getcwd(), switch=True):
+        """
+        Copies the master config file to the given directory.
+
+        :param directory: The directory to copy the ``config.yaml`` file to. Default is current working directory.
+        :type directory: str or path-like
+        :param switch: If True, will switch the current config to use the copied file. Default is True
+        :type switch: bool
+
+        Usage:
+
+        .. code-block:: python
+
+            Starfish.config.copy_file()
+
+        """
         outname = os.path.join(directory, 'config.yaml')
         shutil.copy(DEFAULT_CONFIG_FILE, outname)
         if switch:
