@@ -3,7 +3,7 @@ import shutil
 
 import oyaml as yaml
 
-from . import default_config_file
+from . import DEFAULT_CONFIG_FILE
 
 
 class Config:
@@ -27,7 +27,7 @@ class Config:
             # self._config = yaml.safe_load(fd.read(), YamlLoader(self))
             self._config = yaml.safe_load(fd)
 
-        self._protect_rewrites = os.path.abspath(path) == default_config_file
+        self._protect_rewrites = os.path.abspath(path) == DEFAULT_CONFIG_FILE
 
     def __setitem__(self, key, value):
         ret = self._config.__setitem__(key, value)
@@ -71,6 +71,6 @@ class Config:
 
     def copy_file(self, directory, switch=True):
         outname = os.path.join(directory, 'config.yaml')
-        shutil.copy(default_config_file, outname)
+        shutil.copy(DEFAULT_CONFIG_FILE, outname)
         if switch:
             self.change_file(outname)

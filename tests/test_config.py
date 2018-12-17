@@ -3,7 +3,7 @@ import os
 import pytest
 import yaml
 
-from Starfish import config, default_config_file
+from Starfish import config, DEFAULT_CONFIG_FILE
 from Starfish._config import Config
 
 
@@ -17,7 +17,7 @@ class TestConfig:
 
     def test_default_filename(self):
         default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
-        assert default_config_file == default_config
+        assert DEFAULT_CONFIG_FILE == default_config
 
     @pytest.mark.parametrize('key, value', [
         ('plotdir', 'plots/'),
