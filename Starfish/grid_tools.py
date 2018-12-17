@@ -14,7 +14,7 @@ from scipy.special import j1
 import multiprocessing as mp
 from tqdm import tqdm
 
-import Starfish
+from Starfish import config
 from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
 from . import constants as C
 
@@ -179,7 +179,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000], base=Starfish.config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=[3000, 54000], base=config.grid["raw_path"]):
 
         super().__init__(name="PHOENIX",
                          param_names=["temp", "logg", "Z", "alpha"],
@@ -285,7 +285,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     '''
 
     def __init__(self, air=True, wl_range=[3000, 54000],
-                 base=Starfish.config.grid["raw_path"]):
+                 base=config.grid["raw_path"]):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
 
@@ -318,7 +318,7 @@ class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
     '''
 
     def __init__(self, air=True, wl_range=[3000, 54000],
-                 base=Starfish.config.grid['raw_path']):
+                 base=config.grid['raw_path']):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
 
@@ -349,7 +349,7 @@ class KuruczGridInterface(RawGridInterface):
     These particular values are roughly the ones appropriate for the Sun.
     '''
 
-    def __init__(self, air=True, wl_range=[5000, 5400], base=Starfish.config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=[5000, 5400], base=config.grid["raw_path"]):
         super().__init__(name="Kurucz",
                          param_names=["temp", "logg", "Z"],
                          points=[np.arange(3500, 9751, 250),
@@ -461,7 +461,7 @@ class BTSettlGridInterface(RawGridInterface):
 
         '''
 
-        super().load_file(
+        super().load_flux(
             parameters)  # Check to make sure that the keys are allowed and that the values are in the grid
 
         str_parameters = parameters.copy()
@@ -525,7 +525,7 @@ class CIFISTGridInterface(RawGridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 13000], base=Starfish.config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=[3000, 13000], base=config.grid["raw_path"]):
         super().__init__(name="CIFIST",
                          points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
                                  np.arange(2.5, 5.6, 0.5)],
@@ -621,7 +621,7 @@ class HDF5Creator:
     '''
 
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-                 key_name=Starfish.config.grid["key_name"], vsinis=None):
+                 key_name=config.grid["key_name"], vsinis=None):
         '''
         :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
             to access raw spectra on disk.
@@ -641,7 +641,7 @@ class HDF5Creator:
         if ranges is None:
             # Programatically define each range to be (-np.inf, np.inf)
             ranges = []
-            for par in Starfish.config.grid["parname"]:
+            for par in config.grid["parname"]:
                 ranges.append([-np.inf, np.inf])
 
         self.GridInterface = GridInterface
@@ -693,8 +693,8 @@ class HDF5Creator:
         # raise an error.
 
         # inst_min, inst_max = self.Instrument.wl_range
-        wl_min, wl_max = Starfish.config.grid["wl_range"]
-        buffer = Starfish.config.grid["buffer"]  # [AA]
+        wl_min, wl_max = config.grid["wl_range"]
+        buffer = config.grid["buffer"]  # [AA]
         wl_min -= buffer
         wl_max += buffer
 
@@ -755,11 +755,11 @@ class HDF5Creator:
             not be loaded, returns (None, None, None).
 
         '''
-        # assert len(parameters) == len(Starfish.config.grid["parname"]), "Must pass numpy array {}".format(Starfish.config.grid["parname"])
+        # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
 
         # If the parameter length is one more than the grid pars,
         # assume this is for vsini convolution
-        if len(parameters) == (len(Starfish.config.grid["parname"]) + 1):
+        if len(parameters) == (len(config.grid["parname"]) + 1):
             vsini = parameters[-1]
             parameters = parameters[:-1]
         else:
@@ -864,7 +864,7 @@ class HDF5Interface:
     Connect to an HDF5 file that stores spectra.
     '''
 
-    def __init__(self, filename=Starfish.config.grid["hdf5_path"], key_name=Starfish.config.grid["key_name"]):
+    def __init__(self, filename=config.grid["hdf5_path"], key_name=config.grid["key_name"]):
         '''
         :param filename: the name of the HDF5 file
         :type param: string
@@ -1007,7 +1007,7 @@ class Interpolator:
 
         self.wl = self.interface.wl
         self.dv = self.interface.dv
-        self.npars = len(Starfish.config.grid["parname"])
+        self.npars = len(config.grid["parname"])
         self._determine_chunk_log(wl)
 
         self.setup_index_interpolators()

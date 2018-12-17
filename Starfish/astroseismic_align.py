@@ -6,40 +6,29 @@
 
 # We could also use emcee to check, later
 
-import os
-import numpy as np
-
-import Starfish
-import Starfish.grid_tools
-from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum, create_mask
-from Starfish.emulator import Emulator
-import Starfish.constants as C
-from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
-from Starfish.model import ThetaParam, PhiParam
-
-from scipy.special import j1
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.linalg import cho_factor, cho_solve
-from numpy.linalg import slogdet
-
 import gc
-import logging
-
-from itertools import chain
-from operator import itemgetter
-import yaml
-import shutil
 import json
+from itertools import chain
 
-orders = Starfish.config.data["orders"]
+import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.special import j1
+
+import Starfish.constants as C
+import Starfish.grid_tools
+from Starfish import config
+from Starfish.emulator import Emulator
+from Starfish.spectrum import DataSpectrum, ChebyshevSpectrum
+
+orders = config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
+dataSpec = DataSpectrum.open(config.data["files"][0], orders=config.data["orders"])
+instrument = eval("Starfish.grid_tools." + config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]
@@ -81,15 +70,15 @@ mus, C_GP, data_mat = None, None, None
 
 # In the config file, list the astroseismic parameters as the starting grid parameters
 # Read this into a ThetaParam object
-grid = np.array(Starfish.config["Theta"]["grid"])
+grid = np.array(config["Theta"]["grid"])
 # Now update the parameters for the emulator
 # If pars are outside the grid, Emulator will raise C.ModelError
 emulator.params = grid
 mus, C_GP = emulator.matrix
 
-npoly = Starfish.config["cheb_degree"]
+npoly = config["cheb_degree"]
 chebyshevSpectrum = ChebyshevSpectrum(dataSpec, 0, npoly=npoly)
-chebyshevSpectrum.update(np.array(Starfish.config["chebs"]))
+chebyshevSpectrum.update(np.array(config["chebs"]))
 
 def lnprob(p):
     vz, vsini, logOmega = p[:3]
@@ -167,7 +156,7 @@ def fprob(p):
 
 
 def optimize():
-    start = Starfish.config["Theta"]
+    start = config["Theta"]
     p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
     print("p0", p0)
 
@@ -176,7 +165,7 @@ def optimize():
     print(p)
 
 def generate():
-    start = Starfish.config["Theta"]
+    start = config["Theta"]
     p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
 
     lnp, mean_spec, R = lnprob(p0)
@@ -187,8 +176,8 @@ def generate():
     # Write these to JSON
     my_dict = {"wl":wl_shift.tolist(), "data":fl.tolist(), "model":mean_spec.tolist(), "resid":R.tolist(), "sigma":sigma.tolist(), "spectrum_id":0, "order":order}
 
-    fname = Starfish.specfmt.format(0, order)
-    f = open(Starfish.config.name + fname + "spec.json", 'w')
+    fname = config.specfmt.format(0, order)
+    f = open(config.name + fname + "spec.json", 'w')
     json.dump(my_dict, f, indent=2, sort_keys=True)
     f.close()
 

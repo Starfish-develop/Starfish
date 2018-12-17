@@ -17,7 +17,7 @@ args = parser.parse_args()
 import os
 import numpy as np
 
-import Starfish
+from Starfish import config
 import Starfish.grid_tools
 from Starfish.samplers import StateSampler
 from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum, create_mask
@@ -51,9 +51,9 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
+    base = config.outdir + config.name + "/run{:0>2}/"
 
-    if run_index == None:
+    if run_index is None:
         run_index = 0
         while os.path.exists(base.format(run_index)):
             print(base.format(run_index), "exists")
@@ -77,22 +77,22 @@ def init_directories(run_index=None):
     return routdir
 
 if args.run_index:
-    Starfish.routdir = init_directories(args.run_index)
+    config.routdir = init_directories(args.run_index)
 else:
-    Starfish.routdir = ""
+    config.routdir = ""
 
 # list of keys from 0 to (norders - 1)
 # For now, we will only load one order because we plan on fitting very narrow chunks of the spectrum
 
-orders = Starfish.config.data["orders"]
+orders = config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(Starfish.config.data["files"][0], orders=Starfish.config.data["orders"])
-instrument = eval("Starfish.grid_tools." + Starfish.config.data["instruments"][0])()
+dataSpec = DataSpectrum.open(config.data["files"][0], orders=config.data["orders"])
+instrument = eval("Starfish.grid_tools." + config.data["instruments"][0])()
 
-# full_mask = create_mask(dataSpec.wls, Starfish.config.data["masks"][0])
+# full_mask = create_mask(dataSpec.wls, config.data["masks"][0])
 # dataSpec.add_mask(full_mask)
 
 wl = dataSpec.wls[0]

@@ -104,7 +104,7 @@ def dict_to_tuple(mydict):
     if "alpha" in mydict.keys():
         tup = (mydict["temp"], mydict['logg'], mydict['Z'], mydict['alpha'])
     else:
-        tup = (mydict["temp"], mydict['logg'], mydict['Z'], C.var_default['alpha'])
+        tup = (mydict["temp"], mydict['logg'], mydict['Z'], var_default['alpha'])
 
     if "FWHM" in mydict.keys():
         tup2 = (mydict["vsini"], mydict['FWHM'], mydict['vz'], mydict['Av'], mydict['Omega'])
