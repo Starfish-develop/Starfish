@@ -5,14 +5,14 @@ try:
 except NameError:
     __STARFISH_SETUP__ = False
 
-__version__ = '0.2'
+__version__ = '0.2.3'
 
 if not __STARFISH_SETUP__:
     import os
     import warnings
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    DEFAULT_CONFIG_FILE = os.path.join(base_dir, "config.yaml")
+    starfish_dir = os.path.dirname(__file__)
+    DEFAULT_CONFIG_FILE = os.path.join(starfish_dir, "config.yaml")
 
     from ._config import Config
 
