@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "789cd036c4a0ec2ed3d5c49b2c6979626a277f3344621bc54160a3a4d2736455"
+            "sha256": "ce5761317c9646f47f5b2c77823042cdb2eddc7f45ddc4eccd0bf37e87dd59d0"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -218,6 +218,13 @@
                 "sha256:3d734559db35aa3697dadcea492a423118c5c55d176da2f3be9c98d4803fc2a7"
             ],
             "version": "==1.15.4"
+        },
+        "oyaml": {
+            "hashes": [
+                "sha256:1a81fbb1d5c3158bf6410577f11daf2b741a1b4eea2a47064e7ecd1fb2699425",
+                "sha256:a0359138057aba8650f81d4456c553f145773c4a172d27c606429ca45e31f8d9"
+            ],
+            "version": "==0.7"
         },
         "pyparsing": {
             "hashes": [
