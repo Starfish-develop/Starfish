@@ -21,8 +21,7 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
 import itertools
-import Starfish
-from Starfish import emulator
+from Starfish import emulator, config
 from Starfish.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid, Gprior, Glnprior, Emulator
 from Starfish.covariance import Sigma

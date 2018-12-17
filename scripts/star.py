@@ -3,7 +3,7 @@
 # All of the argument parsing is done in the `parallel.py` module.
 
 import numpy as np
-import Starfish
+from Starfish import config
 from Starfish import parallel
 from Starfish.parallel import args
 from Starfish.model import ThetaParam, PhiParam

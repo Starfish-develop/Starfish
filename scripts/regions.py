@@ -7,7 +7,7 @@ parser.add_argument("--sigma", type=float, default=4.0, help="Sigma clipping thr
 parser.add_argument("--sigma0", type=float, default=2.0, help="How close (in AA) regions are allowed to be next to each other.")
 args = parser.parse_args()
 
-import Starfish
+from Starfish import config
 import json
 import numpy as np
 from astropy.stats import sigma_clip

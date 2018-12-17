@@ -8,7 +8,7 @@ parser.add_argument("--plot", action="store_true", help="plot all of the spectra
 
 args = parser.parse_args()
 
-import Starfish
+from Starfish import config
 import os
 
 if args.create:

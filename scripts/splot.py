@@ -8,7 +8,7 @@ parser.add_argument("--matplotlib", action="store_true", help="Plot the image us
 parser.add_argument("--noise", action="store_true", help="Plot random draws using the phi parameters.")
 args = parser.parse_args()
 
-import Starfish
+from Starfish import config
 import json
 import numpy as np
 

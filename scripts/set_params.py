@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser(description="Use the last runs to set the nuisa
 parser.add_argument("rundir", help="The relative path to the output directory containing the samples.")
 args = parser.parse_args()
 
-import Starfish
+from Starfish import config
 from Starfish.model import PhiParam
 from Starfish import utils
 
