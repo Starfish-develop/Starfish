@@ -43,7 +43,7 @@ class CustomBuildExt(build_ext):
         return super().run()
 
 setup(
-        name="Starfish",
+        name="astrostarfish",
         version=Starfish.__version__,
         author="Ian Czekala",
         author_email="iancze",
