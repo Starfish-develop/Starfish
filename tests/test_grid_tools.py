@@ -1,6 +1,7 @@
 import logging
 from itertools import product
 from urllib.request import urlretrieve
+import socket
 
 import pytest
 
@@ -26,6 +27,7 @@ def tmpPHOENIXModels(tmpdir_factory):
     os.makedirs(outdir, exist_ok=True)
     # Download step
     log.info('Starting Download of PHOENIX ACES models')
+    socket.setdefaulttimeout(60)
     if not os.path.exists(wave_file):
         urlretrieve(wave_url, wave_file)
     for p in params:
@@ -94,7 +96,6 @@ class TestPHOENIXGridInterface:
         assert grid.check_params((6100, 4.5, 0.0, 0.2))
 
 
-    @pytest.mark.skip("Phoenix Models not working on Travis")
     def test_load_flux(self, grid):
         fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert len(fl) == 1540041
@@ -108,7 +109,6 @@ class TestPHOENIXGridInterface:
         grid.load_flux((6100, 4.5, 0.0, 0.2))
 
 
-    @pytest.mark.skip("Phoenix Models not working on Travis")
     def test_load_flux_metadata(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert isinstance(hdr, dict)
@@ -119,14 +119,12 @@ class TestPHOENIXGridInterface:
             PHOENIXGridInterface(base="wrong_base/")
 
 
-    @pytest.mark.skip("Phoenix Models not working on Travis")
     def test_no_air(self, tmpPHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=tmpPHOENIXModels)
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert hdr['air'] == False
 
 
-    @pytest.mark.skip("Phoenix Models not working on Travis")
     def test_no_norm(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
         assert hdr['norm'] == False
