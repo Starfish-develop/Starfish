@@ -4,14 +4,20 @@ import pytest
 import yaml
 
 from Starfish import config, default_config_file
+from Starfish._config import Config
 
 
 class TestConfig:
 
+    @pytest.fixture
+    def test_config(self):
+        base_dir = os.path.dirname(__file__)
+        filename = os.path.join(base_dir, 'data', 'test_config.yaml')
+        yield Config(filename)
+
     def test_default_filename(self):
         default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
         assert default_config_file == default_config
-        assert os.path.abspath(config.filename) == default_config
 
     @pytest.mark.parametrize('key, value', [
         ('plotdir', 'plots/'),
@@ -20,17 +26,21 @@ class TestConfig:
         ('spectrum_ID', 0),
         ('instrument_ID', 0)
     ])
-    def test_base_keys(self, key, value):
-        assert config[key] == value
+    def test_base_keys(self, test_config, key, value):
+        assert test_config[key] == value
+
+    def test_base_dots(self):
+        assert config.grid == config['grid']
+        assert config.PCA == config['PCA']
+        assert config.data == config['data']
+        assert config.name == config['name']
+        assert config.outdir == config['outdir']
 
     def test_name(self):
         assert config.name == 'default'
 
     def test_outdir(self):
         assert config.outdir == 'output/'
-
-    def test_grid(self):
-        assert isinstance(config.grid, dict)
 
     @pytest.mark.parametrize('key, value', [
         ('raw_path', '../libraries/raw/CIFIST/'),
@@ -47,9 +57,6 @@ class TestConfig:
     def test_parname(self):
         assert config.parname == config.grid['parname']
 
-    def test_PCA(self):
-        assert isinstance(config.PCA, dict)
-
     @pytest.mark.parametrize('key, value', [
         ('path', 'PCA.hdf5'),
         ('threshold', 0.999),
@@ -58,8 +65,6 @@ class TestConfig:
     def test_PCA_keys(self, key, value):
         assert config.PCA[key] == value
 
-    def test_data(self):
-        assert isinstance(config.data, dict)
 
     @pytest.mark.parametrize('key, value', [
         ('grid_name', 'CIFIST'),
@@ -72,18 +77,44 @@ class TestConfig:
     def test_instruments(self):
         assert config.instruments == config.data['instruments']
 
-    @pytest.mark.skip("Need to reimplement and avoid rewriting file")
-    def test_lazy_load(self):
-        previous = config.outdir
-        with open(config.filename, 'r+') as f:
-            base = yaml.safe_load(f)
-            base['outdir'] = 'test_output/'
-            yaml.dump(base, f)
+    def test_change_file(self):
+        previous = config.name
+        base_dir = os.path.dirname(__file__)
+        filename = os.path.join(base_dir, 'data', 'test_config.yaml')
+        config.change_file(filename)
+        assert config.name != previous
+        assert config._path == filename
 
-        assert config.outdir != previous
-        assert config.outdir == 'test_output/'
+    def test_set_attr_fail_on_default(self):
+        with pytest.raises(RuntimeError):
+            config.name = 'Stephen King'
 
-        with open(config.filename, 'r+') as f:
-            base = yaml.safe_load(f)
-            base['outdir'] = previous
-            yaml.dump(base, f)
+    def test_set_base_attr(self, test_config):
+        previous = test_config.name
+        test_config.name = 'new name'
+        assert test_config.name == 'new name'
+        test_config.name = previous
+        assert test_config.name == previous
+
+    def test_set_non_base_attr(self, test_config):
+        old_path = test_config.PCA['path']
+        test_config.PCA['path'] =  'testpath.hdf5'
+        assert test_config.PCA['path'] == 'testpath.hdf5'
+        test_config.PCA['path'] = old_path
+        assert test_config.PCA['path'] == old_path
+
+    def test_copy_config(self, tmpdir):
+        assert not os.path.exists(tmpdir.join('config.yaml'))
+        config.copy_file(tmpdir)
+        assert os.path.exists(tmpdir.join('config.yaml'))
+
+    def test_lazy_loading(self, test_config):
+        id = test_config.cheb_degree
+        base = test_config._config
+        base['cheb_degree'] = id + 1
+        with open(test_config._path, 'w') as f:
+            yaml.safe_dump(base, f)
+
+        assert test_config.cheb_degree == id + 1
+        test_config.cheb_degree = id
+        assert test_config.cheb_degree == id
