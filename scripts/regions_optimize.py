@@ -30,7 +30,7 @@ sigma = np.array(read["sigma"])
 spectrum_id = read["spectrum_id"]
 order = read["order"]
 
-fname = Starfish.specfmt.format(spectrum_id, order) + "regions.json"
+fname = config.specfmt.format(spectrum_id, order) + "regions.json"
 f = open(fname, "r")
 read = json.load(f) # read is a dictionary
 f.close()
@@ -41,7 +41,7 @@ assert order == read["order"], "Spectrum/Order mismatch"
 
 # Load the guesses for the global parameters from the .json
 # If the file exists, optionally initiliaze to the chebyshev values
-fname = Starfish.specfmt.format(spectrum_id, order) + "phi.json"
+fname = config.specfmt.format(spectrum_id, order) + "phi.json"
 
 try:
     phi = PhiParam.load(fname)
@@ -89,7 +89,7 @@ def optimize_region_residual(wl, residuals, sigma, mu):
         lnprob = -0.5 * (np.dot(r, cho_solve((factor, flag), r)) + logdet)
         return lnprob
 
-    par = Starfish.config["region_params"]
+    par = config["region_params"]
     p0 = np.array([10**par["logAmp"], par["sigma"]])
 
     f = lambda x: -fprob(x)
@@ -143,7 +143,7 @@ def optimize_region_covariance(wl, residuals, sigma, mu):
         return lnprob
 
 
-    par = Starfish.config["region_params"]
+    par = config["region_params"]
     p0 = np.array([par["logAmp"], par["sigma"]])
 
     f = lambda x: -fprob(x)
