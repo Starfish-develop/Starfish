@@ -27,7 +27,7 @@ def tmpPHOENIXModels(tmpdir_factory):
     os.makedirs(outdir, exist_ok=True)
     # Download step
     log.info('Starting Download of PHOENIX ACES models')
-    socket.setdefaulttimeout(120)
+    socket.setdefaulttimeout(600)
     if not os.path.exists(wave_file):
         urlretrieve(wave_url, wave_file)
     for p in params:
