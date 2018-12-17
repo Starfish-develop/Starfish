@@ -44,11 +44,11 @@ class TestConfig:
         assert config.outdir == 'output/'
 
     @pytest.mark.parametrize('key, value', [
-        ('raw_path', '../libraries/raw/CIFIST/'),
+        ('raw_path', '../libraries/raw/PHOENIX/'),
         ('hdf5_path', 'grid.hdf5'),
-        ('parname', ['temp', 'logg']),
-        ('key_name', 't{0:.0f}g{1:.1f}'),
-        ('parrange', [[2300, 3700], [4.0, 5.5]]),
+        ('parname', ['Teff', 'logg', 'Z']),
+        ('key_name', 'T{0:.0f}_g{1:.1f}_Z{2:.2f}'),
+        ('parrange', [[2300, 3700], [4.0, 5.5], [-0.5, 0.5]]),
         ('wl_range', [6300, 6360]),
         ('buffer', 50)
     ])
@@ -64,7 +64,7 @@ class TestConfig:
         assert config.PCA[key] == value
 
     @pytest.mark.parametrize('key, value', [
-        ('grid_name', 'CIFIST'),
+        ('grid_name', 'PHOENIX'),
         ('files', ['data.hdf5']),
         ('instruments', ['DCT_DeVeny'])
     ])
