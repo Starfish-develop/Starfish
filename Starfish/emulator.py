@@ -219,7 +219,7 @@ class PCAGrid:
                                         compression_opts=9)
         w_hatdset[:] = self.w_hat
 
-        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.config.parname)), compression='gzip', dtype="f8",
+        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.config.grid["parname"])), compression='gzip', dtype="f8",
                                     compression_opts=9)
         gdset[:] = self.gparams
 
