@@ -36,7 +36,7 @@ order = read["order"]
 
 
 if args.regions:
-    fname = Starfish.specfmt.format(spectrum_id, order) + "regions.json"
+    fname = config.specfmt.format(spectrum_id, order) + "regions.json"
     f = open(fname, "r")
     read = json.load(f) # read is a dictionary
     f.close()
@@ -47,7 +47,7 @@ if args.noise:
 
     sigma_mat =  sigma**2 * np.eye(len(sigma))
 
-    fname = Starfish.specfmt.format(spectrum_id, order) + "phi.json"
+    fname = config.specfmt.format(spectrum_id, order) + "phi.json"
     phi = PhiParam.load(fname)
 
     if phi.regions is not None:
@@ -98,4 +98,4 @@ if args.matplotlib:
 
 
     # fig.subplots_adjust()
-    fig.savefig(Starfish.config["plotdir"] + args.file + ".png")
+    fig.savefig(config["plotdir"] + args.file + ".png")

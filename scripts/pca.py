@@ -23,7 +23,7 @@ import numpy as np
 import itertools
 import Starfish
 from Starfish import emulator
-from Starfish.config.grid_tools import HDF5Interface
+from Starfish.grid_tools import HDF5Interface
 from Starfish.emulator import PCAGrid, Gprior, Glnprior, Emulator
 from Starfish.covariance import Sigma
 import os
@@ -35,8 +35,8 @@ if args.create:
     my_pca.write()
 
 # Create plotting directory if not already created
-if args.plot and not os.path.isdir(Starfish.config['plotdir']):
-    os.makedirs(Starfish.config['plotdir'])
+if args.plot and not os.path.isdir(config['plotdir']):
+    os.makedirs(config['plotdir'])
     
 if args.plot == "reconstruct":
     my_HDF5 = HDF5Interface()
@@ -68,10 +68,10 @@ if args.plot == "reconstruct":
         ax[1].set_xlabel(r"$\lambda$ [AA]")
         ax[1].set_ylabel(r"$f_\lambda$")
 
-        fmt = "=".join(["{:.2f}" for i in range(len(Starfish.parname))])
+        fmt = "=".join(["{:.2f}" for i in range(len(config.parname))])
         name = fmt.format(*[p for p in par])
         ax[0].set_title(name)
-        fig.savefig(Starfish.config["plotdir"] + "PCA_" + name + ".png")
+        fig.savefig(config["plotdir"] + "PCA_" + name + ".png")
         plt.close("all")
 
     p = mp.Pool(mp.cpu_count())
@@ -102,13 +102,13 @@ if args.plot == "eigenspectra":
         ax.set_ylabel("count")
 
     fig.subplots_adjust(wspace=0.3, left=0.1, right=0.98, bottom=0.1, top=0.98)
-    fig.savefig(Starfish.config["plotdir"] + "eigenspectra.png")
+    fig.savefig(config["plotdir"] + "eigenspectra.png")
 
 
 if args.plot == "priors":
     # Read the priors on each of the parameters from Starfish config.yaml
-    priors = Starfish.config.PCA["priors"]
-    for i,par in enumerate(Starfish.parname):
+    priors = config.PCA["priors"]
+    for i,par in enumerate(config.grid['parname']):
         s, r = priors[i]
         mu = s/r
         x = np.linspace(0.01, 2 * mu)
@@ -116,14 +116,14 @@ if args.plot == "priors":
         plt.plot(x, prob)
         plt.xlabel(par)
         plt.ylabel("Probability")
-        plt.savefig(Starfish.config["plotdir"] + "prior_" + par + ".png")
+        plt.savefig(config["plotdir"] + "prior_" + par + ".png")
         plt.close("all")
 
 # If we're doing optimization, period, set up some variables and the lnprob
 if args.optimize:
     my_pca = emulator.PCAGrid.open()
     PhiPhi = np.linalg.inv(emulator.skinny_kron(my_pca.eigenspectra, my_pca.M))
-    priors = Starfish.config.PCA["priors"]
+    priors = config.PCA["priors"]
 
     def lnprob(p, fmin=False):
         '''
@@ -147,7 +147,7 @@ if args.optimize:
         # We have two separate sums here, since hparams is a 2D array
         # hparams[:, 0] are the amplitudes, so we index i+1 here
         lnpriors = 0.0
-        for i in range(0, len(Starfish.parname)):
+        for i in range(0, len(config.grid['parname'])):
             lnpriors += np.sum(Glnprior(hparams[:, i+1], *priors[i]))
 
         h2params = hparams**2
@@ -197,7 +197,7 @@ if args.optimize == "emcee":
 
     import emcee
 
-    ndim = 1 + (1 + len(Starfish.parname)) * my_pca.m
+    ndim = 1 + (1 + len(config.grid['parname'])) * my_pca.m
     nwalkers = 4 * ndim # about the minimum per dimension we can get by with
 
     # Assemble p0 based off either a guess or the previous state of walkers
@@ -243,15 +243,15 @@ if args.plot == "emcee":
         import triangle
 
     # figure out how many separate triangle plots we need to make
-    npar = len(Starfish.parname) + 1
-    labels = ["amp"] + Starfish.parname
+    npar = len(config.grid['parname']) + 1
+    labels = ["amp"] + config.grid['parname']
 
     # Make a histogram of lambda xi
     plt.hist(flatchain[:,0], histtype="step", normed=True)
     plt.title(r"$\lambda_\xi$")
     plt.xlabel(r"$\lambda_\xi$")
     plt.ylabel("prob")
-    plt.savefig(Starfish.config["plotdir"] + "triangle_lambda_xi.png")
+    plt.savefig(config["plotdir"] + "triangle_lambda_xi.png")
 
     # Make a triangle plot for each eigenspectrum independently
     for i in range(my_pca.m):
@@ -259,7 +259,7 @@ if args.plot == "emcee":
         end = 1 + (i + 1) * npar
         figure = triangle.corner(flatchain[:, start:end], quantiles=[0.16, 0.5, 0.84],
             plot_contours=True, plot_datapoints=False, show_titles=True, labels=labels)
-        figure.savefig(Starfish.config["plotdir"] + "triangle_{}.png".format(i))
+        figure.savefig(config["plotdir"] + "triangle_{}.png".format(i))
 
 if args.plot == "emulator":
 
@@ -290,9 +290,9 @@ if args.plot == "emulator":
     # Create a list of parameter blocks.
     # Go through each parameter, and create a list of all parameter combination of
     # the other two parameters.
-    unique_points = [np.unique(my_pca.gparams[:, i]) for i in range(len(Starfish.parname))]
+    unique_points = [np.unique(my_pca.gparams[:, i]) for i in range(len(config.grid['parname']))]
     blocks = []
-    for ipar, pname in enumerate(Starfish.parname):
+    for ipar, pname in enumerate(config.grid['parname']):
         upars = unique_points.copy()
         dim = upars.pop(ipar)
         ndim = len(dim)
@@ -327,7 +327,7 @@ if args.plot == "emulator":
             ww[i, :] = weights
 
         # Determine the active dimension by finding the one that has unique > 1
-        uni = np.array([len(np.unique(block[:, i])) for i in range(len(Starfish.parname))])
+        uni = np.array([len(np.unique(block[:, i])) for i in range(len(config.grid['parname']))])
         active_dim = np.where(uni > 1)[0][0]
 
         ublock = block.copy()
@@ -367,11 +367,11 @@ if args.plot == "emulator":
                 ax.plot(x1, y1)
 
             ax.set_ylabel(r"$w_{:}$".format(eig_i))
-            ax.set_xlabel(Starfish.parname[active_dim])
+            ax.set_xlabel(config.grid['parname'][active_dim])
 
-            fstring = "w{:}".format(eig_i) + Starfish.parname[active_dim] + "".join(["{:.1f}".format(ub) for ub in ublock[0, :]])
+            fstring = "w{:}".format(eig_i) + config.grid['parname'][active_dim] + "".join(["{:.1f}".format(ub) for ub in ublock[0, :]])
 
-            fig.savefig(Starfish.config["plotdir"] + fstring + ".png")
+            fig.savefig(config["plotdir"] + fstring + ".png")
 
             plt.close('all')
 
@@ -391,7 +391,7 @@ if args.store:
         sys.exit()
 
     import h5py
-    filename = os.path.expandvars(Starfish.config.PCA["path"])
+    filename = os.path.expandvars(config.PCA["path"])
     hdf5 = h5py.File(filename, "r+")
 
     # check to see whether the dataset already exists

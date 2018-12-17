@@ -18,7 +18,7 @@ orders = Starfish.data["orders"]
 for spectrum_id in range(len(spectra)):
     for order in orders:
 
-        npoly = Starfish.config["cheb_degree"]
+        npoly = config["cheb_degree"]
 
         if order == orders[-1]:
             # Use cheb degree - 1 for the last order

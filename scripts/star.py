@@ -14,7 +14,7 @@ if args.generate:
     # Now that the different processes have been forked, initialize them
     pconns, cconns, ps = parallel.initialize(model)
 
-    pars = ThetaParam.from_dict(Starfish.config["Theta"])
+    pars = ThetaParam.from_dict(config["Theta"])
 
     for ((spectrum_id, order_id), pconn) in pconns.items():
         #Parse the parameters into what needs to be sent to each Model here.
@@ -57,7 +57,7 @@ if args.optimize == "Theta":
             pconn.send(("LNPROB", pars))
 
         #Collect the answer from each process
-        lnps = np.empty((len(Starfish.data["orders"]),))
+        lnps = np.empty((len(config.data["orders"]),))
         for i, pconn in enumerate(pconns.values()):
             lnps[i] = pconn.recv()
 
@@ -70,7 +70,7 @@ if args.optimize == "Theta":
         else:
             return -s
 
-    start = Starfish.config["Theta"]
+    start = config["Theta"]
     p0 = np.array(start["grid"] + [start["vz"], start["vsini"], start["logOmega"]])
 
     from scipy.optimize import fmin
@@ -93,15 +93,15 @@ if args.optimize == "Theta":
 
 if args.initPhi:
     # Figure out how many models and orders we have
-    i_last = len(Starfish.data["orders"]) - 1
+    i_last = len(config.data["orders"]) - 1
 
-    for spec_id in range(len(Starfish.data["files"])):
-        for i, order in enumerate(Starfish.data["orders"]):
+    for spec_id in range(len(config.data["files"])):
+        for i, order in enumerate(config.data["orders"]):
             fix_c0 = True if i==i_last else False
             if fix_c0:
-                cheb = np.zeros((Starfish.config["cheb_degree"] - 1,))
+                cheb = np.zeros((config["cheb_degree"] - 1,))
             else:
-                cheb = np.zeros((Starfish.config["cheb_degree"],))
+                cheb = np.zeros((config["cheb_degree"],))
 
             # For each order, create a Phi with these values
             # Automatically reads all of the Phi parameters from config.yaml
@@ -117,7 +117,7 @@ if args.optimize == "Cheb":
     pconns, cconns, ps = parallel.initialize(model)
 
     # Initialize to the basics
-    pars = ThetaParam.from_dict(Starfish.config["Theta"])
+    pars = ThetaParam.from_dict(config["Theta"])
 
     #Distribute the calculation to each process
     for ((spectrum_id, order_id), pconn) in pconns.items():
@@ -158,7 +158,7 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
             pconn.send(("LNPROB", pars))
 
         #Collect the answer from each process
-        lnps = np.empty((len(Starfish.data["orders"]),))
+        lnps = np.empty((len(config.data["orders"]),))
         for i, pconn in enumerate(pconns.values()):
             lnps[i] = pconn.recv()
 
@@ -171,7 +171,7 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
             pconn.send(("GET_LNPROB", None))
 
         #Collect the answer from each process
-        lnps = np.empty((len(Starfish.data["orders"]),))
+        lnps = np.empty((len(config.data["orders"]),))
         for i, pconn in enumerate(pconns.values()):
             lnps[i] = pconn.recv()
 
@@ -191,10 +191,10 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
 
     from Starfish.samplers import StateSampler
 
-    start = Starfish.config["Theta"]
+    start = config["Theta"]
     p0 = np.array(start["grid"] + [start["vz"], start["vsini"], start["logOmega"]])
 
-    jump = Starfish.config["Theta_jump"]
+    jump = config["Theta_jump"]
     cov = np.diag(np.array(jump["grid"] + [jump["vz"], jump["vsini"], jump["logOmega"]])**2)
 
     if args.use_cov:
@@ -204,7 +204,8 @@ if args.sample == "ThetaCheb" or args.sample == "ThetaPhi" or args.sample == "Th
         except FileNotFoundError:
             print("No optimal jump matrix found, using diagonal jump matrix.")
 
-    sampler = StateSampler(lnprob, p0, cov, query_lnprob=query_lnprob, acceptfn=acceptfn, rejectfn=rejectfn, debug=True, outdir=Starfish.routdir)
+    sampler = StateSampler(lnprob, p0, cov, query_lnprob=query_lnprob, acceptfn=acceptfn, rejectfn=rejectfn,
+                           debug=True, outdir=config.routdir)
 
     p, lnprob, state = sampler.run_mcmc(p0, N=args.samples, incremental_save=args.incremental_save)
     print("Final", p)

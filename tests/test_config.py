@@ -24,7 +24,8 @@ class TestConfig:
         ('Comments', 'Mid M dwarfs using emulator.\n'),
         ('chunk_ID', 0),
         ('spectrum_ID', 0),
-        ('instrument_ID', 0)
+        ('instrument_ID', 0),
+        ('specfmt', 's{}_o{}'),
     ])
     def test_base_keys(self, test_config, key, value):
         assert test_config[key] == value

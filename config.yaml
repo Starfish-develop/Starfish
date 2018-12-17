@@ -59,7 +59,7 @@ Phi_jump :
     logAmp : 0.01
     l : 0.25
 
-
+specfmt: s{}_o{}
 chunk_ID: 0
 spectrum_ID: 0
 instrument_ID: 0
