@@ -16,7 +16,7 @@ class TestConfig:
         yield Config(filename)
 
     def test_default_filename(self):
-        default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
+        default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Starfish', 'config.yaml')
         assert DEFAULT_CONFIG_FILE == default_config
 
     @pytest.mark.parametrize('key, value', [
