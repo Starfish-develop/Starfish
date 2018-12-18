@@ -67,10 +67,43 @@ include a parameterization for the accretion continuum that "veils" the spectra 
 Fitting Many Lines at Once
 ==========================
 
+Here is a general example of what can happen when one attempts to fit data with synthetic spectra over a wide spectral
+range. This is an optical spectrum of WASP-14, an F star hosting a transiting exoplanet.
+
+
+.. figure:: assets/residuals_23.svg
+    :align: center
+    :width: 90%
+
+    A comparison of the data and a typical model fit, along with the corresponding residual spectrum. Notice that this
+    residual spectrum does not look like pure white noise.
+
+.. figure:: assets/residuals_23.svg
+    :align: center
+    :width: 90%
+
+    A zoomed view of the gray band in the top panel, highlighting the mildly covariant residual structure that is
+    produced by slight mismatches between the data and model spectra.
+
+.. figure:: assets/class0_autocorrelation.svg
+    :align: center
+    :width: 90%
+
+    The autocorrelation of the residual spectrum. Notice the substantial autocorrelation signal for offsets of 8 pixels
+    or fewer, demonstrating clearly that the residuals are not well described by white (Poisson) noise alone.
+
 
 Spectral Line Outliers
 ======================
 
+Here is a specific example of individual lines that are strongly discrepant from the data. There is substantial localized
+structure in the residuals due to "outlier" spectral lines in the model library. For any specific line, there might
+exist a set of model parameters that will improve the match with the data, but there is no single set of model parameters
+that will properly fit all of the lines at once.
+
+.. figure:: assets/badlines.svg
+    :align: center
+    :width: 90%
 
 Model the Covariance
 ====================
