@@ -26,7 +26,7 @@ else:
                                                  "-Wno-unused-variable",
                                                  "-Wno-unused-but-set-variable"]), ]
 
-if sys.version < '3.6':
+if sys.version < '3.5.2':
     raise RuntimeError('Error: Python 3.6 or greater required for Starfish (using {})'.format(sys.version))
 
 # This is a bit hackish: we are setting a global variable so that the main
