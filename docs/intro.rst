@@ -107,15 +107,104 @@ that will properly fit all of the lines at once.
 
 Model the Covariance
 ====================
+In order to account for the covariant residual structure which results from model systematics, we derive a likelihood
+function with a non-trivial covariance matrix, which maps the covariances between pixels.
 
+.. math::
+    p(D|M) \propto \left| \det (C) \right|^{-1/2}\exp \left( -\frac12 R^T C^{-1} R \right)
+
+We then parameterize this covariance matrix :math:`C` using Gaussian process covariance kernels. This procedure is demonstrated
+in the following figure through the following decomposition of how the Gaussian process kernels contribute to the
+covariance matrix.
+
+.. figure:: assets/matrix_compilation.png
+    :align: center
+    :width: 100%
+
+**top panel**: a typical comparison between the data and model spectra, along with the associated residual spectrum.
+The subsequent rows focus on the illustrative region shaded in gray.
+
+The **left column** of panels shows the corresponding region of the covariance matrix :math:`C`, decomposed into its
+primary contributions: (*top row*) the trivial noise matrix using just Poisson errors :math:`\delta_{ij}\sigma_i`,
+(*middle row*) the trivial matrix combined with a "global" covariance kernel :math:`\kappa^G`, and (*bottom row*)
+these matrices combined with a "local" covariance kernel :math:`\kappa^L` to account for an outlier spectral line.
+
+The **right column** of panels shows the zoomed-in residual spectrum with example random draws from the covariance
+matrix to the left. The shaded contours in orange represent the 1, 2, and 3 sigma dispersions of an ensemble of 200
+random draws from the covariance matrix. Note that the trivial covariance matrix (*top row*) poorly reproduces both
+the scale and structure of the residual spectrum. The addition of a global kernel (*middle row*) more closely
+approximates the structure and amplitude of the residuals, but misses the outlier line at 5202.5 angstroms. Including
+a local kernel at that location (*bottom row*) results in a covariance matrix that does an excellent job of
+reproducing all the key residual features.
 
 Robust to Outlier Spectral Lines
 ================================
 
+*Starfish* uses Markov Chain Monte Carlo (MCMC) to explore the full posterior probability distribution of the stellar
+parameters, including the noise parameters which describe the covariance of the residuals. By fitting all of the parameters
+simultaneously, we can be more confident that we have properly accounted for our uncertainty in these other parameters.
+
+.. figure:: assets/residuals_Gl51_logg.svg
+    :align: center
+    :width: 100%
+
+**top** A K-band SPEX spectrum of Gl 51 (an M5 dwarf) fit with a `PHOENIX <http://phoenix.astro.physik.uni-goettingen.de/>`_ spectroscopic model. While the general
+agreement of the spectrum is excellent, the strength of the Na and Ca lines is underpredicted (also noted by `Rojas-Ayala
+et al. 2012 <http://adsabs.harvard.edu/abs/2012ApJ...748...93R>`_).
+
+**bottom** The residual spectrum from this fit along with orange shading contours representing the distributions of
+a large number of random draws from the covariance matrix (showing 1, 2, and 3 sigma).
+
+
+Notice how the outlier spectral line features are consistently identified and downweighted by the local covariance kernels.
+Because the parameters for the local kernels describing the spectral outliers are determined self-consistently along with
+the stellar parameters, we can be more confident that the influence of these outlier lines on the spectral fit is
+appropriately downweighted. This weighting approach is in contrast to a more traditional "sigma-clipping" procedure,
+which would discard these points from the fit. As noted by `Mann et al. 2013 <http://adsabs.harvard.edu/abs/2013ApJ...779..188M>`_, some mildly discrepant spectral regions
+actually contain significant spectral information about the stellar parameters, perhaps more information than spectral
+regions that are in excellent agreement with the data. Rather than simply discarding these discrepant regions, the
+appropriate step is then to determine the weighting by which these spectral regions should contribute to the total
+likelihood. These local kernels provide exactly such a weighting mechanism.
 
 Marginalized Stellar Parameters
 ===============================
 
+The forward modeling approach is unique in that the result is a posterior distribution over stellar parameters. Rather
+than yielding a simple metric of "best-fit" parameters, exploring the probability distribution with MCMC reveals any
+covariances between stellar parameters. For this star with the above K-band spectrum, the covariance between
+:math:`T_{eff}` and :math:`[Fe/H]` is mild, but for stars of different spectral types the degeneracy can be severe.
+
+.. figure:: assets/stellar_triangle.svg
+    :align: center
+    :width: 90%
+
+    The posterior probability distribution of the interesting stellar parameters for Gl 51, marginalized over all of
+    nuisance parameters including the covariance kernel hyperparameters. The contours are drawn at 1, 2, and 3 sigma
+    levels for reference.
+
 
 Spectral Emulator
 =================
+
+For spectra with very high signal to noise, interpolation error from the synthetic library may constitute a significant
+portion of the noise budget. This error is due to the fact that stellar spectral synthesis is an inherently non-linear
+process requiring complex model atmospheres and radiative transfer. Unfortunately, we are not (yet) in an age where
+synthetic spectral synthesis over a large spectral range is fast enough to use within a MCMC call. Therefore, it is
+necessary to approximate an interpolated spectrum based upon spectra with similar stellar properties.
+
+Following the techniques of `Habib et al. 2007 <http://adsabs.harvard.edu/abs/2007PhRvD..76h3503H>`_, we design a
+spectral emulator, which, rather than interpolating spectra, delivers a probability distribution over all probable
+interpolate spectra. Using this probability distribution, we can in our likelihood function analytically marginalize
+over all probable spectral interpolations, in effect forward propagating any uncertainty introduced by the interpolation
+process.
+
+.. figure:: assets/pca_reconstruct.svg
+    :align: center
+    :width: 100%
+
+**top** The mean spectrum, standard deviation spectrum, and five eigenspectra that form the basis of the PHOENIX
+synthetic library used to model Gl 51, generated using a subset of the parameter space most relevant for M dwarfs.
+
+**bottom** The original synthetic spectrum from the PHOENIX library (:math:`T_{eff}=3000`K, :math:`logg=5.0`dex,
+:math:`[Fe/H]=0.0`dex) compared with a spectrum reconstructed from a linear combination of the derived eigenspectra,
+using the weights listed in the top panel.
