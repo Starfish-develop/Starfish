@@ -20,9 +20,9 @@ if not __STARFISH_SETUP__:
         config = Config("config.yaml")
     else:
         warnings.warn(
-            f"Using the default config file located at {DEFAULT_CONFIG_FILE}. This is likely NOT what you want and "
-            f"you will not be able to change any of the config values. Please use config.copy_file(<path>) to copy a "
-            f"version of the default config for your own project.",
+            "Using the default config file located at {}. This is likely NOT what you want and "
+            "you will not be able to change any of the config values. Please use config.copy_file(<path>) to copy a "
+            "version of the default config for your own project.".format(DEFAULT_CONFIG_FILE),
             UserWarning)
         config = Config(DEFAULT_CONFIG_FILE)
 
