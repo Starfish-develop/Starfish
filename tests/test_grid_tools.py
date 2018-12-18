@@ -1,6 +1,7 @@
 import logging
 from itertools import product
 from urllib.request import urlretrieve
+import socket
 
 import pytest
 
@@ -8,6 +9,7 @@ from Starfish.grid_tools import *
 
 log = logging.getLogger(__file__)
 
+TEST_PHOENIX_MODELS = False
 
 @pytest.fixture(scope='session')
 def tmpPHOENIXModels(tmpdir_factory):
@@ -26,6 +28,7 @@ def tmpPHOENIXModels(tmpdir_factory):
     os.makedirs(outdir, exist_ok=True)
     # Download step
     log.info('Starting Download of PHOENIX ACES models')
+    # socket.setdefaulttimeout(600)
     if not os.path.exists(wave_file):
         urlretrieve(wave_url, wave_file)
     for p in params:
@@ -45,7 +48,7 @@ class TestRawGridInterface:
         params = {
             "temp": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
-            "Z"   : (-0.5, 0.0)
+            "Z": (-0.5, 0.0)
         }
         yield RawGridInterface("PHOENIX",
                                list(params),
@@ -58,7 +61,7 @@ class TestRawGridInterface:
         params = {
             "temp": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
-            "Z"   : (-0.5, 0.0),
+            "Z": (-0.5, 0.0),
             "bunnies": ("furry", "happy"),
         }
         with pytest.raises(KeyError) as e:
@@ -93,8 +96,7 @@ class TestPHOENIXGridInterface:
     def test_check_params_alpha(self, grid):
         assert grid.check_params((6100, 4.5, 0.0, 0.2))
 
-
-    @pytest.mark.skip("Phoenix Models not working on Travis")
+    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_load_flux(self, grid):
         fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert len(fl) == 1540041
@@ -107,8 +109,7 @@ class TestPHOENIXGridInterface:
     def test_load_alpha(self, grid):
         grid.load_flux((6100, 4.5, 0.0, 0.2))
 
-
-    @pytest.mark.skip("Phoenix Models not working on Travis")
+    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_load_flux_metadata(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert isinstance(hdr, dict)
@@ -118,15 +119,13 @@ class TestPHOENIXGridInterface:
         with pytest.raises(ValueError) as e:
             PHOENIXGridInterface(base="wrong_base/")
 
-
-    @pytest.mark.skip("Phoenix Models not working on Travis")
+    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_no_air(self, tmpPHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=tmpPHOENIXModels)
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert hdr['air'] == False
 
-
-    @pytest.mark.skip("Phoenix Models not working on Travis")
+    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_no_norm(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
         assert hdr['norm'] == False

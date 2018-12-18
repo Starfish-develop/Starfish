@@ -105,7 +105,7 @@ class PhiParam:
         '''
         Return parameters formatted as a numpy array.
         '''
-        p = self.cheb.tolist() + [self.sigAmp, self.logAmp, self.l]
+        p = list(self.cheb) + [self.sigAmp, self.logAmp, self.l]
         if self.regions is not None:
             p += self.regions.flatten().tolist()
 

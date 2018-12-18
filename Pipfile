@@ -12,11 +12,11 @@ scipy = "*"
 cython = "*"
 scikit-learn = "*"
 astropy = "*"
-h5py = "*"
+"h5py" = "*"
 corner = "*"
 tqdm = "*"
-pyyaml = "*"
 emcee = "<3"
+oyaml = "*"
 
 
 [dev-packages]

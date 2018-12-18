@@ -9,11 +9,11 @@
 
 Please note that this software package is still under development as more features are being added.
 
-Website: http://iancze.github.io/Starfish/
+Website: https://iancze.github.io/Starfish/
 
-Documentation: http://iancze.github.io/Starfish/current/index.html
+Documentation: https://starfish.readthedocs.io/en/latest/
 
-Paper: http://arxiv.org/abs/1412.5177
+Paper: https://arxiv.org/abs/1412.5177
 
 
 Copyright Ian Czekala 2013, 2014, 2015, 2016
@@ -29,19 +29,6 @@ If you wish to use this code in your own research, please email me and I can hel
 ## Prerequisites
 
 *Starfish* has several dependencies, however most of them should be satisfied by an up-to-date scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to python 3.3 or greater. This code makes no attempt to work on the python 2.x series, and I doubt it will if you try. This package has been tested on Linux and Mac OSX 10.10.
-
-Starfish requires the following Python packages:
-
-* numpy
-* scipy
-* matplotlib
-* h5py
-* astropy
-* cython
-* pyyaml
-* scikit-learn
-* [emcee](https://github.com/dfm/emcee)
-* [corner](https://github.com/dfm/corner.py)
 
 Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda 
 distribution with python 3.6 or greater, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
@@ -75,7 +62,7 @@ If you don't care to download the code and would rather install directly into a 
 
     pip install git+https://github.com/iancze/Starfiish.git#egg=astrostarfish
 
-or 
+or if you want to use one of the PyPi releases, use
 
     pip install astrostarfish
 
@@ -83,7 +70,7 @@ To test that you've properly installed *Starfish*, try doing the following insid
 ```python
 >>> import Starfish
 >>> print(Starfish.__version__)
-'0.1'
+'0.2.3'
 ```
 If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 

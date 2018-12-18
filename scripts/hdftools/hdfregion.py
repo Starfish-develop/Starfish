@@ -267,7 +267,7 @@ while regionDeque:
         if added:
             break
     # if we get to here, we were unable to add to any pre-existing chains, so create new region object
-    if added == False:
+    if not added:
         classifiedRegions.append(Region(rsamples))
 
 #At this point, we should have a length norders 2D list, each with a list of Region objects.

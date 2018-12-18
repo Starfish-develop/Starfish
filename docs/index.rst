@@ -9,6 +9,7 @@ Contents:
    :maxdepth: 1
 
    overview
+   config
    grid_tools
    spectrum
    emulator
