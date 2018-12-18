@@ -1,1 +1,4 @@
 include Starfish/config.yaml
+include filters/*
+include extern/*
+include scripts/*
