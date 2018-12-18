@@ -156,3 +156,7 @@ target/
 Session.vim
 .netrwhist
 *~
+attic
+plots
+notebooks
+
