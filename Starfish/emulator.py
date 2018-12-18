@@ -1,17 +1,13 @@
 import math
 import os
-import multiprocessing as mp
 
-import numpy as np
 import h5py
+import numpy as np
 from sklearn.decomposition import PCA
-import math
-import os
 
-import Starfish
+from Starfish import config, constants as C
+from Starfish.covariance import Sigma, V12, V22, V12m, V22m
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
-from Starfish.covariance import Sigma, sigma, V12, V22, V12m, V22m
-from Starfish import constants as C
 
 
 def Phi(eigenspectra, M):
@@ -154,7 +150,7 @@ class PCAGrid:
         # Use the scikit-learn PCA module
         # Automatically select enough components to explain > threshold (say
         # 0.99, or 99%) of the variance.
-        pca = PCA(n_components=Starfish.config.PCA["threshold"], svd_solver='full')
+        pca = PCA(n_components=config.PCA["threshold"], svd_solver='full')
         pca.fit(fluxes)
         comp = pca.transform(fluxes)
         components = pca.components_
@@ -164,7 +160,7 @@ class PCAGrid:
         ncomp = len(components)
 
         print("found {} components explaining {:.2f}% of the" \
-              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * Starfish.config.PCA["threshold"]))
+              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * config.PCA["threshold"]))
 
         print("Shape of PCA components {}".format(components.shape))
 
@@ -189,7 +185,7 @@ class PCAGrid:
 
         return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams)
 
-    def write(self, filename=Starfish.config.PCA["path"]):
+    def write(self, filename=config.PCA["path"]):
         '''
         Write the PCA decomposition to an HDF5 file.
 
@@ -219,14 +215,14 @@ class PCAGrid:
                                         compression_opts=9)
         w_hatdset[:] = self.w_hat
 
-        gdset = hdf5.create_dataset("gparams", (self.M, len(Starfish.config.parname)), compression='gzip', dtype="f8",
+        gdset = hdf5.create_dataset("gparams", (self.M, len(config.grid["parname"])), compression='gzip', dtype="f8",
                                     compression_opts=9)
         gdset[:] = self.gparams
 
         hdf5.close()
 
     @classmethod
-    def open(cls, filename=Starfish.config.PCA["path"]):
+    def open(cls, filename=config.PCA["path"]):
         '''
         Initialize an object using the PCA already stored to an HDF5 file.
 
@@ -260,7 +256,7 @@ class PCAGrid:
 
         return pcagrid
 
-    def determine_chunk_log(self, wl_data, buffer=Starfish.config.grid["buffer"]):
+    def determine_chunk_log(self, wl_data, buffer=config.grid["buffer"]):
         """
         Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
         response to some data.
@@ -373,7 +369,7 @@ class Emulator:
         self.sig = None
 
     @classmethod
-    def open(cls, filename=Starfish.config.PCA["path"]):
+    def open(cls, filename=config.PCA["path"]):
         '''
         Create an Emulator object from an HDF5 file.
         '''

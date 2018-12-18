@@ -1,6 +1,6 @@
 from Starfish.model import Model, StellarSampler, ChebSampler, MegaSampler, CovGlobalSampler, RegionsSampler
 from Starfish.spectrum import DataSpectrum, Mask
-from Starfish.config.grid_tools import TRES, HDF5Interface
+from Starfish.grid_tools import TRES, HDF5Interface
 from Starfish.emulator import Emulator
 import Starfish.constants as C
 import numpy as np
@@ -43,7 +43,7 @@ base = outdir + name + "run{:0>2}/"
 
 #This code is necessary for multiple simultaneous runs on odyssey, so that different runs do not write into the same
 #output directory
-if args.run_index == None:
+if args.run_index is None:
     run_index = 0
     while os.path.exists(base.format(run_index)) and (run_index < 20):
         print(base.format(run_index), "exists")

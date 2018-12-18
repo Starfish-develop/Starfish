@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser(description="Use the last runs to set the nuisa
 parser.add_argument("rundir", help="The relative path to the output directory containing the samples.")
 args = parser.parse_args()
 
-import Starfish
+from Starfish import config
 from Starfish.model import PhiParam
 from Starfish import utils
 
@@ -18,7 +18,7 @@ orders = Starfish.data["orders"]
 for spectrum_id in range(len(spectra)):
     for order in orders:
 
-        npoly = Starfish.config["cheb_degree"]
+        npoly = config["cheb_degree"]
 
         if order == orders[-1]:
             # Use cheb degree - 1 for the last order

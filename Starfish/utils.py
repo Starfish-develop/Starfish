@@ -1,10 +1,13 @@
-import numpy as np
+import sys
 import multiprocessing as mp
-import Starfish.constants as C
-import csv
+
 import h5py
-from astropy.table import Table
+import numpy as np
 from astropy.io import ascii
+from astropy.table import Table
+
+import Starfish.constants as C
+
 
 def multivariate_normal(cov):
     np.random.seed()
@@ -218,11 +221,11 @@ def plot(flatchain, base, format=".png"):
     Make a triangle plot
     '''
 
-    import triangle
+    import corner
 
     labels = [r"$T_\mathrm{eff}$ [K]", r"$\log g$ [dex]", r"$Z$ [dex]",
     r"$v_z$ [km/s]", r"$v \sin i$ [km/s]", r"$\log_{10} \Omega$"]
-    figure = triangle.corner(flatchain, quantiles=[0.16, 0.5, 0.84],
+    figure = corner.corner(flatchain, quantiles=[0.16, 0.5, 0.84],
         plot_contours=True, plot_datapoints=False, labels=labels, show_titles=True)
     figure.savefig(base + "triangle" + format)
 
@@ -238,9 +241,7 @@ def paper_plot(flatchain, base, format=".pdf"):
     matplotlib.rc("patch", linewidth=0.7)
     import matplotlib.pyplot as plt
     #matplotlib.rc("axes", labelpad=10)
-    from matplotlib.ticker import FormatStrFormatter as FSF
-    from matplotlib.ticker import MaxNLocator
-    import triangle
+    import corner
 
     labels = [r"$M_\ast\enskip [M_\odot]$", r"$i_d \enskip [{}^\circ]$"]
     #r"$r_c$ [AU]", r"$T_{10}$ [K]", r"$q$", r"$\log M_\textrm{CO} \enskip [\log M_\oplus]$",
@@ -250,7 +251,7 @@ def paper_plot(flatchain, base, format=".pdf"):
     K = len(labels)
     fig, axes = plt.subplots(K, K, figsize=(3., 2.5))
 
-    figure = triangle.corner(flatchain[:, inds], plot_contours=True,
+    figure = corner.corner(flatchain[:, inds], plot_contours=True,
     plot_datapoints=False, labels=labels, show_titles=False,
         fig=fig)
 

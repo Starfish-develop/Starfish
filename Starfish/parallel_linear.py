@@ -23,7 +23,7 @@ from multiprocessing import Process, Pipe
 import os
 import numpy as np
 
-import Starfish
+from Starfish import config
 import Starfish.grid_tools
 from Starfish.grid_tools import Interpolator, HDF5Interface
 from Starfish.samplers import StateSampler
@@ -59,9 +59,9 @@ def init_directories(run_index=None):
     :returns: routdir, the outdir for this current run.
     '''
 
-    base = Starfish.config.outdir + Starfish.config.name + "/run{:0>2}/"
+    base = config.outdir + config.name + "/run{:0>2}/"
 
-    if run_index == None:
+    if run_index is None:
         run_index = 0
         while os.path.exists(base.format(run_index)):
             print(base.format(run_index), "exists")
@@ -82,37 +82,37 @@ def init_directories(run_index=None):
     shutil.copy("config.yaml", routdir + "config.yaml")
 
     # Create subdirectories
-    for model_number in range(len(Starfish.config.data["files"])):
-        for order in Starfish.config.data["orders"]:
-            order_dir = routdir + Starfish.specfmt.format(model_number, order)
+    for model_number in range(len(config.data["files"])):
+        for order in config.data["orders"]:
+            order_dir = routdir + config.specfmt.format(model_number, order)
             print("Creating ", order_dir)
             os.makedirs(order_dir)
 
     return routdir
 
 if args.run_index:
-    Starfish.routdir = init_directories(args.run_index)
+    config.routdir = init_directories(args.run_index)
 else:
-    Starfish.routdir = ""
+    config.routdir = ""
 
 # list of keys from 0 to (norders - 1)
-order_keys = np.arange(len(Starfish.config.data["orders"]))
-DataSpectra = [DataSpectrum.open(file, orders=Starfish.config.data["orders"]) for file in Starfish.config.data["files"]]
+order_keys = np.arange(len(config.data["orders"]))
+DataSpectra = [DataSpectrum.open(file, orders=config.data["orders"]) for file in config.data["files"]]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 
 #Instruments are provided as one per dataset
-Instruments = [eval("Starfish.grid_tools." + inst)() for inst in Starfish.config.data["instruments"]]
+Instruments = [eval("Starfish.grid_tools." + inst)() for inst in config.data["instruments"]]
 
-masks = Starfish.config.get("mask", None)
+masks = config.get("mask", None)
 if masks is not None:
     for mask, dataSpec in zip(masks, DataSpectra):
-        myMask = Mask(mask, orders=Starfish.config.data["orders"])
+        myMask = Mask(mask, orders=config.data["orders"])
         dataSpec.add_mask(myMask.masks)
 
 # Set up the logger
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
-    Starfish.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
+    config.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
 #
 # def perturb(startingDict, jumpDict, factor=3.):
 #     '''
@@ -129,7 +129,7 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)
 # fix_logg = config.get("fix_logg", None)
 
 # Updating specific covariances to speed mixing
-if Starfish.config.get("use_cov", None):
+if config.get("use_cov", None):
     # Use an emprically determined covariance matrix to for the jumps.
     pass
 
@@ -202,11 +202,11 @@ class Order:
 
         self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_key))
 
-        self.npoly = Starfish.config["cheb_degree"]
+        self.npoly = config["cheb_degree"]
         self.chebyshevSpectrum = ChebyshevSpectrum(self.dataSpectrum, self.order_key, npoly=self.npoly)
 
         # If the file exists, optionally initiliaze to the chebyshev values
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         if os.path.exists(fname):
             self.logger.debug("Loading stored Chebyshev parameters.")
             phi = PhiParam.load(fname)
@@ -233,7 +233,7 @@ class Order:
         # self.exceptions = []
 
         # Update the outdir based upon id
-        self.noutdir = Starfish.routdir + "{}/{}/".format(self.spectrum_id, self.order)
+        self.noutdir = config.routdir + "{}/{}/".format(self.spectrum_id, self.order)
 
     def instantiate(self, *args):
         '''
@@ -305,7 +305,7 @@ class Order:
         '''
 
         # Dirty hack
-        fix_logg = Starfish.config.get("fix_logg", None)
+        fix_logg = config.get("fix_logg", None)
         if fix_logg is not None:
             p.grid[1] = fix_logg
         print("grid pars are", p.grid)
@@ -529,7 +529,7 @@ class Order:
 
         my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":self.flux.tolist(), "resid":resid.tolist(), "sigma":self.sigma.tolist(), "spectrum_id":self.spectrum_id, "order":self.order}
 
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order)
+        fname = config.specfmt.format(self.spectrum_id, self.order)
         f = open(fname + "spec.json", 'w')
         json.dump(my_dict, f, indent=2, sort_keys=True)
         f.close()
@@ -567,10 +567,10 @@ class SampleThetaCheb(Order):
         self.data_mat_last = self.data_mat.copy()
 
         #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
         self.p0 = phi.cheb
-        cov = np.diag(Starfish.config["cheb_jump"]**2 * np.ones(len(self.p0)))
+        cov = np.diag(config["cheb_jump"]**2 * np.ones(len(self.p0)))
 
         def lnfunc(p):
             # turn this into pars
@@ -593,7 +593,7 @@ class SampleThetaCheb(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
 
 class SampleThetaPhi(Order):
@@ -607,7 +607,7 @@ class SampleThetaPhi(Order):
         self.data_mat_last = self.data_mat.copy()
 
         #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
         # Set the regions to None, since we don't want to include them even if they
@@ -618,9 +618,9 @@ class SampleThetaPhi(Order):
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
-        jump = Starfish.config["Phi_jump"]
+        jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate((config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -670,7 +670,7 @@ class SampleThetaPhi(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
 
 class SampleThetaPhiLines(Order):
@@ -684,7 +684,7 @@ class SampleThetaPhiLines(Order):
         self.data_mat_last = self.data_mat.copy()
 
         #Set up p0 and the independent sampler
-        fname = Starfish.specfmt.format(self.spectrum_id, self.order) + "phi.json"
+        fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
         # print("Phi.regions", phi.regions)
@@ -706,9 +706,9 @@ class SampleThetaPhiLines(Order):
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
-        jump = Starfish.config["Phi_jump"]
+        jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((Starfish.config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate((config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -758,7 +758,7 @@ class SampleThetaPhiLines(Order):
 
     def finish(self, *args):
         super().finish(*args)
-        fname = Starfish.routdir + Starfish.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
         self.sampler.write(fname=fname)
 
 

@@ -3,7 +3,7 @@
 name: default
 
 data:
-  grid_name: "CIFIST"
+  grid_name: "PHOENIX"
   files: ["data.hdf5"]
   instruments : ["DCT_DeVeny"]
 
@@ -13,12 +13,12 @@ plotdir : plots/
 
 # The parameters defining your raw spectral library live here.
 grid:
-  raw_path: "../libraries/raw/CIFIST/"
+  raw_path: "../libraries/raw/PHOENIX/"
   hdf5_path: "grid.hdf5"
-  parname: ["temp", "logg"]
-  key_name: "t{0:.0f}g{1:.1f}" # Specifies how the params are stored
+  parname: ["Teff", "logg", "Z"]
+  key_name: "T{0:.0f}_g{1:.1f}_Z{2:.2f}" # Specifies how the params are stored
   # in the HDF5 file
-  parrange: [[2300, 3700], [4.0, 5.5]]
+  parrange: [[2300, 3700], [4.0, 5.5], [-0.5, 0.5]]
   wl_range: [6300, 6360]
   buffer: 50. # AA
 
@@ -59,7 +59,7 @@ Phi_jump :
     logAmp : 0.01
     l : 0.25
 
-
+specfmt: s{}_o{}
 chunk_ID: 0
 spectrum_ID: 0
 instrument_ID: 0
