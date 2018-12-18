@@ -14,18 +14,8 @@ Contents:
 
    intro
    overview
-   config
-   grid_tools
-   spectrum
-   emulator
-   model
-   MCMC
-   scripts
-   cookbook
-   example_wasp14
-   example_wasp14_data
-   example_wasp14_sampling
-   example_wasp14_multi
+   api/api
+   examples/examples
    troubleshooting
    tips_and_tricks
 
