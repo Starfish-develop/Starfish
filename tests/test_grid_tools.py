@@ -1,7 +1,6 @@
 import logging
 from itertools import product
 from urllib.request import urlretrieve
-import socket
 
 import pytest
 
@@ -9,7 +8,6 @@ from Starfish.grid_tools import *
 
 log = logging.getLogger(__file__)
 
-TEST_PHOENIX_MODELS = False
 
 @pytest.fixture(scope='session')
 def tmpPHOENIXModels(tmpdir_factory):
@@ -19,10 +17,10 @@ def tmpPHOENIXModels(tmpdir_factory):
         (0.0, 0.5, 1.0)  # Note these are actually negative but I am going to hard-code the minus sign
     )
     outdir = os.path.join('data', 'phoenix')
-    wave_url = 'ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
+    wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
     wave_file = os.path.join(outdir, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
-    flux_file_formatter = 'ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-{2:02.1f}' \
-                          '/lte{0:05.0f}-{1:03.2f}-{2:02.1f}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+    flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-{' \
+                          '2:02.1f}/lte{0:05.0f}-{1:03.2f}-{2:02.1f}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
     output_formatter = 'Z-{2:02.1f}/lte{0:05.0f}-{1:03.2f}-{2:02.1f}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
 
     os.makedirs(outdir, exist_ok=True)
@@ -48,7 +46,7 @@ class TestRawGridInterface:
         params = {
             "temp": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
-            "Z": (-0.5, 0.0)
+            "Z"   : (-0.5, 0.0)
         }
         yield RawGridInterface("PHOENIX",
                                list(params),
@@ -59,9 +57,9 @@ class TestRawGridInterface:
                       "it's tough to be able to check all params for sensible keys")
     def test_initialize(self):
         params = {
-            "temp": (6000, 6100, 6200),
-            "logg": (4.0, 4.5, 5.0),
-            "Z": (-0.5, 0.0),
+            "temp"   : (6000, 6100, 6200),
+            "logg"   : (4.0, 4.5, 5.0),
+            "Z"      : (-0.5, 0.0),
             "bunnies": ("furry", "happy"),
         }
         with pytest.raises(KeyError) as e:
@@ -96,7 +94,6 @@ class TestPHOENIXGridInterface:
     def test_check_params_alpha(self, grid):
         assert grid.check_params((6100, 4.5, 0.0, 0.2))
 
-    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_load_flux(self, grid):
         fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert len(fl) == 1540041
@@ -109,7 +106,6 @@ class TestPHOENIXGridInterface:
     def test_load_alpha(self, grid):
         grid.load_flux((6100, 4.5, 0.0, 0.2))
 
-    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_load_flux_metadata(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert isinstance(hdr, dict)
@@ -119,13 +115,11 @@ class TestPHOENIXGridInterface:
         with pytest.raises(ValueError) as e:
             PHOENIXGridInterface(base="wrong_base/")
 
-    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_no_air(self, tmpPHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=tmpPHOENIXModels)
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert hdr['air'] == False
 
-    @pytest.mark.skipif(not TEST_PHOENIX_MODELS, reason="Cannot test PHOENIX models if not downloaded")
     def test_no_norm(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
         assert hdr['norm'] == False
