@@ -69,7 +69,7 @@ To test that you've properly installed *Starfish*, try doing the following insid
 ```
 If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 
-Now that you've successfully installed the code, please see the [documentation](http://iancze.github.io/Starfish/current/index.html) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](http://iancze.github.io/Starfish/current/cookbook.html) for a taste of a typical workflow.
+Now that you've successfully installed the code, please see the [documentation](https://starfish.readthedocs.io/en/latest/) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](https://starfish.readthedocs.io/en/latest/cookbook.html) for a taste of a typical workflow.
 
 ## Contributing
 If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into
