@@ -88,29 +88,29 @@ class RawGridInterface:
 
 
 class HDF5Creator:
-    '''
+    """
     Create a HDF5 grid to store all of the spectra from a RawGridInterface,
     along with metadata.
 
-    '''
+    :param GridInterface:  The raw grid interface to process while creating the HDF5 file
+    :type GridInterface: :obj:`RawGridInterface`
+    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended.
+    :type filename: str or path-like
+    :param Instrument: the instrument to convolve/truncate the grid. If you
+        want a high-res grid, use the NullInstrument.
+    :type Instrument: :obj:`Instrument`
+    :param ranges: lower and upper limits for each stellar parameter,
+        in order to truncate the number of spectra in the grid.
+    :type ranges: dict of keywords mapped to 2-tuples
+    :param key_name: formatting string that has keys for each of the parameter
+        names to translate into a hash-able string.
+    :type key_name: str
+
+    This object is designed to be run in serial.
+    """
 
     def __init__(self, GridInterface, filename, Instrument, ranges=None,
-                 key_name=config.grid["key_name"], vsinis=None):
-        '''
-        :param GridInterface: :obj:`RawGridInterface` object or subclass thereof
-            to access raw spectra on disk.
-        :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended.
-        :param Instrument: the instrument to convolve/truncate the grid. If you
-            want a high-res grid, use the NullInstrument.
-        :param ranges: lower and upper limits for each stellar parameter,
-            in order to truncate the number of spectra in the grid.
-        :type ranges: dict of keywords mapped to 2-tuples
-        :param key_name: formatting string that has keys for each of the parameter
-            names to translate into a hash-able string.
-        :type key_name: string
-
-        This object is designed to be run in serial.
-        '''
+                 key_name=config.grid["key_name"]):
 
         if ranges is None:
             # Programatically define each range to be (-np.inf, np.inf)
@@ -215,7 +215,7 @@ class HDF5Creator:
         wl_dset.attrs["dv"] = self.dv_final
 
     def process_flux(self, parameters):
-        '''
+        """
         Take a flux file from the raw grid, process it according to the
         instrument, and insert it into the HDF5 file.
 
@@ -228,7 +228,7 @@ class HDF5Creator:
         :returns: a tuple of (parameters, flux, header). If the flux could
             not be loaded, returns (None, None, None).
 
-        '''
+        """
         # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
 
         # If the parameter length is one more than the grid pars,
@@ -281,12 +281,12 @@ class HDF5Creator:
             return (None, None)
 
     def process_grid(self):
-        '''
+        """
         Run :meth:`process_flux` for all of the spectra within the `ranges`
         and store the processed spectra in the HDF5 file.
 
         Only executed in serial for now.
-        '''
+        """
 
         # points is now a list of numpy arrays of the values in the grid
         # Take all parameter permutations in self.points and create a list
@@ -334,17 +334,16 @@ class HDF5Creator:
 
 
 class HDF5Interface:
-    '''
+    """
     Connect to an HDF5 file that stores spectra.
-    '''
+
+    :param filename: the name of the HDF5 file
+    :type param: string
+    :param ranges: optionally select a smaller part of the grid to use.
+    :type ranges: dict
+    """
 
     def __init__(self, filename=config.grid["hdf5_path"], key_name=config.grid["key_name"]):
-        '''
-        :param filename: the name of the HDF5 file
-        :type param: string
-        :param ranges: optionally select a smaller part of the grid to use.
-        :type ranges: dict
-        '''
         self.filename = os.path.expandvars(filename)
         self.key_name = key_name
 
@@ -370,7 +369,7 @@ class HDF5Interface:
         self.ind = None  # Overwritten by other methods using this as part of a ModelInterpolator
 
     def load_flux(self, parameters):
-        '''
+        """
         Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
@@ -379,7 +378,7 @@ class HDF5Interface:
         :raises KeyError: if spectrum is not found in the HDF5 file.
 
         :returns: flux array
-        '''
+        """
 
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
@@ -397,19 +396,19 @@ class HDF5Interface:
 
     @property
     def fluxes(self):
-        '''
+        """
         Iterator to loop over all of the spectra stored in the grid, for PCA.
 
         Loops over parameters in the order specified by grid_points.
-        '''
+        """
 
         for grid_point in self.grid_points:
             yield self.load_flux(grid_point)
 
     def load_flux_hdr(self, parameters):
-        '''
+        """
         Just like load_flux, but also returns the header
-        '''
+        """
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
             try:
@@ -427,7 +426,7 @@ class HDF5Interface:
 
 
 def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
-    '''Assumes that wl is already log lambda spaced'''
+    """Assumes that wl is already log lambda spaced"""
 
     hdu = fits.PrimaryHDU(fl)
     head = hdu.header
@@ -447,14 +446,14 @@ def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
 
 
 class MasterToFITSIndividual:
-    '''
+    """
     Object used to create one FITS file at a time.
 
     :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
     :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
 
 
-    '''
+    """
 
     def __init__(self, interpolator, instrument):
         self.interpolator = interpolator
@@ -466,7 +465,7 @@ class MasterToFITSIndividual:
         self.wl = self.wl_dict["wl"]
 
     def process_spectrum(self, parameters, out_unit, out_dir=""):
-        '''
+        """
         Creates a FITS file with given parameters
 
 
@@ -476,7 +475,7 @@ class MasterToFITSIndividual:
         :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.
 
         Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
-        '''
+        """
 
         # Preserve the "popping of parameters"
         parameters = parameters.copy()
@@ -508,7 +507,7 @@ class MasterToFITSIndividual:
 
 
 class MasterToFITSGridProcessor:
-    '''
+    """
     Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate
     any values.
 
@@ -523,7 +522,7 @@ class MasterToFITSGridProcessor:
     Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,
     preserving all of the header keywords.
 
-    '''
+    """
 
     def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False,
                  processes=mp.cpu_count()):
@@ -560,14 +559,14 @@ class MasterToFITSGridProcessor:
         self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, min_vc=0.1)['wl']
 
     def process_spectrum_vsini(self, parameters):
-        '''
+        """
         Create a set of FITS files with given stellar parameters temp, logg, Z and all combinations of `vsini`.
 
         :param parameters: stellar parameters
         :type parameters: dict
 
         Smoothly handles the *KeyError* if parameters cannot be drawn from the interface and prints a message.
-        '''
+        """
 
         try:
             # Check to see if alpha, otherwise append alpha=0 to the parameter list.
@@ -605,20 +604,20 @@ class MasterToFITSGridProcessor:
             print("{} cannot be loaded from the interface.".format(parameters))
 
     def process_chunk(self, chunk):
-        '''
+        """
         Process a chunk of parameters to FITS
 
         :param chunk: stellar parameter dicts
         :type chunk: 1-D list
-        '''
+        """
         print("Process {} processing chunk {}".format(os.getpid(), chunk))
         for param in chunk:
             self.process_spectrum_vsini(param)
 
     def process_all(self):
-        '''
+        """
         Process all parameters in :attr:`points` to FITS by chopping them into chunks.
-        '''
+        """
         print("Total of {} FITS files to create.".format(len(self.vsini_points) * len(self.param_list)))
         chunks = chunk_list(self.param_list, n=self.processes)
         for chunk in chunks:
