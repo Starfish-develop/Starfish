@@ -19,9 +19,22 @@ def PHOENIXModels():
     download_PHOENIX_models(params, outdir)
     yield outdir
 
-def test_phoenix_downloads(PHOENIXModels):
+@pytest.fixture(scope='session')
+def AlphaPHOENIXModels():
+    params = product(
+        (6100,),
+        (4.5,),
+        (0.0,),
+        (-0.2,)
+    )
+    test_base = os.path.dirname(os.path.dirname(__file__))
+    outdir = os.path.join(test_base, 'data', 'phoenix')
+    download_PHOENIX_models(params, outdir)
+    yield outdir
+
+def test_phoenix_downloads(PHOENIXModels, AlphaPHOENIXModels):
     num_files = sum([len(files) for d, dd, files in os.walk(PHOENIXModels)])
-    assert num_files == 28
+    assert num_files == 29
 
 class TestRawGridInterface:
 
@@ -71,27 +84,26 @@ class TestRawGridInterface:
 class TestPHOENIXGridInterface:
 
     @pytest.fixture(scope='class')
-    def grid(self, PHOENIXModels):
+    def grid(self, PHOENIXModels, AlphaPHOENIXModels):
         yield PHOENIXGridInterface(base=PHOENIXModels)
 
-    @pytest.mark.skip("No alpha phoenix are downloaded, and I don't want to download them yet")
     def test_check_params_alpha(self, grid):
-        assert grid.check_params((6100, 4.5, 0.0, 0.2))
+        assert grid.check_params((6100, 4.5, 0.0, -0.2))
 
     def test_load_flux(self, grid):
-        fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert len(fl) == 1540041
         assert header['PHXTEFF'] == 6100
         assert header['PHXLOGG'] == 4.5
         assert header['PHXM_H'] == 0.0
         assert header['PHXALPHA'] == 0.0
 
-    @pytest.mark.skip("No alpha phoenix are downloaded, and I don't want to download them yet")
     def test_load_alpha(self, grid):
-        grid.load_flux((6100, 4.5, 0.0, 0.2))
+        fl, header = grid.load_flux((6100, 4.5, 0.0, -0.2), header=True)
+        assert header['PHXALPHA'] == -0.2
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert isinstance(hdr, dict)
 
     def test_bad_base(self):
@@ -101,9 +113,9 @@ class TestPHOENIXGridInterface:
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True, norm=False)
         assert hdr['norm'] == False

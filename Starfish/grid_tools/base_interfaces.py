@@ -54,6 +54,8 @@ class RawGridInterface:
         :type parameters: numpy.ndarray or list
 
         :raises ValueError: if the parameter values are outside of the grid bounds
+
+        :returns: True if found in grid
         """
         if not isinstance(parameters, np.ndarray):
             parameters = np.array(parameters)
@@ -65,6 +67,7 @@ class RawGridInterface:
         for param, params in zip(parameters, self.points):
             if param not in params:
                 raise ValueError("{} not in the grid points {}".format(param, params))
+        return True
 
     def load_flux(self, parameters, norm=True):
         '''
