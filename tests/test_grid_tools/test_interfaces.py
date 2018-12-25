@@ -4,36 +4,24 @@ from itertools import product
 
 import pytest
 
-from Starfish.grid_tools import RawGridInterface, PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha, PHOENIXGridInterfaceNoAlphaNoFE
+from Starfish.grid_tools import RawGridInterface, PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha, \
+    PHOENIXGridInterfaceNoAlphaNoFE, download_PHOENIX_models
 
 @pytest.fixture(scope='session')
-def tmpPHOENIXModels(tmpdir_factory):
+def PHOENIXModels():
     params = product(
         (6000, 6100, 6200),
         (4.0, 4.5, 5.0),
-        (0.0, 0.5, 1.0)  # Note these are actually negative but I am going to hard-code the minus sign
+        (0.0, -0.5, -1.0)
     )
-    outdir = os.path.join('data', 'phoenix')
-    wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
-    wave_file = os.path.join(outdir, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
-    flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/Z-{' \
-                          '2:02.1f}/lte{0:05.0f}-{1:03.2f}-{2:02.1f}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
-    output_formatter = 'Z-{2:02.1f}/lte{0:05.0f}-{1:03.2f}-{2:02.1f}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
-
-    os.makedirs(outdir, exist_ok=True)
-    # Download step
-    log.info('Starting Download of PHOENIX ACES models')
-    # socket.setdefaulttimeout(600)
-    if not os.path.exists(wave_file):
-        urlretrieve(wave_url, wave_file)
-    for p in params:
-        url = flux_file_formatter.format(*p)
-        output_file = os.path.join(outdir, output_formatter.format(*p))
-        if not os.path.exists(output_file):
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            urlretrieve(url, output_file)
-
+    test_base = os.path.dirname(os.path.dirname(__file__))
+    outdir = os.path.join(test_base, 'data', 'phoenix')
+    download_PHOENIX_models(params, outdir)
     yield outdir
+
+def test_phoenix_downloads(PHOENIXModels):
+    num_files = sum([len(files) for d, dd, files in os.walk(PHOENIXModels)])
+    assert num_files == 28
 
 class TestRawGridInterface:
 
@@ -83,8 +71,8 @@ class TestRawGridInterface:
 class TestPHOENIXGridInterface:
 
     @pytest.fixture(scope='class')
-    def grid(self, tmpPHOENIXModels):
-        yield PHOENIXGridInterface(base=tmpPHOENIXModels)
+    def grid(self, PHOENIXModels):
+        yield PHOENIXGridInterface(base=PHOENIXModels)
 
     @pytest.mark.skip("No alpha phoenix are downloaded, and I don't want to download them yet")
     def test_check_params_alpha(self, grid):
@@ -111,8 +99,8 @@ class TestPHOENIXGridInterface:
         with pytest.raises(ValueError) as e:
             PHOENIXGridInterface(base="wrong_base/")
 
-    def test_no_air(self, tmpPHOENIXModels):
-        grid = PHOENIXGridInterface(air=False, base=tmpPHOENIXModels)
+    def test_no_air(self, PHOENIXModels):
+        grid = PHOENIXGridInterface(air=False, base=PHOENIXModels)
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert hdr['air'] == False
 

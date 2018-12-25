@@ -159,8 +159,8 @@ def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
     wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
     wave_file = os.path.join(base, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
     flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
-                          '/{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
-    output_formatter = '{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+                          '/Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+    output_formatter = 'Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
 
     os.makedirs(base, exist_ok=True)
     # Download step
@@ -169,17 +169,19 @@ def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
         urlretrieve(wave_url, wave_file)
     pbar = tqdm(parameters)
     for p in pbar:
+        tmp_p = [p[0], p[1]]
         # Create the Z string. Have to do this because PHOENIX models use - sign for 0.0
-        p[2] = 'Z-0.0' if p[2] == 0 else 'Z{:+.1f}'.format(p[2])
+        Zstr = '-0.0' if p[2] == 0 else '{:+.1f}'.format(p[2])
+        tmp_p.append(Zstr)
         # Create the Alpha string, which is nothing if alpha is 0 or unspecified
         if len(p) == 4:
-            p[3] = '' if p[3] == 0 else '.Alpha={:+0.2f}'.format(p[3])
+            Astr = '' if p[3] == 0 else '.Alpha={:+.2f}'.format(p[3])
         else:
-            p.append('')
-
-        url = flux_file_formatter.format(*p)
+            Astr = ''
+        tmp_p.append(Astr)
+        url = flux_file_formatter.format(*tmp_p)
         pbar.set_description(url.split('/')[-1])
-        output_file = os.path.join(base, output_formatter.format(*p))
+        output_file = os.path.join(base, output_formatter.format(*tmp_p))
         if not os.path.exists(output_file):
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             try:
