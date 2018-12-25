@@ -24,7 +24,7 @@ class Instrument:
         '''
         Prints the relevant properties of the instrument.
         '''
-        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {}, " \
+        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {:.0f}, " \
                "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
 
 
