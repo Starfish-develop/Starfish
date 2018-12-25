@@ -1,16 +1,21 @@
 import bz2
+import logging
 import os
+from urllib.request import urlretrieve
 
 import numpy as np
 from astropy.io import fits, ascii
 from scipy.integrate import trapz
 from scipy.interpolate import InterpolatedUnivariateSpline
+from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
 from Starfish.spectrum import create_log_lam_grid
 from .base_interfaces import RawGridInterface
 from .utils import vacuum_to_air, idl_float
+
+log = logging.getLogger(__name__)
 
 
 class PHOENIXGridInterface(RawGridInterface):
@@ -61,20 +66,21 @@ class PHOENIXGridInterface(RawGridInterface):
         self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
-    def load_flux(self, parameters, norm=True):
-        '''
-       Load just the flux and header information.
+    def load_flux(self, parameters, header=False, norm=True):
+        """
+        Load just the flux and header information.
 
        :param parameters: stellar parameters
-       :type parameters: np.array
-       :param norm: normalize the spectrum to solar luminosity?
+       :type parameters: numpy.ndarray or list
+       :param header: If True, will return the header alongside the flux. Default is False.
+       :type header: bool
+       :param norm: If True, will normalize the flux to solar luminosity. Default is True.
        :type norm: bool
 
-       :raises C.GridError: if the file cannot be found on disk.
+       :raises ValueError: if the file cannot be found on disk.
 
-       :returns: tuple (flux_array, header_dict)
-
-       '''
+       :returns: numpy.ndarray if header is False, tuple of (numpy.ndarray, dict) if header is True
+       """
         self.check_params(parameters)  # Check to make sure that the keys are
         # allowed and that the values are in the grid
 
@@ -115,8 +121,61 @@ class PHOENIXGridInterface(RawGridInterface):
             if key[:3] == "PHX":
                 header[key] = value
 
-        return (f[self.ind], header)
+        if header:
+            return (f[self.ind], header)
+        else:
+            return f[self.ind]
 
+
+
+def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
+    """
+    Download the PHOENIX grid models from the Goettingen servers. This will skip over any ill-defined files or any files that already exist on disk
+    in the given folder.
+
+    :param parameters: The parameters to download. Should be a list of parameters where parameters can either be [
+    Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be floats or integers and not string.
+    :type parameters: iterable of iterables of length 3 or length 4
+    :param base: The base directory to save the files in. Default is specified by the ``grid.raw_path`` in the
+    ``config.yaml`` file
+    :type base: str or path-like
+
+    .. note:: This will create any directories if they do not exist
+
+    .. warning:: Please use this responsibly to avoid over-saturating the connection to the Gottinghen servers.
+    """
+
+    wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
+    wave_file = os.path.join(base, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+    flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
+                           '/{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}-{' \
+                           '{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+    output_formatter = '{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+
+
+    os.makedirs(base, exist_ok=True)
+    # Download step
+    log.info('Starting Download of PHOENIX ACES models to {}'.format(base))
+    if not os.path.exists(wave_file):
+        urlretrieve(wave_url, wave_file)
+    pbar = tqdm(parameters)
+    for p in pbar:
+        # Create the Z string. Have to do this because PHOENIX models use - sign for 0.0
+        p[2] = 'Z-0.0' if p[2] == 0 else 'Z{:+.1f}'.format(p[2])
+        if len(p) == 4:
+            p[3] = '' if p[3] == 0 else '.Alpha={:+0.2f}'.format(p[3])
+        else:
+            p.append('')
+
+        url = flux_file_formatter.format(*p)
+        pbar.set_description(url.split('/')[-1])
+        output_file = os.path.join(base, output_formatter.format(*p))
+        if not os.path.exists(output_file):
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            try:
+                urlretrieve(url, output_file)
+            except:
+                logging.warning('Parameters {} not found. Double check they are on PHOENIX grid'.format(p))
 
 class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     '''
