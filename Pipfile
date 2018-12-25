@@ -9,7 +9,7 @@ name = "pypi"
 
 numpy = "*"
 scipy = "*"
-cython = "*"
+Cython = "*"
 scikit-learn = "*"
 astropy = "*"
 "h5py" = "*"
@@ -21,7 +21,7 @@ oyaml = "*"
 
 [dev-packages]
 
-sphinx = "*"
-sphinx-rtd-theme = "*"
+Sphinx = "*"
+sphinx_rtd_theme = "*"
 graphviz = "*"
 pytest = "*"

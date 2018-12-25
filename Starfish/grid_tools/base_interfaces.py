@@ -1,20 +1,24 @@
 import gc
 import itertools
+import logging
 import multiprocessing as mp
 import os
 
 import h5py
 import numpy as np
-import tqdm
 from astropy.io import fits
 from numpy.fft import rfftfreq
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
+from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
 from Starfish.spectrum import calculate_dv, calculate_dv_dict, create_log_lam_grid
+from .instruments import Instrument
 from .utils import chunk_list
+
+log = logging.getLogger(__name__)
 
 
 class RawGridInterface:
@@ -94,32 +98,36 @@ class HDF5Creator:
 
     :param GridInterface:  The raw grid interface to process while creating the HDF5 file
     :type GridInterface: :obj:`RawGridInterface`
-    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended.
+    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended. Default is
+        ``Starfish.config.grid['hdf5_path']``
     :type filename: str or path-like
     :param instrument: If provided, the instrument to convolve/truncate the grid. If None, will
-        maintain the grid's original wavelengths and resolution.
-    :type instrument: :obj:`Instrument`
+        maintain the grid's original wavelengths and resolution. Default is None
+    :type instrument: :obj:`instrument`
+    :param wl_range: The wavelength range to truncate the grid to. Will be truncated to match grid wavelengths
+         and instrument wavelengths if over or under specified. Default is ``Starfish.config.grid['wl_range']``
+    :type wl_range: length 2 iterable of (min, max)
     :param ranges: lower and upper limits for each stellar parameter,
-        in order to truncate the number of spectra in the grid.
-    :type ranges: dict of keywords mapped to 2-tuples
+        in order to truncate the number of spectra in the grid. If None, will not restrict the
+        range of the parameters. Default is ``Starfish.config.grid['parrange']``.
+    :type ranges: iterable of length-2 iterables (min, max)
     :param key_name: formatting string that has keys for each of the parameter
-        names to translate into a hash-able string.
+        names to translate into a hash-able string. Default is ``Starfish.config.grid['key_name']``
     :type key_name: str
+
+    :raises: ValueError if the wl_range is ill-specified or if the parameter range are completely disjoint from the
+        grid points.
     """
 
-    def __init__(self, GridInterface, filename, instrument=None, ranges=None,
-                 key_name=config.grid["key_name"]):
+    def __init__(self, GridInterface, filename=config.grid['hdf5_path'], instrument=None,
+                 wl_range=config.grid['wl_range'], ranges=config.grid['parrange'],
+                 key_name=config.grid['key_name']):
 
-        if ranges is None:
-            # Programatically define each range to be (-np.inf, np.inf)
-            ranges = []
-            for par in config.grid["parname"]:
-                ranges.append([-np.inf, np.inf])
+        self.log = logging.getLogger(self.__class__.__name__)
 
         self.GridInterface = GridInterface
-        self.filename = os.path.expandvars(filename)  # only store the name to the HDF5 file, because
-        # otherwise the object cannot be parallelized
-        self.Instrument = instrument
+        self.filename = os.path.expandvars(filename)
+        self.instrument = instrument
 
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
@@ -164,8 +172,8 @@ class HDF5Creator:
         # the synthetic library or the instrument library is smaller than this range,
         # raise an error.
 
-        # inst_min, inst_max = self.instrument.wl_range
-        wl_min, wl_max = config.grid["wl_range"]
+
+        wl_min, wl_max = wl_range
         buffer = config.grid["buffer"]  # [AA]
         wl_min -= buffer
         wl_max += buffer
@@ -173,11 +181,23 @@ class HDF5Creator:
         # If the raw synthetic grid doesn't span the full range of the user
         # specified grid, raise an error.
         # Instead, let's choose the maximum limit of the synthetic grid?
-        if (self.wl_native[0] > wl_min) or (self.wl_native[-1] < wl_max):
-            print(
-                "Synthetic grid does not encapsulate chosen wl_range in config.yaml, truncating new grid to extent of synthetic grid, {}, {}".format(
-                    self.wl_native[0], self.wl_native[-1]))
-            wl_min, wl_max = self.wl_native[0], self.wl_native[-1]
+        if self.instrument is not None:
+            inst_min, inst_max = self.instrument.wl_range
+        else:
+            inst_min, inst_max = -np.inf, np.inf
+        imposed_min = np.max([self.wl_native[0], inst_min])
+        imposed_max = np.min([self.wl_native[-1], inst_max])
+        if wl_min < imposed_min:
+            self.log.info('Given minimum wavelength ({}) is less than instrument or grid minimum. Truncating to {}'
+                          .format(wl_min, imposed_min))
+            wl_min = imposed_min
+        if wl_max > imposed_max:
+            self.log.info('Given maximum wavelength ({}) is greater than instrument or grid maximum. Truncating to {}'
+                          .format(wl_max, imposed_max))
+            wl_max = imposed_max
+
+        if wl_max < wl_min:
+            raise ValueError('Minimum wavelength must be less than maximum wavelength')
 
         # Calculate wl_FFT
         # use the dv that preserves the native quality of the raw PHOENIX grid
@@ -185,30 +205,35 @@ class HDF5Creator:
         self.wl_FFT = wl_dict["wl"]
         self.dv_FFT = calculate_dv_dict(wl_dict)
 
-        print("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
-        print("wl_FFT dv is {} km/s".format(self.dv_FFT))
+        self.log.info("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
+        self.log.info("wl_FFT dv is {} km/s".format(self.dv_FFT))
 
         # The Fourier coordinate
         self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
 
-        # The instrumental taper
-        sigma = self.Instrument.FWHM / 2.35  # in km/s
-        # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
-        self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
+        if self.instrument is None:
+            mask = (self.wl_native > wl_min) & (self.wl_native < wl_max)
+            self.wl_final = self.wl_native[mask]
+            self.dv_final = self.dv_native
+            self.taper = np.exp(-2 * (np.pi ** 2) * (self.ss ** 2))
+        else:
+            # The instrumental taper
+            sigma = self.instrument.FWHM / 2.35  # in km/s
+            # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
+            self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
 
-        self.ss[0] = 0.01  # junk so we don't get a divide by zero error
+            self.ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-        # The final wavelength grid, onto which we will interpolate the
-        # Fourier filtered wavelengths, is part of the instrument object
-        dv_temp = self.Instrument.FWHM / self.Instrument.oversampling
-        wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
-        self.wl_final = wl_dict["wl"]
-        self.dv_final = calculate_dv_dict(wl_dict)
+            # The final wavelength grid, onto which we will interpolate the
+            # Fourier filtered wavelengths, is part of the instrument object
+            dv_temp = self.instrument.FWHM / self.instrument.oversampling
+            wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
+            self.wl_final = wl_dict["wl"]
+            self.dv_final = calculate_dv_dict(wl_dict)
 
         # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", (len(self.wl_final),), dtype="f8", compression='gzip',
+        wl_dset = self.hdf5.create_dataset("wl", data=self.wl_final, compression='gzip',
                                            compression_opts=9)
-        wl_dset[:] = self.wl_final
         wl_dset.attrs["air"] = self.GridInterface.air
         wl_dset.attrs["dv"] = self.dv_final
 
@@ -224,7 +249,7 @@ class HDF5Creator:
             the same length as that of the raw grid.
 
         :returns: a tuple of (parameters, flux, header). If the flux could
-            not be loaded, returns (None, None, None).
+            not be loaded, returns (None, None).
 
         """
         # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
@@ -274,16 +299,14 @@ class HDF5Creator:
 
             return (fl_final, header)
 
-        except C.GridError as e:
-            print("No file with parameters {}. C.GridError: {}".format(parameters, e))
+        except ValueError as e:
+            self.log.debug("No file with parameters {}".format(parameters))
             return (None, None)
 
     def process_grid(self):
         """
         Run :meth:`process_flux` for all of the spectra within the `ranges`
         and store the processed spectra in the HDF5 file.
-
-        Only executed in serial for now.
         """
 
         # points is now a list of numpy arrays of the values in the grid
@@ -299,22 +322,21 @@ class HDF5Creator:
 
         invalid_params = []
 
-        print("Total of {} files to process.".format(len(param_list)))
+        self.log.debug("Total of {} files to process.".format(len(param_list)))
 
         pbar = tqdm(all_params)
         for i, param in enumerate(pbar):
             pbar.set_description("Processing {}".format(param))
             fl, header = self.process_flux(param)
             if fl is None:
-                print("Deleting {} from all params, does not exist.".format(param))
+                self.log.warning("Deleting {} from all params, does not exist.".format(param))
                 invalid_params.append(i)
                 continue
 
             # The PHOENIX spectra are stored as float32, and so we do the same here.
             flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
-                                                    shape=(len(fl),), dtype="f", compression='gzip',
+                                                    data=fl, compression='gzip',
                                                     compression_opts=9)
-            flux[:] = fl
 
             # Store header keywords as attributes in HDF5 file
             for key, value in header.items():
@@ -324,9 +346,8 @@ class HDF5Creator:
         # Remove parameters that do no exist
         all_params = np.delete(all_params, invalid_params, axis=0)
 
-        par_dset = self.hdf5.create_dataset("pars", all_params.shape, dtype="f8", compression='gzip',
-                                            compression_opts=9)
-        par_dset[:] = all_params
+        self.hdf5.create_dataset("pars", data=all_params, compression='gzip',
+                                 compression_opts=9)
 
         self.hdf5.close()
 
@@ -371,7 +392,7 @@ class HDF5Interface:
         Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
-        :type parameters: np.array
+        :type parameters: iterable
 
         :raises KeyError: if spectrum is not found in the HDF5 file.
 
@@ -380,13 +401,10 @@ class HDF5Interface:
 
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
-            try:
-                if self.ind is not None:
-                    fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
-                else:
-                    fl = hdf5['flux'][key][:]
-            except KeyError as e:
-                raise C.GridError(e)
+            if self.ind is not None:
+                fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
+            else:
+                fl = hdf5['flux'][key][:]
 
         # Note: will raise a KeyError if the file is not found.
 
@@ -448,7 +466,7 @@ class MasterToFITSIndividual:
     Object used to create one FITS file at a time.
 
     :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
-    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
+    :param instrument: an :obj:`instrument` object containing the properties of the final spectra
 
 
     """

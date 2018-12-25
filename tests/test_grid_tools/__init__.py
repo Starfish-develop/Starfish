@@ -31,6 +31,6 @@ def AlphaPHOENIXModels():
     download_PHOENIX_models(params, outdir)
     yield outdir
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def mock_instrument():
-    yield Instrument('Test Instrument', FWHM=45.0, wl_range=(5e3, 6e3))
+    yield Instrument('Test instrument', FWHM=45.0, wl_range=(1e4, 4e4))

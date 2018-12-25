@@ -24,7 +24,7 @@ class Instrument:
         '''
         Prints the relevant properties of the instrument.
         '''
-        return "Instrument Name: {}, FWHM: {:.1f}, oversampling: {:.0f}, " \
+        return "instrument Name: {}, FWHM: {:.1f}, oversampling: {:.0f}, " \
                "wl_range: {}".format(self.name, self.FWHM, self.oversampling, self.wl_range)
 
 
@@ -37,28 +37,28 @@ class TRES(Instrument):
 
 
 class Reticon(Instrument):
-    '''Reticon Instrument'''
+    '''Reticon instrument'''
 
     def __init__(self, name="Reticon", FWHM=8.5, wl_range=(5145, 5250)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 class KPNO(Instrument):
-    '''KNPO Instrument'''
+    '''KNPO instrument'''
 
     def __init__(self, name="KPNO", FWHM=14.4, wl_range=(6250, 6650)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 class SPEX(Instrument):
-    '''SPEX Instrument at IRTF in Hawaii'''
+    '''SPEX instrument at IRTF in Hawaii'''
 
     def __init__(self, name="SPEX", FWHM=150., wl_range=(7500, 54000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 class SPEX_SXD(SPEX):
-    '''SPEX Instrument at IRTF in Hawaii short mode (reduced wavelength range)'''
+    '''SPEX instrument at IRTF in Hawaii short mode (reduced wavelength range)'''
 
     def __init__(self, name="SPEX_SXD"):
         super().__init__(name=name, wl_range=(7500, 26000))
@@ -87,21 +87,21 @@ class IGRINS_K(IGRINS):
 
 
 class ESPaDOnS(Instrument):
-    '''ESPaDOnS Instrument'''
+    '''ESPaDOnS instrument'''
 
     def __init__(self, name="ESPaDOnS", FWHM=4.4, wl_range=(3700, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 class DCT_DeVeny(Instrument):
-    '''DCT DeVeny spectrograph Instrument.'''
+    '''DCT DeVeny spectrograph instrument.'''
 
     def __init__(self, name="DCT_DeVeny", FWHM=105.2, wl_range=(6000, 10000)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
 
 
 class WIYN_Hydra(Instrument):
-    '''WIYN Hydra spectrograph Instrument.'''
+    '''WIYN Hydra spectrograph instrument.'''
 
     def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)

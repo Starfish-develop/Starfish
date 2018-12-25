@@ -16,7 +16,7 @@ class TestInstrumentBase:
         assert hasattr(mock_instrument, attr)
 
     def test_string(self, mock_instrument):
-        expected = "Instrument Name: Test Instrument, FWHM: 45.0, oversampling: 4, wl_range: (5000.0, 6000.0)"
+        expected = "instrument Name: Test instrument, FWHM: 45.0, oversampling: 4, wl_range: (10000.0, 40000.0)"
         assert str(mock_instrument) == expected
 
 
