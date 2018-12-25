@@ -33,6 +33,12 @@ class TestHDF5Creator:
             np.testing.assert_array_equal(np.min(pars, 0), [6000, 4.0, -1.0])
             np.testing.assert_array_equal(np.max(pars, 0), [6200, 5.0, 0])
 
+    def test_flux_contents(self, mock_hdf5):
+        with h5py.File(mock_hdf5) as base:
+            flux = base['flux']
+            assert flux.attrs['unit'] == 'erg/cm^2/s/A'
+            assert len(flux) == len(base['pars'])
+            assert flux['T6000_g4.0_Z-0.50'].shape == base['wl'].shape
 
     def test_no_instrument(self, mock_no_alpha_grid, tmpdir_factory):
         ranges = [
