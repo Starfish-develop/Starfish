@@ -78,6 +78,7 @@ class IGRINS_H(IGRINS):
     def __init__(self, name="IGRINS_H", wl_range=(14250, 18400)):
         super().__init__(name=name, wl_range=wl_range)
 
+
 class IGRINS_K(IGRINS):
     '''IGRINS H band instrument'''
 
@@ -104,4 +105,3 @@ class WIYN_Hydra(Instrument):
 
     def __init__(self, name="WIYN_Hydra", FWHM=300., wl_range=(5500, 10500)):
         super().__init__(name=name, FWHM=FWHM, wl_range=wl_range)
-

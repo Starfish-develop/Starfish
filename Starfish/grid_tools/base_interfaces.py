@@ -1,17 +1,19 @@
-import os
 import gc
 import itertools
-import bz2
+import multiprocessing as mp
+import os
 
+import h5py
 import numpy as np
-from numpy.fft import fft, ifft, fftfreq, rfftfreq
+import tqdm
+from astropy.io import fits
+from numpy.fft import rfftfreq
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
-import h5py
-import tqdm
 
-from Starfish import config
 import Starfish.constants as C
+from Starfish import config
+from .utils import calculate_dv, calculate_dv_dict, create_log_lam_grid, chunk_list
 
 
 class RawGridInterface:
@@ -78,8 +80,6 @@ class RawGridInterface:
             This method is designed to be extended by the inheriting class
         '''
         raise NotImplementedError("`load_flux` is abstract and must be implemented by subclasses")
-
-
 
 
 class HDF5Creator:
@@ -419,3 +419,208 @@ class HDF5Interface:
         # Note: will raise a KeyError if the file is not found.
 
         return (fl, hdr)
+
+
+def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
+    '''Assumes that wl is already log lambda spaced'''
+
+    hdu = fits.PrimaryHDU(fl)
+    head = hdu.header
+    head["DISPTYPE"] = 'log lambda'
+    head["DISPUNIT"] = 'log angstroms'
+    head["CRPIX1"] = 1.
+
+    head["CRVAL1"] = CRVAL1
+    head["CDELT1"] = CDELT1
+    head["DC-FLAG"] = 1
+
+    if dict is not None:
+        for key, value in dict.items():
+            head[key] = value
+
+    hdu.writeto(filename)
+
+
+class MasterToFITSIndividual:
+    '''
+    Object used to create one FITS file at a time.
+
+    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
+    :param instrument: an :obj:`Instrument` object containing the properties of the final spectra
+
+
+    '''
+
+    def __init__(self, interpolator, instrument):
+        self.interpolator = interpolator
+        self.instrument = instrument
+        self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
+
+        # Create a master wl_dict which correctly oversamples the instrumental kernel
+        self.wl_dict = self.instrument.wl_dict
+        self.wl = self.wl_dict["wl"]
+
+    def process_spectrum(self, parameters, out_unit, out_dir=""):
+        '''
+        Creates a FITS file with given parameters
+
+
+        :param parameters: stellar parameters :attr:`temp`, :attr:`logg`, :attr:`Z`, :attr:`vsini`
+        :type parameters: dict
+        :param out_unit: output flux unit? Choices between `f_lam`, `f_nu`, `f_nu_log`, or `counts/pix`. `counts/pix` will do spline integration.
+        :param out_dir: optional directory to prepend to output filename, which is chosen automatically for parameter values.
+
+        Smoothly handles the *C.InterpolationError* if parameters cannot be interpolated from the grid and prints a message.
+        '''
+
+        # Preserve the "popping of parameters"
+        parameters = parameters.copy()
+
+        # Load the correct C.grid_set value from the interpolator into a LogLambdaSpectrum
+        if parameters["Z"] < 0:
+            zflag = "m"
+        else:
+            zflag = "p"
+
+        filename = out_dir + self.filename.format(temp=parameters["temp"], logg=10 * parameters["logg"],
+                                                  Z=np.abs(10 * parameters["Z"]), Z_flag=zflag,
+                                                  vsini=parameters["vsini"])
+        vsini = parameters.pop("vsini")
+        try:
+            spec = self.interpolator(parameters)
+            # Using the ``out_unit``, determine if we should also integrate while doing the downsampling
+            if out_unit == "counts/pix":
+                integrate = True
+            else:
+                integrate = False
+            # Downsample the spectrum to the instrumental resolution.
+            spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate)
+            spec.write_to_FITS(out_unit, filename)
+        except C.InterpolationError as e:
+            print("{} cannot be interpolated from the grid.".format(parameters))
+
+        print("Processed spectrum {}".format(parameters))
+
+
+class MasterToFITSGridProcessor:
+    '''
+    Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate
+    any values.
+
+    :param interface: an :obj:`HDF5Interface` object referenced to the master grid.
+    :param points: lists of output parameters (assumes regular grid)
+    :type points: dict of lists
+    :param flux_unit: format of output spectra {"f_lam", "f_nu", "ADU"}
+    :type flux_unit: string
+    :param outdir: output directory
+    :param processes: how many processors to use in parallel
+
+    Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,
+    preserving all of the header keywords.
+
+    '''
+
+    def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False,
+                 processes=mp.cpu_count()):
+        self.interface = interface
+        self.instrument = instrument
+        self.points = points  # points is a dictionary with which values to spit out for each parameter
+        self.filename = "t{temp:0>5.0f}g{logg:0>2.0f}{Z_flag}{Z:0>2.0f}v{vsini:0>3.0f}.fits"
+        self.flux_unit = flux_unit
+        self.integrate = integrate
+        self.outdir = outdir
+        self.processes = processes
+        self.pids = []
+        self.alpha = alpha
+
+        self.vsini_points = self.points.pop("vsini")
+        names = self.points.keys()
+
+        # Creates a list of parameter dictionaries [{"temp":8500, "logg":3.5, "Z":0.0}, {"temp":8250, etc...}, etc...]
+        # which does not contain vsini
+        self.param_list = [dict(zip(names, params)) for params in itertools.product(*self.points.values())]
+
+        # Create a master wl_dict which correctly oversamples the instrumental kernel
+        self.wl_dict = self.instrument.wl_dict
+        self.wl = self.wl_dict["wl"]
+
+        # Check that temp, logg, Z are within the bounds of the interface
+        for key, value in self.points.items():
+            min_val, max_val = self.interface.bounds[key]
+            assert np.min(self.points[key]) >= min_val, "Points below interface bound {}={}".format(key, min_val)
+            assert np.max(self.points[key]) <= max_val, "Points above interface bound {}={}".format(key, max_val)
+
+        # Create a temporary grid to resample to that matches the bounds of the instrument.
+        low, high = self.instrument.wl_range
+        self.temp_grid = create_log_lam_grid(wl_start=low, wl_end=high, min_vc=0.1)['wl']
+
+    def process_spectrum_vsini(self, parameters):
+        '''
+        Create a set of FITS files with given stellar parameters temp, logg, Z and all combinations of `vsini`.
+
+        :param parameters: stellar parameters
+        :type parameters: dict
+
+        Smoothly handles the *KeyError* if parameters cannot be drawn from the interface and prints a message.
+        '''
+
+        try:
+            # Check to see if alpha, otherwise append alpha=0 to the parameter list.
+            if not self.alpha:
+                parameters.update({"alpha": 0.0})
+            print(parameters)
+
+            if parameters["Z"] < 0:
+                zflag = "m"
+            else:
+                zflag = "p"
+
+            # This is a Base1DSpectrum
+            base_spec = self.interface.load_file(parameters)
+
+            master_spec = base_spec.to_LogLambda(instrument=self.instrument,
+                                                 min_vc=0.1 / C.c_kms)  # convert the Base1DSpectrum to a LogLamSpectrum
+
+            # Now process the spectrum for all values of vsini
+
+            for vsini in self.vsini_points:
+                spec = master_spec.copy()
+                # Downsample the spectrum to the instrumental resolution, integrate to give counts/pixel
+                spec.instrument_and_stellar_convolve(self.instrument, vsini, integrate=self.integrate)
+
+                # Update spectrum with vsini
+                spec.metadata.update({"vsini": vsini})
+                filename = self.outdir + self.filename.format(temp=parameters["temp"], logg=10 * parameters["logg"],
+                                                              Z=np.abs(10 * parameters["Z"]), Z_flag=zflag,
+                                                              vsini=vsini)
+
+                spec.write_to_FITS(self.flux_unit, filename)
+
+        except KeyError as e:
+            print("{} cannot be loaded from the interface.".format(parameters))
+
+    def process_chunk(self, chunk):
+        '''
+        Process a chunk of parameters to FITS
+
+        :param chunk: stellar parameter dicts
+        :type chunk: 1-D list
+        '''
+        print("Process {} processing chunk {}".format(os.getpid(), chunk))
+        for param in chunk:
+            self.process_spectrum_vsini(param)
+
+    def process_all(self):
+        '''
+        Process all parameters in :attr:`points` to FITS by chopping them into chunks.
+        '''
+        print("Total of {} FITS files to create.".format(len(self.vsini_points) * len(self.param_list)))
+        chunks = chunk_list(self.param_list, n=self.processes)
+        for chunk in chunks:
+            p = mp.Process(target=self.process_chunk, args=(chunk,))
+            p.start()
+            self.pids.append(p)
+
+        for p in self.pids:
+            # Make sure all threads have finished
+            p.join()

@@ -1,7 +1,16 @@
+import bz2
+import os
+
+import numpy as np
 from astropy.io import fits
 from scipy.integrate import trapz
+from scipy.interpolate import InterpolatedUnivariateSpline
 
-from .base_interfaces import *
+import Starfish.constants as C
+from Starfish import config
+from .base_interfaces import RawGridInterface
+from .utils import vacuum_to_air, create_log_lam_grid, idl_float
+
 
 class PHOENIXGridInterface(RawGridInterface):
     '''
@@ -252,6 +261,18 @@ class KuruczGridInterface(RawGridInterface):
 
         return (f[self.ind], header)
 
+    @staticmethod
+    def get_wl_kurucz(filename):
+        '''The Kurucz grid is log-linear spaced.'''
+        flux_file = fits.open(filename)
+        hdr = flux_file[0].header
+        num = len(flux_file[0].data)
+        p = np.arange(num)
+        w1 = hdr['CRVAL1']
+        dw = hdr['CDELT1']
+        wl = 10 ** (w1 + dw * p)
+        return wl
+
 
 class BTSettlGridInterface(RawGridInterface):
     '''BTSettl grid interface. Unlike the PHOENIX and Kurucz grids, the
@@ -441,3 +462,36 @@ class CIFISTGridInterface(RawGridInterface):
             header[key] = value
 
         return (fl_interp, header)
+
+
+def load_BTSettl(temp, logg, Z, norm=False, trunc=False, air=False):
+    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{temp:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(temp=0.01 * temp,
+                                                                                                   logg=logg, Z=Z)
+    file = bz2.BZ2File(rname, 'r')
+
+    lines = file.readlines()
+    strlines = [line.decode('utf-8') for line in lines]
+    file.close()
+
+    data = ascii.read(strlines, col_starts=[0, 13], col_ends=[12, 25], Reader=ascii.FixedWidthNoHeader)
+    wl = data['col1']
+    fl_str = data['col2']
+
+    fl = idl_float(fl_str)  # convert because of "D" exponent, unreadable in Python
+    fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
+
+    if norm:
+        F_bol = trapz(fl, wl)
+        fl = fl * (C.F_sun / F_bol)
+        # this also means that the bolometric luminosity is always 1 L_sun
+
+    if trunc:
+        # truncate to only the wl of interest
+        ind = (wl > 3000) & (wl < 13000)
+        wl = wl[ind]
+        fl = fl[ind]
+
+    if air:
+        wl = vacuum_to_air(wl)
+
+    return [wl, fl]
