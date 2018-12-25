@@ -2,11 +2,9 @@ import pytest
 
 from Starfish.grid_tools.instruments import *
 
-class TestInstrumentBase:
+from . import mock_instrument
 
-    @pytest.fixture
-    def mock_instrument(self):
-        yield Instrument('Test Instrument', FWHM=45.0, wl_range=(300, 1e4))
+class TestInstrumentBase:
 
     @pytest.mark.parametrize('attr', [
         'name',
@@ -18,7 +16,7 @@ class TestInstrumentBase:
         assert hasattr(mock_instrument, attr)
 
     def test_string(self, mock_instrument):
-        expected = "Instrument Name: Test Instrument, FWHM: 45.0, oversampling: 4, wl_range: (300, 10000.0)"
+        expected = "Instrument Name: Test Instrument, FWHM: 45.0, oversampling: 4, wl_range: (5000.0, 6000.0)"
         assert str(mock_instrument) == expected
 
 

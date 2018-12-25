@@ -3,7 +3,7 @@ from itertools import product
 
 import pytest
 
-from Starfish.grid_tools import download_PHOENIX_models
+from Starfish.grid_tools import download_PHOENIX_models, Instrument
 
 @pytest.fixture(scope='session')
 def PHOENIXModels():
@@ -30,3 +30,7 @@ def AlphaPHOENIXModels():
     outdir = os.path.join(test_base, 'data', 'phoenix')
     download_PHOENIX_models(params, outdir)
     yield outdir
+
+@pytest.fixture
+def mock_instrument():
+    yield Instrument('Test Instrument', FWHM=45.0, wl_range=(5e3, 6e3))

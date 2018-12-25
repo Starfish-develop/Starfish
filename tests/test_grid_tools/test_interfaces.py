@@ -5,6 +5,8 @@ import pytest
 from Starfish.grid_tools import RawGridInterface, PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha, \
     PHOENIXGridInterfaceNoAlphaNoFE
 
+from . import PHOENIXModels, AlphaPHOENIXModels
+
 def test_phoenix_downloads(PHOENIXModels, AlphaPHOENIXModels):
     num_files = sum([len(files) for d, dd, files in os.walk(PHOENIXModels)])
     assert num_files == 29

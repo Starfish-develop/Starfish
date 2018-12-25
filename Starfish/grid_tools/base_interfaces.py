@@ -96,20 +96,18 @@ class HDF5Creator:
     :type GridInterface: :obj:`RawGridInterface`
     :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended.
     :type filename: str or path-like
-    :param Instrument: the instrument to convolve/truncate the grid. If you
-        want a high-res grid, use the NullInstrument.
-    :type Instrument: :obj:`Instrument`
+    :param instrument: If provided, the instrument to convolve/truncate the grid. If None, will
+        maintain the grid's original wavelengths and resolution.
+    :type instrument: :obj:`Instrument`
     :param ranges: lower and upper limits for each stellar parameter,
         in order to truncate the number of spectra in the grid.
     :type ranges: dict of keywords mapped to 2-tuples
     :param key_name: formatting string that has keys for each of the parameter
         names to translate into a hash-able string.
     :type key_name: str
-
-    This object is designed to be run in serial.
     """
 
-    def __init__(self, GridInterface, filename, Instrument, ranges=None,
+    def __init__(self, GridInterface, filename, instrument=None, ranges=None,
                  key_name=config.grid["key_name"]):
 
         if ranges is None:
@@ -121,7 +119,7 @@ class HDF5Creator:
         self.GridInterface = GridInterface
         self.filename = os.path.expandvars(filename)  # only store the name to the HDF5 file, because
         # otherwise the object cannot be parallelized
-        self.Instrument = Instrument
+        self.Instrument = instrument
 
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
@@ -166,7 +164,7 @@ class HDF5Creator:
         # the synthetic library or the instrument library is smaller than this range,
         # raise an error.
 
-        # inst_min, inst_max = self.Instrument.wl_range
+        # inst_min, inst_max = self.instrument.wl_range
         wl_min, wl_max = config.grid["wl_range"]
         buffer = config.grid["buffer"]  # [AA]
         wl_min -= buffer
@@ -201,7 +199,7 @@ class HDF5Creator:
         self.ss[0] = 0.01  # junk so we don't get a divide by zero error
 
         # The final wavelength grid, onto which we will interpolate the
-        # Fourier filtered wavelengths, is part of the Instrument object
+        # Fourier filtered wavelengths, is part of the instrument object
         dv_temp = self.Instrument.FWHM / self.Instrument.oversampling
         wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
         self.wl_final = wl_dict["wl"]
