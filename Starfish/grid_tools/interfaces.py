@@ -8,8 +8,9 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 
 import Starfish.constants as C
 from Starfish import config
+from Starfish.spectrum import create_log_lam_grid
 from .base_interfaces import RawGridInterface
-from .utils import vacuum_to_air, create_log_lam_grid, idl_float
+from .utils import vacuum_to_air, idl_float
 
 
 class PHOENIXGridInterface(RawGridInterface):

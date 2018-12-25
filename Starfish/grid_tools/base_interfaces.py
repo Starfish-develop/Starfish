@@ -13,7 +13,8 @@ from scipy.special import j1
 
 import Starfish.constants as C
 from Starfish import config
-from .utils import calculate_dv, calculate_dv_dict, create_log_lam_grid, chunk_list
+from Starfish.spectrum import calculate_dv, calculate_dv_dict, create_log_lam_grid
+from .utils import chunk_list
 
 
 class RawGridInterface:
