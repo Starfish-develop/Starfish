@@ -2,8 +2,6 @@ import pytest
 
 from Starfish.grid_tools.instruments import *
 
-from . import mock_instrument
-
 class TestInstrumentBase:
 
     @pytest.mark.parametrize('attr', [
