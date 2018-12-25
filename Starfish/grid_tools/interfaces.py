@@ -153,7 +153,7 @@ class PHOENIXGridInterface(RawGridInterface):
         try:
             flux_file = fits.open(fname)
             f = flux_file[0].data
-            hdr = flux_file[0].header
+            hdr = dict(flux_file[0].header)
             flux_file.close()
         except:
             raise ValueError("{} is not on disk.".format(fname))
@@ -165,16 +165,11 @@ class PHOENIXGridInterface(RawGridInterface):
             f = f * (C.F_sun / F_bol)  # bolometric luminosity is always 1 L_sun
 
         # Add temp, logg, Z, alpha, norm to the metadata
-        header = {}
-        header["norm"] = norm
-        header["air"] = self.air
-        # Keep only the relevant PHOENIX keywords, which start with PHX
-        for key, value in hdr.items():
-            if key[:3] == "PHX":
-                header[key] = value
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
-            return (f[self.ind], header)
+            return (f[self.ind], hdr)
         else:
             return f[self.ind]
 
@@ -235,8 +230,8 @@ class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
 
         self.par_dicts = [None, None, None]
 
-        self.rname = os.path.join(self.base, "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" 
-                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+        self.rname = os.path.join(self.base, "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0"
+                                             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
 
 class KuruczGridInterface(RawGridInterface):
@@ -286,7 +281,7 @@ class KuruczGridInterface(RawGridInterface):
         try:
             flux_file = fits.open(fname)
             f = flux_file[0].data
-            hdr = flux_file[0].header
+            hdr = dict(flux_file[0].header)
             flux_file.close()
         except:
             raise ValueError("{} is not on disk.".format(fname))
@@ -300,15 +295,11 @@ class KuruczGridInterface(RawGridInterface):
             f /= np.average(f)  # divide by the mean flux, so avg(f) = 1
 
         # Add temp, logg, Z, norm to the metadata
-        header = {}
-        header["norm"] = norm
-        header["air"] = self.air
-        # Keep the relevant keywords
-        for key, value in hdr.items():
-            header[key] = value
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
-            return (f[self.ind], header)
+            return (f[self.ind], hdr)
         else:
             return f[self.ind]
 
@@ -460,7 +451,7 @@ class CIFISTGridInterface(RawGridInterface):
         try:
             flux_file = fits.open(fname)
             data = flux_file[1].data
-            hdr = flux_file[1].header
+            hdr = dict(flux_file[1].header)
 
             wl = data["Wavelength"] * 1e4  # [Convert to angstroms]
             fl = data["Flux"]
@@ -494,15 +485,12 @@ class CIFISTGridInterface(RawGridInterface):
         fl_interp = interp(self.wl)
 
         # Add temp, logg, Z, norm to the metadata
-        header = {}
-        header["norm"] = norm
-        header["air"] = self.air
-        # Keep the relevant keywords
-        for key, value in hdr.items():
-            header[key] = value
+
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
-            return (fl_interp, header)
+            return (fl_interp, hdr)
         else:
             return fl_interp
 

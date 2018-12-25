@@ -125,6 +125,11 @@ class TestPHOENIXGridInterface:
         fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
         assert hdr['norm'] == False
 
+    def test_no_header(self, grid):
+        fl = grid.load_flux((6100, 4.5, 0.0, 0.0), header=False)
+        assert len(fl) == 1540041
+
+
 class TestPHOENIXGridInterfaceNoAlpha:
 
     @pytest.fixture(scope='class')
@@ -155,6 +160,11 @@ class TestPHOENIXGridInterfaceNoAlpha:
     def test_no_norm(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5, 0.0), norm=False)
         assert hdr['norm'] == False
+
+    def test_no_header(self, grid):
+        fl = grid.load_flux((6100, 4.5, 0.0), header=False)
+        assert len(fl) == 1540041
+
 
 class TestPHOENIXGridInterfaceNoAlphaNoFE:
 
@@ -188,3 +198,7 @@ class TestPHOENIXGridInterfaceNoAlphaNoFE:
     def test_no_norm(self, grid):
         fl, hdr = grid.load_flux((6100, 4.5), norm=False)
         assert hdr['norm'] == False
+
+    def test_no_header(self, grid):
+        fl = grid.load_flux((6100, 4.5), header=False)
+        assert len(fl) == 1540041
