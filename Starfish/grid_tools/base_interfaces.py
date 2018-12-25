@@ -18,28 +18,28 @@ from .utils import chunk_list
 
 
 class RawGridInterface:
-    '''
-    A base class to handle interfacing with synthetic spectral libraries.
 
-    :param name: name of the spectral library
-    :type name: string
-    :param param_names: the names of the parameters (dimensions) of the grid
-    :type param_names: list
-    :param points: the grid points at which
-        spectra exist (assumes grid is square, not ragged, meaning that every combination
-        of parameters specified exists in the grid).
-    :type points: list of numpy arrays
-    :param air: Are the wavelengths measured in air?
-    :type air: bool
-    :param wl_range: the starting and ending wavelength ranges of the grid to
-        truncate to.
-    :type wl_range: list of len 2 [min, max]
-    :param base: path to the root of the files on disk.
-    :type base: string
+    def __init__(self, name, param_names, points, air=True, wl_range=(3000, 13000), base=None):
+        '''
+        A base class to handle interfacing with synthetic spectral libraries.
 
-    '''
+        :param name: name of the spectral library
+        :type name: str
+        :param param_names: the names of the parameters (dimensions) of the grid
+        :type param_names: list
+        :param points: the grid points at which
+            spectra exist (assumes grid is square, not ragged, meaning that every combination
+            of parameters specified exists in the grid).
+        :type points: list of numpy arrays
+        :param air: Are the wavelengths measured in air?
+        :type air: bool
+        :param wl_range: the starting and ending wavelength ranges of the grid to
+            truncate to.
+        :type wl_range: list of len 2 [min, max]
+        :param base: path to the root of the files on disk.
+        :type base: string
 
-    def __init__(self, name, param_names, points, air=True, wl_range=[3000, 13000], base=None):
+        '''
         self.name = name
 
         self.param_names = param_names

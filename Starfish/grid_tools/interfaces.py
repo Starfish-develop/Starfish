@@ -2,7 +2,7 @@ import bz2
 import os
 
 import numpy as np
-from astropy.io import fits
+from astropy.io import fits, ascii
 from scipy.integrate import trapz
 from scipy.interpolate import InterpolatedUnivariateSpline
 
@@ -19,7 +19,7 @@ class PHOENIXGridInterface(RawGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000], base=config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(3000, 54000), base=config.grid["raw_path"]):
 
         super().__init__(name="PHOENIX",
                          param_names=["temp", "logg", "Z", "alpha"],
@@ -34,7 +34,7 @@ class PHOENIXGridInterface(RawGridInterface):
                              np.arange(0.0, 6.1, 0.5),
                              np.arange(-2., 1.1, 0.5),
                              np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
-                         air=air, wl_range=wl_range, base=base)  # wl_range used to be [2999, 13001]
+                         air=air, wl_range=wl_range, base=base)  # wl_range used to be (2999, 13001)
 
         self.par_dicts = [None,
                           None,
@@ -124,7 +124,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000],
+    def __init__(self, air=True, wl_range=(3000, 54000),
                  base=config.grid["raw_path"]):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
@@ -157,7 +157,7 @@ class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
 
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 54000],
+    def __init__(self, air=True, wl_range=(3000, 54000),
                  base=config.grid['raw_path']):
         # Initialize according to the regular PHOENIX values
         super().__init__(air=air, wl_range=wl_range, base=base)
@@ -189,7 +189,7 @@ class KuruczGridInterface(RawGridInterface):
     These particular values are roughly the ones appropriate for the Sun.
     '''
 
-    def __init__(self, air=True, wl_range=[5000, 5400], base=config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(5000, 5400), base=config.grid["raw_path"]):
         super().__init__(name="Kurucz",
                          param_names=["temp", "logg", "Z"],
                          points=[np.arange(3500, 9751, 250),
@@ -285,7 +285,7 @@ class BTSettlGridInterface(RawGridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
 
-    def __init__(self, air=True, wl_range=[2999, 13000], base="libraries/raw/BTSettl/"):
+    def __init__(self, air=True, wl_range=(2999, 13000), base="libraries/raw/BTSettl/"):
         super().__init__(name="BTSettl",
                          points={"temp" : np.arange(3000, 7001, 100),
                                  "logg" : np.arange(2.5, 5.6, 0.5),
@@ -332,7 +332,7 @@ class BTSettlGridInterface(RawGridInterface):
         strlines = [line.decode('utf-8') for line in lines]
         file.close()
 
-        data = ascii.read(strlines, col_starts=[0, 13], col_ends=[12, 25], Reader=ascii.FixedWidthNoHeader)
+        data = ascii.read(strlines, col_starts=(0, 13), col_ends=(12, 25), Reader=ascii.FixedWidthNoHeader)
         wl = data['col1']
         fl_str = data['col2']
 
@@ -377,7 +377,7 @@ class CIFISTGridInterface(RawGridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     '''
 
-    def __init__(self, air=True, wl_range=[3000, 13000], base=config.grid["raw_path"]):
+    def __init__(self, air=True, wl_range=(3000, 13000), base=config.grid["raw_path"]):
         super().__init__(name="CIFIST",
                          points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
                                  np.arange(2.5, 5.6, 0.5)],
