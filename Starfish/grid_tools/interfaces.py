@@ -233,9 +233,9 @@ class PHOENIXGridInterfaceNoAlphaNoFE(PHOENIXGridInterface):
                       11400, 11600, 11800, 12000]),
             np.arange(0.0, 6.1, 0.5)]
 
-        self.par_dicts = [None, None]
+        self.par_dicts = [None, None, None]
 
-        self.rname = os.path.join(self.base + "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" \
+        self.rname = os.path.join(self.base, "Z-0.0/lte{0:0>5.0f}-{1:.2f}-0.0" 
                                               ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
 
