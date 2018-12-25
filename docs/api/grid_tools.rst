@@ -67,6 +67,9 @@ Here we introduce the classes and their methods. Below is an example of how you 
 .. autoclass:: RawGridInterface
    :members:
 
+PHOENIX Interfaces
+------------------
+
 .. autoclass:: PHOENIXGridInterface
    :members:
    :show-inheritance:
@@ -117,6 +120,14 @@ In order to load a raw file from the PHOENIX grid, one would do
     Out[7]:
     array([  3000.00133087,   3000.00732938,   3000.01332789, ...,
             53999.27587687,  53999.52580875,  53999.77574063])
+
+There is also a provided helper function for downloading PHOENIX models
+
+.. autofunction:: download_PHOENIX_models
+
+
+Other Library Interfaces
+------------------------
 
 .. autoclass:: KuruczGridInterface
    :members:

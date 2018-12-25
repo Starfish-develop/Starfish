@@ -18,27 +18,27 @@ from .utils import chunk_list
 
 
 class RawGridInterface:
+    """
+    A base class to handle interfacing with synthetic spectral libraries.
+
+    :param name: name of the spectral library
+    :type name: str
+    :param param_names: the names of the parameters (dimensions) of the grid
+    :type param_names: list
+    :param points: the grid points at which
+        spectra exist (assumes grid is square, not ragged, meaning that every combination
+        of parameters specified exists in the grid).
+    :type points: list of numpy arrays
+    :param wl_range: the starting and ending wavelength ranges of the grid to
+        truncate to. If None, will use whole available grid. Default is None.
+    :type wl_range: list of len 2 [min, max]
+    :param air: Are the wavelengths measured in air?
+    :type air: bool
+    :param base: path to the root of the files on disk.
+    :type base: str
+    """
 
     def __init__(self, name, param_names, points, wl_range=None, air=True, base=None):
-        """
-        A base class to handle interfacing with synthetic spectral libraries.
-
-        :param name: name of the spectral library
-        :type name: str
-        :param param_names: the names of the parameters (dimensions) of the grid
-        :type param_names: list
-        :param points: the grid points at which
-            spectra exist (assumes grid is square, not ragged, meaning that every combination
-            of parameters specified exists in the grid).
-        :type points: list of numpy arrays
-        :param wl_range: the starting and ending wavelength ranges of the grid to
-            truncate to. If None, will use whole available grid. Default is None.
-        :type wl_range: list of len 2 [min, max]
-        :param air: Are the wavelengths measured in air?
-        :type air: bool
-        :param base: path to the root of the files on disk.
-        :type base: str
-        """
         self.name = name
         self.param_names = param_names
         self.points = points
@@ -69,19 +69,21 @@ class RawGridInterface:
                 raise ValueError("{} not in the grid points {}".format(param, params))
         return True
 
-    def load_flux(self, parameters, norm=True):
-        '''
-        Load the synthetic flux from the disk and  :meth:`check_params`
+    def load_flux(self, parameters, header=True, norm=True):
+        """
+        Load the flux and header information.
 
-        :param parameters: stellar parameters describing a spectrum
-        :type parameters: numpy.ndarray or list
-        :param norm: If True, normalizes the spectrum to solar luminosity. Default is True.
-        :type norm: bool
+       :param parameters: stellar parameters
+       :type parameters: numpy.ndarray or list
+       :param header: If True, will return the header alongside the flux. Default is True.
+       :type header: bool
+       :param norm: If True, will normalize the flux to solar luminosity. Default is True.
+       :type norm: bool
 
-         .. note::
+       :raises ValueError: if the file cannot be found on disk.
 
-            This method is designed to be extended by the inheriting class
-        '''
+       :returns: numpy.ndarray if header is False, tuple of (numpy.ndarray, dict) if header is True
+       """
         raise NotImplementedError("`load_flux` is abstract and must be implemented by subclasses")
 
 
