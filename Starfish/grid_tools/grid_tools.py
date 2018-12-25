@@ -15,8 +15,8 @@ import multiprocessing as mp
 from tqdm import tqdm
 
 from Starfish import config
-from .spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
-from . import constants as C
+from Starfish.spectrum import create_log_lam_grid, calculate_dv, calculate_dv_dict
+from Starfish import constants as C
 
 
 def chunk_list(mylist, n=mp.cpu_count()):
