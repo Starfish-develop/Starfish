@@ -19,8 +19,8 @@ from .utils import chunk_list
 
 class RawGridInterface:
 
-    def __init__(self, name, param_names, points, air=True, wl_range=(3000, 13000), base=None):
-        '''
+    def __init__(self, name, param_names, points, wl_range=None, air=True, base=None):
+        """
         A base class to handle interfacing with synthetic spectral libraries.
 
         :param name: name of the spectral library
@@ -31,49 +31,48 @@ class RawGridInterface:
             spectra exist (assumes grid is square, not ragged, meaning that every combination
             of parameters specified exists in the grid).
         :type points: list of numpy arrays
+        :param wl_range: the starting and ending wavelength ranges of the grid to
+            truncate to. If None, will use whole available grid. Default is None.
+        :type wl_range: list of len 2 [min, max]
         :param air: Are the wavelengths measured in air?
         :type air: bool
-        :param wl_range: the starting and ending wavelength ranges of the grid to
-            truncate to.
-        :type wl_range: list of len 2 [min, max]
         :param base: path to the root of the files on disk.
-        :type base: string
-
-        '''
+        :type base: str
+        """
         self.name = name
-
         self.param_names = param_names
         self.points = points
-
         self.air = air
         self.wl_range = wl_range
         self.base = base
 
     def check_params(self, parameters):
-        '''
+        """
         Determine if the specified parameters are allowed in the grid.
 
         :param parameters: parameter set to check
-        :type parameters: np.array
+        :type parameters: numpy.ndarray or list
 
-        :raises C.GridError: if the parameter values are outside of the grid bounds
+        :raises ValueError: if the parameter values are outside of the grid bounds
+        """
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters)
 
-        '''
         if len(parameters) != len(self.param_names):
             raise ValueError("Length of given parameters ({}) does not match length of grid parameters ({})".format(
                 len(parameters), len(self.param_names)))
 
-        for param, ppoints in zip(parameters, self.points):
-            if param not in ppoints:
-                raise ValueError("{} not in the grid points {}".format(param, ppoints))
+        for param, params in zip(parameters, self.points):
+            if param not in params:
+                raise ValueError("{} not in the grid points {}".format(param, params))
 
     def load_flux(self, parameters, norm=True):
         '''
         Load the synthetic flux from the disk and  :meth:`check_params`
 
         :param parameters: stellar parameters describing a spectrum
-        :type parameters: np.array
-        :param norm: normalize the spectrum to solar luminosity?
+        :type parameters: numpy.ndarray or list
+        :param norm: If True, normalizes the spectrum to solar luminosity. Default is True.
         :type norm: bool
 
          .. note::
