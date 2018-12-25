@@ -1,7 +1,7 @@
 import bz2
 import logging
 import os
-from urllib.request import urlretrieve
+from urllib.request import urlretrieve, URLError
 
 import numpy as np
 from astropy.io import fits, ascii
@@ -127,11 +127,10 @@ class PHOENIXGridInterface(RawGridInterface):
             return f[self.ind]
 
 
-
 def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
     """
-    Download the PHOENIX grid models from the Goettingen servers. This will skip over any ill-defined files or any files that already exist on disk
-    in the given folder.
+    Download the PHOENIX grid models from the Goettingen servers. This will skip over any ill-defined files or any
+    files that already exist on disk in the given folder.
 
     :param parameters: The parameters to download. Should be a list of parameters where parameters can either be [
     Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be floats or integers and not string.
@@ -143,15 +142,25 @@ def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
     .. note:: This will create any directories if they do not exist
 
     .. warning:: Please use this responsibly to avoid over-saturating the connection to the Gottinghen servers.
-    """
 
+    .. code-block:: python
+
+        from itertools import product
+        from Starfish.grid_tools import download_PHOENIX_models
+
+        T = [5000, 5100, 5200]
+        logg = [4.0, 4.5, 5.0]
+        Z = [0]
+        Alpha = [0, -0.2]
+        params = product(T, logg, Z, Alpha)
+        download_PHOENIX_models(params, base='models')
+
+    """
     wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
     wave_file = os.path.join(base, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
     flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
-                           '/{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}-{' \
-                           '{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+                          '/{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
     output_formatter = '{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
-
 
     os.makedirs(base, exist_ok=True)
     # Download step
@@ -162,6 +171,7 @@ def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
     for p in pbar:
         # Create the Z string. Have to do this because PHOENIX models use - sign for 0.0
         p[2] = 'Z-0.0' if p[2] == 0 else 'Z{:+.1f}'.format(p[2])
+        # Create the Alpha string, which is nothing if alpha is 0 or unspecified
         if len(p) == 4:
             p[3] = '' if p[3] == 0 else '.Alpha={:+0.2f}'.format(p[3])
         else:
@@ -174,13 +184,13 @@ def download_PHOENIX_models(parameters, base=config.grid["raw_path"]):
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             try:
                 urlretrieve(url, output_file)
-            except:
+            except URLError:
                 logging.warning('Parameters {} not found. Double check they are on PHOENIX grid'.format(p))
+
 
 class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     '''
     An Interface to the PHOENIX/Husser synthetic library.
-
     '''
 
     def __init__(self, air=True, wl_range=(3000, 54000),
