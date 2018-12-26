@@ -1,9 +1,9 @@
 import multiprocessing as mp
 
-import pytest
 import numpy as np
+import pytest
 
-from Starfish.grid_tools import chunk_list, determine_chunk_log, air_to_vacuum, vacuum_to_air, vacuum_to_air_SLOAN
+from Starfish.grid_tools import chunk_list, air_to_vacuum, vacuum_to_air, vacuum_to_air_SLOAN, idl_float
 
 
 class TestChunking:
@@ -45,3 +45,13 @@ class TestWavelengthUtils:
     ])
     def test_atv_vta_sloan_regression(self, wavelengths):
         np.testing.assert_array_almost_equal(wavelengths, vacuum_to_air_SLOAN(air_to_vacuum(wavelengths)), 0)
+
+
+@pytest.mark.parametrize('idl, num', [
+    ('1D4', 1e4),
+    ('1.0', 1.0),
+    ('1D-4', 1e-4),
+    ('1d0', 1.0),
+])
+def test_idl_float(idl, num):
+    np.testing.assert_almost_equal(idl_float(idl), num)

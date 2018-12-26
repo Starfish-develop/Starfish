@@ -164,7 +164,7 @@ def air_to_vacuum(wl):
     """
     if not isinstance(wl, np.ndarray):
         wl = np.array(wl)
-        
+
     sigma = 1e4 / wl
     vac = wl + wl * (6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2))
     return vac
@@ -190,6 +190,6 @@ def idl_float(idl_num):
         15000.0 # Numpy float64
 
     """
-
+    idl_num = idl_num.lower()
     # replace 'D' with 'E', convert to float
-    return np.float(idl_num.replace("D", "E"))
+    return np.float(idl_num.replace("d", "e"))
