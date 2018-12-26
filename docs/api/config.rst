@@ -12,7 +12,11 @@ To get your own config file, use the provided utility function
     config.copy_file()
 
 This will put a ``config.yaml`` in your current directory for you to edit. For more information about the YAML
-standard, visit https://yaml.org/spec/1.2/spec.html
+standard, visit https://yaml.org/spec/1.2/spec.html.
+
+.. warning:: PyYAML does not support conversion of scientific notation formatted floats into floats, so if you specify
+    ``1e4`` in the config.yaml, it will be represented as the string ``'1e4'`` instead of the float ``10000.0``. To
+    avoid issues, please avoid scientific notation in the config file
 
 Parameters
 ==========

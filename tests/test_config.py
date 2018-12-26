@@ -48,8 +48,8 @@ class TestConfig:
         ('hdf5_path', 'grid.hdf5'),
         ('parname', ['Teff', 'logg', 'Z']),
         ('key_name', 'T{0:.0f}_g{1:.1f}_Z{2:.2f}'),
-        ('parrange', [[2300, 3700], [4.0, 5.5], [-0.5, 0.5]]),
-        ('wl_range', [6300, 6360]),
+        ('parrange', [[6000, 6200], [4.0, 5.0], [-1.0, 0.0]]),
+        ('wl_range', [2e4, 3e4]),
         ('buffer', 50)
     ])
     def test_grid_keys(self, key, value):

@@ -19,7 +19,7 @@ grid:
   key_name: "T{0:.0f}_g{1:.1f}_Z{2:.2f}" # Specifies how the params are stored
   # in the HDF5 file
   parrange: [[6000, 6200], [4.0, 5.0], [-1.0, 0.0]]
-  wl_range: [2e4, 3e4] # AA
+  wl_range: [20000, 30000] # AA
   buffer: 50. # AA
 
 PCA:
