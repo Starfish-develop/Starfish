@@ -20,24 +20,27 @@ class IndexInterpolator:
     def __init__(self, parameter_list):
         if not isinstance(parameter_list, np.ndarray):
             parameter_list = np.array(parameter_list)
+        self.npars = parameter_list.shape[-1]
         self.parameter_list = np.unique(parameter_list)
         self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
 
-    def __call__(self, value):
+    def __call__(self, param):
         """
         Evaluate the interpolator at a parameter.
 
-        :param value:
-        :type value: float
+        :param param:
+        :type param: list
         :raises ValueError: if *value* is out of bounds.
 
         :returns: ((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid
         and the fractional distance (0 - 1) between them and the value.
         """
+        if len(param) != self.npars:
+            raise ValueError('Incorrect number of parameters. Expected {} but got {}'.format(self.npars, len(param)))
         try:
-            index = self.index_interpolator(value)
+            index = self.index_interpolator(param)
         except ValueError:
-            raise ValueError("Requested value {} is out of bounds.".format(value))
+            raise ValueError("Requested param {} is out of bounds.".format(param))
         high = np.ceil(index).astype(int)
         low = np.floor(index).astype(int)
         frac_index = index - low
@@ -123,7 +126,7 @@ class Interpolator:
         # create an interpolator between grid points indices.
         # Given a parameter value, produce fractional index between two points
         # Store the interpolators as a list
-        self.index_interpolators = [IndexInterpolator(self.interface.points[i]) for i in range(self.npars)]
+        self.index_interpolator = IndexInterpolator(self.interface.points)
 
         lenF = self.interface.ind[1] - self.interface.ind[0]
         self.fluxes = np.empty((2 ** self.npars, lenF))  # 8 rows, for temp, logg, Z
@@ -144,18 +147,11 @@ class Interpolator:
         # Previously, parameters was a dictionary of the stellar parameters.
         # Now that we have moved over to arrays, it is a numpy array.
 
-        edges = []
-        for i in range(self.npars):
-            edges.append(self.index_interpolators[i](parameters[i]))
-
-        # Edges is a list of [((6000, 6100), (0.2, 0.8)), ((), ()), ((), ())]
-
-        params = [tup[0] for tup in edges]  # [(6000, 6100), (4.0, 4.5), ...]
-        weights = [tup[1] for tup in edges]  # [(0.2, 0.8), (0.4, 0.6), ...]
+        params, weights = self.index_interpolator(parameters)
 
         # Selects all the possible combinations of parameters and weights
-        param_combos = list(itertools.product(*params))
-        weight_combos = list(itertools.product(*weights))
+        param_combos = list(itertools.product(*np.array(params).T))
+        weight_combos = list(itertools.product(*np.array(weights).T))
 
         # Assemble key list necessary for indexing cache
         key_list = [self.interface.key_name.format(*param) for param in param_combos]
@@ -174,7 +170,4 @@ class Interpolator:
 
             self.fluxes[i] = self.cache[key] * weight_list[i]
 
-        # Do the averaging and then normalize the average flux to 1.0
-        fl = np.sum(self.fluxes, axis=0)
-        fl /= np.median(fl)
-        return fl
+        return np.sum(self.fluxes, axis=0)

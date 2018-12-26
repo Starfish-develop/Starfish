@@ -4,7 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, HDF5Creator
+from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
+    HDF5Creator, HDF5Interface
 
 
 @pytest.fixture(scope='session')
@@ -57,3 +58,7 @@ def mock_creator(mock_no_alpha_grid, mock_instrument, tmpdir_factory, grid_point
 def mock_hdf5(mock_creator):
     mock_creator.process_grid()
     yield mock_creator.filename
+
+@pytest.fixture(scope='session')
+def mock_hdf5_interface(mock_hdf5):
+    yield HDF5Interface(mock_hdf5)

@@ -80,9 +80,7 @@ class TestHDF5Creator:
 
 class TestHDF5Interface:
 
-    @pytest.fixture
-    def mock_hdf5_interface(self, mock_hdf5):
-        yield HDF5Interface(mock_hdf5)
+
 
     def test_filename(self, mock_hdf5_interface, mock_hdf5):
         assert mock_hdf5_interface.filename == mock_hdf5
