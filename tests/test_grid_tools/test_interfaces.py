@@ -41,7 +41,7 @@ class TestRawGridInterface:
                              wl_range=(3000, 54000))
 
     def test_check_params(self, rawgrid):
-        rawgrid.check_params((6100, 4.5, 0.0))
+        assert rawgrid.check_params((6100, 4.5, 0.0))
 
     def test_check_params_extra(self, rawgrid):
         with pytest.raises(ValueError) as e:
@@ -68,7 +68,7 @@ class TestPHOENIXGridInterface:
             assert grid.check_params((6100, 4.5, 0.0, 0.1))
 
     def test_load_flux(self, grid):
-        fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, header = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert len(fl) == 1540041
         assert header['PHXTEFF'] == 6100
         assert header['PHXLOGG'] == 4.5
@@ -76,11 +76,11 @@ class TestPHOENIXGridInterface:
         assert header['PHXALPHA'] == 0.0
 
     def test_load_alpha(self, grid):
-        fl, header = grid.load_flux((6100, 4.5, 0.0, -0.2))
+        fl, header = grid.load_flux((6100, 4.5, 0.0, -0.2), header=True)
         assert header['PHXALPHA'] == -0.2
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert isinstance(hdr, dict)
 
     def test_bad_base(self):
@@ -90,15 +90,15 @@ class TestPHOENIXGridInterface:
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), norm=False)
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True, norm=False)
         assert hdr['norm'] == False
 
     def test_no_header(self, grid):
-        fl = grid.load_flux((6100, 4.5, 0.0, 0.0), header=False)
+        fl = grid.load_flux((6100, 4.5, 0.0, 0.0))
         assert len(fl) == 1540041
 
 
@@ -113,7 +113,7 @@ class TestPHOENIXGridInterfaceNoAlpha:
             grid.load_flux((6100, 4.5, 0.0, 0.2))
 
     def test_load_flux(self, grid):
-        fl, header = grid.load_flux((6100, 4.5, 0.0))
+        fl, header = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert len(fl) == 1540041
         assert header['PHXTEFF'] == 6100
         assert header['PHXLOGG'] == 4.5
@@ -121,16 +121,16 @@ class TestPHOENIXGridInterfaceNoAlpha:
         assert header['PHXALPHA'] == 0.0
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert isinstance(hdr, dict)
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterfaceNoAlpha(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0))
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0), norm=False)
+        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True, norm=False)
         assert hdr['norm'] == False
 
     def test_no_header(self, grid):
@@ -151,7 +151,7 @@ class TestPHOENIXGridInterfaceNoAlphaNoFE:
             grid.load_flux((6100, 4.5, 0.0))
 
     def test_load_flux(self, grid):
-        fl, header = grid.load_flux((6100, 4.5))
+        fl, header = grid.load_flux((6100, 4.5), header=True)
         assert len(fl) == 1540041
         assert header['PHXTEFF'] == 6100
         assert header['PHXLOGG'] == 4.5
@@ -159,16 +159,16 @@ class TestPHOENIXGridInterfaceNoAlphaNoFE:
         assert header['PHXALPHA'] == 0.0
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5))
+        fl, hdr = grid.load_flux((6100, 4.5), header=True)
         assert isinstance(hdr, dict)
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterfaceNoAlphaNoFE(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5))
+        fl, hdr = grid.load_flux((6100, 4.5), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5), norm=False)
+        fl, hdr = grid.load_flux((6100, 4.5), header=True, norm=False)
         assert hdr['norm'] == False
 
     def test_no_header(self, grid):

@@ -100,13 +100,13 @@ class TestHDF5Interface:
         (6200, 5.0, -0.5)
     ])
     def test_load_flux(self, param, mock_hdf5_interface):
-        flux, hdr = mock_hdf5_interface.load_flux(param)
+        flux, hdr = mock_hdf5_interface.load_flux(param, header=True)
         assert hdr['PHXTEFF'] == param[0]
         assert hdr['PHXLOGG'] == param[1]
         assert hdr['PHXM_H'] == param[2]
 
     def test_load_flux_no_hdr(self, mock_hdf5_interface):
-        flux = mock_hdf5_interface.load_flux((6000, 4.5, 0), header=False)
+        flux = mock_hdf5_interface.load_flux((6000, 4.5, 0))
         assert isinstance(flux, np.ndarray)
 
     def test_fluxes(self, mock_hdf5_interface, grid_points):

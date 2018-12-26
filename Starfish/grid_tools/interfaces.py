@@ -132,7 +132,7 @@ class PHOENIXGridInterface(RawGridInterface):
         self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}" \
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
-    def load_flux(self, parameters, header=True, norm=True):
+    def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)  # Check to make sure that the keys are
         # allowed and that the values are in the grid
 
@@ -261,7 +261,7 @@ class KuruczGridInterface(RawGridInterface):
         self.ind = (self.wl_full >= self.wl_range[0]) & (self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
 
-    def load_flux(self, parameters, header=True, norm=True):
+    def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)
 
         str_parameters = []
@@ -431,7 +431,7 @@ class CIFISTGridInterface(RawGridInterface):
         wl_dict = create_log_lam_grid(dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
         self.wl = wl_dict['wl']
 
-    def load_flux(self, parameters, header=True, norm=True):
+    def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)
 
         str_parameters = []

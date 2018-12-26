@@ -8,11 +8,11 @@ from Starfish.grid_tools import chunk_list, air_to_vacuum, vacuum_to_air, vacuum
 
 class TestChunking:
 
-    def test_chunk_list(self, grid_points):
+    def test_chunk_list_shape(self, grid_points):
         chunked = chunk_list(grid_points)
-        assert chunked.shape[0] == mp.cpu_count()
+        assert len(chunked) == mp.cpu_count()
         chunked = chunk_list(grid_points, 3)
-        assert chunked.shape[0] == 3
+        assert len(chunked) == 3
 
 
 class TestWavelengthUtils:

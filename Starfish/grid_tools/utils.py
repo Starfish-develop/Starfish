@@ -16,6 +16,8 @@ def chunk_list(mylist, n=mp.cpu_count()):
     :returns: **chunks** (*2-D list* of shape (n, -1)) a list of chunked parameter lists.
 
     """
+    if isinstance(mylist, np.ndarray):
+        mylist = list(mylist)
     length = len(mylist)
     size = int(length / n)
     chunks = [mylist[0 + size * i: size * (i + 1)] for i in range(n)]  # fill with evenly divisible

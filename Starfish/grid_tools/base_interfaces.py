@@ -72,13 +72,13 @@ class RawGridInterface:
                 raise ValueError("{} not in the grid points {}".format(param, params))
         return True
 
-    def load_flux(self, parameters, header=True, norm=True):
+    def load_flux(self, parameters, header=False, norm=True):
         """
         Load the flux and header information.
 
        :param parameters: stellar parameters
        :type parameters: numpy.ndarray or list
-       :param header: If True, will return the header alongside the flux. Default is True.
+       :param header: If True, will return the header alongside the flux. Default is False.
        :type header: bool
        :param norm: If True, will normalize the flux to solar luminosity. Default is True.
        :type norm: bool
@@ -235,19 +235,20 @@ class HDF5Creator:
         wl_dset.attrs["air"] = self.GridInterface.air
         wl_dset.attrs["dv"] = self.dv_final
 
-    def process_flux(self, parameters):
+    def process_flux(self, parameters, header=False):
         """
         Take a flux file from the raw grid, process it according to the
         instrument, and insert it into the HDF5 file.
 
         :param parameters: the model parameters.
         :type parameters: numpy.ndarray or list
-
+        :param header: If True, will return the header alongside the flux. Default is False
+        :type header: bool
         :raises AssertionError: if the `parameters` vector is not
             the same length as that of the raw grid.
 
-        :returns: a tuple of (parameters, flux, header). If the flux could
-            not be loaded, returns (None, None).
+        :returns: numpy.ndarray if header is False, else a tuple of (flux, header). If the flux could
+            not be loaded, returns None.
 
         """
         if not isinstance(parameters, np.ndarray):
@@ -263,7 +264,7 @@ class HDF5Creator:
             vsini = 0.0
 
         try:
-            flux, header = self.GridInterface.load_flux(parameters)
+            flux, header = self.GridInterface.load_flux(parameters, header=True)
 
             # Interpolate the native spectrum to a log-lam FFT grid
             interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
@@ -301,7 +302,10 @@ class HDF5Creator:
 
         except ValueError as e:
             self.log.debug("No file with parameters {}".format(parameters))
-            return (None, None)
+            if header:
+                return None, None
+            else:
+                return None
 
     def process_grid(self):
         """
@@ -327,7 +331,7 @@ class HDF5Creator:
         pbar = tqdm(all_params)
         for i, param in enumerate(pbar):
             pbar.set_description("Processing {}".format(param))
-            fl, header = self.process_flux(param)
+            fl, header = self.process_flux(param, header=True)
             if fl is None:
                 self.log.warning("Deleting {} from all params, does not exist.".format(param))
                 invalid_params.append(i)
@@ -393,13 +397,13 @@ class HDF5Interface:
         except (IndexError, KeyError):
             raise ValueError("key_name is ill-specified.")
 
-    def load_flux(self, parameters, header=True):
+    def load_flux(self, parameters, header=False):
         """
         Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
         :type parameters: iterable
-        :param header: If True, will return the header as well as the flux
+        :param header: If True, will return the header as well as the flux. Default is False
         :type header: bool
 
         :raises GridError: if spectrum is not found in the HDF5 file.
