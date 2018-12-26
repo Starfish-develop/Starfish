@@ -1,11 +1,14 @@
 import os
+import types
+from itertools import product
 
-import pytest
 import h5py
 import numpy as np
+import pytest
 
 from Starfish import config
 from Starfish.grid_tools import HDF5Creator, HDF5Interface
+
 
 class TestHDF5Creator:
 
@@ -53,7 +56,7 @@ class TestHDF5Creator:
 
     @pytest.mark.parametrize('wl_range', [
         (2e4, 3e3),
-        (2e3, 3e3), # Should fail because 2e4 will be clipped up to minimum instrument wavelength
+        (2e3, 3e3),  # Should fail because 2e4 will be clipped up to minimum instrument wavelength
         (4e4, 2.4e4),
         (5e4, 6e4)
     ])
@@ -96,7 +99,6 @@ class TestHDF5Interface:
         with pytest.raises(ValueError):
             grid = HDF5Interface(mock_hdf5, key_name=key_name)
 
-
     @pytest.mark.parametrize('param', [
         (6000, 4.5, 0),
         (6100, 4.0, -1.0),
@@ -111,3 +113,13 @@ class TestHDF5Interface:
     def test_load_flux_no_hdr(self, mock_hdf5_interface):
         flux = mock_hdf5_interface.load_flux((6000, 4.5, 0), header=False)
         assert isinstance(flux, np.ndarray)
+
+    def test_fluxes(self, mock_hdf5_interface):
+        params = product(
+            (6000, 6100, 6200),
+            (4.0, 4.5, 5.0),
+            (0.0, -0.5, -1.0)
+        )
+        fluxes = mock_hdf5_interface.fluxes
+        assert isinstance(fluxes, types.GeneratorType)
+        assert len(list(fluxes)) == len(list(params))

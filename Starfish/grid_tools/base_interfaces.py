@@ -423,20 +423,16 @@ class HDF5Interface:
             return fl
 
     @property
-    def fluxes(self, headers=False):
+    def fluxes(self):
         """
         Iterator to loop over all of the spectra stored in the grid, for PCA.
-
         Loops over parameters in the order specified by grid_points.
 
-        :param headers: If True, will return the headers as well as the fluxes
-        :type headers: bool
-
-        :returns: generator of either numpy.ndarray or tuples (numpy.ndarray, dict)
+        :returns: generator of either numpy.ndarray
         """
 
         for grid_point in self.grid_points:
-            yield self.load_flux(grid_point, headers)
+            yield self.load_flux(grid_point, header=False)
 
 
 def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
