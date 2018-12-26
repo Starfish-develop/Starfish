@@ -96,7 +96,7 @@ In order to load a raw file from the PHOENIX grid, one would do
     import numpy as np
     mygrid = PHOENIX()
     my_params = np.array([6000, 3.5, 0.0])
-    flux, hdr = mygrid.load_flux(my_params)
+    flux, hdr = mygrid.load_flux(my_params, header=True)
 
     In [5]: flux
     Out[5]:
@@ -209,7 +209,7 @@ For example, to load a file from our recently-created HDF5 grid
 
     # Assumes you have already created and HDF5 grid
     myHDF5 = HDF5Interface()
-    flux, hdr = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
+    flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
 
     In [4]: flux
     Out[4]:
