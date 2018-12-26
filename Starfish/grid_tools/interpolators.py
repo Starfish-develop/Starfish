@@ -1,10 +1,10 @@
 import itertools
 from collections import OrderedDict
+import logging
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-import Starfish.constants as C
 from Starfish import config
 from .utils import determine_chunk_log
 
@@ -82,6 +82,7 @@ class Interpolator:
         self.cache = OrderedDict([])
         self.cache_max = cache_max
         self.cache_dump = cache_dump  # how many to clear once the maximum cache has been reached
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def _determine_chunk_log(self):
         """
@@ -144,6 +145,7 @@ class Interpolator:
         """
         if not isinstance(parameters, np.ndarray):
             parameters = np.array(parameters)
+
         # Previously, parameters was a dictionary of the stellar parameters.
         # Now that we have moved over to arrays, it is a numpy array.
 

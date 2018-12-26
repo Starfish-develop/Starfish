@@ -221,7 +221,7 @@ Interpolators
 =============
 
 The interpolators are used to create spectra in between grid points, for example
-``myParams = {"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1}``. Note, this currently broken and will remain so unless there is a good use case. For now, it is recommended to use the :doc:`emulator`.
+``[6114, 4.34, 0.12, 0.1]``.
 
 .. autoclass:: Interpolator
    :members:
@@ -232,7 +232,7 @@ For example, if we would like to generate a spectrum with the aforementioned par
 .. code-block:: python
 
     myInterpolator = Interpolator(myHDF5)
-    spec = myInterpolator({"temp":6114, "logg":4.34, "Z": 0.12, "alpha":0.1})
+    spec = myInterpolator([6114, 4.34, 0.12, 0.1])
 
 Instruments
 ===========

@@ -56,4 +56,3 @@ class TestInterpolator:
             original = mock_interpolator.interface.load_flux(point, header=False)
             interp = mock_interpolator(point)
             np.testing.assert_array_almost_equal(interp, original)
-
