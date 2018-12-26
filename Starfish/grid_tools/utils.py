@@ -4,19 +4,18 @@ import numpy as np
 
 
 def chunk_list(mylist, n=mp.cpu_count()):
-    '''
+    """
     Divide a lengthy parameter list into chunks for parallel processing and
     backfill if necessary.
 
     :param mylist: a lengthy list of parameter combinations
     :type mylist: 1-D list
-
     :param n: number of chunks to divide list into. Default is ``mp.cpu_count()``
     :type n: integer
 
     :returns: **chunks** (*2-D list* of shape (n, -1)) a list of chunked parameter lists.
 
-    '''
+    """
     length = len(mylist)
     size = int(length / n)
     chunks = [mylist[0 + size * i: size * (i + 1)] for i in range(n)]  # fill with evenly divisible
@@ -28,7 +27,7 @@ def chunk_list(mylist, n=mp.cpu_count()):
 
 
 def determine_chunk_log(wl, wl_min, wl_max):
-    '''
+    """
     Take in a wavelength array and then, given two minimum bounds, determine
     the boolean indices that will allow us to truncate this grid to near the
     requested bounds while forcing the wl length to be a power of 2.
@@ -40,9 +39,9 @@ def determine_chunk_log(wl, wl_min, wl_max):
     :param wl_max: maximum required wavelength
     :type wl_max: float
 
-    :returns: a np.ndarray boolean array used to index into the wl array.
+    :returns: numpy.ndarray boolean array
 
-    '''
+    """
 
     # wl_min and wl_max must of course be within the bounds of wl
     assert wl_min >= np.min(wl) and wl_max <= np.max(
@@ -92,17 +91,21 @@ def determine_chunk_log(wl, wl_min, wl_max):
 
 
 def vacuum_to_air(wl):
-    '''
+    """
     Converts vacuum wavelengths to air wavelengths using the Ciddor 1996 formula.
 
     :param wl: input vacuum wavelengths
-    :type wl: np.array
+    :type wl: numpy.ndarray
 
-    :returns: **wl_air** (*np.array*) - the wavelengths converted to air wavelengths
+    :returns: numpy.ndarray
 
     .. note::
 
-        CA Prieto recommends this as more accurate than the IAU standard.'''
+        CA Prieto recommends this as more accurate than the IAU standard.
+
+    """
+    if not isinstance(wl, np.ndarray):
+        wl = np.array(wl)
 
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
@@ -110,14 +113,17 @@ def vacuum_to_air(wl):
 
 
 def calculate_n(wl):
-    '''
+    """
     Calculate *n*, the refractive index of light at a given wavelength.
 
     :param wl: input wavelength (in vacuum)
     :type wl: np.array
 
-    :return: **n_air** (*np.array*) - the refractive index in air at that wavelength
-    '''
+    :return: numpy.ndarray
+    """
+    if not isinstance(wl, np.ndarray):
+        wl = np.array(wl)
+
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
     new_wl = wl / f
@@ -126,32 +132,39 @@ def calculate_n(wl):
 
 
 def vacuum_to_air_SLOAN(wl):
-    '''
+    """
     Converts vacuum wavelengths to air wavelengths using the outdated SLOAN definition.
+    From the SLOAN website:
+
+    AIR = VAC / (1.0 + 2.735182E-4 + 131.4182 / VAC^2 + 2.76249E8 / VAC^4)
 
     :param wl:
         The input wavelengths to convert
 
-    From the SLOAN website:
 
-    AIR = VAC / (1.0 + 2.735182E-4 + 131.4182 / VAC^2 + 2.76249E8 / VAC^4)'''
+    """
+    if not isinstance(wl, np.ndarray):
+        wl = np.array(wl)
     air = wl / (1.0 + 2.735182E-4 + 131.4182 / wl ** 2 + 2.76249E8 / wl ** 4)
     return air
 
 
 def air_to_vacuum(wl):
-    '''
+    """
     Convert air wavelengths to vacuum wavelengths.
 
     :param wl: input air wavelegths
     :type wl: np.array
 
-    :return: **wl_vac** (*np.array*) - the wavelengths converted to vacuum.
+    :return: numpy.ndarray
 
-    .. note::
+    .. warning::
 
         It is generally not recommended to do this, as the function is imprecise.
-    '''
+    """
+    if not isinstance(wl, np.ndarray):
+        wl = np.array(wl)
+        
     sigma = 1e4 / wl
     vac = wl + wl * (6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2))
     return vac
@@ -159,12 +172,24 @@ def air_to_vacuum(wl):
 
 @np.vectorize
 def idl_float(idl_num):
-    '''
+    """
     idl_float(idl_num)
     Convert an idl *string* number in scientific notation it to a float.
 
-    :param idl_num:
-        the idl number in sci_notation'''
+    :param idl_num: the idl number in sci_notation
+    :type idl_num: str
+
+    :returns: float
+
+    Example usage:
+
+    .. code-block:: python
+
+        idl_num = "1.5D4"
+        idl_float(idl_num)
+        15000.0 # Numpy float64
+
+    """
 
     # replace 'D' with 'E', convert to float
     return np.float(idl_num.replace("D", "E"))
