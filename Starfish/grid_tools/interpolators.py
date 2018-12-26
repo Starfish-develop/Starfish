@@ -18,6 +18,8 @@ class IndexInterpolator:
     """
 
     def __init__(self, parameter_list):
+        if not isinstance(parameter_list, np.ndarray):
+            parameter_list = np.array(parameter_list)
         self.parameter_list = np.unique(parameter_list)
         self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
 
@@ -36,8 +38,8 @@ class IndexInterpolator:
             index = self.index_interpolator(value)
         except ValueError:
             raise ValueError("Requested value {} is out of bounds.".format(value))
-        high = np.ceil(index)
-        low = np.floor(index)
+        high = np.ceil(index).astype(int)
+        low = np.floor(index).astype(int)
         frac_index = index - low
         return ((self.parameter_list[low], self.parameter_list[high]), ((1 - frac_index), frac_index))
 
