@@ -27,15 +27,15 @@ class IndexInterpolator:
 
         :param value:
         :type value: float
-        :raises C.InterpolationError: if *value* is out of bounds.
+        :raises ValueError: if *value* is out of bounds.
 
         :returns: ((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid
         and the fractional distance (0 - 1) between them and the value.
         """
         try:
             index = self.index_interpolator(value)
-        except ValueError as e:
-            raise C.InterpolationError("Requested value {} is out of bounds. {}".format(value, e))
+        except ValueError:
+            raise ValueError("Requested value {} is out of bounds.".format(value))
         high = np.ceil(index)
         low = np.floor(index)
         frac_index = index - low
@@ -71,9 +71,9 @@ class Interpolator:
         self.wl = self.wl[mask]
         self.dv = self.interface.dv
         self.npars = len(config.grid["parname"])
-        self._determine_chunk_log(self.wl)
+        self._determine_chunk_log()
 
-        self.setup_index_interpolators()
+        self._setup_index_interpolators()
         self.cache = OrderedDict([])
         self.cache_max = cache_max
         self.cache_dump = cache_dump  # how many to clear once the maximum cache has been reached
@@ -104,16 +104,20 @@ class Interpolator:
         Interpolate a spectrum
 
         :param parameters: stellar parameters
-        :type parameters: dict
+        :type parameters: numpy.ndarray or list
 
         .. note:: Automatically pops :attr:`cache_dump` items from cache if full.
         """
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters)
+
         if len(self.cache) > self.cache_max:
             [self.cache.popitem(False) for i in range(self.cache_dump)]
             self.cache_counter = 0
+
         return self.interpolate(parameters)
 
-    def setup_index_interpolators(self):
+    def _setup_index_interpolators(self):
         # create an interpolator between grid points indices.
         # Given a parameter value, produce fractional index between two points
         # Store the interpolators as a list
@@ -137,23 +141,19 @@ class Interpolator:
             parameters = np.array(parameters)
         # Previously, parameters was a dictionary of the stellar parameters.
         # Now that we have moved over to arrays, it is a numpy array.
-        try:
-            edges = []
-            for i in range(self.npars):
-                edges.append(self.index_interpolators[i](parameters[i]))
-        except C.InterpolationError as e:
-            raise ValueError("Parameters {} are out of bounds.".format(parameters))
+
+        edges = []
+        for i in range(self.npars):
+            edges.append(self.index_interpolators[i](parameters[i]))
 
         # Edges is a list of [((6000, 6100), (0.2, 0.8)), ((), ()), ((), ())]
 
         params = [tup[0] for tup in edges]  # [(6000, 6100), (4.0, 4.5), ...]
         weights = [tup[1] for tup in edges]  # [(0.2, 0.8), (0.4, 0.6), ...]
 
-        # Selects all the possible combinations of parameters
+        # Selects all the possible combinations of parameters and weights
         param_combos = list(itertools.product(*params))
-        # [(6000, 4.0, 0.0), (6100, 4.0, 0.0), (6000, 4.5, 0.0), ...]
         weight_combos = list(itertools.product(*weights))
-        # [(0.2, 0.4, 1.0), (0.8, 0.4, 1.0), ...]
 
         # Assemble key list necessary for indexing cache
         key_list = [self.interface.key_name.format(*param) for param in param_combos]
@@ -166,14 +166,11 @@ class Interpolator:
         for i, param in enumerate(param_combos):
             key = key_list[i]
             if key not in self.cache.keys():
-                try:
-                    # This method already allows loading only the relevant region from HDF5
-                    fl = self.interface.load_flux(param)
-                except KeyError as e:
-                    raise C.InterpolationError("Parameters {} not in master HDF5 grid. {}".format(param, e))
+                # This method already allows loading only the relevant region from HDF5
+                fl = self.interface.load_flux(param, header=False)
                 self.cache[key] = fl
 
-            self.fluxes[i, :] = self.cache[key] * weight_list[i]
+            self.fluxes[i] = self.cache[key] * weight_list[i]
 
         # Do the averaging and then normalize the average flux to 1.0
         fl = np.sum(self.fluxes, axis=0)

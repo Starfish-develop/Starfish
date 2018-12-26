@@ -43,12 +43,8 @@ class TestHDF5Creator:
             assert len(flux) == len(base['pars'])
             assert flux['T6000_g4.0_Z-0.50'].shape == base['wl'].shape
 
-    def test_no_instrument(self, mock_no_alpha_grid, tmpdir_factory):
-        ranges = [
-            (6000, 6200),
-            (4.0, 5.0),
-            (-1.0, 0.0)
-        ]
+    def test_no_instrument(self, mock_no_alpha_grid, tmpdir_factory, grid_points):
+        ranges = np.vstack([np.min(grid_points, 0), np.max(grid_points, 0)]).T
         tmpdir = tmpdir_factory.mktemp('hdf5tests')
         outfile = tmpdir.join('test_no_instrument.hdf5')
         creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=None, wl_range=(2e4, 3e4),
@@ -115,12 +111,7 @@ class TestHDF5Interface:
         flux = mock_hdf5_interface.load_flux((6000, 4.5, 0), header=False)
         assert isinstance(flux, np.ndarray)
 
-    def test_fluxes(self, mock_hdf5_interface):
-        params = product(
-            (6000, 6100, 6200),
-            (4.0, 4.5, 5.0),
-            (0.0, -0.5, -1.0)
-        )
+    def test_fluxes(self, mock_hdf5_interface, grid_points):
         fluxes = mock_hdf5_interface.fluxes
         assert isinstance(fluxes, types.GeneratorType)
-        assert len(list(fluxes)) == len(list(params))
+        assert len(list(fluxes)) == len(list(grid_points))
