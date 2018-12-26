@@ -48,7 +48,8 @@ def mock_creator(mock_no_alpha_grid, mock_instrument, tmpdir_factory):
     ]
     tmpdir = tmpdir_factory.mktemp('hdf5tests')
     outfile = tmpdir.join('test_grid.hdf5')
-    creator = HDF5Creator(mock_no_alpha_grid, outfile, mock_instrument, wl_range=(2e4, 3e4), ranges=ranges)
+    creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument, wl_range=(2e4, 3e4),
+                          ranges=ranges)
     yield creator
 
 @pytest.fixture(scope='session')

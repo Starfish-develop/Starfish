@@ -51,7 +51,8 @@ class TestHDF5Creator:
         ]
         tmpdir = tmpdir_factory.mktemp('hdf5tests')
         outfile = tmpdir.join('test_no_instrument.hdf5')
-        creator = HDF5Creator(mock_no_alpha_grid, outfile, instrument=None, wl_range=(2e4, 3e4), ranges=ranges)
+        creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=None, wl_range=(2e4, 3e4),
+                              ranges=ranges)
         creator.process_grid()
 
     @pytest.mark.parametrize('wl_range', [
@@ -64,7 +65,7 @@ class TestHDF5Creator:
         tmpdir = tmpdir_factory.mktemp('hdf5tests')
         outfile = tmpdir.join('test_no_instrument.hdf5')
         with pytest.raises(ValueError):
-            HDF5Creator(mock_no_alpha_grid, outfile, instrument=mock_instrument, wl_range=wl_range)
+            HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument, wl_range=wl_range)
 
     @pytest.mark.parametrize('wl_range, wl_expected', [
         [(5e3, 2e4), (1e4, 2e4 + config.grid['buffer'])],
@@ -76,7 +77,7 @@ class TestHDF5Creator:
     def test_wavelength_truncation(self, wl_range, wl_expected, mock_no_alpha_grid, mock_instrument, tmpdir_factory):
         tmpdir = tmpdir_factory.mktemp('hdf5tests')
         outfile = tmpdir.join('test_no_instrument.hdf5')
-        creator = HDF5Creator(mock_no_alpha_grid, outfile, instrument=mock_instrument, wl_range=wl_range)
+        creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument, wl_range=wl_range)
         np.testing.assert_array_almost_equal(creator.wl_final[0], wl_expected[0], 1)
         np.testing.assert_array_almost_equal(creator.wl_final[-1], wl_expected[-1], 1)
 

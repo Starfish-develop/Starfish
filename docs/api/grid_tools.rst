@@ -15,11 +15,18 @@ It defines many useful functions and objects that may be used in the modeling pa
 Downloading model spectra
 =========================
 
-Before you may begin any fitting, you must acquire a synthetic library of model spectra. If you will be fitting spectra of stars, there are many high quality synthetic and empirical spectral libraries available. In our paper, we use the freely available PHOENIX library synthesized by T.O. Husser. The library is available for download here: http://phoenix.astro.physik.uni-goettingen.de/
+Before you may begin any fitting, you must acquire a synthetic library of model spectra. If you will be fitting spectra
+of stars, there are many high quality synthetic and empirical spectral libraries available. In our paper, we use the
+freely available PHOENIX library synthesized by T.O. Husser. The library is available for download here:
+http://phoenix.astro.physik.uni-goettingen.de/. We provide a helper function :meth:`download_PHOENIX_models` if you
+would prefer to use that.
 
-Because spectral libraries are generally large (> 10 GB), please make sure you available disk space before beginning the download. Downloads may take a day or longer, so it is recommended to start the download ASAP.
+Because spectral libraries are generally large (> 10 GB), please make sure you available disk space before beginning the
+download. Downloads may take a day or longer, so it is recommended to start the download ASAP.
 
-You may store the spectra on disk in whatever directory structure you find convenient, provided you adjust the Starfish routines that read spectra from disk. To use the default settings for the PHOENIX grid, please create a ``libraries`` directory, a ``raw`` directory within ``libraries``, and unpack the spectra in this format::
+You may store the spectra on disk in whatever directory structure you find convenient, provided you adjust the Starfish
+routines that read spectra from disk. To use the default settings for the PHOENIX grid, please create a ``libraries``
+directory, a ``raw`` directory within ``libraries``, and unpack the spectra in this format::
 
     libraries/raw/
         PHOENIX/
@@ -47,9 +54,9 @@ Raw Grid Interfaces
 
 *Grid interfaces* are classes designed to abstract the interaction with the raw synthetic stellar libraries under a common interface. The :obj:`RawGridInterface` class is designed to be extended by the user to provide access to any new grids. Currently there are extensions for three main grids:
 
- 1. `PHOENIX spectra <http://phoenix.astro.physik.uni-goettingen.de/>`_ by T.O. Husser et al 2013
- 2. Kurucz spectra by Laird and Morse (available to CfA internal only)
- 3. `PHOENIX BT-Settl <http://phoenix.ens-lyon.fr/Grids/BT-Settl/>`_ spectra by France Allard
+ 1. `PHOENIX spectra <http://phoenix.astro.physik.uni-goettingen.de/>`_ by T.O. Husser et al 2013 :class:`PHOENIXGridInterface`
+ 2. Kurucz spectra by Laird and Morse (available to CfA internal only) :class:`KuruczGridInterface`
+ 3. `PHOENIX BT-Settl <http://phoenix.ens-lyon.fr/Grids/BT-Settl/>`_ spectra by France Allard :class:`BTSettlGridInterface`
 
 There are two interfaces provided to the PHOENIX/Husser grid: one that includes alpha enhancement and another which restricts access to 0 alpha enhancement.
 
@@ -159,6 +166,9 @@ If we will be fitting a star, there are generally three types of optimizations w
 
 All of these reductions can be achieved using the :obj:`HDF5Creator` object.
 
+HDF5Creator
+-----------
+
 .. autoclass:: HDF5Creator
    :members:
 
@@ -175,19 +185,19 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
     mygrid = PHOENIX()
     instrument = TRES()
 
-    creator = HDF5Creator(mygrid, Starfish.grid["hdf5_path"], instrument,
-    ranges=Starfish.grid["parrange"])
-
+    creator = HDF5Creator(mygrid, instrument)
     creator.process_grid()
 
-Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface` provides `load_file`  similar to that of the raw grid interfaces. It does not make any assumptions about how what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
+HDF5Interface
+-------------
+
+Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface`
+provides :meth:`load_flux`  similar to that of the raw grid interfaces. It does not make any assumptions about how
+what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength
+grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
 
 .. autoclass:: HDF5Interface
    :members:
-
-
-Examples
---------
 
 For example, to load a file from our recently-created HDF5 grid
 
@@ -196,8 +206,10 @@ For example, to load a file from our recently-created HDF5 grid
     import Starfish
     from Starfish.grid_tools import HDF5Interface
     import numpy as np
+
+    # Assumes you have already created and HDF5 grid
     myHDF5 = HDF5Interface()
-    flux = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
+    flux, hdr = myHDF5.load_flux(np.array([6100, 4.5, 0.0]))
 
     In [4]: flux
     Out[4]:
@@ -301,12 +313,3 @@ Wavelength conversions
 
 .. autofunction:: calculate_n
 
-
-Exceptions
-==========
-
-These exceptions will be called if anything is amiss.
-
-.. autoexception:: Starfish.constants.GridError
-
-.. autoexception:: Starfish.constants.InterpolationError

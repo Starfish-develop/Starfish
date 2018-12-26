@@ -15,7 +15,6 @@ from tqdm import tqdm
 import Starfish.constants as C
 from Starfish import config
 from Starfish.spectrum import calculate_dv, calculate_dv_dict, create_log_lam_grid
-from .instruments import Instrument
 from .utils import chunk_list
 
 log = logging.getLogger(__name__)
@@ -98,12 +97,12 @@ class HDF5Creator:
 
     :param GridInterface:  The raw grid interface to process while creating the HDF5 file
     :type GridInterface: :obj:`RawGridInterface`
-    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended. Default is
-        ``Starfish.config.grid['hdf5_path']``
-    :type filename: str or path-like
     :param instrument: If provided, the instrument to convolve/truncate the grid. If None, will
         maintain the grid's original wavelengths and resolution. Default is None
     :type instrument: :obj:`instrument`
+    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended. Default is
+        ``Starfish.config.grid['hdf5_path']``
+    :type filename: str or path-like
     :param wl_range: The wavelength range to truncate the grid to. Will be truncated to match grid wavelengths
          and instrument wavelengths if over or under specified. Default is ``Starfish.config.grid['wl_range']``
     :type wl_range: length 2 iterable of (min, max)
@@ -119,7 +118,7 @@ class HDF5Creator:
         grid points.
     """
 
-    def __init__(self, GridInterface, filename=config.grid['hdf5_path'], instrument=None,
+    def __init__(self, GridInterface, instrument=None, filename=config.grid['hdf5_path'],
                  wl_range=config.grid['wl_range'], ranges=config.grid['parrange'],
                  key_name=config.grid['key_name']):
 
@@ -171,7 +170,6 @@ class HDF5Creator:
         # For speed reasons, we will always truncate to to wl_range. If either
         # the synthetic library or the instrument library is smaller than this range,
         # raise an error.
-
 
         wl_min, wl_max = wl_range
         buffer = config.grid["buffer"]  # [AA]
@@ -243,7 +241,7 @@ class HDF5Creator:
         instrument, and insert it into the HDF5 file.
 
         :param parameters: the model parameters.
-        :type parameters: 1D np.array
+        :type parameters: numpy.ndarray or list
 
         :raises AssertionError: if the `parameters` vector is not
             the same length as that of the raw grid.
@@ -252,6 +250,8 @@ class HDF5Creator:
             not be loaded, returns (None, None).
 
         """
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters)
         # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
 
         # If the parameter length is one more than the grid pars,
@@ -379,7 +379,6 @@ class HDF5Interface:
             self.dv = self.wl_header["dv"]
             self.grid_points = hdf5["pars"][:]
 
-
         # determine the bounding regions of the grid by sorting the grid_points
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
@@ -407,6 +406,8 @@ class HDF5Interface:
 
         :returns: numpy.ndarray if header is False, otherwise (numpy.ndarray, dict)
         """
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters)
 
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
@@ -459,10 +460,10 @@ class MasterToFITSIndividual:
     """
     Object used to create one FITS file at a time.
 
-    :param interpolator: an :obj:`Interpolator` object referenced to the master grid.
-    :param instrument: an :obj:`instrument` object containing the properties of the final spectra
-
-
+    :param interpolator: The interpolator of the master grid.
+    :type interpolator: :class:`Interpolator`
+    :param instrument: The instrument corresponding to the final spectra
+    :type instrument: :class:`Instrument`
     """
 
     def __init__(self, interpolator, instrument):
@@ -521,17 +522,19 @@ class MasterToFITSGridProcessor:
     Create one or many FITS files from a master HDF5 grid. Assume that we are not going to need to interpolate
     any values.
 
-    :param interface: an :obj:`HDF5Interface` object referenced to the master grid.
+    :param interface: The master grid.
+    :type interface: :obj:`HDF5Interface`
     :param points: lists of output parameters (assumes regular grid)
     :type points: dict of lists
     :param flux_unit: format of output spectra {"f_lam", "f_nu", "ADU"}
-    :type flux_unit: string
+    :type flux_unit: str
     :param outdir: output directory
+    :type outdir: str or path-like
     :param processes: how many processors to use in parallel
+    :type processes: int
 
     Basically, this object is doing a one-to-one conversion of the PHOENIX spectra. No interpolation necessary,
     preserving all of the header keywords.
-
     """
 
     def __init__(self, interface, instrument, points, flux_unit, outdir, alpha=False, integrate=False,
