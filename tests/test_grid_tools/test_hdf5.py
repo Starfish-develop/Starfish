@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 
 from Starfish import config
-from Starfish.grid_tools import HDF5Creator
+from Starfish.grid_tools import HDF5Creator, HDF5Interface
 
 class TestHDF5Creator:
 
@@ -79,4 +79,35 @@ class TestHDF5Creator:
 
 
 class TestHDF5Interface:
-    pass
+
+    @pytest.fixture
+    def mock_hdf5_interface(self, mock_hdf5):
+        yield HDF5Interface(mock_hdf5)
+
+    def test_filename(self, mock_hdf5_interface, mock_hdf5):
+        assert mock_hdf5_interface.filename == mock_hdf5
+
+    @pytest.mark.parametrize('key_name', [
+        '',
+        '{}{}',
+        '{}{}{}{}'
+    ])
+    def test_keyname_failure(self, key_name, mock_hdf5):
+        with pytest.raises(ValueError):
+            grid = HDF5Interface(mock_hdf5, key_name=key_name)
+
+
+    @pytest.mark.parametrize('param', [
+        (6000, 4.5, 0),
+        (6100, 4.0, -1.0),
+        (6200, 5.0, -0.5)
+    ])
+    def test_load_flux(self, param, mock_hdf5_interface):
+        flux, hdr = mock_hdf5_interface.load_flux(param)
+        assert hdr['PHXTEFF'] == param[0]
+        assert hdr['PHXLOGG'] == param[1]
+        assert hdr['PHXM_H'] == param[2]
+
+    def test_load_flux_no_hdr(self, mock_hdf5_interface):
+        flux = mock_hdf5_interface.load_flux((6000, 4.5, 0), header=False)
+        assert isinstance(flux, np.ndarray)

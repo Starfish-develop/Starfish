@@ -379,6 +379,7 @@ class HDF5Interface:
             self.dv = self.wl_header["dv"]
             self.grid_points = hdf5["pars"][:]
 
+
         # determine the bounding regions of the grid by sorting the grid_points
         low = np.min(self.grid_points, axis=0)
         high = np.max(self.grid_points, axis=0)
@@ -387,58 +388,55 @@ class HDF5Interface:
 
         self.ind = None  # Overwritten by other methods using this as part of a ModelInterpolator
 
-    def load_flux(self, parameters):
+        # Test if key-name is specified correctly
+        try:
+            self.load_flux(self.grid_points[0])
+        except (IndexError, KeyError):
+            raise ValueError("key_name is ill-specified.")
+
+    def load_flux(self, parameters, header=True):
         """
         Load just the flux from the grid, with possibly an index truncation.
 
         :param parameters: the stellar parameters
         :type parameters: iterable
+        :param header: If True, will return the header as well as the flux
+        :type header: bool
 
-        :raises KeyError: if spectrum is not found in the HDF5 file.
+        :raises GridError: if spectrum is not found in the HDF5 file.
 
-        :returns: flux array
+        :returns: numpy.ndarray if header is False, otherwise (numpy.ndarray, dict)
         """
 
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:
+            hdr = dict(hdf5['flux'][key].attrs)
             if self.ind is not None:
                 fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
             else:
                 fl = hdf5['flux'][key][:]
 
         # Note: will raise a KeyError if the file is not found.
-
-        return fl
+        if header:
+            return fl, hdr
+        else:
+            return fl
 
     @property
-    def fluxes(self):
+    def fluxes(self, headers=False):
         """
         Iterator to loop over all of the spectra stored in the grid, for PCA.
 
         Loops over parameters in the order specified by grid_points.
+
+        :param headers: If True, will return the headers as well as the fluxes
+        :type headers: bool
+
+        :returns: generator of either numpy.ndarray or tuples (numpy.ndarray, dict)
         """
 
         for grid_point in self.grid_points:
-            yield self.load_flux(grid_point)
-
-    def load_flux_hdr(self, parameters):
-        """
-        Just like load_flux, but also returns the header
-        """
-        key = self.key_name.format(*parameters)
-        with h5py.File(self.filename, "r") as hdf5:
-            try:
-                hdr = dict(hdf5['flux'][key].attrs)
-                if self.ind is not None:
-                    fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
-                else:
-                    fl = hdf5['flux'][key][:]
-            except KeyError as e:
-                raise C.GridError(e)
-
-        # Note: will raise a KeyError if the file is not found.
-
-        return (fl, hdr)
+            yield self.load_flux(grid_point, headers)
 
 
 def create_fits(filename, fl, CRVAL1, CDELT1, dict=None):
