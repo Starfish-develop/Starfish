@@ -14,11 +14,10 @@
 
 import os
 import sys
-import builtins
 
-base_dir = os.path.dirname(os.path.dirname(__file__))
+base_dir = os.path.abspath('..')
 
-sys.path.append(base_dir)
+sys.path.insert(0, base_dir)
 
 import Starfish
 
