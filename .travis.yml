@@ -2,10 +2,16 @@
 
 language: python
 
+
 python:
   - 3.6
   - 3.7
-
+env:
+  - TEST_ARGS=
+matrix:
+  include:
+    - python: 3.5.2
+      env: TEST_ARGS=tests/test_imports.py
 dist: xenial
 sudo: true
 
@@ -24,4 +30,4 @@ before_script:
   - pipenv run python setup.py build_ext --inplace
 
 script:
-  - pipenv run pytest
+  - pipenv run pytest $TEST_ARGS
