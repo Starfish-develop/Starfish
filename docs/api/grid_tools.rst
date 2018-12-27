@@ -60,7 +60,7 @@ Raw Grid Interfaces
 
 There are two interfaces provided to the PHOENIX/Husser grid: one that includes alpha enhancement and another which restricts access to 0 alpha enhancement.
 
-.. inheritance-diagram:: RawGridInterface PHOENIXGridInterface KuruczGridInterface BTSettlGridInterface
+.. inheritance-diagram:: RawGridInterface PHOENIXGridInterface PHOENIXGridInterfaceNoAlpha PHOENIXGridInterfaceNoAlphaNoFE KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
 Here and throughout the code, stellar spectra are referenced by a numpy array of parameter values, which corresponds to the parameters listed in the config file.
