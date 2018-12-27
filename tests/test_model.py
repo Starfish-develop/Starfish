@@ -1,17 +1,15 @@
-import os
-
+import numpy as np
 import pytest
 
-from Starfish import config
 from Starfish.model import ThetaParam, PhiParam
-import numpy as np
+
 
 class TestThetaParam:
 
     @pytest.fixture(scope='class')
     def thetaparam(self):
         yield ThetaParam(grid=np.array([4000., 4.32, -0.2]),
-        vz=10., vsini=4.0, logOmega=-0.2, Av=0.3)
+                         vz=10., vsini=4.0, logOmega=-0.2, Av=0.3)
 
     @pytest.fixture
     def saved_file(self, thetaparam, tmpdir):
@@ -27,12 +25,13 @@ class TestThetaParam:
         assert loaded.logOmega == -0.2
         assert loaded.Av == 0.3
 
+
 class TestPhiParam:
 
     @pytest.fixture(scope='class')
     def phiparam(self):
         yield PhiParam(spectrum_id=0, order=22, fix_c0=True,
-        cheb=np.zeros((4,)), sigAmp=1.0, logAmp=-5.0, l=20., regions=np.ones((4, 3)))
+                       cheb=np.zeros((4,)), sigAmp=1.0, logAmp=-5.0, l=20., regions=np.ones((4, 3)))
 
     @pytest.fixture
     def saved_file(self, phiparam, tmpdir):

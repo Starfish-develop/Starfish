@@ -21,7 +21,7 @@ if args.create:
     #If the instrument has an explicit air/vacuum state, use it.  Otherwise assume air.  #Issue 57
     try:
         air = instrument.air
-        print("New in v0.3: Using explicit air/vacuum state from Instrument class.")
+        print("New in v0.3: Using explicit air/vacuum state from instrument class.")
     except AttributeError:
         air = True
 
