@@ -104,7 +104,8 @@ class HDF5Creator:
         ``Starfish.config.grid['hdf5_path']``
     :type filename: str or path-like
     :param wl_range: The wavelength range to truncate the grid to. Will be truncated to match grid wavelengths
-         and instrument wavelengths if over or under specified. Default is ``Starfish.config.grid['wl_range']``
+         and instrument wavelengths if over or under specified. Default is ``Starfish.config.grid['wl_range']``. If set
+         to None, will not truncate grid.
     :type wl_range: length 2 iterable of (min, max)
     :param ranges: lower and upper limits for each stellar parameter,
         in order to truncate the number of spectra in the grid. If None, will not restrict the
@@ -132,17 +133,20 @@ class HDF5Creator:
         # of whether or not the library uses it as a parameter.
         self.key_name = key_name
 
-        # Take only those points of the GridInterface that fall within the ranges specified
-        self.points = []
 
-        # We know which subset we want, so use these.
-        for i, (low, high) in enumerate(ranges):
-            valid_points = self.GridInterface.points[i]
-            ind = (valid_points >= low) & (valid_points <= high)
-            self.points.append(valid_points[ind])
-            # Note that at this point, this is just the grid points that fall within the rectangular
-            # bounds set by ranges. If the raw library is actually irregular (e.g. CIFIST),
-            # then self.points will contain points that don't actually exist in the raw library.
+        if ranges is None:
+            self.points = self.GridInterface.points
+        else:
+            # Take only those points of the GridInterface that fall within the ranges specified
+            self.points = []
+            # We know which subset we want, so use these.
+            for i, (low, high) in enumerate(ranges):
+                valid_points = self.GridInterface.points[i]
+                ind = (valid_points >= low) & (valid_points <= high)
+                self.points.append(valid_points[ind])
+                # Note that at this point, this is just the grid points that fall within the rectangular
+                # bounds set by ranges. If the raw library is actually irregular (e.g. CIFIST),
+                # then self.points will contain points that don't actually exist in the raw library.
 
         # the raw wl from the spectral library
         self.wl_native = self.GridInterface.wl  # raw grid
@@ -170,8 +174,10 @@ class HDF5Creator:
         # For speed reasons, we will always truncate to to wl_range. If either
         # the synthetic library or the instrument library is smaller than this range,
         # raise an error.
-
-        wl_min, wl_max = wl_range
+        if wl_range is None:
+            wl_min, wl_max = 0, np.inf
+        else:
+            wl_min, wl_max = wl_range
         buffer = config.grid["buffer"]  # [AA]
         wl_min -= buffer
         wl_max += buffer

@@ -74,9 +74,28 @@ class TestHDF5Creator:
         tmpdir = tmpdir_factory.mktemp('hdf5tests')
         outfile = tmpdir.join('test_no_instrument.hdf5')
         creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument, wl_range=wl_range)
-        np.testing.assert_array_almost_equal(creator.wl_final[0], wl_expected[0], 1)
-        np.testing.assert_array_almost_equal(creator.wl_final[-1], wl_expected[-1], 1)
+        np.testing.assert_array_almost_equal_nulp(creator.wl_final[0], wl_expected[0], 3)
+        np.testing.assert_array_almost_equal_nulp(creator.wl_final[-1], wl_expected[-1], 3)
 
+    def test_no_wl_truncation(self, mock_no_alpha_grid, mock_instrument, tmpdir_factory):
+        tmpdir = tmpdir_factory.mktemp('hdf5tests')
+        outfile = tmpdir.join('test_no_instrument.hdf5')
+        creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=None, wl_range=None)
+        np.testing.assert_array_almost_equal_nulp(creator.wl_final, mock_no_alpha_grid.wl[1:-1])
+
+    def test_par_truncation(self, grid_points, mock_no_alpha_grid, mock_instrument, tmpdir_factory):
+        tmpdir = tmpdir_factory.mktemp('hdf5tests')
+        outfile = tmpdir.join('test_no_instrument.hdf5')
+        creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument)
+        for cpars, gpars in zip(creator.points, grid_points.T):
+            np.testing.assert_allclose(cpars, np.unique(gpars))
+
+    def test_no_par_truncation(self, mock_no_alpha_grid, mock_instrument, tmpdir_factory):
+        tmpdir = tmpdir_factory.mktemp('hdf5tests')
+        outfile = tmpdir.join('test_no_instrument.hdf5')
+        creator = HDF5Creator(mock_no_alpha_grid, filename=outfile, instrument=mock_instrument, ranges=None)
+        for cpars, gpars in zip(creator.points, np.asarray(mock_no_alpha_grid.points).T):
+            np.testing.assert_allclose(cpars, np.unique(gpars))
 
 class TestHDF5Interface:
 
