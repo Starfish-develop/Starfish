@@ -14,12 +14,22 @@
 
 import os
 import sys
+from unittest.mock import MagicMock
 
 base_dir = os.path.abspath('..')
 
 sys.path.insert(0, base_dir)
 
+
 import Starfish
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+MOCK_MODULES = ['Starfish.covariance']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 version = Starfish.__version__
 release = version
