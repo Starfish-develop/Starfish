@@ -31,7 +31,8 @@ Because any stellar synthesis step is currently prohibitively expensive for the 
 
 First, you will need to download your synthetic spectral library of choice. What libraries are acceptable are dictated by the spectral range and resolution of your data. In general, it is preferable to start with a raw synthetic library that is sampled at least a factor of ~5 higher than your data. For our paper, we used the freely available `PHOENIX library <http://phoenix.astro.physik.uni-goettingen.de/>`_ synthesized by T. O. Husser. Because the size of spectral libraries is typically measured in gigabytes, I would recommend starting the download process now, and then finish reading the documentation :)
 
-More information about how to download raw spectra and use other synthetic spectra is available in :doc:`grid_tools`. `Starfish` provides a few objects which interface to these spectral libraries.
+More information about how to download raw spectra and use other synthetic spectra is available in
+:doc:`api/grid_tools`. `Starfish` provides a few objects which interface to these spectral libraries.
 
 The Spectral Emulator
 =====================
@@ -40,7 +41,11 @@ For high signal-to-noise data, we found that any interpolation error can constit
 
 The spectral emulator works by reconstructing spectra from a linear combination of eigenspectra, where the weight for each eigenspectrum is a function of the model parameters. Therefore, the first step is to deconstruct your spectral library into a set of eigenspectra using principal component analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the `scikit-learn` package.
 
-The next step is training a Gaussian Process to model the reconstruction weights as a function of model parameters (e.g., effective temperature :math:`T_{\rm eff}`, surface gravity :math:`\log(g)`, and metallicity :math:`[{\rm Fe}/{\rm H}]`). Because the spectral emulator delivers a probability distribution over the many possible interpolated spectra, we can propagate interpolation uncertainty into our final parameter estimates. For more on setting up the emulator, see :doc:`emulator`.
+The next step is training a Gaussian Process to model the reconstruction weights as a function of model parameters
+(e.g., effective temperature :math:`T_{\rm eff}`, surface gravity :math:`\log(g)`, and metallicity :math:`[{\rm
+Fe}/{\rm H}]`). Because the spectral emulator delivers a probability distribution over the many possible
+interpolated spectra, we can propagate interpolation uncertainty into our final parameter estimates. For more on
+setting up the emulator, see :doc:`api/emulator`.
 
 Spectrum data formats and runtime
 =================================
@@ -49,7 +54,11 @@ High resolution spectra are frequently taken with echelle spectrographs, which h
 
 The runtime of *Starfish* strongly scales with the number of pixels in each chunk. If instead of a chunked dataset, you have a single merged array of more than 3000 pixels, we strongly advise chunking the dataset up to speed computation time. As long as you have as many CPU cores as you do chunks, the evaluation time of *Starfish* is roughly independent of the number of chunks. Therefore, if you have access to a 64 core node of a cluster, *Starfish* can fit an entire ~50 order high-res echelle spectrum in about the same time as it would take to fit a single order. (For testing purposes, it may be wise to use only single order to start, however.)
 
-Astronomical spectra come in a wide variety of formats. Although there is effort to `simplify <http://specutils.readthedocs.org/en/latest/specutils/index.html>`_ reading these formats, it is beyond the scope of this package to provide an interface that would suit everyone. *Starfish* requires that the user convert their spectra into one of two simple formats: *numpy* arrays or HDF5 files. For more about converting spectra to these data formats, see :doc:`spectrum`.
+Astronomical spectra come in a wide variety of formats. Although there is effort to `simplify <http://specutils
+.readthedocs.org/en/latest/specutils/index.html>`_ reading these formats, it is beyond the scope of this package to
+provide an interface that would suit everyone. *Starfish* requires that the user convert their spectra into one of
+two simple formats: *numpy* arrays or HDF5 files. For more about converting spectra to these data formats, see
+:doc:`api/spectrum`.
 
 The MCMC driver script
 ======================
@@ -58,7 +67,9 @@ The main purpose of *Starfish* is to provide a framework for robustly deriving m
 
 Because each dataset has its own requirements, it is up to the user to modify the MCMC driver script to suit their needs. For now, a complicated parallel example is available `here <https://github.com/iancze/Starfish/blob/master/Starfish/parallel.py>`_. We hope to provide more user-friendly scripts soon.
 
-*Starfish* relies upon a modified version of *emcee*, a popular Markov Chain Monte Carlo package, to run a Gibbs sampler, available `here <https://github.com/iancze/emcee>`_. To help examine the output of any MCMC run and generate plots of the samples, we also provide some helpful command-line :doc:`scripts`.
+*Starfish* relies upon a modified version of *emcee*, a popular Markov Chain Monte Carlo package, to run a Gibbs
+sampler, available `here <https://github.com/iancze/emcee>`_. To help examine the output of any MCMC run and
+generate plots of the samples, we also provide some helpful command-line :doc:`api/scripts`.
 
 Memory usage
 ============

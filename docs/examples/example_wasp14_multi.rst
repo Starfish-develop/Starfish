@@ -49,7 +49,7 @@ Then we modify our configuration file to the desired orders and wavelengths:
 
 In this example I will optimize the spectral emulator with `emcee` MCMC sampling rather than the `fmin` optimization.  The main virtue of emcee, from a practical standpoint, is that it does not require user intervention (`fmin` usually hits a 10,000 max-iterations limit, in my experience).  So I ran `pca.py --optimize=emcee --samples=5000`, which took about 6 hours on my Macbook Pro.  This was probably overkill.  Recall that this process is simply optimizing the hyperparameters for the amplitude and scale of the Gaussian Process fit of the eigenspectra weights.  Here is an example image:
 
-.. image:: assets/triangle_0.png
+.. image:: ../assets/triangle_0.png
 
 
 # Only spot check the last order
