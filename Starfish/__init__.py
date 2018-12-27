@@ -26,4 +26,15 @@ if not __STARFISH_SETUP__:
             UserWarning)
         config = Config(DEFAULT_CONFIG_FILE)
 
-    __all__ = ["spectrum", "model", "grid_tools", "constants", "covariance", "utils", "emulator", "samplers", "config"]
+    __all__ = ['config']
+
+    from .constants import *
+    from .covariance import *
+    from .emulator import *
+    from .grid_tools import *
+    from .model import *
+    from .samplers import *
+    from .spectrum import *
+    from .utils import *
+
+    __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.

@@ -205,6 +205,6 @@ process.
 **top** The mean spectrum, standard deviation spectrum, and five eigenspectra that form the basis of the PHOENIX
 synthetic library used to model Gl 51, generated using a subset of the parameter space most relevant for M dwarfs.
 
-**bottom** The original synthetic spectrum from the PHOENIX library (:math:`T_{eff}=3000`K, :math:`logg=5.0`dex,
-:math:`[Fe/H]=0.0`dex) compared with a spectrum reconstructed from a linear combination of the derived eigenspectra,
+**bottom** The original synthetic spectrum from the PHOENIX library (:math:`T_{eff}=3000` K, :math:`logg=5.0` dex,
+:math:`[Fe/H]=0.0` dex) compared with a spectrum reconstructed from a linear combination of the derived eigenspectra,
 using the weights listed in the top panel.
