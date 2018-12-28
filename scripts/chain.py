@@ -2,6 +2,8 @@
 
 import argparse
 
+import Starfish.plot_utils
+
 parser = argparse.ArgumentParser(description="Measure statistics from MCMC runs, either for a single chain or across multiple chains.")
 parser.add_argument("--glob", help="Do something on this glob. Must be given as a quoted expression to avoid shell expansion.")
 
@@ -61,9 +63,9 @@ for file in files:
         # If we've specified csv, use csvread
         root, ext = os.path.splitext(file)
         if ext == ".hdf5":
-            flatchainList.append(utils.h5read(file, args.burn, args.thin))
+            flatchainList.append(Starfish.plot_utils.h5read(file, args.burn, args.thin))
         elif ext == ".csv":
-            flatchainList.append(utils.csvread(file, args.burn, args.thin))
+            flatchainList.append(Starfish.plot_utils.csvread(file, args.burn, args.thin))
     except OSError as e:
         print("{} does not exist, skipping. Or error {}".format(file, e))
 
@@ -77,15 +79,15 @@ if args.cat:
 # chain, since these commands don't make sense otherwise.
 if args.chain:
     assert len(flatchainList) == 1, "If plotting Markov Chain, only specify one flatchain"
-    utils.plot_walkers(flatchainList[0], base=args.outdir)
+    Starfish.plot_utils.plot_walkers(flatchainList[0], base=args.outdir)
 
 if args.triangle:
     assert len(flatchainList) == 1, "If making Triangle, only specify one flatchain"
-    utils.plot(flatchainList[0], base=args.outdir)
+    Starfish.plot_utils.plot(flatchainList[0], base=args.outdir)
 
 if args.paper:
     assert len(flatchainList) == 1, "If making Triangle, only specify one flatchain"
-    utils.paper_plot(flatchainList[0], base=args.outdir)
+    Starfish.plot_utils.paper_plot(flatchainList[0], base=args.outdir)
 
 if args.cov:
     assert len(flatchainList) == 1, "If estimating covariance, only specify one flatchain"

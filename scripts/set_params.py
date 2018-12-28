@@ -2,6 +2,8 @@
 
 import argparse
 
+import Starfish.plot_utils
+
 parser = argparse.ArgumentParser(description="Use the last runs to set the nuisance Chebyshev and covariance parameters.")
 parser.add_argument("rundir", help="The relative path to the output directory containing the samples.")
 args = parser.parse_args()
@@ -28,7 +30,7 @@ for spectrum_id in range(len(spectra)):
         phi = PhiParam.load(fname_phi)
 
         fname_mc = args.rundir + "/" + Starfish.specfmt.format(spectrum_id, order) + "/mc.hdf5"
-        flatchain = utils.h5read(fname_mc)
+        flatchain = Starfish.plot_utils.h5read(fname_mc)
 
         pars = flatchain[-1,:]
 

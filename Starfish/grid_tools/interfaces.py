@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
-from Starfish.spectrum import create_log_lam_grid
+from Starfish.utils import create_log_lam_grid
 from .base_interfaces import RawGridInterface
 from .utils import vacuum_to_air, idl_float
 

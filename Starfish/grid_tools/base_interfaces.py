@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
-from Starfish.spectrum import calculate_dv, calculate_dv_dict, create_log_lam_grid
+from Starfish.utils import calculate_dv, calculate_dv_dict, create_log_lam_grid
 from .utils import chunk_list
 
 log = logging.getLogger(__name__)

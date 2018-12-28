@@ -20,7 +20,8 @@ import numpy as np
 from Starfish import config
 import Starfish.grid_tools
 from Starfish.samplers import StateSampler
-from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum, create_mask
+from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
+from Starfish.utils import create_mask
 from Starfish.emulator import Emulator
 import Starfish.constants as C
 from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region

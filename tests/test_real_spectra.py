@@ -1,6 +1,7 @@
 import pytest
 
 from Starfish.grid_tools import *
+from Starfish.utils import create_log_lam_grid
 
 
 @pytest.mark.skip("Needs to be reimplemented")

@@ -2,6 +2,8 @@
 
 import argparse
 
+import Starfish.plot_utils
+
 parser = argparse.ArgumentParser(description="Measure statistics from MCMC runs, either for a single chain or across multiple chains.")
 parser.add_argument("--chain", action="store_true", help="Make a plot of the position of the chains.")
 parser.add_argument("-t", "--triangle", action="store_true", help="Make a triangle (staircase) plot of the parameters.")
@@ -34,8 +36,8 @@ def chdir(dirname=None):
 paths = glob("s*o*/mc.hdf5")
 
 if args.triangle:
-    flatchain = utils.h5read("mc.hdf5", args.burn)
-    utils.plot(flatchain, base="")
+    flatchain = Starfish.plot_utils.h5read("mc.hdf5", args.burn)
+    Starfish.plot_utils.plot(flatchain, base="")
 
     cmd = ["chain.py",  "--files", "mc.hdf5", "-t", "--burn", "{}".format(args.burn)]
 
@@ -49,8 +51,8 @@ if args.triangle:
 
 
 if args.chain:
-    flatchain = utils.h5read("mc.hdf5", args.burn)
-    utils.plot_walkers(flatchain, base="")
+    flatchain = Starfish.plot_utils.h5read("mc.hdf5", args.burn)
+    Starfish.plot_utils.plot_walkers(flatchain, base="")
     cmd = ["chain.py", "--files", "mc.hdf5", "--chain", "--burn", "{}".format(args.burn)]
     print(cmd)
 
