@@ -196,39 +196,6 @@ def create_log_lam_grid(dv, wl_start=3000., wl_end=13000.):
     return {"wl": wl, "CRVAL1": CRVAL1, "CDELT1": CDELT1, "NAXIS1": NAXIS1}
 
 
-def rfftfreq(n, d=1.0):
-    """
-    Return the Discrete Fourier Transform sample frequencies
-    (for usage with rfft, irfft).
-
-    The returned float array `f` contains the frequency bin centers in cycles
-    per unit of the sample spacing (with zero at the start). For instance, if
-    the sample spacing is in seconds, then the frequency unit is cycles/second.
-
-    Given a window length `n` and a sample spacing `d`::
-
-    f = [0, 1, ..., n/2-1, n/2] / (d*n) if n is even
-    f = [0, 1, ..., (n-1)/2-1, (n-1)/2] / (d*n) if n is odd
-
-    Unlike `fftfreq` (but like `scipy.fftpack.rfftfreq`)
-    the Nyquist frequency component is considered to be positive.
-
-    :param n : Window length
-    :type n: int
-    :param d: Sample spacing (inverse of the sampling rate). Defaults to 1.
-    ;type d: scalar, optional
-    :returns: f, Array of length ``n//2 + 1`` containing the sample frequencies.
-    :rtype: ndarray
-
-    """
-    if not isinstance(n, np.int):
-        raise ValueError("n should be an integer")
-    val = 1.0 / (n * d)
-    N = n // 2 + 1
-    results = np.arange(0, N, dtype=np.int)
-    return results * val
-
-
 def create_mask(wl, fname):
     """
     Given a wavelength array (1D or 2D) and an ascii file containing the regions
