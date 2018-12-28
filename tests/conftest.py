@@ -2,6 +2,7 @@ import os
 from itertools import product
 
 import numpy as np
+import scipy.stats as st
 import pytest
 
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
@@ -62,3 +63,12 @@ def mock_hdf5(mock_creator):
 @pytest.fixture(scope='session')
 def mock_hdf5_interface(mock_hdf5):
     yield HDF5Interface(mock_hdf5)
+
+@pytest.fixture
+def mock_data():
+    wave = np.linspace(1e4, 5e4, 1000)
+    peaks = -5 * st.norm.pdf(wave, 2e4, 200)
+    peaks += -4 * st.norm.pdf(wave, 2.5e4, 80)
+    peaks += -10 * st.norm.pdf(wave, 3e4, 50)
+    flux = peaks + np.random.normal(0, 5, size=1000)
+    yield wave, flux
