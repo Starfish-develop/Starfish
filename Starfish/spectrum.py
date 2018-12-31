@@ -1,3 +1,4 @@
+import h5py
 import numpy as np
 from numpy.polynomial import Chebyshev as Ch
 
@@ -10,9 +11,9 @@ class DataSpectrum:
     :type wls: 1D or 2D np.array
     :param fls: flux (in f_lam)
     :type fls: 1D or 2D np.array
-    :param sigmas: Poisson noise (in f_lam)
+    :param sigmas: Poisson noise (in f_lam). If not specified, will be unitary. Default is None
     :type sigmas: 1D or 2D np.array
-    :param masks: Mask to blot out bad pixels or emission regions.
+    :param masks: Mask to blot out bad pixels or emission regions. Default is None
     :type masks: 1D or 2D np.array of boolean values
 
     If the wl, fl, are provided as 1D arrays (say for a single order), they will be converted to 2D arrays with length 1
@@ -24,11 +25,18 @@ class DataSpectrum:
 
     """
 
-    def __init__(self, wls, fls, sigmas, masks=None, orders='all', name=None):
+    def __init__(self, wls, fls, sigmas=None, masks=None, orders='all', name=None):
         self.wls = np.atleast_2d(wls)
         self.fls = np.atleast_2d(fls)
-        self.sigmas = np.atleast_2d(sigmas)
-        self.masks = np.atleast_2d(masks) if masks is not None else np.ones_like(self.wls, dtype='b')
+        if sigmas is not None:
+            self.sigmas = np.atleast_2d(sigmas)
+        else:
+            self.sigmas = np.ones_like(self.fls)
+
+        if masks is not None:
+            self.masks = np.atleast_2d(masks)
+        else:
+            self.masks = np.ones_like(self.wls, dtype='b')
 
         self.shape = self.wls.shape
         assert self.fls.shape == self.shape, "flux array incompatible shape."
@@ -62,7 +70,6 @@ class DataSpectrum:
 
         """
         # Open the HDF5 file, try to load each of these values.
-        import h5py
         with h5py.File(file, "r") as hdf5:
             wls = hdf5["wls"][:]
             fls = hdf5["fls"][:]
@@ -78,6 +85,21 @@ class DataSpectrum:
         # in float64, and so we convert here.
         # The wls must be stored as float64, because of precise velocity issues.
         return cls(wls.astype(np.float64), fls.astype(np.float64), sigmas.astype(np.float64), masks, orders, name=file)
+
+    def write(self, filename):
+        """
+        Takes the current DataSpectrum and writes it to an HDF5 file.
+
+        :param filename: The filename to write to. Will not create any missing directories.
+        :type filename: str or path-like
+        """
+
+        with h5py.File(filename, 'w') as base:
+            base.create_dataset('wls', data=self.wls, compression=9)
+            base.create_dataset('fls', data=self.fls, compression=9)
+            base.create_dataset('sigmas', data=self.sigmas, compression=9)
+            base.create_dataset('masks', data=self.masks, compression=9)
+
 
     @classmethod
     def open_npy(cls, base_file, orders='all'):

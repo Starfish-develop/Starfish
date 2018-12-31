@@ -49,9 +49,11 @@ Many spectral routines utilize a keyword ``dv``, which stands for :math:`\Delta 
 
 When resampling wavelength grids that are not log-lambda spaced (e.g., the raw synthetic spectrum from the library) onto a log-lambda grid, the ``dv`` must be calculated. Generally, :meth:`calculate_dv` works by measuring the velocity difference of every pixel and choosing the smallest, that way no spectral information will be lost.
 
-.. autofunction:: calculate_dv
+.. autofunction:: Starfish.utils.calculate_dv
 
-.. autofunction:: create_log_lam_grid
+.. autofunction:: Starfish.utils.create_log_lam_grid
+
+.. autofunction:: Starfish.utils.calculate_dv_dict
 
 
 Data Spectrum
