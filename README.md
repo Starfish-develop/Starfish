@@ -68,7 +68,7 @@ the source code.
 
 If you don't care to download the code and would rather install directly into a virtual environment, you can do so with
 
-    pip install git+https://github.com/iancze/Starfiish.git#egg=Starfish
+    pip install git+https://github.com/iancze/Starfish.git#egg=Starfish
 
 or 
 
