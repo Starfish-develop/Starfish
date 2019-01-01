@@ -1,9 +1,19 @@
 import sys
 from setuptools import setup, Extension
 import builtins
+import platform
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+if platform.system() == "Windows":
+    extra_compile_args = []  # No compile args needed on Windows
+else:
+    extra_compile_args=["-Wno-declaration-after-statement",
+                        "-Wno-error=declaration-after-statement",
+                        "-Wno-unused-function",
+                        "-Wno-unused-variable",
+                        "-Wno-unused-but-set-variable"]
 
 try:
     from Cython.Distutils import build_ext
@@ -12,19 +22,11 @@ except ImportError:
 
     ext_modules = [Extension("Starfish.covariance",
                              sources=["Starfish/covariance.c"],
-                             extra_compile_args=["-Wno-declaration-after-statement",
-                                                 "-Wno-error=declaration-after-statement",
-                                                 "-Wno-unused-function",
-                                                 "-Wno-unused-variable",
-                                                 "-Wno-unused-but-set-variable"]), ]
+                             extra_compile_args=extra_compile_args), ]
 else:
     ext_modules = [Extension("Starfish.covariance",
                              sources=["Starfish/covariance.pyx"],
-                             extra_compile_args=["-Wno-declaration-after-statement",
-                                                 "-Wno-error=declaration-after-statement",
-                                                 "-Wno-unused-function",
-                                                 "-Wno-unused-variable",
-                                                 "-Wno-unused-but-set-variable"]), ]
+                             extra_compile_args=extra_compile_args), ]
 
 if sys.version < '3.5.2':
     raise RuntimeError('Error: Python 3.6 or greater required for Starfish (using {})'.format(sys.version))
