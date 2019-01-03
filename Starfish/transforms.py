@@ -131,6 +131,8 @@ class InstrumentalBroaden(FTransform):
 
     :param inst: The instrumental velocity FWHM in km/s.
     :type inst: float or :class:`Starfish.grid_tools.Instrument`
+
+    :raises ValueError: If the instrumental FWHM is less than 0
     """
 
     def __init__(self, inst):
@@ -138,6 +140,9 @@ class InstrumentalBroaden(FTransform):
             self.inst = inst.FWHM
         else:
             self.inst = inst
+
+        if self.inst < 0.0:
+            raise ValueError("Cannot have a negative instrumental velocity")
 
     def transform(self, wave_ff, flux_ff):
         # Convert from FWHM to standard deviation for Gaussian
@@ -154,14 +159,21 @@ class RotationalBroaden(FTransform):
 
     :param vsini: The rotational velocity in km/s.
     :type vsini: float
+
+    :raises ValueError: If vsini is not positive
     """
 
     def __init__(self, vsini):
+        if not vsini > 0:
+            raise ValueError('Must have a positive rotational velocity.')
+
         self.vsini = vsini
 
     def transform(self, wave_ff, flux_ff):
         # Calculate the stellar broadening kernel (Gray 2008)
         ub = 2. * np.pi * self.vsini * wave_ff
+        # Artifically push to avoid divde-by-Zero
+        ub[0] = np.finfo(np.float16).tiny
         sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
         # set zeroth frequency to 1 separately (DC term)
         sb[0] = 1.
@@ -215,11 +227,15 @@ class Resample(Transform):
 
     :param new_wave: The wavelengths to interpolate to, in Angstrom
     :type new_wave: iterable
+
+    :raises ValueError: If wavelengths are not positive, non-zero.
     """
 
     def __init__(self, new_wave):
         if not isinstance(new_wave, np.ndarray):
             new_wave = np.array(new_wave)
+        if not np.all(new_wave > 0):
+            raise ValueError('Must provide positive, non-zero wavelengths')
         self.wave_final = new_wave
 
     def transform(self, wave, flux):

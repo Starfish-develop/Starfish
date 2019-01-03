@@ -2,7 +2,9 @@ import pytest
 
 import numpy as np
 
-from Starfish.transforms import Transform, Truncate, truncate, Broaden, broaden
+from Starfish.transforms import Transform, Truncate, truncate, InstrumentalBroaden, \
+    instrumental_broaden, RotationalBroaden, rotational_broaden, Resample, resample
+from Starfish.utils import calculate_dv, create_log_lam_grid
 
 
 
@@ -13,7 +15,7 @@ class TestTransform:
         with pytest.raises(NotImplementedError):
             t(*mock_data)
         with pytest.raises(NotImplementedError):
-            t._transform(*mock_data)
+            t.transform(*mock_data)
 
 class TestTruncate:
 
@@ -48,18 +50,91 @@ class TestTruncate:
         np.testing.assert_allclose(f1, f2)
 
 
-@pytest.mark.skip('need better understanding of math')
-class TestBroaden:
+class TestInstrumentalBroaden:
 
-    def test_no_broadening(self, mock_data):
-        wave, flux = broaden(*mock_data, None, None, None)
+    @pytest.mark.parametrize('fwhm', [
+        -20,
+        -1.00,
+        -np.finfo(np.float64).tiny
+    ])
+    def test_bad_fwhm(self, fwhm):
+        with pytest.raises(ValueError):
+            InstrumentalBroaden(fwhm)
+
+    def test_0_fwhm(self, mock_data):
+        t = InstrumentalBroaden(0)
+        wave, flux = t(*mock_data)
         np.testing.assert_allclose(wave, mock_data[0])
         np.testing.assert_allclose(flux, mock_data[1])
 
     def test_inst_broadening_inst(self, mock_data, mock_instrument):
-        t = Broaden(mock_instrument, None, None)
+        t = InstrumentalBroaden(mock_instrument)
         assert t.inst == mock_instrument.FWHM
         wave, flux = t(*mock_data)
         assert wave.shape == flux.shape
-        # assert wave.shape == mock_data[0].shape
-        # assert flux.shape == mock_data[1].shape
+        assert wave.shape == mock_data[0].shape
+        assert flux.shape == mock_data[1].shape
+
+    def test_inst_broadening_fwhm(self, mock_data):
+        t = InstrumentalBroaden(400)
+        wave, flux = t(*mock_data)
+        assert wave.shape == flux.shape
+
+    def test_helper_func(self, mock_data, mock_instrument):
+        t = InstrumentalBroaden(mock_instrument)
+        wave1, flux1 = t(*mock_data)
+        wave2, flux2 = instrumental_broaden(*mock_data, mock_instrument)
+        np.testing.assert_allclose(wave1, wave2)
+        np.testing.assert_allclose(flux1, flux2)
+
+class TestRotationalBroaden:
+
+    @pytest.mark.parametrize('vsini', [
+        -20,
+        -1.00,
+        -np.finfo(np.float64).tiny,
+        0
+    ])
+    def test_bad_fwhm(self, vsini):
+        with pytest.raises(ValueError):
+            RotationalBroaden(vsini)
+
+    def test_rot_broadening_inst(self, mock_data):
+        t = RotationalBroaden(84)
+        assert t.vsini == 84
+        wave, flux = t(*mock_data)
+        assert wave.shape == flux.shape
+        assert wave.shape == mock_data[0].shape
+        assert flux.shape == mock_data[1].shape
+
+    def test_helper_func(self, mock_data, mock_instrument):
+        t = RotationalBroaden(84)
+        wave1, flux1 = t(*mock_data)
+        wave2, flux2 = rotational_broaden(*mock_data, 84)
+        np.testing.assert_allclose(wave1, wave2)
+        np.testing.assert_allclose(flux1, flux2)
+
+class TestResample:
+
+    @pytest.mark.parametrize('wave', [
+        np.linspace(-1, -0.5),
+        np.linspace(0, 1e4)
+    ])
+    def test_bad_waves(self, wave):
+        with pytest.raises(ValueError):
+            Resample(wave)
+
+    def test_resample(self, mock_data):
+        dv = calculate_dv(mock_data[0])
+        new_wave = create_log_lam_grid(dv, mock_data[0].min(), mock_data[0].max())['wl']
+        t = Resample(new_wave)
+        wave, flux = t(*mock_data)
+        assert wave.shape == flux.shape
+        np.testing.assert_allclose(wave, new_wave)
+
+    def test_helper_func(self, mock_data):
+        dv = calculate_dv(mock_data[0])
+        new_wave = create_log_lam_grid(dv, mock_data[0].min(), mock_data[0].max())['wl']
+        wave, flux = resample(*mock_data, new_wave)
+        assert wave.shape == flux.shape
+        np.testing.assert_allclose(wave, new_wave)
