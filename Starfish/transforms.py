@@ -64,7 +64,7 @@ class FTransform:
         if not isinstance(flux, np.ndarray):
             flux = np.array(flux)
 
-        # Convert to Fourier domain
+        # Convert to Fourier domain, maintain doppler content
         dv = calculate_dv(wave)
         wave_ff = np.fft.rfftfreq(len(wave), d=dv)
         flux_ff = np.fft.rfft(flux)
@@ -119,6 +119,7 @@ class Truncate(Transform):
 
 
 def truncate(wave, flux, wl_range, buffer):
+    """Helper function for :class:`Truncate`"""
     t = Truncate(wl_range, buffer)
     return t(wave, flux)
 
@@ -170,12 +171,16 @@ class RotationalBroaden(FTransform):
 
 
 def instrumental_broaden(wave, flux, vinst):
+    """Helper function for :class:`InstrumentalBroaden`"""
     t = InstrumentalBroaden(vinst)
     return t(wave, flux)
 
+
 def rotational_broaden(wave, flux, vsini):
+    """Helper function for :class:`RotationalBroaden`"""
     t = RotationalBroaden(vsini)
     return t(wave, flux)
+
 
 class DopplerShift(Transform):
     """
@@ -199,6 +204,7 @@ class DopplerShift(Transform):
 
 
 def doppler_shift(wave, flux, vz):
+    """Helper function for :class:`DopplerShift`"""
     t = DopplerShift(vz)
     return t(wave, flux)
 
@@ -223,5 +229,6 @@ class Resample(Transform):
 
 
 def resample(wave, flux, new_wave):
+    """Helper function for :class:`Resample`"""
     t = Resample(new_wave)
     return t(wave, flux)
