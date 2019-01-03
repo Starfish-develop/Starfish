@@ -12,20 +12,28 @@ class Transform:
     This is the base transform class to be extended by its constituents
     """
     def __call__(self, wave, flux):
+        """
+        :param wave: the wavelength array in Angstrom
+        :type wave: iterable
+        :param flux: the flux_ff array in erg/cm^2/s/AA
+        :type flux: iterable
+
+        :return: tuple of (wave, flux) of the transformed data
+        """
         if not isinstance(wave, np.ndarray):
             wave = np.array(wave)
         if not isinstance(flux, np.ndarray):
             flux = np.array(flux)
-        return self._transform(wave, flux)
+        return self.transform(wave, flux)
 
-    def _transform(self, wave, flux):
+    def transform(self, wave, flux):
         """
         This is the method to be overwritten by inheriting members. It must contain
         the same callsign as this method
 
         :param wave: the wavelength array in Angstrom
         :type wave: numpy.ndarray
-        :param flux: the flux array in erg/cm^2/s/A
+        :param flux: the flux array in erg/cm^2/s/AA
         :type flux: numpy.ndarray
 
         :return: tuple of (wave, flux) of the transformed data
@@ -36,34 +44,45 @@ class Transform:
 class FTransform:
     """
     This is the base transform class for transforms that operate in Fourier space
-    like convolution and resampling
+    like convolution and resampling. When called using `__call__` it will take in normal flux and
+    wavelength components and return normal flux and wavelength components. When called using
+    `transform` it will take Fourier wavelength and fluxes in and return Fourier wavelength and fluxes.
     """
-    def __call__(self, fwave, flux):
+    def __call__(self, wave, flux):
         """
-        :param fwave: the wavelength array in the Fourier domain
-        :type fwave: numpy.ndarray
-        :param flux: the flux array in erg/cm^2/s/A
-        :type flux: numpy.ndarray
+        :param wave: the wavelength array in AA
+        :type wave: iterable
+        :param flux: the flux_ff array in erg/cm^2/s/AA
+        :type flux: iterable
 
         :return: tuple of (wave, flux) of the transformed data
         """
-        if not isinstance(fwave, np.ndarray):
-            wave = np.array(fwave)
+        if not isinstance(wave, np.ndarray):
+            wave = np.array(wave)
         if not isinstance(flux, np.ndarray):
             flux = np.array(flux)
-        return self._transform(fwave, flux)
 
-    def _transform(self, fwave, flux):
+        # Convert to Fourier domain
+        dv = calculate_dv(wave)
+        wave_ff = np.fft.rfftfreq(len(wave), d=dv)
+        flux_ff = np.fft.rfft(flux)
+
+        wave_ff_t, flux_ff_t = self.transform(wave_ff, flux_ff)
+        wave_final = wave
+        flux_final = np.fft.irfft(flux_ff_t)
+        return wave_final, flux_final
+
+    def transform(self, wave_ff, flux_ff):
         """
         This is the method to be overwritten by inheriting members. It must contain
         the same callsign as this method
 
-        :param fwave: the wavelength array in the Fourier domain
-        :type fwave: numpy.ndarray
-        :param flux: the flux array in erg/cm^2/s/A
-        :type flux: numpy.ndarray
+        :param wave_ff: the wavelength array in the Fourier domain
+        :type wave_ff: numpy.ndarray
+        :param flux_ff: the flux array in the Fourier domain
+        :type flux_ff: numpy.ndarray
 
-        :return: tuple of (logwave, flux) of the transformed data
+        :return: tuple of (wave_ff, flux_ff) of the transformed data
         """
         raise NotImplementedError('Must be implemented by subclasses of Transform')
 
@@ -89,7 +108,7 @@ class Truncate(Transform):
         self.max = self.wl_range[1]
         self.buffer = buffer
 
-    def _transform(self, wave, flux):
+    def transform(self, wave, flux):
         wl_min = self.min - self.buffer
         wl_max = self.max + self.buffer
         mask = (wave >= wl_min) & (wave <= wl_max)
@@ -102,63 +121,84 @@ def truncate(wave, flux, wl_range, buffer):
 
 class Broaden(FTransform):
     """
-    Not sure if this is correct
+    This class will provide the kernel transformation for instrumental broadening and
+    rotational broadening in the Fourier domain.
+
+    :param inst: The instrumental velocity FWHM in km/s. If None, no instrumental broadening
+        will occur. Default is None.
+    :type inst: float or :class:`Starfish.grid_tools.Instrument`
+    :param vsini: The rotational velocity in km/s. If None, no rotational broadening
+        will occur. Default is None.
+    :type vsini: float
     """
 
-    def __init__(self, inst=None, vz=None, vsini=None):
+    def __init__(self, inst=None, vsini=None):
         if isinstance(inst, Instrument):
             self.inst = inst.FWHM
         else:
             self.inst = inst
-        self.vz = vz
         self.vsini = vsini
 
-    def _transform(self, fwave, flux):
-        # Check for short-circuit
-        if self.inst is None and self.vz is None and self.vsini is None:
-            return fwave, flux
-
-        if self.vz is not None:
-           fwave *= np.sqrt((C.c_kms + self.vz) / (C.c_kms - self.vz))
-        log_dv = calculate_dv(fwave)
-        ss = np.fft.rfftfreq(len(fwave), d=log_dv)
-        sigma = 0
-
-        taper = 1.
+    def transform(self, wave_ff, flux_ff):
         if self.inst is not None:
-            taper = np.exp(-2 * (np.pi ** 2) * ((self.inst/2.35) ** 2) * (ss ** 2))
-            sigma += self.inst
+            flux_ff *= np.exp(-2 * (np.pi ** 2) * ((self.inst/2.355) ** 2) * (wave_ff ** 2))
 
         if self.vsini is not None:
-            # Calculate the stellar broadening kernel
-            ub = 2. * np.pi * self.vsini * ss
+            # Calculate the stellar broadening kernel (Gray 2008)
+            ub = 2. * np.pi * self.vsini * wave_ff
             sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
             # set zeroth frequency to 1 separately (DC term)
             sb[0] = 1.
-            taper = sb * taper
-            sigma += self.vsini
+            flux_ff *= sb
 
-        FF = np.fft.rfft(flux, len(fwave))
-        FF_tap = FF * taper
-        # do IFFT
-        fl_final = np.fft.irfft(FF_tap, len(flux))
 
-        return fwave, flux
+        return wave_ff, flux_ff
 
-def broaden(fwave, flux, vinst, vz, vsini):
-    t = Broaden(vinst, vz, vsini)
-    return t(fwave, flux)
+def broaden(wave, flux, vinst, vsini):
+    t = Broaden(vinst, vsini)
+    return t(wave, flux)
 
-class Resample(FTransform):
+class DopplerShift(Transform):
     """
-    I don't think this is correct.
+    This class will doppler shift given data by the equation
+
+    .. math::
+        \lambda = \lambda_0 \sqrt{\frac{c + v_z}{c - v_z}}
+
+    where :math:`c` and :math:`v_z` are given in similar units- in our case we
+    choose :math:`km/s`.
+
+    :param vz: the doppler velocity in km/s.
+    :type vz: float
+    """
+    def __init__(self, vz):
+        self.vz = vz
+
+    def transform(self, wave, flux):
+        wave *= np.sqrt((C.c_kms + self.vz) / (C.c_kms - self.vz))
+
+def doppler_shift(wave, flux, vz):
+    t = DopplerShift(vz)
+    return t(wave, flux)
+
+class Resample(Transform):
+    """
+    Resamples the given data using a 5-spline interpolation scheme.
+
+    :param new_wave: The wavelengths to interpolate to, in Angstrom
+    :type new_wave: iterable
     """
 
-    def __init__(self, wave):
-        self.wave=wave
+    def __init__(self, new_wave):
+        if not isinstance(new_wave, np.ndarray):
+            new_wave = np.array(new_wave)
+        self.wave_final = new_wave
 
-    def _transform(self, fwave, flux):
+    def transform(self, wave, flux):
+        interp = InterpolatedUnivariateSpline(wave, flux)
+        flux_final = interp(self.wave_final)
+        return self.wave_final, flux_final
 
-        interp = InterpolatedUnivariateSpline(fwave, flux)
-        flux_final = interp(self.wave)
-        return self.wave, flux_final
+def resample(wave, flux, new_wave):
+    t = Resample(new_wave)
+    return t(wave, flux)
