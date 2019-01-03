@@ -1,16 +1,17 @@
-
 import numpy as np
-from scipy.special import j1
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.special import j1
 
 import Starfish.constants as C
 from Starfish.grid_tools import Instrument
-from Starfish.utils import create_log_lam_grid, calculate_dv_dict, calculate_dv
+from Starfish.utils import calculate_dv
+
 
 class Transform:
     """
     This is the base transform class to be extended by its constituents
     """
+
     def __call__(self, wave, flux):
         """
         :param wave: the wavelength array in Angstrom
@@ -48,6 +49,7 @@ class FTransform:
     wavelength components and return normal flux and wavelength components. When called using
     `transform` it will take Fourier wavelength and fluxes in and return Fourier wavelength and fluxes.
     """
+
     def __call__(self, wave, flux):
         """
         :param wave: the wavelength array in AA
@@ -86,6 +88,7 @@ class FTransform:
         """
         raise NotImplementedError('Must be implemented by subclasses of Transform')
 
+
 class Truncate(Transform):
     """
     This class truncates a spectra to a given wavelength range with an optional
@@ -114,48 +117,64 @@ class Truncate(Transform):
         mask = (wave >= wl_min) & (wave <= wl_max)
         return wave[mask], flux[mask]
 
+
 def truncate(wave, flux, wl_range, buffer):
     t = Truncate(wl_range, buffer)
     return t(wave, flux)
 
 
-class Broaden(FTransform):
+class InstrumentalBroaden(FTransform):
     """
-    This class will provide the kernel transformation for instrumental broadening and
-    rotational broadening in the Fourier domain.
+    This class will provide the kernel transformation for instrumental broadening
+     in the Fourier domain.
 
-    :param inst: The instrumental velocity FWHM in km/s. If None, no instrumental broadening
-        will occur. Default is None.
+    :param inst: The instrumental velocity FWHM in km/s.
     :type inst: float or :class:`Starfish.grid_tools.Instrument`
-    :param vsini: The rotational velocity in km/s. If None, no rotational broadening
-        will occur. Default is None.
-    :type vsini: float
     """
 
-    def __init__(self, inst=None, vsini=None):
+    def __init__(self, inst):
         if isinstance(inst, Instrument):
             self.inst = inst.FWHM
         else:
             self.inst = inst
+
+    def transform(self, wave_ff, flux_ff):
+        # Convert from FWHM to standard deviation for Gaussian
+        sigma = (self.inst / 2.355)
+        # Multiply by the equivalent of the Fourier transform of a Gaussian
+        flux_ff *= np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (wave_ff ** 2))
+        return wave_ff, flux_ff
+
+
+class RotationalBroaden(FTransform):
+    """
+    This class will provide the kernel transformation for
+    rotational broadening in the Fourier domain.
+
+    :param vsini: The rotational velocity in km/s.
+    :type vsini: float
+    """
+
+    def __init__(self, vsini):
         self.vsini = vsini
 
     def transform(self, wave_ff, flux_ff):
-        if self.inst is not None:
-            flux_ff *= np.exp(-2 * (np.pi ** 2) * ((self.inst/2.355) ** 2) * (wave_ff ** 2))
-
-        if self.vsini is not None:
-            # Calculate the stellar broadening kernel (Gray 2008)
-            ub = 2. * np.pi * self.vsini * wave_ff
-            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-            # set zeroth frequency to 1 separately (DC term)
-            sb[0] = 1.
-            flux_ff *= sb
-
+        # Calculate the stellar broadening kernel (Gray 2008)
+        ub = 2. * np.pi * self.vsini * wave_ff
+        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        # set zeroth frequency to 1 separately (DC term)
+        sb[0] = 1.
+        flux_ff *= sb
 
         return wave_ff, flux_ff
 
-def broaden(wave, flux, vinst, vsini):
-    t = Broaden(vinst, vsini)
+
+def instrumental_broaden(wave, flux, vinst):
+    t = InstrumentalBroaden(vinst)
+    return t(wave, flux)
+
+def rotational_broaden(wave, flux, vsini):
+    t = RotationalBroaden(vsini)
     return t(wave, flux)
 
 class DopplerShift(Transform):
@@ -171,15 +190,18 @@ class DopplerShift(Transform):
     :param vz: the doppler velocity in km/s.
     :type vz: float
     """
+
     def __init__(self, vz):
         self.vz = vz
 
     def transform(self, wave, flux):
         wave *= np.sqrt((C.c_kms + self.vz) / (C.c_kms - self.vz))
 
+
 def doppler_shift(wave, flux, vz):
     t = DopplerShift(vz)
     return t(wave, flux)
+
 
 class Resample(Transform):
     """
@@ -198,6 +220,7 @@ class Resample(Transform):
         interp = InterpolatedUnivariateSpline(wave, flux)
         flux_final = interp(self.wave_final)
         return self.wave_final, flux_final
+
 
 def resample(wave, flux, new_wave):
     t = Resample(new_wave)
