@@ -17,6 +17,7 @@ corner = "*"
 tqdm = "*"
 emcee = "<3"
 oyaml = "*"
+extinction = "*"
 
 
 [dev-packages]

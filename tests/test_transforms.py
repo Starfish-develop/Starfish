@@ -1,10 +1,12 @@
-import pytest
+import itertools
 
+import pytest
 import numpy as np
 
 from Starfish.transforms import Transform, Truncate, truncate, InstrumentalBroaden, \
     instrumental_broaden, RotationalBroaden, rotational_broaden, Resample, resample, \
-    NullTransform, DopplerShift, doppler_shift, CalibrationCorrect, calibration_correct
+    NullTransform, DopplerShift, doppler_shift, CalibrationCorrect, calibration_correct, \
+    Extinct, extinct, Scale, scale
 from Starfish.utils import calculate_dv, create_log_lam_grid
 
 
@@ -192,6 +194,49 @@ class TestCalibrationCorrect:
     def test_helper_func(self, mock_data, mock_coeffs):
         t = CalibrationCorrect(mock_coeffs)
         wave1, flux1 = calibration_correct(*mock_data, mock_coeffs)
+        wave2, flux2 = t(*mock_data)
+        assert np.allclose(wave1, wave2)
+        assert np.allclose(flux1, flux2)
+
+class TestExtinct:
+
+    laws = ['ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07']
+    Avs = [0.4, 0.6, 1, 1.2]
+    Rvs = [2, 3.2, 4, 5]
+
+    @pytest.mark.parametrize('law, Av, Rv',
+        itertools.product(laws, Avs, Rvs)
+    )
+    def test_extinct(self, mock_data, law, Av, Rv):
+        t = Extinct(law, Av, Rv)
+        wave, flux = t(*mock_data)
+        assert np.allclose(wave, mock_data[0])
+        assert not np.allclose(flux, mock_data[1])
+
+    @pytest.mark.parametrize('law', laws)
+    def test_no_extinct(self, mock_data, law):
+        t = Extinct(law, 0, 3.1)
+        wave, flux = t(*mock_data)
+        assert np.allclose(wave, mock_data[0])
+        assert np.allclose(flux, mock_data[1])
+
+    def test_bad_laws(self):
+        with pytest.raises(ValueError):
+            Extinct('hello', 1.0, 2.2)
+
+    @pytest.mark.parametrize('Av,Rv', [
+        (0.2, -1),
+        (1.3, None),
+        (0.3, -np.finfo(np.float64).tiny),
+        (-0.5, 1.3)
+    ])
+    def test_bad_av_rv(self, Av, Rv):
+        with pytest.raises(ValueError):
+            Extinct('ccm89', Av, Rv)
+
+    def test_helper_func(self, mock_data):
+        t = Extinct('ccm89', 0.6, 3.1)
+        wave1, flux1 = extinct(*mock_data, 'ccm89', 0.6, 3.1)
         wave2, flux2 = t(*mock_data)
         assert np.allclose(wave1, wave2)
         assert np.allclose(flux1, flux2)

@@ -1,3 +1,4 @@
+import extinction
 import numpy as np
 from numpy.polynomial.chebyshev import chebval
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -281,3 +282,77 @@ def calibration_correct(wave, flux, c):
     """Helper function for :class:`CalibrationCorrect`"""
     t = CalibrationCorrect(c)
     return t(wave, flux)
+
+class Extinct(Transform):
+    """
+    Extincts a given spectra according to the given law. Uses the ``extinction``
+    package under the hood
+
+    :param law: the extinction law, one of {'ccm89', 'odonnell94', 'calzetti00',
+        'fitzpatrick99', 'fm07'}
+    :type law: str
+    :param Av: The scaling total extinction value.
+    :type Av: float
+    :param Rv: The ratio of total to selective extinction. If using law 'fm07' you do
+        not need to provide this (fixed 3.1).
+    :type Rv: float
+
+    :raises ValueError: If not using an expected law or ill-specifying Av or Rv
+    """
+    LAWS = {
+        'ccm89': extinction.ccm89,
+        'odonnell94': extinction.odonnell94,
+        'calzetti00': extinction.calzetti00,
+        'fitzpatrick99': extinction.fitzpatrick99,
+        'fm07': extinction.fm07,
+    }
+    def __init__(self, law, Av, Rv=None):
+        if not law in self.LAWS:
+            raise ValueError('Need to specify a law from {}'.format(self.LAWS.keys()))
+        if Av < 0:
+            raise ValueError('Cannot have negative extinction')
+        if Rv is None or Rv < 0 and law is not 'fm07':
+            raise ValueError('Must provide positive r_v for law "{}"'.format(law))
+        elif law is 'fm07':
+            Rv = None
+        self.law = self.LAWS[law]
+        self.Av = Av
+        self.Rv = Rv
+
+    def transform(self, wave, flux):
+        if self.Rv is not None:
+            extinct_mag = self.law(wave, self.Av, self.Rv)
+        else:
+            extinct_mag = self.law(wave, self.Av)
+        extinct_flux = extinction.apply(extinct_mag, flux)
+        return wave, extinct_flux
+
+
+def extinct(wave, flux, law, Av, Rv):
+    t = Extinct(law, Av, Rv)
+    return t(wave, flux)
+
+class Scale(Transform):
+    """
+    Scales the flux by the given scaling factor :math:`\\log \\Omega`. This performs the operation
+
+    .. math::
+
+        F = F_0 10^{\\log \\Omega}
+
+    :param logOmega: The base-10 logarithm of the scaling factor. This can represent
+        the logarithm of the distance to an object or 2.5 times a magnitude scaling
+        factor.
+    :type logOmega: float
+    """
+
+    def __init__(self, logOmega):
+        self.logOmega = logOmega
+
+    def transform(self, wave, flux):
+        return wave, flux * 10 ** self.logOmega
+
+def scale(wave, flux, logOmega):
+    t = Scale(logOmega)
+    return t(wave, flux)
+
