@@ -3,7 +3,8 @@ import pytest
 import numpy as np
 
 from Starfish.transforms import Transform, Truncate, truncate, InstrumentalBroaden, \
-    instrumental_broaden, RotationalBroaden, rotational_broaden, Resample, resample
+    instrumental_broaden, RotationalBroaden, rotational_broaden, Resample, resample, \
+    NullTransform, DopplerShift, doppler_shift
 from Starfish.utils import calculate_dv, create_log_lam_grid
 
 
@@ -16,6 +17,15 @@ class TestTransform:
             t(*mock_data)
         with pytest.raises(NotImplementedError):
             t.transform(*mock_data)
+
+
+class TestNullTransform:
+
+    def test_null_transform(self, mock_data):
+        t = NullTransform()
+        wave, flux = t(*mock_data)
+        np.testing.assert_allclose(wave, mock_data[0])
+        np.testing.assert_allclose(flux, mock_data[1])
 
 class TestTruncate:
 
@@ -138,3 +148,31 @@ class TestResample:
         wave, flux = resample(*mock_data, new_wave)
         assert wave.shape == flux.shape
         np.testing.assert_allclose(wave, new_wave)
+
+
+class TestDopplerShift:
+
+    def test_no_change(self, mock_data):
+        t = DopplerShift(0)
+        wave, flux = t(*mock_data)
+        np.testing.assert_allclose(wave, mock_data[0])
+        np.testing.assert_allclose(flux, mock_data[1])
+
+    def test_blueshift(self, mock_data):
+        t = DopplerShift(-1e3)
+        wave, flux = t(*mock_data)
+        assert np.all(wave < mock_data[0])
+        np.testing.assert_allclose(flux, mock_data[1])
+
+    def test_redshift(self, mock_data):
+        t = DopplerShift(1e3)
+        wave, flux = t(*mock_data)
+        assert np.all(wave > mock_data[0])
+        np.testing.assert_allclose(flux, mock_data[1])
+
+    def test_helper_func(self, mock_data):
+        t = DopplerShift(1e3)
+        wave1, flux1 = doppler_shift(*mock_data, 1e3)
+        wave2, flux2 = t(*mock_data)
+        np.testing.assert_allclose(wave1, wave2)
+        np.testing.assert_allclose(flux1, flux2)
