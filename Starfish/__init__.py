@@ -26,5 +26,6 @@ if not __STARFISH_SETUP__:
             UserWarning)
         config = Config(DEFAULT_CONFIG_FILE)
 
-    __all__ = ['config', 'constants', 'covariance', 'emulator', 'grid_tools', 'model', 'samplers', 'spectrum', 'utils']
+    __all__ = ['config', 'constants', 'covariance', 'emulator', 'grid_tools', 'model', 'samplers', 'spectrum',
+               'transforms', 'utils']
 

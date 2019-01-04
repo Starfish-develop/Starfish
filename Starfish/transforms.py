@@ -3,7 +3,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
 
 import Starfish.constants as C
-from Starfish.grid_tools import Instrument
+from Starfish.grid_tools.instruments import Instrument
 from Starfish.utils import calculate_dv
 
 
@@ -89,6 +89,11 @@ class FTransform:
         raise NotImplementedError('Must be implemented by subclasses of Transform')
 
 class NullTransform(Transform):
+    """
+    This special class does nothing to the input data. Its primary use is for
+    throwing into transformation chains that expect a transform based on
+    some input, when that input isn't always defined.
+    """
     def transform(self, wave, flux):
         return wave, flux
 
@@ -130,10 +135,10 @@ def truncate(wave, flux, wl_range, buffer):
 class InstrumentalBroaden(FTransform):
     """
     This class will provide the kernel transformation for instrumental broadening
-     in the Fourier domain.
+    in the Fourier domain.
 
     :param inst: The instrumental velocity FWHM in km/s.
-    :type inst: float or :class:`Starfish.grid_tools.Instrument`
+    :type inst: float or :class:`Instrument`
 
     :raises ValueError: If the instrumental FWHM is less than 0
     """
@@ -202,7 +207,8 @@ class DopplerShift(Transform):
     This class will doppler shift given data by the equation
 
     .. math::
-        \lambda = \lambda_0 \sqrt{\frac{c + v_z}{c - v_z}}
+
+        \\lambda = \\lambda_0 \\sqrt{ \\frac{c + v_z}{c - v_z} }
 
     where :math:`c` and :math:`v_z` are given in similar units- in our case we
     choose :math:`km/s`.
