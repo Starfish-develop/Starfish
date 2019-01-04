@@ -88,6 +88,9 @@ class FTransform:
         """
         raise NotImplementedError('Must be implemented by subclasses of Transform')
 
+class NullTransform(Transform):
+    def transform(self, wave, flux):
+        return wave, flux
 
 class Truncate(Transform):
     """

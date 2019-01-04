@@ -1,4 +1,3 @@
-import gc
 import itertools
 import logging
 import multiprocessing as mp
@@ -7,13 +6,11 @@ import os
 import h5py
 import numpy as np
 from astropy.io import fits
-from numpy.fft import rfftfreq
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.special import j1
 from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
+from Starfish.transforms import InstrumentalBroaden, Resample, NullTransform
 from Starfish.utils import calculate_dv, calculate_dv_dict, create_log_lam_grid
 from .utils import chunk_list
 
@@ -133,7 +130,6 @@ class HDF5Creator:
         # of whether or not the library uses it as a parameter.
         self.key_name = key_name
 
-
         if ranges is None:
             self.points = self.GridInterface.points
         else:
@@ -161,7 +157,7 @@ class HDF5Creator:
         # 1. The original synthetic grid: ``self.wl_native``
         # 2. A finely spaced log-lambda grid respecting the ``dv`` of
         #   ``self.wl_native``, onto which we can interpolate the flux values
-        #   in preperation of the FFT: ``self.wl_FFT``
+        #   in preperation of the FFT: ``self.wl_loglam``
         # [ DO FFT ]
         # 3. A log-lambda spaced grid onto which we can downsample the result
         #   of the FFT, spaced with a ``dv`` such that we respect the remaining
@@ -203,31 +199,22 @@ class HDF5Creator:
         if wl_max < wl_min:
             raise ValueError('Minimum wavelength must be less than maximum wavelength')
 
-        # Calculate wl_FFT
+        # Calculate wl_loglam
         # use the dv that preserves the native quality of the raw PHOENIX grid
         wl_dict = create_log_lam_grid(self.dv_native, wl_min, wl_max)
-        self.wl_FFT = wl_dict["wl"]
-        self.dv_FFT = calculate_dv_dict(wl_dict)
+        wl_loglam = wl_dict["wl"]
+        dv_loglam = calculate_dv_dict(wl_dict)
 
-        self.log.info("FFT grid stretches from {} to {}".format(self.wl_FFT[0], self.wl_FFT[-1]))
-        self.log.info("wl_FFT dv is {} km/s".format(self.dv_FFT))
-
-        # The Fourier coordinate
-        self.ss = rfftfreq(len(self.wl_FFT), d=self.dv_FFT)
+        self.log.info("FFT grid stretches from {} to {}".format(wl_loglam[0], wl_loglam[-1]))
+        self.log.info("wl_loglam dv is {} km/s".format(dv_loglam))
 
         if self.instrument is None:
             mask = (self.wl_native > wl_min) & (self.wl_native < wl_max)
             self.wl_final = self.wl_native[mask]
             self.dv_final = self.dv_native
-            self.taper = np.exp(-2 * (np.pi ** 2) * (self.ss ** 2))
+            inst_broaden = NullTransform()
         else:
-            # The instrumental taper
-            sigma = self.instrument.FWHM / 2.35  # in km/s
-            # Instrumentally broaden the spectrum by multiplying with a Gaussian in Fourier space
-            self.taper = np.exp(-2 * (np.pi ** 2) * (sigma ** 2) * (self.ss ** 2))
-
-            self.ss[0] = 0.01  # junk so we don't get a divide by zero error
-
+            inst_broaden = InstrumentalBroaden(self.instrument)
             # The final wavelength grid, onto which we will interpolate the
             # Fourier filtered wavelengths, is part of the instrument object
             dv_temp = self.instrument.FWHM / self.instrument.oversampling
@@ -235,83 +222,15 @@ class HDF5Creator:
             self.wl_final = wl_dict["wl"]
             self.dv_final = calculate_dv_dict(wl_dict)
 
+        resample_loglam = Resample(wl_loglam)
+        resample_final = Resample(self.wl_final)
+        self.transform = lambda flux: resample_final(*inst_broaden(*resample_loglam(self.wl_native, flux)))
+
         # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
         wl_dset = self.hdf5.create_dataset("wl", data=self.wl_final, compression='gzip',
                                            compression_opts=9)
         wl_dset.attrs["air"] = self.GridInterface.air
         wl_dset.attrs["dv"] = self.dv_final
-
-    def process_flux(self, parameters, header=False):
-        """
-        Take a flux file from the raw grid, process it according to the
-        instrument, and insert it into the HDF5 file.
-
-        :param parameters: the model parameters.
-        :type parameters: numpy.ndarray or list
-        :param header: If True, will return the header alongside the flux. Default is False
-        :type header: bool
-        :raises AssertionError: if the `parameters` vector is not
-            the same length as that of the raw grid.
-
-        :returns: numpy.ndarray if header is False, else a tuple of (flux, header). If the flux could
-            not be loaded, returns None.
-
-        """
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
-        # assert len(parameters) == len(config.grid["parname"]), "Must pass numpy array {}".format(config.grid["parname"])
-
-        # If the parameter length is one more than the grid pars,
-        # assume this is for vsini convolution
-        if len(parameters) == (len(config.grid["parname"]) + 1):
-            vsini = parameters[-1]
-            parameters = parameters[:-1]
-        else:
-            vsini = 0.0
-
-        try:
-            flux, header = self.GridInterface.load_flux(parameters, header=True)
-
-            # Interpolate the native spectrum to a log-lam FFT grid
-            interp = InterpolatedUnivariateSpline(self.wl_native, flux, k=5)
-            fl = interp(self.wl_FFT)
-            del interp
-            gc.collect()
-
-            # Do the FFT
-            FF = np.fft.rfft(fl)
-
-            if vsini > 0.0:
-                # Calculate the stellar broadening kernel
-                ub = 2. * np.pi * vsini * self.ss
-                sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
-                # set zeroth frequency to 1 separately (DC term)
-                sb[0] = 1.
-
-                # institute vsini and instrumental taper
-                FF_tap = FF * sb * self.taper
-
-            else:
-                # apply just instrumental taper
-                FF_tap = FF * self.taper
-
-            # do IFFT
-            fl_tapered = np.fft.irfft(FF_tap)
-
-            # downsample to the final grid
-            interp = InterpolatedUnivariateSpline(self.wl_FFT, fl_tapered, k=5)
-            fl_final = interp(self.wl_final)
-            del interp
-            gc.collect()
-
-            return (fl_final, header)
-
-        except ValueError as e:
-            self.log.debug("No file with parameters {}".format(parameters))
-            if header:
-                return None, None
-            else:
-                return None
 
     def process_grid(self):
         """
@@ -337,17 +256,19 @@ class HDF5Creator:
         pbar = tqdm(all_params)
         for i, param in enumerate(pbar):
             pbar.set_description("Processing {}".format(param))
-            fl, header = self.process_flux(param, header=True)
-            if fl is None:
+            # Load and process the flux
+            try:
+                flux, header = self.GridInterface.load_flux(param, header=True)
+            except ValueError:
                 self.log.warning("Deleting {} from all params, does not exist.".format(param))
                 invalid_params.append(i)
                 continue
 
-            # The PHOENIX spectra are stored as float32, and so we do the same here.
-            flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
-                                                    data=fl, compression='gzip',
-                                                    compression_opts=9)
+            _, fl_final = self.transform(flux)
 
+            flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
+                                                    data=fl_final, compression='gzip',
+                                                    compression_opts=9)
             # Store header keywords as attributes in HDF5 file
             for key, value in header.items():
                 if key != "" and value != "":  # check for empty FITS kws
