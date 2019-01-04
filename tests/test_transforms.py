@@ -4,7 +4,7 @@ import numpy as np
 
 from Starfish.transforms import Transform, Truncate, truncate, InstrumentalBroaden, \
     instrumental_broaden, RotationalBroaden, rotational_broaden, Resample, resample, \
-    NullTransform, DopplerShift, doppler_shift
+    NullTransform, DopplerShift, doppler_shift, CalibrationCorrect, calibration_correct
 from Starfish.utils import calculate_dv, create_log_lam_grid
 
 
@@ -176,3 +176,22 @@ class TestDopplerShift:
         wave2, flux2 = t(*mock_data)
         np.testing.assert_allclose(wave1, wave2)
         np.testing.assert_allclose(flux1, flux2)
+
+class TestCalibrationCorrect:
+
+    @pytest.fixture
+    def mock_coeffs(self):
+        yield np.array([1, 1, 2, 3])
+
+    def test_transforms(self, mock_data, mock_coeffs):
+        t = CalibrationCorrect(mock_coeffs)
+        wave, flux = t(*mock_data)
+        assert np.allclose(wave, mock_data[0])
+        assert not np.allclose(flux, mock_data[1])
+
+    def test_helper_func(self, mock_data, mock_coeffs):
+        t = CalibrationCorrect(mock_coeffs)
+        wave1, flux1 = calibration_correct(*mock_data, mock_coeffs)
+        wave2, flux2 = t(*mock_data)
+        assert np.allclose(wave1, wave2)
+        assert np.allclose(flux1, flux2)
