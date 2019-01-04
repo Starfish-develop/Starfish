@@ -32,12 +32,15 @@ The following transformations are defined by their behavior with the wavelengths
    :parts: 1
 
 .. autoclass:: Truncate
+    :show-inheritance:
 
 
 .. autoclass:: Resample
+    :show-inheritance:
 
 
 .. autoclass:: DopplerShift
+    :show-inheritance:
 
 
 Flux Transformations
@@ -48,8 +51,10 @@ The following transformations are defined by their behavior with the fluxes.
    :parts: 1
 
 .. autoclass:: InstrumentalBroaden
+    :show-inheritance:
 
 .. autoclass:: RotationalBroaden
+    :show-inheritance:
 
 
 Helper Methods
@@ -110,3 +115,4 @@ When creating sequences, you may have a reason to have some "dummy" transform th
 is exactly to purpose of the :class:`NullTransform`
 
 .. autoclass:: NullTransform
+    :show-inheritance:
