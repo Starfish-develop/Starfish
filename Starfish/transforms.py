@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.polynomial.chebyshev import chebval
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
 
@@ -257,4 +258,26 @@ class Resample(Transform):
 def resample(wave, flux, new_wave):
     """Helper function for :class:`Resample`"""
     t = Resample(new_wave)
+    return t(wave, flux)
+
+class CalibrationCorrect(Transform):
+    """
+    Uses Chebyshev polynomials to correct for flux-calibration errors.
+
+    :param c: Chebyshev coefficients.
+    :type c: array_like
+    """
+
+    def __init__(self, c):
+        if not isinstance(c, np.ndarray):
+            c = np.array(c)
+        self.c = c
+
+    def transform(self, wave, flux):
+        xs = np.arange(len(wave))
+        return wave, flux * chebval(xs, self.c)
+
+def calibration_correct(wave, flux, c):
+    """Helper function for :class:`CalibrationCorrect`"""
+    t = CalibrationCorrect(c)
     return t(wave, flux)

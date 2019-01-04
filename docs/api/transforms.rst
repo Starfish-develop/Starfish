@@ -47,13 +47,16 @@ Flux Transformations
 ====================
 The following transformations are defined by their behavior with the fluxes.
 
-.. inheritance-diagram:: Transform FTransform InstrumentalBroaden RotationalBroaden
+.. inheritance-diagram:: Transform FTransform InstrumentalBroaden RotationalBroaden CalibrationCorrect
    :parts: 1
 
 .. autoclass:: InstrumentalBroaden
     :show-inheritance:
 
 .. autoclass:: RotationalBroaden
+    :show-inheritance:
+
+.. autoclass:: CalibrationCorrect
     :show-inheritance:
 
 
@@ -112,7 +115,10 @@ greatly reduces the number of data points. To facilitate such a transformation, 
 The NullTransform
 -----------------
 When creating sequences, you may have a reason to have some "dummy" transform that does not effect the data. That
-is exactly to purpose of the :class:`NullTransform`
+is exactly to purpose of the :class:`NullTransform`.
 
 .. autoclass:: NullTransform
     :show-inheritance:
+
+.. note:: even though :class:`NullTransform` inherits from :class:`Transform`, it will have the same effect when used
+    as a place-holder for an :class:`Ftransform` because it does not touch the data.
