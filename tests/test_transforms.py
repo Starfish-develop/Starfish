@@ -179,6 +179,13 @@ class TestDopplerShift:
         np.testing.assert_allclose(wave1, wave2)
         np.testing.assert_allclose(flux1, flux2)
 
+    def test_regression(self, mock_data):
+        t1 = DopplerShift(1e3)
+        t2 = DopplerShift(-1e3)
+        wave, flux = t2(*t1(*mock_data))
+        assert np.allclose(wave, mock_data[0])
+        assert np.allclose(flux, mock_data[1])
+
 class TestCalibrationCorrect:
 
     @pytest.fixture
@@ -240,3 +247,35 @@ class TestExtinct:
         wave2, flux2 = t(*mock_data)
         assert np.allclose(wave1, wave2)
         assert np.allclose(flux1, flux2)
+
+
+class TestScale:
+
+    @pytest.mark.parametrize('logOmega', [
+        1, 2, 3, -124, -42.2, 0.5
+    ])
+    def test_transform(self, mock_data, logOmega):
+        t = Scale(logOmega)
+        wave, flux = t(*mock_data)
+        assert np.allclose(wave, mock_data[0])
+        assert np.allclose(flux, mock_data[1] * 10** logOmega)
+
+    def test_no_scale(self, mock_data):
+        t = Scale(0)
+        wave, flux = t(*mock_data)
+        assert np.allclose(wave, mock_data[0])
+        assert np.allclose(flux, mock_data[1])
+
+    def test_helper_func(self, mock_data):
+        t = Scale(3.1)
+        wave1, flux1 = scale(*mock_data, 3.1)
+        wave2, flux2 = t(*mock_data)
+        assert np.allclose(wave1, wave2)
+        assert np.allclose(flux1, flux2)
+
+    def test_regression(self, mock_data):
+        t1 = Scale(-2)
+        t2 = Scale(2)
+        wave, flux = t2(*t1(*mock_data))
+        assert np.allclose(wave, mock_data[0])
+        assert np.allclose(flux, mock_data[1])

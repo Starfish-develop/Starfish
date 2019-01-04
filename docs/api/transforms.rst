@@ -47,7 +47,7 @@ Flux Transformations
 ====================
 The following transformations are defined by their behavior with the fluxes.
 
-.. inheritance-diagram:: Transform FTransform InstrumentalBroaden RotationalBroaden CalibrationCorrect
+.. inheritance-diagram:: Transform FTransform InstrumentalBroaden RotationalBroaden CalibrationCorrect Extinct Scale
    :parts: 1
 
 .. autoclass:: InstrumentalBroaden
@@ -59,6 +59,11 @@ The following transformations are defined by their behavior with the fluxes.
 .. autoclass:: CalibrationCorrect
     :show-inheritance:
 
+.. autoclass:: Extinct
+    :show-inheritance:
+
+.. autoclass:: Scale
+    :show-inheritance:
 
 Helper Methods
 ==============
