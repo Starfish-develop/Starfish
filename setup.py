@@ -66,7 +66,7 @@ setup(
     ],
     install_requires=['numpy',
                       'scipy',
-                      'extinction'
+                      'extinction',
                       'cython',
                       'scikit-learn',
                       'emcee',
