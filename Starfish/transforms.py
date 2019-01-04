@@ -207,7 +207,7 @@ class DopplerShift(Transform):
     where :math:`c` and :math:`v_z` are given in similar units- in our case we
     choose :math:`km/s`.
 
-    :param vz: the doppler velocity in km/s.
+    :param vz: the doppler velocity in km/s. Positive implies redshift.
     :type vz: float
     """
 
@@ -215,7 +215,8 @@ class DopplerShift(Transform):
         self.vz = vz
 
     def transform(self, wave, flux):
-        wave *= np.sqrt((C.c_kms + self.vz) / (C.c_kms - self.vz))
+        wave_final = wave * np.sqrt((C.c_kms + self.vz) / (C.c_kms - self.vz))
+        return wave_final, flux
 
 
 def doppler_shift(wave, flux, vz):
