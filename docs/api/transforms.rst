@@ -21,7 +21,7 @@ Transforms are all subclasses of two classes- :class:`Transform` and :class:`FTr
     :special-members: __call__
 
 .. note::
-    Make sure the difference in ``__call__`` and ``transform`` is clear to you, especially for :class:`FTransform`.
+    Make sure you understand the difference in ``__call__`` and ``transform``, especially for :class:`FTransform`.
 
 Wavelength Transformations
 ==========================

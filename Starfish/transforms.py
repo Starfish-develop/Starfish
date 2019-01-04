@@ -45,9 +45,9 @@ class Transform:
 class FTransform:
     """
     This is the base transform class for transforms that operate in Fourier space
-    like convolution and resampling. When called using `__call__` it will take in normal flux and
+    like convolution and resampling. When called using ``__call__`` it will take in normal flux and
     wavelength components and return normal flux and wavelength components. When called using
-    `transform` it will take Fourier wavelength and fluxes in and return Fourier wavelength and fluxes.
+    ``transform`` it will take Fourier wavelength and fluxes in and return Fourier wavelength and fluxes.
     """
 
     def __call__(self, wave, flux):
