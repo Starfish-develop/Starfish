@@ -1,12 +1,9 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 numpy = "*"
 scipy = "*"
 cython = "*"
@@ -15,12 +12,10 @@ astropy = "*"
 h5py = "*"
 corner = "*"
 tqdm = "*"
-pyyaml = "*"
+pyyaml = "~=4.2b1"
 emcee = "*"
 
-
 [dev-packages]
-
 sphinx = "*"
 sphinx-rtd-theme = "*"
 graphviz = "*"
