@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1ca90484af2a7c6f8179ff907700cdbc178821087666af741709d8b270fea7df"
+            "sha256": "f54e5bf0cdff33d95f0082470ff8f8fabc1c20920ae18eb19a7398377903e596"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -205,6 +205,14 @@
             ],
             "index": "pypi",
             "version": "==1.16.0"
+        },
+        "oyaml": {
+            "hashes": [
+                "sha256:1a81fbb1d5c3158bf6410577f11daf2b741a1b4eea2a47064e7ecd1fb2699425",
+                "sha256:a0359138057aba8650f81d4456c553f145773c4a172d27c606429ca45e31f8d9"
+            ],
+            "index": "pypi",
+            "version": "==0.7"
         },
         "pyparsing": {
             "hashes": [
