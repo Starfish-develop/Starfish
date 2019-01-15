@@ -157,6 +157,5 @@ Session.vim
 .netrwhist
 *~
 attic
-plots
 notebooks
-
+plots

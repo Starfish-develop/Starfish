@@ -1,26 +1,22 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 numpy = "*"
 scipy = "*"
 cython = "*"
 scikit-learn = "*"
 astropy = "*"
-"h5py" = "*"
+h5py = "*"
 corner = "*"
 tqdm = "*"
-emcee = "<3"
+pyyaml = "~=4.2b1"
 oyaml = "*"
-
+emcee = "*"
 
 [dev-packages]
-
 sphinx = "*"
 sphinx-rtd-theme = "*"
 graphviz = "*"
