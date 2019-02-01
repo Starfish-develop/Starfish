@@ -1,6 +1,6 @@
 # encoding: utf-8
 # cython: profile=True
-# filename: covariance.pyx
+# filename: _covariance.pyx
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -12,15 +12,15 @@ import math
 # Routines for emulator setup
 
 @cython.boundscheck(False)
-cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, np.ndarray[np.double_t, ndim=1] h2param):
+cdef k(np.ndarray[np.double_t, ndim=1] X, np.ndarray[np.double_t, ndim=1] Z, np.ndarray[np.double_t, ndim=0] variance, np.ndarray[np.double_t, ndim=1] lengthscale):
     '''
     Covariance function for the emulator. Defines the amount of covariance
     between two sets of input parameters.
 
-    :param p0: first set of input parameters
-    :type p0: np.array
-    :param p1: second set of input parameters
-    :type p1: np.array
+    :param X: first set of input parameters
+    :type X: np.array
+    :param Z: second set of input parameters
+    :type Z: np.array
     :param h2param: the set of Gaussian Process hyperparameters that set the
       degree of covariance. [amplitude, l0, l1, l2, ..., l(len(parname) - 1)].
       To save computation, these are already input squared.
@@ -28,19 +28,19 @@ cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, n
 
     :returns: (double) value of covariance
     '''
-    dp = (p1 - p0)**2 # The covariance only depends on the distance squared
-    cdef double a2 = h2param[0]
-    l2 = h2param[1:]
+    dp = (Z - X) ** 2 # The covariance only depends on the distance squared
+    cdef double a2 = variance ** 2
+    l2 = lengthscale ** 2
     return a2 * math.exp(-0.5 * np.sum(dp/l2))
 
 
 @cython.boundscheck(False)
-def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=1] h2param):
+def sigma(np.ndarray[np.double_t, ndim=2] grid_points, double variance, np.ndarray[np.double_t, ndim=1] lengthscale):
     '''
     Compute the Lambda block of covariance for a single eigenspectrum weight.
 
-    :param gparams: parameters at which the synthetic grid provides spectra
-    :type gparams: 2D np.array
+    :param grid_points: parameters at which the synthetic grid provides spectra
+    :type grid_points: 2D np.array
     :param hparam: the Gaussian Process hyperparameters defining amplitude and
       correlation length
     :type hparam: 1D np.array
@@ -48,7 +48,7 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
     :returns: (2D np.array) Lambda block of covariance.
     '''
 
-    cdef int m = len(gparams)
+    cdef int m = len(grid_points)
     cdef int i = 0
     cdef int j = 0
     cdef double cov = 0.0
@@ -57,42 +57,42 @@ def sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=
 
     for i in range(m):
         for j in range(i+1):
-            cov = k(gparams[i], gparams[j], h2param)
+            cov = k(grid_points[i], grid_points[j], variance, lengthscale)
             mat[i,j] = cov
             mat[j,i] = cov
 
     return mat
 
-def Sigma(np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params):
+def Sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=1] variances, np.ndarray[np.double_t, ndim=2], lengthscales):
     '''
     Fill in the large Sigma matrix using blocks of smaller sigma matrices.
 
-    :param gparams: parameters at which the synthetic grid provides spectra
-    :type gparams: 2D numpy array
+    :param grid_points: parameters at which the synthetic grid provides spectra
+    :type grid_points: 2D numpy array
     :param hparams: parameters for all of the different eigenspectra weights.
     :type hparams: 2D numpy array
     '''
     sig_list = []
-    m = len(h2params)
+    m = len(variances)
 
-    for h2param in h2params:
-        sig_list.append(sigma(gparams, h2param))
+    for variance, lengthscale in zip(variances, lengthscales):
+        sig_list.append(sigma(grid_points, variance, lengthscale))
 
     return block_diag(*sig_list)
 
 
-def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):
+def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=2] h2params, int m):
     '''
     Calculate V12 for a single parameter value.
 
     Assumes kernel params coming in squared as h2params
     '''
-    cdef int M = len(gparams)
+    cdef int M = len(grid_points)
 
     mat = np.zeros((m * M, m), dtype=np.float64)
     for block in range(m):
         for row in range(M):
-            mat[block * M + row, block] = k(gparams[row], params, h2params[block])
+            mat[block * M + row, block] = k(grid_points[row], params, h2params[block])
     return mat
 
 def V12m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):

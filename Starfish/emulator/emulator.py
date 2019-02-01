@@ -2,108 +2,197 @@ import logging
 import os
 
 import numpy as np
-from Starfish.covariance import Sigma, V12, V22, V12m, V22m
+from scipy.linalg import cho_factor, cho_solve
+from sklearn.decomposition import NMF
 
-import Starfish.constants as C
-from Starfish import config
-from .pca import PCAGrid, skinny_kron
+from Starfish.grid_tools.utils import determine_chunk_log
+from Starfish.utils import calculate_dv
+
+from ._covariance import Sigma, V12, V22, V12m, V22m
+from .utils import skinny_kron, get_w_hat
+
+log = logging.getLogger(__name__)
 
 
 class Emulator:
-    def __init__(self, pca, eparams):
-        """
-        Provide the emulation products.
+    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variance=None, lengthscales=None):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.grid_points = grid_points
+        self.wavelength = wavelength
+        self.weights = weights
+        self.eigenspectra = eigenspectra
 
-        :param pca: object storing the principal components, the eigenpsectra
-        :type pca: PCAGrid
-        :param eparams: Optimized GP hyperparameters.
-        :type eparams: 1D np.array
-        """
-        self.log = logging.getLogger(self.__name__)
-        self.log.info("Creating emulator based on '{}'".format(pca.filename))
-        self.pca = pca
-        self.lambda_xi = eparams[0]
-        self.h2params = eparams[1:].reshape(self.pca.m, -1) ** 2
+        self.dv = calculate_dv(wavelength)
+        self.ncomps = eigenspectra.shape[0]
+
+        lengthscale_shape = (self.ncomps, grid_points.shape[-1])
+
+        self.lambda_xi = lambda_xi
+        self.variance = variance if variance is not None else np.ones(self.ncomps)
+        self.lengthscales = lengthscales if lengthscales is not None else np.ones(lengthscale_shape)
 
         # Determine the minimum and maximum bounds of the grid
-        self.min_params = np.min(self.pca.gparams, axis=0)
-        self.max_params = np.max(self.pca.gparams, axis=0)
+        self.min_params = grid_points.min(axis=0)
+        self.max_params = grid_points.max(axis=0)
 
-        # self.eigenspectra = self.PCAGrid.eigenspectra
-        self.dv = self.pca.dv
-        self.wl = self.pca.wl
-        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.pca.eigenspectra, self.pca.M))
-        self.v11 = self.iPhiPhi + Sigma(self.pca.gparams, self.h2params)
+        # TODO find better variable names for the following
+        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
+        self.v11_cho = cho_factor(self.iPhiPhi + Sigma(self.grid_points, self.h2params))
+        self.w_hat = w_hat
 
     @classmethod
-    def open(cls, filename=config.PCA["path"]):
+    def open(cls, filename):
         """
         Create an Emulator object from an HDF5 file.
         """
-
-        # Create the PCAGrid from this filename
         filename = os.path.expandvars(filename)
-        pca_grid = PCAGrid.open(filename)
-        return cls(pca_grid, pca_grid.eparams)
+        pass
 
-    def get_matrix(self, params):
+    def save(self, filename):
+        filename = os.path.expandvars(filename)
+        pass
+
+    @classmethod
+    def from_grid(cls, grid, ncomps=6):
+        """
+        Create an Emulator using NMF decomposition from a GridInterface.
+
+        Parameters
+        ----------
+        grid : :class:`GridInterface`
+            The grid interface to decompose
+        ncomps : int, optional
+            The number of eigenspectra to use for NMF. The larger this number, the less reconstruction error.
+            Default is 6.
+
+        See Also
+        --------
+        sklearn.decomposition.NMF
+        """
+        fluxes = np.array(list(grid.fluxes))
+        nmf = NMF(n_components=ncomps)
+        weights = nmf.fit_transform(fluxes)
+        eigenspectra = nmf.components_
+        # This is basically the mean square error of the reconstruction
+        log.info('NMF completed with reconstruction error {}'.format(nmf.reconstruction_err_))
+        w_hat = get_w_hat(eigenspectra, grid.fluxes, len(grid.grid_points))
+        return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
+
+    def reconstruct(self, weights):
+        """
+        Reconstruct spectra given weights.
+
+        Parameters
+        ----------
+        weights : array_like
+            The weights for reconstruction.
+
+        Returns
+        -------
+        numpy.ndarray
+            If weights.ndim == 1, will return a single spectrum, otherwise will return len(weights) spectra
+        """
+        if not isinstance(weights, np.ndarray):
+            weights = np.array(weights)
+        return weights @ self.eigenspectra
+
+    def __call__(self, params):
         """
         Gets the mu and cov matrix for a given set of params
 
-        :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
-        :type: iterable
-        :return: ``tuple`` of mu, cov
+        Parameters
+        ----------
+        params : array_like
+            The parameters to sample at. Should be consistent with the shapes of the original grid points.
+
+        Returns
+        -------
+        mu : numpy.ndarray (len(params),)
+        cov : numpy.ndarray (len(params), len(params))
+
+        Raises
+        ------
+        ValueError
+            If querying the emulator outside of its trained grid points
         """
         params = np.array(params)
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
-            raise C.ModelError("Querying emulator outside of original PCA parameter range.")
+            raise ValueError('Querying emulator outside of original parameter range.')
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = V12(params, self.pca.gparams, self.h2params, self.pca.m)
-        v22 = V22(params, self.h2params, self.pca.m)
+        v12 = V12(params, self.grid_points, self.h2params, self.ncomps)
+        v22 = V22(params, self.h2params, self.ncomps)
 
         # Recalculate the covariance
-        mu = v12.T.dot(np.linalg.solve(self.v11, self.pca.w_hat)).squeeze()
-        sig = v22 - v12.T.dot(np.linalg.solve(self.v11, v12))
-        return mu, sig
 
-    def load_flux(self, params, return_cov=False):
+        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat).squeeze()
+        cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
+        return mu, cov
+
+    def load_flux(self, params, full_cov=False):
         """
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
         by sampling from the weight distributions.
 
         :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
         :type: iterable
-        :param return_cov: If true, will return the covariance matrix for the weights
-        :type return_cov: bool
-        :return: NDarray if return_cov is False, otherwise tuple of (NDarray, NDarray)
+        :param full_cov: If true, will return the full covariance matrix for the weights
+        :type full_cov: bool
+        :return: tuple of (mu, cov) or (mu, var)
 
         .. warning::
             When returning the emulator covariance matrix, this is a costly operation and will return a
             datastructure with (N_pix x N_pix) data points. For now, don't do it.
         """
         params = np.array(params)
-        mu, sig = self.get_matrix(params)
-        weights = self.draw_weights(mu, sig)
-        if return_cov:
-            X = self.pca.eigenspectra.T
-            C = np.linalg.multi_dot([X, sig, X.T])
-            return self.reconstruct(weights), C
-        else:
-            return self.reconstruct(weights)
+        mu, cov = self(params)
+        weights = self.draw_weights(mu, cov)
+        if not full_cov:
+            cov = np.diag(cov)
+        C = self.eigenspectra.T @ cov @ self.eigenspectra
+        return self.reconstruct(weights), C
 
-    def determine_chunk_log(self, wl_data):
+    def determine_chunk_log(self, wavelength, buffer=50):
         """
-        Possibly truncate the wl grid in response to some data. Also truncate eigenspectra, and flux_mean and flux_std.
+        Possibly truncate the wavelength and eigenspectra in response to some new wavelengths
+
+        Parameters
+        ----------
+        wavelength : array_like
+            The new wavelengths to truncate to
+        buffer : float, optional
+            The wavelength buffer, in Angstrom. Default is 50
+
+        See Also
+        --------
+        Starfish.grid_tools.utils.determine_chunk_log
         """
-        self.pca.determine_chunk_log(wl_data)
-        self.wl = self.pca.wl
+        if not isinstance(wavelength, np.ndarray):
+            wavelength = np.array(wavelength)
 
-    def draw_weights(self, mu, sig):
+        # determine the indices
+        wl_min = wavelength.min()
+        wl_max = wavelength.max()
 
-        return np.random.multivariate_normal(mu, sig)
+        wl_min -= buffer
+        wl_max += buffer
+
+        ind = determine_chunk_log(self.wavelength, wl_min, wl_max)
+        trunc_wavelength = self.wavelength[ind]
+
+        assert (trunc_wavelength.min() <= wl_min) and (trunc_wavelength.max() >= wl_max), \
+            "Emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
+            "full wl range ({:.2f}, {:.2f}).".format(trunc_wavelength.min(),
+                                                     trunc_wavelength.max(),
+                                                     wl_min, wl_max)
+
+        self.wavelength = trunc_wavelength
+        self.eigenspectra = self.eigenspectra[:, ind]
+
+    def draw_weights(self, mu, cov):
+        return np.random.multivariate_normal(mu, cov)
 
     def draw_many_weights(self, params):
         """
@@ -111,23 +200,15 @@ class Emulator:
         :type params: 2D np.array
         """
         # Local variables, different from instance attributes
-        v12 = V12m(params, self.pca.gparams, self.h2params, self.pca.m)
-        v22 = V22m(params, self.h2params, self.pca.m)
+        v12 = V12m(params, self.grid_points, self.h2params, self.ncomps)
+        v22 = V22m(params, self.h2params, self.ncomps)
 
-        mu = v12.T.dot(np.linalg.solve(self.v11, self.pca.w_hat))
-        sig = v22 - v12.T.dot(np.linalg.solve(self.v11, v12))
+        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
+        sig = v22 - v12.T @ cho_solve(self.v11_cho, v12)
 
         weights = np.random.multivariate_normal(mu, sig)
 
         # Reshape these weights into a 2D matrix
-        weights.shape = (len(params), self.pca.m)
+        weights.shape = (len(params), self.ncomps)
 
         return weights
-
-    def reconstruct(self, weights):
-        """
-        Reconstructing a spectrum using a random draw of weights. In this case,
-        we are making the assumption that we are always drawing a weight at a
-        single stellar value.
-        """
-        return self.pca.reconstruct(weights)

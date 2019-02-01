@@ -1,340 +1,585 @@
-import itertools
 import multiprocessing as mp
 import os
+from functools import partial
+import logging
 
-import corner
-import matplotlib.pyplot as plt
+import emcee
+import h5py
 import numpy as np
+import scipy.stats as stats
+from Starfish.covariance import Sigma
+from scipy.optimize import minimize
+from sklearn.decomposition import NMF
 
 from Starfish import config
-from Starfish.grid_tools import HDF5Interface
-from .emulator import Emulator
-from .pca import PCAGrid, _prior
+from Starfish.grid_tools import HDF5Interface, determine_chunk_log
+
+log = logging.getLogger(__name__)
 
 
-def plot_reconstructed(pca_filename=config.PCA["path"], save=True, parallel=True):
+
+def Phi(eigenspectra, M):
     """
-    Plot the reconstructed spectra and residual at each grid point.
+    Warning: for any spectra of real-world dimensions, this routine will
+    likely over flow memory.
 
-    :param parallel: If True, will pool the creation of the plots. (Default is True)
-    :type parallel: bool
-
-    Example of a reconstructed spectrum at [7200, 5.5, 0.5]
-
-    .. figure:: assets/PCA_7200.00_5.50_0.50.png
-        :align: center
-        :width: 80%
+    :param eigenspectra:
+    :type eigenspectra: 2D array
+    :param M: number of spectra in the synthetic library
+    :type M: int
+    Calculate the matrix Phi using the kronecker products.
     """
-    grid = HDF5Interface()
-    pca_grid = PCAGrid.open(pca_filename)
 
-    recon_fluxes = pca_grid.reconstruct_all()
-
-    # we need to apply the same normalization to the synthetic fluxes that we
-    # used for the reconstruction
-    fluxes = np.empty((pca_grid.M, pca_grid.npix))
-    for i, spec in enumerate(grid.fluxes):
-        fluxes[i, :] = spec
-
-    # Normalize all of the fluxes to an average value of 1
-    # In order to remove uninteresting correlations
-    fluxes = fluxes / np.average(fluxes, axis=1)[np.newaxis].T
-
-    data = zip(grid.grid_points, fluxes, recon_fluxes)
-
-    plotdir = os.path.expandvars(config["plotdir"])
-
-    # Define the plotting function
-    def plot(data):
-        par, real, recon = data
-        fig, ax = plt.subplots(nrows=2, figsize=(8, 8))
-        ax[0].plot(pca_grid.wl, real)
-        ax[0].plot(pca_grid.wl, recon)
-        ax[0].set_ylabel(r"$f_\lambda$")
-
-        ax[1].plot(pca_grid.wl, real - recon)
-        ax[1].set_xlabel(r"$\lambda$ [AA]")
-        ax[1].set_ylabel(r"$f_\lambda$")
-
-        fmt = "=".join(["{:.2f}" for _ in range(len(config.grid["parname"]))])
-        name = fmt.format(*[p for p in par])
-        ax[0].set_title(name)
-        plt.tight_layout()
-        filename = os.path.join(plotdir, "PCA_{}.png".format(name))
-        fig.savefig(filename)
-        plt.close()
-
-    if parallel:
-        with mp.Pool() as p:
-            p.map(plot, data)
-    else:
-        list(map(plot, data))
+    return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
 
 
-def plot_eigenspectra(pca_filename=config.PCA["path"], show=False, save=True):
+def get_w_hat(eigenspectra, fluxes, M):
     """
-    Plot the eigenspectra for a PCA Grid
-
-    :param show: If True, will show the plot. (Default is False)
-    :type show: bool
-    :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
-    :type save: bool
-
-    Example of a deconstructed set of eigenspectra
-
-    .. figure:: assets/eigenspectra.png
-        :align: center
+    Since we will overflow memory if we actually calculate Phi, we have to
+    determine w_hat in a memory-efficient manner.
 
     """
-    if not show and not save:
-        raise ValueError("If you don't save OR show the plots nothing will happen.")
-    pca_grid = PCAGrid.open(pca_filename)
+    m = len(eigenspectra)
+    out = np.empty((M * m,))
+    for i in range(m):
+        for j in range(M):
+            out[i * M + j] = eigenspectra[i].T @ fluxes[j]
 
-    row_height = 3  # in
-    margin = 0.5  # in
+    PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
 
-    fig_height = pca_grid.m * (row_height + margin) + margin
-    fig_width = 14  # in
-
-    fig = plt.figure(figsize=(fig_width, fig_height))
-
-    for i in range(pca_grid.m):
-        ax = plt.subplot2grid((pca_grid.m, 4), (i, 0), colspan=3)
-        ax.plot(pca_grid.wl, pca_grid.eigenspectra[i])
-        ax.set_xlabel(r"$\lambda$ [AA]")
-        ax.set_ylabel(r"$\xi_{}$".format(i))
-
-        ax = plt.subplot2grid((pca_grid.m, 4), (i, 3))
-        ax.hist(pca_grid.w[i], histtype="step", normed=True)
-        ax.set_xlabel(r"$w_{}$".format(i))
-        ax.set_ylabel("count")
-
-    plt.tight_layout()
-    fig.subplots_adjust(wspace=0.3, left=0.1, right=0.98, bottom=0.1, top=0.98)
-    plotdir = os.path.expandvars(config["plotdir"])
-    if save:
-        fig.savefig(os.path.join(plotdir, "eigenspectra.png"))
-    if show:
-        plt.show()
-    else:
-        plt.close("all")
+    return PhiPhi @ out
 
 
-def plot_priors(show=False, save=True):
+def skinny_kron(eigenspectra, M):
     """
-    Plot the gamma priors for the PCA optimization problem.
+    Compute Phi.T.dot(Phi) in a memory efficient manner.
 
-    :param show: If True, will show the plot. (Default is False)
-    :type show: bool
-    :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
-    :type save: bool
-
-    Example prior plot
-
-    .. figure:: assets/prior.png
-        :align: center
-
-    .. seealso:: :func:`PCAGrid.optimize`
+    eigenspectra is a list of 1D numpy arrays.
     """
-    if not show and not save:
-        raise ValueError("If you don't save OR show the plots nothing will happen.")
-    # Read the priors on each of the parameters from config.yaml
-    priors = config.PCA["priors"]
-    plotdir = os.path.expandvars(config["plotdir"])
-    fig, axes = plt.subplots(1, len(config.grid["parname"]), sharey=True, figsize=(4 * len(config.grid["parname"]), 4))
-    axes[0].set_ylabel("Probability")
-    for i, par in enumerate(config.grid["parname"]):
+    m = len(eigenspectra)
+    out = np.zeros((m * M, m * M))
+
+    # Compute all of the dot products pairwise, beforehand
+    dots = np.empty((m, m))
+    for i in range(m):
+        for j in range(m):
+            dots[i, j] = eigenspectra[i].T.dot(eigenspectra[j])
+
+    for i in range(M * m):
+        for jj in range(m):
+            ii = i // M
+            j = jj * M + (i % M)
+            out[i, j] = dots[ii, jj]
+    return out
+
+
+def _lnprior(x, s, r):
+    return stats.gamma.logpdf(x, s, scale=1 / r)
+
+
+def _prior(x, s, r):
+    return np.exp(_lnprior(x, s, r))
+
+
+def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
+    """
+    Calculate the lnprob using Habib's posterior formula for the emulator.
+    """
+    # We don't allow negative parameters.
+    if np.any(p < 0.):
+        return -np.inf
+
+    lambda_xi = p[0]
+    # Fold hparams into the new shape
+    hparams = p[1:].reshape((m, -1))
+
+    # Calculate the prior for parname variables
+    # We have two separate sums here, since hparams is a 2D array
+    # hparams[:, 0] are the amplitudes, so we index i+1 here
+    lnpriors = 0.0
+    for i in range(len(config.grid["parname"])):
         s, r = priors[i]
-        mu = s / r
-        x = np.linspace(0.01, 2 * mu)
-        prob = _prior(x, s, r)
-        axes[i].plot(x, prob, label='s={:.2f}, r={:.2f}'.format(s, r))
-        axes[i].axvline(mu, ls='--', c='k', label='$\mu$={:.1f}'.format(mu))
-        axes[i].set_xlabel(par)
-        axes[i].legend()
+        lnpriors += np.sum(_lnprior(hparams[:, i + 1], s, r))
 
-    plt.tight_layout()
-    plt.subplots_adjust(wspace=0.05)
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(os.path.join(plotdir, "prior.png"))
+    h2params = hparams ** 2
+    Sig_w = Sigma(gparams, h2params)
+    C = (1. / lambda_xi) * PhiPhi + Sig_w
+    sign, pref = np.linalg.slogdet(C)
+    central = w_hat.T.dot(np.linalg.solve(C, w_hat))
+    lnp = -0.5 * (pref + central + M * m * np.log(2. * np.pi)) + lnpriors
+
+    if verbose:
+        print("lam_xi = {}".format(p[0]))
+        print("Hyper Parameters:")
+        [print("phi_{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
+        print("logl = {}".format(lnp), end='\n\n')
+
+    return lnp
 
 
-def plot_corner(pca_filename=config.PCA["path"], show=False, save=True):
+def _neg_ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
+    if np.any(p < 0):
+        return 1e99
+
+    return -1 * _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose)
+
+
+class PCAGrid:
     """
-    Plot the corner plots for the ``emcee`` PCA hyper parameters
-
-    :param show: If True, will show the plot. (Default is False)
-    :type show: bool
-    :param save: If True, will save the plot into the ``config["plotdir"]`` from ``config.yaml``. (Default is True)
-    :type save: bool
-
-    Example corner plot
-
-    .. figure:: assets/triangle_0.png
-        :width: 90%
-        :align: center
+    Create and query eigenspectra.
     """
-    if not show and not save:
-        raise ValueError("If you don't save OR show the plots nothing will happen.")
-    # Load in file
-    pca_grid = PCAGrid.open(pca_filename)
-    flatchain = pca_grid.emcee_chain
 
-    # figure out how many separate triangle plots we need to make
-    npar = len(config.grid["parname"]) + 1
-    labels = ["amp"] + config.grid["parname"]
+    def __init__(self, wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, filename):
+        """
 
-    # Make a histogram of lambda xi
-    plt.hist(flatchain[:, 0], histtype="step", normed=True)
-    plt.title(r"$\lambda_\xi$")
-    plt.xlabel(r"$\lambda_\xi$")
-    plt.ylabel("prob")
-    plt.tight_layout()
-    plotdir = os.path.expandvars(config["plotdir"])
-    if save:
-        plt.savefig(os.path.join(plotdir, "triangle_lambda_xi.png"))
+        :param wl: wavelength array
+        :type wl: 1D np.array
+        :param dv: delta velocity
+        :type dv: float
+        :param flux_mean: mean flux spectrum
+        :type flux_mean: 1D np.array
+        :param flux_std: standard deviation flux spectrum
+        :type flux_std: 1D np.array
+        :param eigenspectra: the principal component eigenspectra
+        :type eigenspectra: 2D np.array
+        :param w: weights to reproduce any spectrum in the original grid
+        :type w: 2D np.array (m, M)
+        :param w_hat: maximum likelihood estimator of the grid weights
+        :type w_hat: 2D np.array (m, M)
+        :param gparams: The stellar parameters of the synthetic library
+        :type gparams: 2D array of parameters (nspec, nparam)
+        :param filename: The filename associated with this PCA Grid
+        :type filename: str
 
-    # Make a triangle plot for each eigenspectrum independently
-    for i in range(pca_grid.m):
-        start = 1 + i * npar
-        end = 1 + (i + 1) * npar
-        figure = corner.corner(flatchain[:, start:end], quantiles=[0.16, 0.5, 0.84],
-                               plot_contours=True, plot_datapoints=False, show_titles=True, labels=labels)
-        plt.tight_layout()
-        if save:
-            figure.savefig(os.path.join(plotdir, "triangle_{}.png".format(i)))
+        """
+        self.wl = wl
+        self.dv = dv
+        self.flux_mean = flux_mean
+        self.flux_std = flux_std
+        self.eigenspectra = eigenspectra
+        self.m = len(self.eigenspectra)
+        self.w = w
+        self.w_hat = w_hat
+        self.gparams = gparams
+        self.filename = filename
 
-    if show:
-        plt.show()
-    else:
-        plt.close("all")
+        self.npix = len(self.wl)
+        self.M = self.w.shape[1]  # The number of spectra in the synthetic grid
+        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.M))
+        self.priors = config.PCA["priors"]
 
+    @classmethod
+    def create(cls, interface, ncomp=None):
+        """
+        Create a PCA grid object from a synthetic spectral library, with
+        configuration options specified in a dictionary.
 
-def plot_emulator(pca_filename=config.PCA["path"], parallel=True):
-    """
-    Plot the optimized fits for the weights of each eigenspectrum for each parameter.
+        :param interface: HDF5Interface containing the instrument-processed spectra.
+        :type interface: HDF5Interface
+        :param ncomp: number of eigenspectra to keep. Default is to keep all.
+        :type ncomp: int
 
-    :param parallel: If True, will pool the creation of the plots. (Default is True)
-    :type parallel: bool
+        """
 
-    Example Plot of the weights for the second eigenspectra for temperature when logg=4.0 and [Fe/H]=-0.5
+        wl = interface.wl
+        dv = interface.dv
 
-    .. figure:: assets/w2temp4.0-0.5.png
-        :width: 60%
-        :align: center
-    """
-    pca_grid = PCAGrid.open(pca_filename)
+        npix = len(wl)
 
-    # Print out the emulator parameters in an easily-readable format
-    eparams = pca_grid.eparams
-    lambda_xi = eparams[0]
-    hparams = eparams[1:].reshape((pca_grid.m, -1))
+        # number of spectra in the synthetic library
+        M = len(interface.grid_points)
 
-    print("Emulator parameters are:")
-    print("lambda_xi", lambda_xi)
-    for row in hparams:
-        print(row)
+        fluxes = np.empty((M, npix))
 
-    emulator = Emulator(pca_grid, eparams)
+        for i, spec in enumerate(interface.fluxes):
+            fluxes[i] = spec
 
-    # We will want to produce interpolated plots spanning each parameter dimension,
-    # for each eigenspectrum.
+        # Normalize all of the fluxes to an average value of 1
+        # In order to remove uninteresting correlations
+        fluxes = fluxes / np.average(fluxes, axis=1)[np.newaxis].T
 
-    # Create a list of parameter blocks.
-    # Go through each parameter, and create a list of all parameter combination of
-    # the other two parameters.
-    unique_points = [np.unique(pca_grid.gparams[:, i]) for i in range(len(config.grid["parname"]))]
-    blocks = []
-    for ipar, pname in enumerate(config.grid["parname"]):
-        upars = unique_points.copy()
-        dim = upars.pop(ipar)
-        ndim = len(dim)
+        # Subtract the mean from all of the fluxes.
+        flux_mean = np.average(fluxes, axis=0)
+        fluxes -= flux_mean
 
-        # use itertools.product to create permutations of all possible values
-        par_combos = itertools.product(*upars)
+        # "Whiten" each spectrum such that the variance for each wavelength is 1
+        flux_std = np.std(fluxes, axis=0)
+        fluxes /= flux_std
 
-        # Now, we want to create a list of parameters in the original order.
-        for static_pars in par_combos:
-            par_list = []
-            for par in static_pars:
-                par_list.append(par * np.ones((ndim,)))
+        # Use the scikit-learn PCA module
+        # Automatically select enough components to explain > threshold (say
+        # 0.99, or 99%) of the variance.
+        pca = PCA(n_components=config.PCA["threshold"], svd_solver='full')
+        pca.fit(fluxes)
+        components = pca.components_
+        mean = pca.mean_
+        variance_ratio = np.sum(pca.explained_variance_ratio_)
 
-            # Insert the changing dim in the right location
-            par_list.insert(ipar, dim)
+        if ncomp is None:
+            ncomp = len(components)
 
-            blocks.append(np.vstack(par_list).T)
+        print("found {} components explaining {:.2f}% of the"
+              " variance (threshold was {:.2f}%)".format(ncomp, 100 * variance_ratio, 100 * config.PCA[
+            "threshold"]))
 
-    # Now, this function takes a parameter block and plots all of the eigenspectra.
-    npoints = 40  # How many points to include across the active dimension
-    ndraw = 8  # How many draws from the emulator to use
+        print("Shape of PCA components {}".format(components.shape))
 
-    def plot_block(block):
-        # block specifies the parameter grid points
-        # fblock defines a parameter grid that is finer spaced than the gridpoints
+        if not np.allclose(mean, np.zeros_like(mean)):
+            import sys
+            sys.exit("PCA mean is more than just numerical noise. Something's wrong!")
+            # Otherwise, the PCA mean is just numerical noise that we can ignore.
 
-        # Query for the weights at the grid points.
-        ww = np.empty((len(block), pca_grid.m))
-        for i, param in enumerate(block):
-            weights = pca_grid.get_weights(param)
-            ww[i, :] = weights
+        print("Keeping only the first {} components".format(ncomp))
+        eigenspectra = components[:ncomp]
 
-        # Determine the active dimension by finding the one that has unique > 1
-        uni = np.array([len(np.unique(block[:, i])) for i in range(len(config.grid["parname"]))])
-        active_dim = np.where(uni > 1)[0][0]
+        gparams = interface.grid_points
 
-        ublock = block.copy()
-        ablock = ublock[:, active_dim]
-        ublock = np.delete(ublock, active_dim, axis=1)
-        nactive = len(ablock)
+        # Create w, the weights corresponding to the synthetic grid
+        w = np.empty((ncomp, M))
+        for i, pcomp in enumerate(eigenspectra):
+            for j, spec in enumerate(fluxes):
+                w[i, j] = np.sum(pcomp * spec)
 
-        fblock = []
-        for par in ublock[0, :]:
-            # Create a space of the parameter the same length as the active
-            fblock.append(par * np.ones((npoints,)))
+        # Calculate w_hat, Eqn 20 Habib
+        w_hat = w_hat(eigenspectra, fluxes, M)
 
-        # find min and max of active dim. Create a linspace of `npoints` spanning from
-        # min to max
-        active = np.linspace(ablock[0], ablock[-1], npoints)
+        return cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, config.PCA["path"])
 
-        fblock.insert(active_dim, active)
-        fgrid = np.vstack(fblock).T
+    def write(self, filename=None):
+        """
+        Write the PCA decomposition to an HDF5 file.
 
-        # Draw multiple times at the location.
-        weight_draws = []
-        for i in range(ndraw):
-            weight_draws.append(emulator.draw_many_weights(fgrid))
+        :param filename: name of the HDF5 to create. Defaults to the ``PCA["path"]`` in ``config.yaml``.
+        :type filename: str
 
-        # Now make all of the plots
-        for eig_i in range(pca_grid.m):
-            fig, ax = plt.subplots(nrows=1, figsize=(6, 6))
+        """
+        if filename is None:
+            hdf5 = h5py.File(self.filename, "w")
+        else:
+            self.filename = filename
+            hdf5 = h5py.File(filename, "w")
 
-            x0 = block[:, active_dim]  # x-axis
-            # Weight values at grid points
-            y0 = ww[:, eig_i]
-            ax.plot(x0, y0, "bo")
+        hdf5.attrs["dv"] = self.dv
 
-            x1 = fgrid[:, active_dim]
-            for i in range(ndraw):
-                y1 = weight_draws[i][:, eig_i]
-                ax.plot(x1, y1)
+        # Store the eigenspectra plus the wavelength, mean, and std arrays.
+        pdset = hdf5.create_dataset("eigenspectra", (self.m + 3, self.npix),
+                                    compression='gzip', dtype="f8", compression_opts=9)
+        pdset[0, :] = self.wl
+        pdset[1, :] = self.flux_mean
+        pdset[2, :] = self.flux_std
+        pdset[3:, :] = self.eigenspectra
 
-            ax.set_ylabel(r"$w_{:}$".format(eig_i))
-            ax.set_xlabel(config.grid["parname"][active_dim])
-            plt.tight_layout()
+        wdset = hdf5.create_dataset("w", (self.m, self.M), compression='gzip',
+                                    dtype="f8", compression_opts=9)
+        wdset[:] = self.w
 
-            fstring = "w{:}".format(eig_i) + config.grid["parname"][active_dim] + "".join(
-                ["{:.1f}".format(ub) for ub in ublock[0, :]])
-            plotdir = os.path.expandvars(config["plotdir"])
-            fig.savefig(os.path.join(plotdir, fstring + ".png"))
-            plt.close()
+        w_hatdset = hdf5.create_dataset("w_hat", (self.m * self.M,), compression='gzip', dtype="f8",
+                                        compression_opts=9)
+        w_hatdset[:] = self.w_hat
 
-    # Create a pool of workers and map the plotting to these.
-    if parallel:
-        with mp.Pool(mp.cpu_count() - 1) as p:
-            p.map(plot_block, blocks)
-    else:
-        list(map(plot_block, blocks))
+        gdset = hdf5.create_dataset("gparams", (self.M, len(config.grid["parname"])), compression='gzip', dtype="f8",
+                                    compression_opts=9)
+        gdset[:] = self.gparams
 
-    plt.close('all')
+        hdf5.close()
+
+    @classmethod
+    def open(cls, filename=config.PCA["path"]):
+        """
+        Initialize an object using the PCA already stored to an HDF5 file.
+
+        :param filename: filename of an HDF5 object containing the PCA components. Defaults to the
+            ``PCA["path"]`` in ``config.yaml``.
+        :type filename: str
+        """
+
+        filename = os.path.expandvars(filename)
+        hdf5 = h5py.File(filename, "r")
+        pdset = hdf5["eigenspectra"]
+
+        dv = hdf5.attrs["dv"]
+
+        wl = pdset[0, :]
+
+        flux_mean = pdset[1, :]
+        flux_std = pdset[2, :]
+        eigenspectra = pdset[3:, :]
+
+        wdset = hdf5["w"]
+        w = wdset[:]
+
+        w_hatdset = hdf5["w_hat"]
+        w_hat = w_hatdset[:]
+
+        gdset = hdf5["gparams"]
+        gparams = gdset[:]
+
+        pcagrid = cls(wl, dv, flux_mean, flux_std, eigenspectra, w, w_hat, gparams, filename)
+        hdf5.close()
+
+        return pcagrid
+
+    def determine_chunk_log(self, wl_data, buffer=config.grid["buffer"]):
+        """
+        Possibly truncate the wl, eigenspectra, and flux_mean and flux_std in
+        response to some data.
+
+        :param wl_data: The spectrum dataset you want to fit.
+        :type wl_data: np.array
+        :param buffer: The length (in Angstrom) of the wavelength buffer at the edges of the spectrum.
+            Defaults to the value specified in ``grid["buffer"]`` in ``config.yaml``.
+        :type buffer: float
+        """
+
+        # determine the indices
+        wl_min, wl_max = np.min(wl_data), np.max(wl_data)
+
+        wl_min -= buffer
+        wl_max += buffer
+
+        ind = determine_chunk_log(self.wl, wl_min, wl_max)
+
+        assert (min(self.wl[ind]) <= wl_min) and (max(self.wl[ind]) >= wl_max), \
+            "PCA/emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
+            "full wl range ({:.2f}, {:.2f}).".format(min(self.wl[ind]),
+                                                     max(self.wl[ind]), wl_min, wl_max)
+
+        self.wl = self.wl[ind]
+        self.npix = len(self.wl)
+        self.eigenspectra = self.eigenspectra[:, ind]
+        self.flux_mean = self.flux_mean[ind]
+        self.flux_std = self.flux_std[ind]
+
+    def get_index(self, params):
+        """
+        Given a list of stellar parameters (corresponding to a grid point),
+        deliver the index that corresponds to the
+        entry in the fluxes, list_grid_points, and weights.
+
+        :param params: The parameters at a grid point. It should have the same length as the parameters in ``grid[
+            "parnames"]`` in ``config.yaml``
+        :type params: iterable
+        """
+        params = np.array(params)
+        return np.sum(np.abs(self.gparams - params), axis=1).argmin()
+
+    def get_weights(self, params):
+        """
+        Given a list of parameters (corresponding to a grid point),
+        deliver the weights that reconstruct this spectrum out of eigenspectra.
+
+        :param params: The parameters at a grid point. It should have the same length as the parameters in ``grid[
+            "parnames"]`` in ``config.yaml``
+        :type params: iterable
+        """
+
+        params = np.array(params)
+        ii = self.get_index(params)
+        return self.w[:, ii]
+
+    def reconstruct(self, weights):
+        """
+        Reconstruct a spectrum given some weights.
+
+        Also correct for original scaling.
+
+        :param weights: THe weights for reconstructing a spectrum
+        :type weights: NDarray
+        :return: The reconstructed spectrum
+        :rtype: NDarray
+        """
+
+        M = self.eigenspectra.T.dot(weights)
+        return M * self.flux_std + self.flux_mean
+
+    def reconstruct_all(self):
+        """
+        Return a (M, npix) array with all of the spectra reconstructed.
+        """
+        recon_fluxes = np.empty((self.M, self.npix))
+        for i in range(self.M):
+            f = np.empty((self.m, self.npix))
+            for j, (pcomp, weight) in enumerate(zip(self.eigenspectra, self.w[:, i])):
+                f[j, :] = pcomp * weight
+            recon_fluxes[i, :] = np.sum(f, axis=0) * self.flux_std + self.flux_mean
+
+        return recon_fluxes
+
+    @property
+    def eparams(self):
+        with h5py.File(self.filename, "r+") as hdf5:
+            try:
+                return hdf5["eparams"][:]
+            except:
+                raise AttributeError("The grid has not been optimized. Please use `PCAGrid.optimize` before trying to "
+                                     "access eparams.")
+
+    @eparams.setter
+    def eparams(self, params):
+        with h5py.File(self.filename, "r+") as hdf5:
+            if "eparams" in hdf5:
+                hdf5["eparams"][:] = params
+            else:
+                hdf5.create_dataset("eparams", data=params, compression="gzip", compression_opts=9)
+
+    @property
+    def emcee_chain(self):
+        with h5py.File(self.filename, "r+") as hdf5:
+            try:
+                return hdf5["emcee"]["chain"][:]
+            except:
+                raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
+                                     "emcee method before trying to access.")
+
+    @emcee_chain.setter
+    def emcee_chain(self, chain):
+        with h5py.File(self.filename, "r+") as hdf5:
+            if "emcee" in hdf5:
+                emcee_group = hdf5["emcee"]
+            else:
+                emcee_group = hdf5.create_group("emcee")
+
+            if "chain" in emcee_group:
+                del emcee_group["chain"]
+
+            emcee_group.create_dataset("chain", data=chain, compression="gzip", compression_opts=9)
+
+    @property
+    def emcee_walkers(self):
+        with h5py.File(self.filename, "r+") as hdf5:
+            try:
+                return hdf5["emcee"]["walkers"][:]
+            except:
+                raise AttributeError("There are no values stored for emcee. Make sure you have optimized using the "
+                                     "emcee method before trying to access.")
+
+    @emcee_walkers.setter
+    def emcee_walkers(self, pos):
+        with h5py.File(self.filename, "r+") as hdf5:
+            if "emcee" in hdf5:
+                emcee_group = hdf5["emcee"]
+            else:
+                emcee_group = hdf5.create_group("emcee")
+
+            if "walkers" in emcee_group:
+                emcee_group["walkers"][:] = pos
+            else:
+                emcee_group.create_dataset("walkers", data=pos, compression="gzip", compression_opts=9)
+
+    def optimize(self, method='min', **fit_kwargs):
+        """
+        Optimize the emulator and train the Gaussian Processes (GP) that will serve as interpolators.
+        For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator,
+        see the appendix of our paper.
+
+        :param method: The method to use for optimization; one of ['min', 'emcee'].
+        :type method: string
+        :param fit_kwargs: The keyword arguments to pass to the optimization methods.
+        :type fit_kwargs: dict
+
+        Example optimizing using minimization optimizer
+
+        .. code-block:: python
+
+            from Starfish.emulator import PCAGrid
+
+            # Assuming you have already generated the initial PCA file
+            pca = PCAGrid.open()
+            pca.optimize()
+
+        Example using the emcee optimizer
+
+        .. code-block:: python
+
+            from Starfish.emulator import PCAGrid
+
+            # Assuming you have already generated the inital PCA file
+            pca = PCAGrid.open()
+            pca.optimize(method='emcee', nburn=100, nsamples=400)
+
+        .. warning::
+            This optimization may take a very long time to run (multiple hours). We recommend running the code on a
+            server and running it in the background. For each PCAGrid you only have to optimize once, thankfully.
+        """
+        print('Starting optimization...')
+        if method == 'min':
+            self._optimize_min()
+        elif method == 'emcee':
+            self._optimize_emcee(**fit_kwargs)
+        else:
+            raise ValueError("Did not provide valid method, please choose from ['min', 'emceee']")
+
+    def _optimize_min(self):
+        """
+        Optimize the emulator using the downhill simplex algorithm from `numpy.optimize.fmin`
+        """
+        amp = 100.
+        # Use the mean of the gamma distribution to start
+        eigpars = np.array([amp] + [s / r for s, r in self.priors])
+        p0 = np.hstack((np.array([1., ]),  # lambda_xi
+                        np.hstack([eigpars for _ in range(self.m)])))
+
+        f = partial(_neg_ln_posterior, gparams=self.gparams, PhiPhi=self.PhiPhi, w_hat=self.w_hat, M=self.M, m=self.m,
+                    priors=self.priors, verbose=False)
+        result = minimize(f, p0)
+        print(result)
+        self.eparams = result.x
+
+    def _optimize_emcee(self, resume=True, max_iterations=200, max_cpus=24, filename='emcee_progress.hdf5'):
+        """
+        Optimize the emulator using monte carlo sampling from `emcee`
+        """
+        ndim = 1 + (1 + len(config.grid["parname"])) * self.m
+        nwalkers = 4 * ndim  # about the minimum per dimension we can get by with
+
+        # Assemble p0 based off either a guess or the previous state of walkers
+        try:
+            p0 = np.random.normal(self.eparams, size=(nwalkers, ndim))
+        except:
+            p0 = []
+            # p0 is a (nwalkers, ndim) array
+            amp = [10.0, 150]
+
+            p0.append(np.random.uniform(0.01, 1.0, nwalkers))
+            for i in range(self.m):
+                p0 += [np.random.uniform(amp[0], amp[1], nwalkers)]
+                for s, r in self.priors:
+                    # Draw randomly from the gamma priors
+                    p0 += [np.random.gamma(s, 1. / r, nwalkers)]
+
+            p0 = np.array(p0).T
+
+        backend = emcee.backends.HDFBackend(filename)
+        # If we want to start from scratch need to reset backend
+        if not resume:
+            backend.reset(nwalkers, ndim)
+
+        f = partial(_ln_posterior, gparams=self.gparams, PhiPhi=self.PhiPhi, w_hat=self.w_hat, M=self.M, m=self.m,
+                    priors=self.priors, verbose=False)
+
+        if mp.cpu_count() > max_cpus:
+            processes = max_cpus
+        else:
+            processes = mp.cpu_count()
+        with mp.Pool(processes=processes) as pool:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, f, backend=backend, pool=pool)
+
+            # Set up loop for auto-checking the correlation
+            old_tau = np.inf
+
+            # Using thin_by=5 to only calculate autocorr every 5 samples
+            for sample in sampler.sample(p0, iterations=max_iterations, thin_by=5, progress=True):
+                # Get the autocorrelation time. tol=0 avoids getting an error on call
+                tau = sampler.get_autocorr_time(tol=0)
+                # Check if chain is longer than 50 times the autocorr time
+                converged = np.all(tau * 50 < sampler.iteration)
+                # Check if tau has changed by more than 5% since last check
+                converged &= np.all(np.abs(old_tau - tau) / tau < 0.05)
+                if converged:
+                    break
+                old_tau = tau
+
+        samples = sampler.get_chain(flat=True)
+
+        self.eparams = np.median(samples, axis=0)
+        self.emcee_chain = samples

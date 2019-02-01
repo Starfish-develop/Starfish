@@ -10,16 +10,16 @@ try:
 except ImportError:
     from setuptools.command.build_ext import build_ext
 
-    ext_modules = [Extension("Starfish.covariance",
-                             sources=["Starfish/covariance.c"],
+    ext_modules = [Extension("Starfish.emulator.covariance",
+                             sources=["Starfish/emulator/_covariance.c"],
                              extra_compile_args=["-Wno-declaration-after-statement",
                                                  "-Wno-error=declaration-after-statement",
                                                  "-Wno-unused-function",
                                                  "-Wno-unused-variable",
                                                  "-Wno-unused-but-set-variable"]), ]
 else:
-    ext_modules = [Extension("Starfish.covariance",
-                             sources=["Starfish/covariance.pyx"],
+    ext_modules = [Extension("Starfish.emulator.covariance",
+                             sources=["Starfish/emulator/_covariance.pyx"],
                              extra_compile_args=["-Wno-declaration-after-statement",
                                                  "-Wno-error=declaration-after-statement",
                                                  "-Wno-unused-function",
@@ -45,7 +45,6 @@ class CustomBuildExt(build_ext):
         return super().run()
 
 
-
 setup(
     name="astrostarfish",
     version=Starfish.__version__,
@@ -69,7 +68,7 @@ setup(
                       'extinction',
                       'cython',
                       'scikit-learn',
-                      'emcee',
+                      'emcee==3.0rc2',
                       'h5py',
                       'corner',
                       'astropy',
