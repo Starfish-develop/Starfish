@@ -1,6 +1,7 @@
 import logging
 import os
 
+import h5py
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
@@ -16,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class Emulator:
-    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variance=None,
+    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variances=None,
                  lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
@@ -30,7 +31,7 @@ class Emulator:
         lengthscale_shape = (self.ncomps, grid_points.shape[-1])
 
         self.lambda_xi = lambda_xi
-        self.variances = variance if variance is not None else np.ones(self.ncomps)
+        self.variances = variances if variances is not None else np.ones(self.ncomps)
         self.lengthscales = lengthscales if lengthscales is not None else np.ones(lengthscale_shape)
 
         # Determine the minimum and maximum bounds of the grid
@@ -43,17 +44,47 @@ class Emulator:
             self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
         self.w_hat = w_hat
 
+        self._trained = False
+
     @classmethod
     def open(cls, filename):
         """
         Create an Emulator object from an HDF5 file.
         """
         filename = os.path.expandvars(filename)
-        pass
+        with h5py.File(filename) as base:
+            grid_points = base['grid_points'][:]
+            wavelength = base['wavelength'][:]
+            weights = base['weights'][:]
+            eigenspectra = base['eigenspectra'][:]
+            w_hat = base['w_hat'][:]
+            lambda_xi = base['hyper_parameters']['lambda_xi']
+            variances = base['hyper_parameters']['variances']
+            lengthscales = base['hyper_parameters']['lengthscales']
+            trained = base.attrs['trained']
+
+        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales)
+        emulator._trained = trained
+
+        return emulator
 
     def save(self, filename):
         filename = os.path.expandvars(filename)
-        pass
+        with h5py.File(filename) as base:
+            base.create_dataset('grid_points', data=self.grid_points, compression=9)
+            waves = base.create_dataset('wavelength', data=self.wavelength, compression=9)
+            waves.attrs['unit'] = 'Angstrom'
+            base.create_dataset('weights', data=self.weights, compression=9)
+            eigens = base.create_dataset('eigenspectra', data=self.eigenspectra, compression=9)
+            eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
+            base.create_dataset('w_hat', data=self.w_hat, compression=9)
+            base.attrs['trained'] = self._trained
+            hp_group = base.create_group('hyper_parameters')
+            hp_group.create_dataset('lambda_xi', data=self.lambda_xi, compression=9)
+            hp_group.create_dataset('variances', data=self.variances, compression=9)
+            hp_group.create_dataset('lengthscales', data=self.lengthscales, compression=9)
+
+        self.log.info('Saved file at {}'.format(filename))
 
     @classmethod
     def from_grid(cls, grid, ncomps=6):
@@ -234,3 +265,5 @@ class Emulator:
         # Recalculate v11 given new parameters
         self.v11_cho = cho_factor(
             self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
+
+        self._trained = True
