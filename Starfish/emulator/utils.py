@@ -6,32 +6,14 @@ import logging
 import emcee
 import h5py
 import numpy as np
-import scipy.stats as stats
-from Starfish.covariance import Sigma
+from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
-from sklearn.decomposition import NMF
 
 from Starfish import config
 from Starfish.grid_tools import HDF5Interface, determine_chunk_log
+from ._covariance import Sigma
 
 log = logging.getLogger(__name__)
-
-
-
-def Phi(eigenspectra, M):
-    """
-    Warning: for any spectra of real-world dimensions, this routine will
-    likely over flow memory.
-
-    :param eigenspectra:
-    :type eigenspectra: 2D array
-    :param M: number of spectra in the synthetic library
-    :type M: int
-    Calculate the matrix Phi using the kronecker products.
-    """
-
-    return np.hstack([np.kron(np.eye(M), eigenspectrum[np.newaxis].T) for eigenspectrum in eigenspectra])
-
 
 def get_w_hat(eigenspectra, fluxes, M):
     """
@@ -63,7 +45,7 @@ def skinny_kron(eigenspectra, M):
     dots = np.empty((m, m))
     for i in range(m):
         for j in range(m):
-            dots[i, j] = eigenspectra[i].T.dot(eigenspectra[j])
+            dots[i, j] = eigenspectra[i].T @ eigenspectra[j]
 
     for i in range(M * m):
         for jj in range(m):
@@ -73,15 +55,7 @@ def skinny_kron(eigenspectra, M):
     return out
 
 
-def _lnprior(x, s, r):
-    return stats.gamma.logpdf(x, s, scale=1 / r)
-
-
-def _prior(x, s, r):
-    return np.exp(_lnprior(x, s, r))
-
-
-def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
+def _ln_posterior(p, emulator):
     """
     Calculate the lnprob using Habib's posterior formula for the emulator.
     """
@@ -90,38 +64,17 @@ def _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
         return -np.inf
 
     lambda_xi = p[0]
-    # Fold hparams into the new shape
-    hparams = p[1:].reshape((m, -1))
+    hyper_params = p[1:].reshape((-1, emulator.ncomps))
+    variances = hyper_params[0]
+    lengthscales = hyper_params[1:]
 
-    # Calculate the prior for parname variables
-    # We have two separate sums here, since hparams is a 2D array
-    # hparams[:, 0] are the amplitudes, so we index i+1 here
-    lnpriors = 0.0
-    for i in range(len(config.grid["parname"])):
-        s, r = priors[i]
-        lnpriors += np.sum(_lnprior(hparams[:, i + 1], s, r))
+    Sig_w = Sigma(emulator.grid_points, variances, lengthscales)
+    C = (1. / lambda_xi) * emulator.PhiPhi + Sig_w
+    sign, logdet = np.linalg.slogdet(C)
+    factor = cho_factor(C)
+    central = emulator.w_hat.T @ cho_solve(factor, emulator.w_hat)
+    return -0.5 * (logdet + central + emulator.grid_points.size * np.log(2. * np.pi))
 
-    h2params = hparams ** 2
-    Sig_w = Sigma(gparams, h2params)
-    C = (1. / lambda_xi) * PhiPhi + Sig_w
-    sign, pref = np.linalg.slogdet(C)
-    central = w_hat.T.dot(np.linalg.solve(C, w_hat))
-    lnp = -0.5 * (pref + central + M * m * np.log(2. * np.pi)) + lnpriors
-
-    if verbose:
-        print("lam_xi = {}".format(p[0]))
-        print("Hyper Parameters:")
-        [print("phi_{}: {}".format(i, ps)) for i, ps in enumerate(hparams[:, 1:])]
-        print("logl = {}".format(lnp), end='\n\n')
-
-    return lnp
-
-
-def _neg_ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose=False):
-    if np.any(p < 0):
-        return 1e99
-
-    return -1 * _ln_posterior(p, gparams, PhiPhi, w_hat, M, m, priors, verbose)
 
 
 class PCAGrid:

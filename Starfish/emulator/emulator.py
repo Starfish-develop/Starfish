@@ -3,13 +3,14 @@ import os
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
+from scipy.optimize import minimize
 from sklearn.decomposition import NMF
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
 
 from ._covariance import Sigma, V12, V22, V12m, V22m
-from .utils import skinny_kron, get_w_hat
+from .utils import skinny_kron, get_w_hat, _ln_posterior
 
 log = logging.getLogger(__name__)
 
@@ -37,8 +38,9 @@ class Emulator:
         self.max_params = grid_points.max(axis=0)
 
         # TODO find better variable names for the following
-        self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.v11_cho = cho_factor(self.iPhiPhi + Sigma(self.grid_points, self.variances, self.lengthscales))
+        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
+        self.v11_cho = cho_factor(
+            self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
         self.w_hat = w_hat
 
     @classmethod
@@ -131,7 +133,7 @@ class Emulator:
         """
         params = np.array(params)
         mu, cov = self(params)
-        weights = self.draw_weights(mu, cov)
+        weights = np.random.multivariate_normal(mu, cov)
         if not full_cov:
             cov = np.diag(cov)
         C = np.linalg.multi_dot([self.eigenspectra.T, cov, self.eigenspectra])
@@ -174,9 +176,6 @@ class Emulator:
         self.wavelength = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
 
-    def draw_weights(self, mu, cov):
-        return np.random.multivariate_normal(mu, cov)
-
     def draw_many_weights(self, params):
         """
         :param params: multiple parameters to produce weight draws at.
@@ -195,3 +194,43 @@ class Emulator:
         weights.shape = (len(params), self.ncomps)
 
         return weights
+
+    def train(self, lambda_xi=None, variances=None, lengthscales=None):
+        """
+        Trains the emulator's hyperparameters using gradient descent
+
+        Parameters
+        ----------
+        lambda_xi : float, optional
+            Starting guess for lambda_xi. If None defaults to the current value. Default is None.
+        variances : numpy.ndarray, optional
+            Starting guess for variances. If None defaults to the current value. Default is None.
+        lengthscales : numpy.ndarray, optional
+            Starting guess for lengthscales. If None defaults to the current value. Default is None.
+        """
+        if lambda_xi is None:
+            lambda_xi = self.lambda_xi
+        if variances is None:
+            variances = self.variances
+        if lengthscales is None:
+            lengthscales = self.lengthscales
+
+        P0 = np.array([lambda_xi] + list(variances) + list(lengthscales.flatten()))
+
+        nll = lambda P: -_ln_posterior(P, self)
+        soln = minimize(nll, P0)
+
+        # Extract hyper parameters
+        self.lambda_xi = soln.x[0]
+        hyper_params = soln.x[1:].reshape((-1, self.ncomps))
+        self.variances = hyper_params[0]
+        self.lengthscales = hyper_params[1:]
+
+        self.log.info('Finished optimizing emulator hyperparameters')
+        self.log.info('lambda_xi : {}'.format(self.lambda_xi))
+        self.log.info('variances : {}'.format(self.variances))
+        self.log.info('lengthscales : {}'.format(self.lengthscales))
+
+        # Recalculate v11 given new parameters
+        self.v11_cho = cho_factor(
+            self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
