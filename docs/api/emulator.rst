@@ -14,13 +14,11 @@ The first step of configuring the spectral emulator is to choose a subregion of 
 
 The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the ``scipy`` package.
 
-:obj:`PCAGrid` implements the functionality to create the eigenspectra grid from a synthetic library, and then later query eigenspectra from it.
+:class:`PCAGrid` implements the functionality to create the eigenspectra grid from a synthetic library, and then later
+query eigenspectra from it.
 
-.. autoclass:: PCAGrid
-   :members:
-
-
-For example, the following takes a bunch of spectra specified by an :obj:`HDF5Interface` and decomposes them into a PCA basis
+For example, the following takes a bunch of spectra specified by an :class:`HDF5Interface` and decomposes them into a
+PCA basis
 
 .. code-block:: python
 
@@ -40,9 +38,11 @@ Optimizing the emulator
 Once the synthetic library is decomposed into a set of eigenspectra, the next step is to train the Gaussian Processes (GP) that will serve as interpolators. For more explanation about the choice of Gaussian Process covariance functions and the design of the emulator, see the appendix of our paper.
 
 The optimization of the GP hyperparameters can be carried out using either a minimization method or an MCMC sampler.
- We provide functionality based on both `scipy.optimize.minimize` and `emcee`
+ We provide functionality based on both ``scipy.optimize.minimize`` and ``emcee``
 
 To optimize the code, we will use the :func:`PCAGrid.optimize` routine.
+
+Example optimizing using minimization optimizer
 
 .. code-block:: python
 
@@ -51,6 +51,26 @@ To optimize the code, we will use the :func:`PCAGrid.optimize` routine.
     # Assuming you have already generated the initial PCA file
     pca = PCAGrid.open()
     pca.optimize()
+
+Example using the ``emcee`` optimizer
+
+.. code-block:: python
+
+    from Starfish.emulator import PCAGrid
+
+    # Assuming you have already generated the inital PCA file
+    pca = PCAGrid.open()
+    pca.optimize(method='emcee')
+
+
+You can stop and resume  the optimizer if you are using the ``emcee`` method due to the convenient HDF5 backend
+available in ``emcee>=3.0``. Samplers will automatically resume from their previous state unless told not to. To
+restart the sampler either delete the ``emcee_progress.hdf5`` file that was produced or issue
+
+.. code-block:: python
+
+    pca.optimize(method='emcee', resume=False)
+
 
 .. warning::
     This optimization may take a very long time to run (multiple hours). We recommend running the code on a server
@@ -62,5 +82,39 @@ PCA grid. (Located in ``config.yaml`` as ``PCA["path"]``). They are stored under
 Model spectrum reconstruction
 =============================
 
+Once the PCAGrid has been optimized, we can finally use the emulator as a means of interpolating spectra. Using the
+emulator is very similar to using a :class:`GridInterface`.
+
+.. code-block:: python
+
+    from Starfish.emulator import Emulator
+
+    emu = Emulator.open()
+    flux = emu.load_flux([7054, 4.0324, 0.01])
+    wl = emu.wl
+
+
+Utility Plotting Methods
+========================
+
+.. autofunction:: plot_reconstructed
+.. autofunction:: plot_eigenspectra
+.. autofunction:: plot_priors
+.. autofunction:: plot_corner
+.. autofunction:: plot_emulator
+
+
+Reference
+=========
+
+Emulator
+--------
+
 .. autoclass:: Emulator
-   :members:
+    :members:
+
+PCAGrid
+-------
+
+.. autoclass:: PCAGrid
+    :members:
