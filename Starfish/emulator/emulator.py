@@ -109,7 +109,7 @@ class Emulator:
         eigenspectra = nmf.components_
         # This is basically the mean square error of the reconstruction
         log.info('NMF completed with reconstruction error {}'.format(nmf.reconstruction_err_))
-        w_hat = get_w_hat(eigenspectra, grid.fluxes, len(grid.grid_points))
+        w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
         return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
 
     def __call__(self, params):
@@ -167,7 +167,8 @@ class Emulator:
         weights = np.random.multivariate_normal(mu, cov)
         if not full_cov:
             cov = np.diag(cov)
-        C = np.linalg.multi_dot([self.eigenspectra.T, cov, self.eigenspectra])
+        # C = self.eigenspectra.T @ cov @ self.eigenspectra
+        C = None
         return weights @ self.eigenspectra, C
 
     def determine_chunk_log(self, wavelength, buffer=50):
