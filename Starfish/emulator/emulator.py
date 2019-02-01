@@ -15,7 +15,8 @@ log = logging.getLogger(__name__)
 
 
 class Emulator:
-    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variance=None, lengthscales=None):
+    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variance=None,
+                 lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.wavelength = wavelength
@@ -28,7 +29,7 @@ class Emulator:
         lengthscale_shape = (self.ncomps, grid_points.shape[-1])
 
         self.lambda_xi = lambda_xi
-        self.variance = variance if variance is not None else np.ones(self.ncomps)
+        self.variances = variance if variance is not None else np.ones(self.ncomps)
         self.lengthscales = lengthscales if lengthscales is not None else np.ones(lengthscale_shape)
 
         # Determine the minimum and maximum bounds of the grid
@@ -37,7 +38,7 @@ class Emulator:
 
         # TODO find better variable names for the following
         self.iPhiPhi = (1. / self.lambda_xi) * np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.v11_cho = cho_factor(self.iPhiPhi + Sigma(self.grid_points, self.h2params))
+        self.v11_cho = cho_factor(self.iPhiPhi + Sigma(self.grid_points, self.variances, self.lengthscales))
         self.w_hat = w_hat
 
     @classmethod
@@ -78,24 +79,6 @@ class Emulator:
         w_hat = get_w_hat(eigenspectra, grid.fluxes, len(grid.grid_points))
         return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
 
-    def reconstruct(self, weights):
-        """
-        Reconstruct spectra given weights.
-
-        Parameters
-        ----------
-        weights : array_like
-            The weights for reconstruction.
-
-        Returns
-        -------
-        numpy.ndarray
-            If weights.ndim == 1, will return a single spectrum, otherwise will return len(weights) spectra
-        """
-        if not isinstance(weights, np.ndarray):
-            weights = np.array(weights)
-        return weights @ self.eigenspectra
-
     def __call__(self, params):
         """
         Gets the mu and cov matrix for a given set of params
@@ -122,8 +105,8 @@ class Emulator:
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = V12(params, self.grid_points, self.h2params, self.ncomps)
-        v22 = V22(params, self.h2params, self.ncomps)
+        v12 = V12(params, self.grid_points, self.variances, self.lengthscales)
+        v22 = V22(params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
 
@@ -151,8 +134,8 @@ class Emulator:
         weights = self.draw_weights(mu, cov)
         if not full_cov:
             cov = np.diag(cov)
-        C = self.eigenspectra.T @ cov @ self.eigenspectra
-        return self.reconstruct(weights), C
+        C = np.linalg.multi_dot([self.eigenspectra.T, cov, self.eigenspectra])
+        return weights @ self.eigenspectra, C
 
     def determine_chunk_log(self, wavelength, buffer=50):
         """
@@ -200,8 +183,8 @@ class Emulator:
         :type params: 2D np.array
         """
         # Local variables, different from instance attributes
-        v12 = V12m(params, self.grid_points, self.h2params, self.ncomps)
-        v22 = V22m(params, self.h2params, self.ncomps)
+        v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
+        v22 = V22m(params, self.variances, self.lengthscales)
 
         mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
         sig = v22 - v12.T @ cho_solve(self.v11_cho, v12)

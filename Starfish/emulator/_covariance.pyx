@@ -12,66 +12,86 @@ import math
 # Routines for emulator setup
 
 @cython.boundscheck(False)
-cdef k(np.ndarray[np.double_t, ndim=1] X, np.ndarray[np.double_t, ndim=1] Z, np.ndarray[np.double_t, ndim=0] variance, np.ndarray[np.double_t, ndim=1] lengthscale):
-    '''
-    Covariance function for the emulator. Defines the amount of covariance
-    between two sets of input parameters.
+cdef rbf_kernel(np.ndarray[np.double_t, ndim=1] X, np.ndarray[np.double_t, ndim=1] Z, double variance,
+                np.ndarray[np.double_t, ndim=1] lengthscale):
+    """
+    A classic RBF kernel with ARD parameters
+    
+    .. math:: 
+        \\Kappa (X, Z | \\sigma^2, \\Lambda) = \\sigma^2 \\exp \\left[ - \\frac12 (X-Z)^T\\Lambda^{-1}(X-Z) \\right] 
+    
+    where :math:`\\sigma^2` is `variance` and :math:`\\Lambda` is `lengthscale`
+    
+    Parameters
+    ----------
+    X : numpy.ndarray
+        The first set of points for the kernel 
+    Z : numpy.ndarray
+        The second set of points for the kernel
+    variance : double
+        The variance for the kernel
+    lengthscale : numpy.ndarray
+        The lengthscale vector for the kernel
 
-    :param X: first set of input parameters
-    :type X: np.array
-    :param Z: second set of input parameters
-    :type Z: np.array
-    :param h2param: the set of Gaussian Process hyperparameters that set the
-      degree of covariance. [amplitude, l0, l1, l2, ..., l(len(parname) - 1)].
-      To save computation, these are already input squared.
-    :type h2param: np.array
+    Returns
+    -------
+    double
 
-    :returns: (double) value of covariance
-    '''
-    dp = (Z - X) ** 2 # The covariance only depends on the distance squared
-    cdef double a2 = variance ** 2
-    l2 = lengthscale ** 2
-    return a2 * math.exp(-0.5 * np.sum(dp/l2))
-
+    """
+    dp = (X - Z) ** 2  # The covariance only depends on the distance squared
+    return variance * math.exp(-0.5 * np.sum(dp / lengthscale))
 
 @cython.boundscheck(False)
 def sigma(np.ndarray[np.double_t, ndim=2] grid_points, double variance, np.ndarray[np.double_t, ndim=1] lengthscale):
-    '''
+    """
     Compute the Lambda block of covariance for a single eigenspectrum weight.
 
-    :param grid_points: parameters at which the synthetic grid provides spectra
-    :type grid_points: 2D np.array
-    :param hparam: the Gaussian Process hyperparameters defining amplitude and
-      correlation length
-    :type hparam: 1D np.array
+    Parameters
+    ----------
+    grid_points : numpy.ndarray
+        Parameters at which the synthetic grid provides spectra
+    variance : double
+        The variance for the kernel
+    lengthscale : numpy.ndarray
+        The lengthscale vector for the kernel
 
-    :returns: (2D np.array) Lambda block of covariance.
-    '''
-
+    Returns
+    -------
+    numpy.ndarray (len(grid_points), len(grid_points))
+    """
     cdef int m = len(grid_points)
     cdef int i = 0
     cdef int j = 0
     cdef double cov = 0.0
 
-    cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m,m), dtype=np.float64)
+    cdef np.ndarray[np.double_t, ndim=2] mat = np.empty((m, m), dtype=np.float64)
 
     for i in range(m):
-        for j in range(i+1):
-            cov = k(grid_points[i], grid_points[j], variance, lengthscale)
-            mat[i,j] = cov
-            mat[j,i] = cov
+        for j in range(i + 1):
+            cov = rbf_kernel(grid_points[i], grid_points[j], variance, lengthscale)
+            mat[i, j] = cov
+            mat[j, i] = cov
 
     return mat
 
-def Sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=1] variances, np.ndarray[np.double_t, ndim=2], lengthscales):
-    '''
-    Fill in the large Sigma matrix using blocks of smaller sigma matrices.
+def Sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=1] variances,
+          np.ndarray[np.double_t, ndim=2] lengthscales):
+    """
+    Fill in the large Sigma matrix using blocks of smaller sigma matrices
+    Parameters
+    ----------
+    grid_points : numpy.ndarray
+        Parameters at which the synthetic grid provides spectra
+    variance : numpy.ndarray
+        The variance for the kernel
+    lengthscale : numpy.ndarray
+        The lengthscale vector for the kernel
 
-    :param grid_points: parameters at which the synthetic grid provides spectra
-    :type grid_points: 2D numpy array
-    :param hparams: parameters for all of the different eigenspectra weights.
-    :type hparams: 2D numpy array
-    '''
+    Returns
+    -------
+    numpy.ndarray (m * len(grid_points), m * len(grid_points))
+
+    """
     sig_list = []
     m = len(variances)
 
@@ -80,29 +100,50 @@ def Sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, n
 
     return block_diag(*sig_list)
 
-
-def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=2] h2params, int m):
-    '''
+def V12(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] grid_points,
+        np.ndarray[np.double_t, ndim=1] variances, np.ndarray[np.double_t, ndim=2] lengthscales):
+    """
     Calculate V12 for a single parameter value.
 
-    Assumes kernel params coming in squared as h2params
-    '''
-    cdef int M = len(grid_points)
+    Parameters
+    ----------
+    params
+    grid_points
+    variances
+    lengthscales
 
-    mat = np.zeros((m * M, m), dtype=np.float64)
+    Returns
+    -------
+
+    """
+    cdef int M = len(grid_points)
+    cdef int m = len(variances)
+
+    mat = np.zeros((m * M, m), dtype=np.double)
     for block in range(m):
         for row in range(M):
-            mat[block * M + row, block] = k(grid_points[row], params, h2params[block])
+            mat[block * M + row, block] = rbf_kernel(grid_points[row], params, variances[block], lengthscales[block])
     return mat
 
-def V12m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] gparams, np.ndarray[np.double_t, ndim=2] h2params, int m):
-    '''
+def V12m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] grid_points,
+         np.ndarray[np.double_t, ndim=1] variances, np.ndarray[np.double_t, ndim=2] lengthscales):
+    """
     Calculate V12 for a multiple parameter values.
 
-    Assumes kernel params coming in squared as h2params
-    '''
-    cdef int M = len(gparams)
+    Parameters
+    ----------
+    params
+    grid_points
+    variances
+    lengthscales
+
+    Returns
+    -------
+
+    """
+    cdef int M = len(grid_points)
     cdef int npar = len(params)
+    cdef int m = len(variances)
 
     mat = np.zeros((m * M, m * npar), dtype=np.float64)
 
@@ -114,30 +155,49 @@ def V12m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2]
             # Now go across the columns within that row
             for ip in range(npar):
                 jj = block + ip * m
-                mat[ii, jj] = k(gparams[row], params[ip], h2params[block])
+                mat[ii, jj] = rbf_kernel(grid_points[row], params[ip], variances[block], lengthscales[block])
     return mat
 
-def V22(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=2] h2params, int m):
-    '''
+def V22(np.ndarray[np.double_t, ndim=1] params, np.ndarray[np.double_t, ndim=1] variances,
+        np.ndarray[np.double_t, ndim=2] lengthscales):
+    """
     Create V22.
 
-    Assumes kernel parameters are coming in squared as h2params
-    '''
-    cdef int i = 0
+    Parameters
+    ----------
+    params
+    variances
+    lengthscales
 
-    mat = np.zeros((m, m))
+    Returns
+    -------
+
+    """
+    cdef int i = 0
+    cdef int m = len(variances)
+
+    mat = np.zeros((m, m), dtype=np.double)
     for i in range(m):
-            mat[i,i] = k(params, params, h2params[i])
+        mat[i, i] = rbf_kernel(params, params, variances[i], lengthscales[i])
     return mat
 
-
-def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2] h2params, int m):
-    '''
+def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=1] variances,
+         np.ndarray[np.double_t, ndim=2] lengthscales):
+    """
     Create V22 for a set of many parameters.
 
-    Assumes kernel parameters are coming in squared as h2params
-    '''
+    Parameters
+    ----------
+    params
+    variances
+    lengthscales
+
+    Returns
+    -------
+
+    """
     cdef int i = 0
+    cdef int m = len(variances)
     cdef int npar = len(params)
     cdef double cov = 0.0
 
@@ -147,11 +207,14 @@ def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=2]
             for iyp in range(npar):
                 ii = ixp * m + i
                 jj = iyp * m + i
-                cov = k(params[ixp], params[iyp], h2params[i])
+                cov = rbf_kernel(params[ixp], params[iyp], variances[i], lengthscales[i])
                 mat[ii, jj] = cov
                 mat[jj, ii] = cov
     return mat
 # Routines for data covariance matrix generation
+
+
+# TODO refactor these into the Models package
 
 #New covariance filler routines
 @cython.boundscheck(False)
@@ -172,32 +235,32 @@ def get_dense_C(np.ndarray[np.double_t, ndim=1] wl, k_func, double max_r):
     cdef double cov = 0.0
 
     #Find all the indices that are less than the radius
-    rr = np.abs(wl[:, np.newaxis] - wl[np.newaxis, :]) * C.c_kms/wl #Velocity space
+    rr = np.abs(wl[:, np.newaxis] - wl[np.newaxis, :]) * C.c_kms / wl  #Velocity space
     flag = (rr < max_r)
     indices = np.argwhere(flag)
 
     #The matrix that we want to fill
-    mat = np.zeros((N,N))
+    mat = np.zeros((N, N))
 
     #Loop over all the indices
     for index in indices:
-        i,j = index
+        i, j = index
         if j > i:
             continue
         else:
             #Initilize [i,j] and [j,i]
             cov = k_func(wl[i], wl[j])
-            mat[i,j] = cov
-            mat[j,i] = cov
+            mat[i, j] = cov
+            mat[j, i] = cov
 
     return mat
 
 def make_k_func(par):
-    cdef double amp = 10**par.logAmp
-    cdef double l = par.l #Given in Km/s
-    cdef double r0 = 6.0 * l #Km/s
+    cdef double amp = 10 ** par.logAmp
+    cdef double l = par.l  #Given in Km/s
+    cdef double r0 = 6.0 * l  #Km/s
     cdef double taper
-    regions = par.regions #could be None or a 2D array
+    regions = par.regions  #could be None or a 2D array
 
     cdef double a, mu, sigma, rx0, rx1, r_tap, r0_r
 
@@ -207,10 +270,10 @@ def make_k_func(par):
             cdef double cov = 0.0
 
             #Initialize the global covariance
-            cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+            cdef double r = C.c_kms / wl0 * math.fabs(wl0 - wl1)  # Km/s
             if r < r0:
-                taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
-                cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
+                taper = (0.5 + 0.5 * math.cos(np.pi * r / r0))
+                cov = taper * amp * amp * (1 + math.sqrt(3) * r / l) * math.exp(-math.sqrt(3.) * r / l)
 
             return cov
     else:
@@ -219,35 +282,35 @@ def make_k_func(par):
             cdef double cov = 0.0
 
             #Initialize the global covariance
-            cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+            cdef double r = C.c_kms / wl0 * math.fabs(wl0 - wl1)  # Km/s
             if r < r0:
-                taper = (0.5 + 0.5 * math.cos(np.pi * r/r0))
-                cov = taper * amp*amp * (1 + math.sqrt(3) * r/l) * math.exp(-math.sqrt(3.) * r/l)
+                taper = (0.5 + 0.5 * math.cos(np.pi * r / r0))
+                cov = taper * amp * amp * (1 + math.sqrt(3) * r / l) * math.exp(-math.sqrt(3.) * r / l)
 
             #If covered by a region, instantiate
             for row in regions:
-                a = 10**row[0]
+                a = 10 ** row[0]
                 mu = row[1]
                 sigma = row[2]
 
                 rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
                 rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
-                r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
-                r0_r = 4.0 * sigma # where the kernel goes to 0
+                r_tap = rx0 if rx0 > rx1 else rx1  # choose the larger distance
+                r0_r = 4.0 * sigma  # where the kernel goes to 0
 
                 if r_tap < r0_r:
-                    taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
-                    cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
+                    taper = (0.5 + 0.5 * math.cos(np.pi * r_tap / r0_r))
+                    cov += taper * a * a * math.exp(
+                        -0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu) * (wl0 - mu) + (wl1 - mu) * (wl1 - mu)) / (
+                                sigma * sigma))
             return cov
 
     return k_func
 
-
 # Make just the matrix for the regions
 def make_k_func_region(phi):
-
     cdef double taper
-    regions = phi.regions #could be None or a 2D array
+    regions = phi.regions  #could be None or a 2D array
 
     cdef double a, mu, sigma, rx0, rx1, r_tap, r0_r
 
@@ -260,29 +323,30 @@ def make_k_func_region(phi):
         #print("cov begin", cov)
 
         #Initialize the global covariance
-        cdef double r = C.c_kms/wl0 * math.fabs(wl0 - wl1) # Km/s
+        cdef double r = C.c_kms / wl0 * math.fabs(wl0 - wl1)  # Km/s
 
         #If covered by a region, instantiate
         for row in regions:
             # print("logAmp", row[0])
-            a = 10**row[0]
+            a = 10 ** row[0]
             # print("a", a)
             mu = row[1]
             sigma = row[2]
 
             rx0 = C.c_kms / mu * math.fabs(wl0 - mu)
             rx1 = C.c_kms / mu * math.fabs(wl1 - mu)
-            r_tap = rx0 if rx0 > rx1 else rx1 # choose the larger distance
-            r0_r = 4.0 * sigma # where the kernel goes to 0
+            r_tap = rx0 if rx0 > rx1 else rx1  # choose the larger distance
+            r0_r = 4.0 * sigma  # where the kernel goes to 0
 
             if r_tap < r0_r:
-                taper = (0.5 + 0.5 * math.cos(np.pi * r_tap/r0_r))
+                taper = (0.5 + 0.5 * math.cos(np.pi * r_tap / r0_r))
                 #print("exp", math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma)))
                 #print("taper", taper)
                 #print("amp", a*a)
                 #print("additional", taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma)))
-                cov += taper * a*a * math.exp(-0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu)*(wl0 - mu) + (wl1 - mu)*(wl1 - mu))/(sigma * sigma))
-
+                cov += taper * a * a * math.exp(
+                    -0.5 * (C.c_kms * C.c_kms) / (mu * mu) * ((wl0 - mu) * (wl0 - mu) + (wl1 - mu) * (wl1 - mu)) / (
+                            sigma * sigma))
 
         #print("cov end", cov)
         return cov
