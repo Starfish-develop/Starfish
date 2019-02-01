@@ -9,7 +9,7 @@ import numpy as np
 from Starfish import config
 from Starfish.grid_tools import HDF5Interface
 from .emulator import Emulator
-from .utils import PCAGrid, _prior
+from ._utils import PCAGrid, _prior
 
 
 def plot_reconstructed(pca_filename=config.PCA["path"], save=True, parallel=True):

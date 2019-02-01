@@ -11,7 +11,7 @@ from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
 
 from ._covariance import Sigma, V12, V22, V12m, V22m
-from .utils import skinny_kron, get_w_hat, _ln_posterior
+from ._utils import skinny_kron, get_w_hat, _ln_posterior
 
 log = logging.getLogger(__name__)
 
@@ -267,3 +267,24 @@ class Emulator:
             self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
 
         self._trained = True
+
+    def get_index(self, params):
+        """
+        Given a list of stellar parameters (corresponding to a grid point),
+        deliver the index that corresponds to the
+        entry in the fluxes, grid_points, and weights.
+
+        Parameters
+        ----------
+        params : array_like
+            The stellar parameters
+
+        Returns
+        -------
+        index : int
+
+        """
+        if not isinstance(params, np.ndarray):
+            params = np.array(params)
+
+        return np.abs(self.grid_points - params).sum(axis=1).argmin()
