@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 
 import h5py
 import numpy as np
@@ -11,7 +12,7 @@ from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
 
 from ._covariance import Sigma, V12, V22, V12m, V22m
-from ._utils import skinny_kron, get_w_hat, _ln_posterior
+from ._utils import skinny_kron, get_w_hat, _ln_posterior, flatten_parameters, deflatten_parameters
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class Emulator:
                  lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
-        self.wavelength = wavelength
+        self.wl = wavelength
         self.weights = weights
         self.eigenspectra = eigenspectra
 
@@ -72,7 +73,7 @@ class Emulator:
         filename = os.path.expandvars(filename)
         with h5py.File(filename) as base:
             base.create_dataset('grid_points', data=self.grid_points, compression=9)
-            waves = base.create_dataset('wavelength', data=self.wavelength, compression=9)
+            waves = base.create_dataset('wavelength', data=self.wl, compression=9)
             waves.attrs['unit'] = 'Angstrom'
             base.create_dataset('weights', data=self.weights, compression=9)
             eigens = base.create_dataset('eigenspectra', data=self.eigenspectra, compression=9)
@@ -131,6 +132,9 @@ class Emulator:
         ValueError
             If querying the emulator outside of its trained grid points
         """
+        if not self._trained:
+            warnings.warn(
+                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
         params = np.array(params)
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
@@ -167,8 +171,9 @@ class Emulator:
         weights = np.random.multivariate_normal(mu, cov)
         if not full_cov:
             cov = np.diag(cov)
-        # C = self.eigenspectra.T @ cov @ self.eigenspectra
-        C = None
+            C = (self.eigenspectra.T @ cov) * (cov @ self.eigenspectra)
+        else:
+            C = np.linalg.multi_dot([self.eigenspectra.T, cov, self.eigenspectra])
         return weights @ self.eigenspectra, C
 
     def determine_chunk_log(self, wavelength, buffer=50):
@@ -196,8 +201,8 @@ class Emulator:
         wl_min -= buffer
         wl_max += buffer
 
-        ind = determine_chunk_log(self.wavelength, wl_min, wl_max)
-        trunc_wavelength = self.wavelength[ind]
+        ind = determine_chunk_log(self.wl, wl_min, wl_max)
+        trunc_wavelength = self.wl[ind]
 
         assert (trunc_wavelength.min() <= wl_min) and (trunc_wavelength.max() >= wl_max), \
             "Emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
@@ -205,7 +210,7 @@ class Emulator:
                                                      trunc_wavelength.max(),
                                                      wl_min, wl_max)
 
-        self.wavelength = trunc_wavelength
+        self.wl = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
 
     def draw_many_weights(self, params):
@@ -213,6 +218,11 @@ class Emulator:
         :param params: multiple parameters to produce weight draws at.
         :type params: 2D np.array
         """
+        if not self._trained:
+            warnings.warn(
+                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
+        if not isinstance(params, np.ndarray):
+            params = np.array(params)
         # Local variables, different from instance attributes
         v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
         v22 = V22m(params, self.variances, self.lengthscales)
@@ -227,7 +237,7 @@ class Emulator:
 
         return weights
 
-    def train(self, lambda_xi=None, variances=None, lengthscales=None):
+    def train(self, lambda_xi=None, variances=None, lengthscales=None, **opt_kwargs):
         """
         Trains the emulator's hyperparameters using gradient descent
 
@@ -239,6 +249,12 @@ class Emulator:
             Starting guess for variances. If None defaults to the current value. Default is None.
         lengthscales : numpy.ndarray, optional
             Starting guess for lengthscales. If None defaults to the current value. Default is None.
+        **opt_kwargs
+            Any arguments to pass to the optimizer
+
+        See Also
+        --------
+        scipy.optimize.minimize
         """
         if lambda_xi is None:
             lambda_xi = self.lambda_xi
@@ -247,21 +263,18 @@ class Emulator:
         if lengthscales is None:
             lengthscales = self.lengthscales
 
-        P0 = np.array([lambda_xi] + list(variances) + list(lengthscales.flatten()))
+        P0 = flatten_parameters(lambda_xi, variances, lengthscales)
 
         nll = lambda P: -_ln_posterior(P, self)
-        soln = minimize(nll, P0)
+        soln = minimize(nll, P0, **opt_kwargs)
 
         # Extract hyper parameters
-        self.lambda_xi = soln.x[0]
-        hyper_params = soln.x[1:].reshape((-1, self.ncomps))
-        self.variances = hyper_params[0]
-        self.lengthscales = hyper_params[1:]
+        self.lambda_xi, self.variances, self.lengthscales = deflatten_parameters(soln.x, self.ncomps)
 
         self.log.info('Finished optimizing emulator hyperparameters')
-        self.log.info('lambda_xi : {}'.format(self.lambda_xi))
-        self.log.info('variances : {}'.format(self.variances))
-        self.log.info('lengthscales : {}'.format(self.lengthscales))
+        self.log.info('lambda_xi: {}'.format(self.lambda_xi))
+        self.log.info('variances: {}'.format(self.variances))
+        self.log.info('lengthscales: {}'.format(self.lengthscales))
 
         # Recalculate v11 given new parameters
         self.v11_cho = cho_factor(

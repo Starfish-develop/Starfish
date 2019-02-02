@@ -7,6 +7,7 @@ import pytest
 
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
     HDF5Creator, HDF5Interface
+from Starfish.emulator import Emulator
 
 
 @pytest.fixture(scope='session')
@@ -72,3 +73,8 @@ def mock_data():
     peaks += -10 * st.norm.pdf(wave, 3e4, 50)
     flux = peaks + np.random.normal(0, 5, size=1000)
     yield wave, flux
+
+
+@pytest.fixture
+def mock_emulator(mock_hdf5_interface):
+    yield Emulator.from_grid(mock_hdf5_interface)

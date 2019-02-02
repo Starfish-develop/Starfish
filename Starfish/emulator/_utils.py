@@ -56,10 +56,7 @@ def _ln_posterior(p, emulator):
     if np.any(p < 0.):
         return -np.inf
 
-    lambda_xi = p[0]
-    hyper_params = p[1:].reshape((-1, emulator.ncomps))
-    variances = hyper_params[0]
-    lengthscales = hyper_params[1:]
+    lambda_xi, variances, lengthscales = deflatten_parameters(p, emulator.ncomps)
 
     Sig_w = Sigma(emulator.grid_points, variances, lengthscales)
     C = (1. / lambda_xi) * emulator.PhiPhi + Sig_w
@@ -67,3 +64,17 @@ def _ln_posterior(p, emulator):
     factor = cho_factor(C)
     central = emulator.w_hat.T @ cho_solve(factor, emulator.w_hat)
     return -0.5 * (logdet + central + emulator.grid_points.size * np.log(2. * np.pi))
+
+
+def flatten_parameters(lambda_xi, variances, lengthscales):
+    params = [lambda_xi] + list(variances)
+    for l in lengthscales:
+        params.extend(l)
+    return np.array(params)
+
+
+def deflatten_parameters(params, ncomps):
+    lambda_xi = params[0]
+    variances = params[1:(ncomps + 1)]
+    lengthscales = params[(ncomps + 1):].reshape((ncomps, -1))
+    return lambda_xi, variances, lengthscales
