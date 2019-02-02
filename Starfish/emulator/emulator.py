@@ -255,6 +255,7 @@ class Emulator:
         See Also
         --------
         scipy.optimize.minimize
+
         """
         if lambda_xi is None:
             lambda_xi = self.lambda_xi
