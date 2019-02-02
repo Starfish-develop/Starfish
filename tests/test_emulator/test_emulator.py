@@ -33,6 +33,7 @@ class TestEmulator:
         weights = mock_emulator.draw_many_weights(params)
         assert len(weights) == len(params)
 
+
     def test_warns_before_trained(self, mock_emulator):
         with pytest.warns(UserWarning):
             mock_emulator([6000, 4.2, 0.0])

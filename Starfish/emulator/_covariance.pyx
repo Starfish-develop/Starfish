@@ -212,5 +212,3 @@ def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=1]
     return mat
 # Routines for data covariance matrix generation
 
-
-# TODO refactor these into the Models package

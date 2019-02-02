@@ -59,19 +59,18 @@ class Emulator:
             weights = base['weights'][:]
             eigenspectra = base['eigenspectra'][:]
             w_hat = base['w_hat'][:]
-            lambda_xi = base['hyper_parameters']['lambda_xi']
-            variances = base['hyper_parameters']['variances']
-            lengthscales = base['hyper_parameters']['lengthscales']
+            lambda_xi = base['hyper_parameters']['lambda_xi'].value
+            variances = base['hyper_parameters']['variances'][:]
+            lengthscales = base['hyper_parameters']['lengthscales'][:]
             trained = base.attrs['trained']
 
         emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales)
         emulator._trained = trained
-
         return emulator
 
     def save(self, filename):
         filename = os.path.expandvars(filename)
-        with h5py.File(filename) as base:
+        with h5py.File(filename, 'w') as base:
             base.create_dataset('grid_points', data=self.grid_points, compression=9)
             waves = base.create_dataset('wavelength', data=self.wl, compression=9)
             waves.attrs['unit'] = 'Angstrom'
@@ -81,7 +80,7 @@ class Emulator:
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
             hp_group = base.create_group('hyper_parameters')
-            hp_group.create_dataset('lambda_xi', data=self.lambda_xi, compression=9)
+            hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
             hp_group.create_dataset('variances', data=self.variances, compression=9)
             hp_group.create_dataset('lengthscales', data=self.lengthscales, compression=9)
 
@@ -146,10 +145,28 @@ class Emulator:
         v22 = V22(params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
-
-        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat).squeeze()
+        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
+
         return mu, cov
+
+    def draw_many_weights(self, params):
+        if not self._trained:
+            warnings.warn(
+                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
+        params = np.array(params)
+        # If the pars is outside of the range of emulator values, raise a ModelError
+        if np.any(params < self.min_params) or np.any(params > self.max_params):
+            raise ValueError('Querying emulator outside of original parameter range.')
+
+        v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
+        v22 = V22m(params, self.variances, self.lengthscales)
+
+        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
+        cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
+
+        weights = np.random.multivariate_normal(mu, cov).reshape((len(params), -1))
+        return weights
 
     def load_flux(self, params, full_cov=False):
         """
@@ -213,27 +230,14 @@ class Emulator:
         self.wl = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
 
-    def draw_many_weights(self, params):
-        """
-        :param params: multiple parameters to produce weight draws at.
-        :type params: 2D np.array
-        """
-        if not self._trained:
-            warnings.warn(
-                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
-        if not isinstance(params, np.ndarray):
-            params = np.array(params)
-        # Local variables, different from instance attributes
-        v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
-        v22 = V22m(params, self.variances, self.lengthscales)
-
-        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
-        sig = v22 - v12.T @ cho_solve(self.v11_cho, v12)
-
-        weights = np.random.multivariate_normal(mu, sig)
-
-        # Reshape these weights into a 2D matrix
-        weights.shape = (len(params), self.ncomps)
+    def draw_weights(self, params):
+        params = np.array(params)
+        mu, cov = self(params)
+        if params.ndim > 1:
+            weights = [np.random.multivariate_normal(m, c) for m, c in zip(mu, cov)]
+            weights = np.array(weights)
+        else:
+            weights = np.random.multivariate_normal(mu, cov)
 
         return weights
 
