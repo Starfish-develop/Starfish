@@ -60,8 +60,8 @@ def _ln_posterior(p, emulator):
 
     Sig_w = Sigma(emulator.grid_points, variances, lengthscales)
     C = (1. / lambda_xi) * emulator.PhiPhi + Sig_w
-    sign, logdet = np.linalg.slogdet(C)
     factor = cho_factor(C)
+    logdet = np.log(np.trace(factor[0]))
     central = emulator.w_hat.T @ cho_solve(factor, emulator.w_hat)
     return -0.5 * (logdet + central + emulator.grid_points.size * np.log(2. * np.pi))
 
