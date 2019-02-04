@@ -4,6 +4,7 @@ import numpy as np
 import logging
 from collections import deque
 
+
 class SpectrumLikelihood:
 
     def __init__(self, spectrum, deque_length=100):
@@ -35,3 +36,6 @@ class SpectrumLikelihood:
 
         self.log.debug("Evaluating lnprob={}".format(lnprob))
         return lnprob
+
+def optimize_spectrum_likelihood(self, **opt_params):
+    pass

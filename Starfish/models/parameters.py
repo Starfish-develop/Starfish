@@ -23,12 +23,12 @@ class SpectrumParameter:
     '''
 
     def __init__(self, grid_params, vz=None, vsini=None, logOmega=None, Av=None, cheb=(None,)):
-        self.grid_params = grid_params
+        self.grid_params = np.array(grid_params)
         self.vz = vz
         self.vsini = vsini
         self.logOmega = logOmega  # log10Omega
         self.Av = Av
-        self.cheb = cheb
+        self.cheb = np.array(cheb)
 
     def to_array(self):
         array = self.grid_params.tolist() + [self.vz, self.vsini, self.logOmega, self.Av] + self.cheb.tolist()
