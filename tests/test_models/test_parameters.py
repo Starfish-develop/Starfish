@@ -17,8 +17,9 @@ class TestSpectrumParameter:
 
     def test_to_array_and_back(self, mock_param):
         p0 = mock_param.to_array()
-        param = SpectrumParameter.from_array(p0)
-        assert p0 == param
+        assert p0.ndim == 1
+        param = SpectrumParameter.from_array(p0, 3)
+        assert mock_param == param
 
     def test_save_and_load(self, mock_param, tmpdir):
         name = tmpdir.join('spectrum.json')

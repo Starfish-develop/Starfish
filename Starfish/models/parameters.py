@@ -75,7 +75,7 @@ class SpectrumParameter:
                                                                              self.logOmega, self.Av, self.cheb)
 
     def __eq__(self, other):
-        if not isinstance(other, SpectrumParameter):
+        if not isinstance(other, self.__class__):
             return False
         equal = True
         equal &= np.allclose(self.grid_params, other.grid_params)
@@ -83,7 +83,10 @@ class SpectrumParameter:
         equal &= self.vsini == other.vsini
         equal &= self.logOmega == other.logOmega
         equal &= self.Av == other.Av
-        equal &= np.allclose(self.cheb, other.cheb)
+        try:
+            equal &= np.allclose(self.cheb, other.cheb, equal_nan=True)
+        except TypeError:
+            equal &= self.cheb == other.cheb
         return equal
 
 
@@ -92,7 +95,7 @@ class SpectrumParameterEncoder(json.JSONEncoder):
     def default(self, o):
         try:
             mydict = {
-                "grid_params": o.grid.tolist(),
+                "grid_params": o.grid_params.tolist(),
                 "vz": o.vz,
                 "vsini": o.vsini,
                 "logOmega": o.logOmega,
