@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish import config
-from Starfish.transforms import InstrumentalBroaden, Resample, NullTransform
+from Starfish.models.transforms import instrumental_broaden, resample
 from Starfish.utils import calculate_dv, calculate_dv_dict, create_log_lam_grid
 from .utils import chunk_list
 
@@ -212,9 +212,9 @@ class HDF5Creator:
             mask = (self.wl_native > wl_min) & (self.wl_native < wl_max)
             self.wl_final = self.wl_native[mask]
             self.dv_final = self.dv_native
-            inst_broaden = NullTransform()
+            inst_broaden = lambda w, f: (w, f)
         else:
-            inst_broaden = InstrumentalBroaden(self.instrument)
+            inst_broaden = lambda w, f: (w, instrumental_broaden(w, f, self.instrument.FWHM))
             # The final wavelength grid, onto which we will interpolate the
             # Fourier filtered wavelengths, is part of the instrument object
             dv_temp = self.instrument.FWHM / self.instrument.oversampling
@@ -222,8 +222,8 @@ class HDF5Creator:
             self.wl_final = wl_dict["wl"]
             self.dv_final = calculate_dv_dict(wl_dict)
 
-        resample_loglam = Resample(wl_loglam)
-        resample_final = Resample(self.wl_final)
+        resample_loglam = lambda w, f: (wl_loglam, resample(w, f, wl_loglam))
+        resample_final = lambda w, f: (self.wl_final, resample(w, f, self.wl_final))
         self.transform = lambda flux: resample_final(*inst_broaden(*resample_loglam(self.wl_native, flux)))
 
         # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.

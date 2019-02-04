@@ -26,3 +26,6 @@ class TestSpectrumParameter:
         param = SpectrumParameter.load(name)
         assert param == mock_param
 
+    def test_not_equal(self, mock_param):
+        other = SpectrumParameter(grid_params=[5400, 3.2, 1.0])
+        assert not mock_param == other

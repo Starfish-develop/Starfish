@@ -74,6 +74,19 @@ class SpectrumParameter:
         return "grid_params:{} vz:{} vsini:{} logOmega:{} Av:{} c:{}".format(self.grid_params, self.vz, self.vsini,
                                                                              self.logOmega, self.Av, self.cheb)
 
+    def __eq__(self, other):
+        if not isinstance(other, SpectrumParameter):
+            return False
+        equal = True
+        equal &= np.allclose(self.grid_params, other.grid_params)
+        equal &= self.vz == other.vz
+        equal &= self.vsini == other.vsini
+        equal &= self.logOmega == other.logOmega
+        equal &= self.Av == other.Av
+        equal &= np.allclose(self.cheb, other.cheb)
+        return equal
+
+
 
 class SpectrumParameterEncoder(json.JSONEncoder):
     def default(self, o):
