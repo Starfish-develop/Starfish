@@ -14,7 +14,7 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 
-class ThetaParam:
+class SpectrumParameter:
     '''
     An object holding the collection of parameters shared between all orders.
 
@@ -22,20 +22,31 @@ class ThetaParam:
     :type grid: 1D np.array
     '''
 
-    def __init__(self, grid, vz=0.0, vsini=0.0, logOmega=0.0, Av=0.0):
-        self.grid = grid
+    def __init__(self, grid_params, vz=None, vsini=None, logOmega=None, Av=None, cheb=(None,)):
+        self.grid_params = grid_params
         self.vz = vz
         self.vsini = vsini
         self.logOmega = logOmega  # log10Omega
         self.Av = Av
+        self.cheb = cheb
 
-    def save(self, fname="theta.json"):
+    def to_array(self):
+        array = self.grid_params.tolist() + [self.vz, self.vsini, self.logOmega, self.Av] + self.cheb.tolist()
+        return np.array(array)
+
+    @classmethod
+    def from_array(cls, array, ngrid):
+        grid_params = array[:ngrid]
+        vz, vsini, logOmega, Av = array[ngrid:ngrid + 4]
+        c = array[ngrid + 4:]
+        return cls(grid_params, vz, vsini, logOmega, Av, c)
+
+    def save(self, filename):
         '''
         Save the parameters to a JSON file
         '''
-        with open(fname, 'w') as f:
-            json.dump(self, f, cls=ThetaEncoder, indent=2, sort_keys=True)
-
+        with open(filename, 'w') as f:
+            json.dump(self, f, cls=SpectrumParameterEncoder, indent=2, sort_keys=True)
 
     @classmethod
     def from_dict(cls, d):
@@ -45,43 +56,50 @@ class ThetaParam:
         :param d: dictionary of parameters
         :type d: dictionary
         '''
-        d["grid"] = np.array(d["grid"])
+        d['grid_params'] = np.array(d['grid_params'])
+        d['cheb'] = np.array(d['cheb'])
         return cls(**d)
 
     @classmethod
-    def load(cls, fname="theta.json"):
+    def load(cls, filename):
         '''
         Load the parameters from a JSON file
         '''
-        with open(fname, "r") as f:
+        with open(filename) as f:
             read = json.load(f)  # read is a dictionary
 
-        read["grid"] = np.array(read["grid"])
-        return cls(**read)
+        return cls.from_dict(read)
 
-    def __repr__(self):
-        return "grid:{} vz:{} vsini:{} logOmega:{} Av:{}".format(self.grid, self.vz, self.vsini, self.logOmega,
-                                                                 self.Av)
+    def __str__(self):
+        return "grid_params:{} vz:{} vsini:{} logOmega:{} Av:{} c:{}".format(self.grid_params, self.vz, self.vsini,
+                                                                             self.logOmega, self.Av, self.cheb)
 
 
-class ThetaEncoder(json.JSONEncoder):
-    '''
-    Serialize an instance of o=ThetaParam() to JSON
-    '''
-
+class SpectrumParameterEncoder(json.JSONEncoder):
     def default(self, o):
         try:
-            mydict = {"grid"    : o.grid.tolist(),
-                      "vz"      : o.vz,
-                      "vsini"   : o.vsini,
-                      "logOmega": o.logOmega,
-                      "Av"      : o.Av}
+            mydict = {
+                "grid_params": o.grid.tolist(),
+                "vz": o.vz,
+                "vsini": o.vsini,
+                "logOmega": o.logOmega,
+                "Av": o.Av,
+                "cheb": o.cheb.tolist()
+            }
         except TypeError:
             pass
         else:
             return mydict
         # Let the base class default method raise the TypeError, if there is one
         return json.JSONEncoder.default(self, o)
+
+
+class EchelleParameter:
+    pass
+
+
+class EchelleParameterEncoder(json.JSONEncoder):
+    pass
 
 
 class PhiParam:
@@ -119,7 +137,6 @@ class PhiParam:
             json.dump(self, f, cls=PhiEncoder, indent=2, sort_keys=True)
         return outname
 
-
     @classmethod
     def load(cls, fname):
         '''
@@ -156,12 +173,12 @@ class PhiEncoder(json.JSONEncoder):
     def default(self, o):
         try:
             mydict = {"spectrum_id": o.spectrum_id,
-                      "order"      : o.order,
-                      "fix_c0"     : o.fix_c0,
-                      "cheb"       : o.cheb.tolist(),
-                      "sigAmp"     : o.sigAmp,
-                      "logAmp"     : o.logAmp,
-                      "l"          : o.l}
+                      "order": o.order,
+                      "fix_c0": o.fix_c0,
+                      "cheb": o.cheb.tolist(),
+                      "sigAmp": o.sigAmp,
+                      "logAmp": o.logAmp,
+                      "l": o.l}
             if o.regions is not None:
                 mydict["regions"] = o.regions.tolist()
         except TypeError:

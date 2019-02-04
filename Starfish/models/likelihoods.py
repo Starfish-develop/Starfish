@@ -11,7 +11,7 @@ class SpectrumLikelihood:
             raise ValueError('Must provide a valid SpectrumModel')
         self.spectrum = spectrum
         self.log = logging.getLogger(self.__class__.__name__)
-        self.residuals_deque = deque(maxlen=100)
+        self.residuals_deque = deque(maxlen=deque_length)
 
     @property
     def residuals(self):
@@ -22,12 +22,12 @@ class SpectrumLikelihood:
             n += 1
         return count / n
 
-    def log_probability(self, **params):
-        fls, cov = self.spectrum(**params)
-        cov += np.diag(self.sigs)
+    def log_probability(self, parameters):
+        fls, cov = self.spectrum(parameters)
+        cov += np.diag(self.spectrum.sigs)
         factor, flag = cho_factor(cov)
 
-        R = self.flux - fls
+        R = self.spectrum.flux - fls
         self.residuals_deque.append(R)
 
         logdet = 2 * np.log(np.trace(factor))

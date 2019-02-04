@@ -18,4 +18,4 @@ display_stats('prof')
 # Additionally, if you want to do memory profiling using memory_profiler,
 # put the decorator `@profile` over the function you want to profile
 # And run with
-#	python -m memory_profiler model.py
+#	python -m memory_profiler parameters.py
