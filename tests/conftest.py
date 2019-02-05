@@ -2,12 +2,14 @@ import os
 from itertools import product
 
 import numpy as np
-import scipy.stats as st
 import pytest
+import scipy.stats as st
 
+from Starfish.emulator import Emulator
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
     HDF5Creator, HDF5Interface
-from Starfish.emulator import Emulator
+from Starfish.spectrum import DataSpectrum
+from Starfish.models import SpectrumParameter
 
 
 @pytest.fixture(scope='session')
@@ -61,9 +63,11 @@ def mock_hdf5(mock_creator):
     mock_creator.process_grid()
     yield mock_creator.filename
 
+
 @pytest.fixture(scope='session')
 def mock_hdf5_interface(mock_hdf5):
     yield HDF5Interface(mock_hdf5)
+
 
 @pytest.fixture
 def mock_data():
@@ -76,5 +80,26 @@ def mock_data():
 
 
 @pytest.fixture
+def mock_data_spectrum(mock_data):
+    wave, flux = mock_data
+    yield DataSpectrum(wls=wave, fls=flux)
+
+@pytest.fixture
 def mock_emulator(mock_hdf5_interface):
     yield Emulator.from_grid(mock_hdf5_interface)
+
+
+@pytest.fixture
+def mock_trained_emulator(mock_emulator):
+    test_base = os.path.dirname(os.path.dirname(__file__))
+    filename = os.path.join(test_base, 'data', 'emu.hdf5')
+    if os.path.exists(filename):
+        yield Emulator.open(filename)
+    else:
+        mock_emulator.train()
+        mock_emulator.save(filename)
+
+
+@pytest.fixture
+def mock_parameter():
+    yield SpectrumParameter(grid_params=[6000., 4.32, -0.2], vz=10., vsini=4.0, logOmega=-0.2, Av=0.3, cheb=[1, ])

@@ -1,12 +1,9 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 numpy = "*"
 scipy = "*"
 cython = "*"
@@ -19,10 +16,12 @@ emcee = "<3"
 oyaml = "*"
 extinction = "*"
 
-
 [dev-packages]
-
 sphinx = "*"
 sphinx-rtd-theme = "*"
 graphviz = "*"
 pytest = "*"
+pydot = "*"
+
+[pipenv]
+allow_prereleases = true
