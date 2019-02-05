@@ -1,5 +1,6 @@
 import extinction
 import numpy as np
+from numpy.polynomial.chebyshev import chebval
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
 
@@ -83,5 +84,12 @@ def rescale(flux, w):
 
 def chebyshev_correct(wave, flux, coeffs):
     # TODO everything
-    p = np.polynomial.chebyshev.chebval(wave, coeffs, tensor=False)
+    # have to scale wave to fit on domain [0, 1]
+    if not isinstance(coeffs, np.ndarray):
+        coeffs = np.array(coeffs)
+    if coeffs.ndim == 1 and coeffs[0] != 1:
+        raise ValueError('For single spectrum the linear Chebyshev coefficient (c[0]) must be 1')
+
+    scale_wave = wave / wave.max()
+    p = chebval(scale_wave, coeffs, tensor=False)
     return flux * p

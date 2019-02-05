@@ -1,7 +1,7 @@
 import itertools
 
-import pytest
 import numpy as np
+import pytest
 
 from Starfish.models.transforms import instrumental_broaden, rotational_broaden, resample, \
     doppler_shift, chebyshev_correct, extinct, rescale
@@ -80,6 +80,7 @@ class TestResample:
         fluxes = resample(mock_data[0], flux_stack, new_wave)
         assert fluxes.shape == (4, len(new_wave))
 
+
 class TestDopplerShift:
 
     def test_no_change(self, mock_data):
@@ -94,23 +95,29 @@ class TestDopplerShift:
         wave = doppler_shift(mock_data[0], 1e3)
         assert np.all(wave > mock_data[0])
 
-
     def test_regression(self, mock_data):
         wave = doppler_shift(doppler_shift(mock_data[0], 1e3), -1e3)
         assert np.allclose(wave, mock_data[0])
 
 
-@pytest.mark.skip('need to implement')
 class TestChebyshevCorrection:
 
-    @pytest.fixture
-    def mock_coeffs(self):
-        yield np.array([1, 1, 2, 3])
-
-    def test_transforms(self, mock_data, mock_coeffs):
-        flux = chebyshev_correct(*mock_data, mock_coeffs)
+    @pytest.mark.parametrize('coeffs', [
+        [1, 0.005, 0.003, 0],
+        [1, -0.005, 0., -0.9],
+        [1, 0, 0.88, 1.2]
+    ])
+    def test_transforms(self, mock_data, coeffs):
+        flux = chebyshev_correct(*mock_data, coeffs)
         assert not np.allclose(flux, mock_data[1])
 
+    def test_no_change(self, mock_data):
+        flux = chebyshev_correct(*mock_data, [1, 0, 0, 0])
+        assert np.allclose(flux, mock_data[1])
+
+    def test_single_fix_c0(self, mock_data):
+        with pytest.raises(ValueError):
+            chebyshev_correct(*mock_data, [0.9, 0, 0, 0])
 
 
 class TestExtinct:
