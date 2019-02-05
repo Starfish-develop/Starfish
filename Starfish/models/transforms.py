@@ -83,4 +83,5 @@ def rescale(flux, w):
 
 def chebyshev_correct(wave, flux, coeffs):
     # TODO everything
-    pass
+    p = np.polynomial.chebyshev.chebval(wave, coeffs, tensor=False)
+    return flux * p

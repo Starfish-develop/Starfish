@@ -1,28 +1,27 @@
 import logging
 
-import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
 from Starfish.utils import calculate_dv, create_log_lam_grid
-from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
-from .parameters import SpectrumParameter
+from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale
 
 
 class SpectrumModel:
 
     def __init__(self, emulator, data):
         self.emulator = emulator
-        self.wave = data.wls[0][data.masks[0]]
-        self.flux = data.fls[0][data.masks[0]]
-        self.sigs = data.sigmas[0][data.masks[0]]
+        mask = data.masks[0].astype(bool)
+        self.wave = data.wls[0][mask]
+        self.flux = data.fls[0][mask]
+        self.sigs = data.sigmas[0][mask]
         dv = calculate_dv(self.wave)
-        min_dv_wl = create_log_lam_grid(dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
-        self.eigenspectra = resample(self.emulator.wl, self.emulator.eigenspectra, min_dv_wl)
+        self.min_dv_wl = create_log_lam_grid(dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
+        self.eigenspectra = resample(self.emulator.wl, self.emulator.eigenspectra, self.min_dv_wl)
 
         self.log = logging.getLogger(self.__class__.__name__)
 
     def __call__(self, parameters):
-        wave = self.emulator.wl
+        wave = self.min_dv_wl
         fls = self.eigenspectra
 
         if parameters.vsini is not None:
@@ -34,11 +33,13 @@ class SpectrumModel:
         if parameters.Av is not None:
             fls = extinct(wave, fls, parameters.Av)
 
-        if parameters.w is not None:
-            fls = rescale(fls, parameters.w)
+        if parameters.logOmega is not None:
+            fls = rescale(fls, parameters.logOmega)
 
         if parameters.cheb is not None:
-            fls = chebyshev_correct(fls, parameters.cheb)
+            pass
+            # TODO need to implement this
+            # fls = chebyshev_correct(wave, fls, parameters.cheb)
 
         fls = resample(wave, fls, self.wave)
 
