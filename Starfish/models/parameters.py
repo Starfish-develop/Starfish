@@ -28,10 +28,11 @@ class SpectrumParameter:
         self.vsini = vsini
         self.logOmega = logOmega  # log10Omega
         self.Av = Av
-        self.cheb = np.array(cheb)
+        # Fix the linear Chebyshev component to avoid degeneracy with Omega
+        self.cheb = np.array([1] + list(cheb))
 
     def to_array(self):
-        array = self.grid_params.tolist() + [self.vz, self.vsini, self.logOmega, self.Av] + self.cheb.tolist()
+        array = self.grid_params.tolist() + [self.vz, self.vsini, self.logOmega, self.Av] + self.cheb[1:].tolist()
         return np.array(array)
 
     @classmethod
@@ -100,7 +101,7 @@ class SpectrumParameterEncoder(json.JSONEncoder):
                 "vsini": o.vsini,
                 "logOmega": o.logOmega,
                 "Av": o.Av,
-                "cheb": o.cheb.tolist()
+                "cheb": o.cheb[1:].tolist()
             }
         except TypeError:
             pass

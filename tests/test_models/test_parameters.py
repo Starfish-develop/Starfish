@@ -10,6 +10,9 @@ class TestSpectrumParameter:
         assert isinstance(mock_parameter.grid_params, np.ndarray)
         assert isinstance(mock_parameter.cheb, np.ndarray)
 
+    def test_cheb(self, mock_parameter):
+        assert mock_parameter.cheb[0] == 1
+
     def test_to_array_and_back(self, mock_parameter):
         p0 = mock_parameter.to_array()
         assert p0.ndim == 1

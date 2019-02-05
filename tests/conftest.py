@@ -102,4 +102,6 @@ def mock_trained_emulator(mock_emulator):
 
 @pytest.fixture
 def mock_parameter():
-    yield SpectrumParameter(grid_params=[6000., 4.32, -0.2], vz=10., vsini=4.0, logOmega=-0.2, Av=0.3, cheb=[1, ])
+    yield SpectrumParameter(grid_params=[6000., 4.32, -0.2], vz=10., vsini=4.0, logOmega=-0.2, Av=0.3, cheb=[0,
+                                                                                                             0.05,
+                                                                                                             0.03])
