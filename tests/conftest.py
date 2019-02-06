@@ -9,7 +9,7 @@ from Starfish.emulator import Emulator
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
     HDF5Creator, HDF5Interface
 from Starfish.spectrum import DataSpectrum
-from Starfish.models import SpectrumParameter
+from Starfish.models import SpectrumParameter, SpectrumModel
 
 
 @pytest.fixture(scope='session')
@@ -105,3 +105,7 @@ def mock_parameter():
     yield SpectrumParameter(grid_params=[6000., 4.32, -0.2], vz=10., vsini=4.0, logOmega=-0.2, Av=0.3, cheb=[0,
                                                                                                              0.05,
                                                                                                              0.03])
+
+@pytest.fixture
+def mock_model(mock_data_spectrum, mock_trained_emulator):
+    yield SpectrumModel(mock_trained_emulator, mock_data_spectrum)

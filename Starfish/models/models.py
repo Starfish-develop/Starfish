@@ -3,7 +3,7 @@ import logging
 from scipy.linalg import cho_factor, cho_solve
 
 from Starfish.utils import calculate_dv, create_log_lam_grid
-from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale
+from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
 
 
 class SpectrumModel:
@@ -37,9 +37,7 @@ class SpectrumModel:
             fls = rescale(fls, parameters.logOmega)
 
         if parameters.cheb is not None:
-            pass
-            # TODO need to implement this
-            # fls = chebyshev_correct(wave, fls, parameters.cheb)
+            fls = chebyshev_correct(wave, fls, parameters.cheb)
 
         fls = resample(wave, fls, self.wave)
 

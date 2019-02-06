@@ -7,12 +7,13 @@ from collections import deque
 
 class SpectrumLikelihood:
 
-    def __init__(self, spectrum, deque_length=100):
+    def __init__(self, spectrum, deque_length=100, jitter=1e-6):
         if not isinstance(spectrum, SpectrumModel):
             raise ValueError('Must provide a valid SpectrumModel')
         self.spectrum = spectrum
         self.log = logging.getLogger(self.__class__.__name__)
         self.residuals_deque = deque(maxlen=deque_length)
+        self.jitter = jitter
 
     @property
     def residuals(self):
@@ -24,8 +25,11 @@ class SpectrumLikelihood:
         return count / n
 
     def log_probability(self, parameters):
-        fls, cov = self.spectrum(parameters)
-        cov += np.diag(self.spectrum.sigs)
+        try:
+            fls, cov = self.spectrum(parameters)
+        except ValueError:
+            return -np.inf
+        cov += self.jitter * np.diag(self.spectrum.sigs)
         factor, flag = cho_factor(cov)
 
         R = self.spectrum.flux - fls
