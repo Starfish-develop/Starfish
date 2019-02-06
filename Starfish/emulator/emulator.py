@@ -1,6 +1,7 @@
 import logging
 import os
 import warnings
+import sys
 
 import h5py
 import numpy as np
@@ -147,7 +148,6 @@ class Emulator:
         # Recalculate the covariance
         mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
-
         return mu, cov
 
     def draw_many_weights(self, params):
