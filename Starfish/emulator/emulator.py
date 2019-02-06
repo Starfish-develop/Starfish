@@ -59,7 +59,7 @@ class Emulator:
             weights = base['weights'][:]
             eigenspectra = base['eigenspectra'][:]
             w_hat = base['w_hat'][:]
-            lambda_xi = base['hyper_parameters']['lambda_xi'].value
+            lambda_xi = base['hyper_parameters']['lambda_xi'][()]
             variances = base['hyper_parameters']['variances'][:]
             lengthscales = base['hyper_parameters']['lengthscales'][:]
             trained = base.attrs['trained']

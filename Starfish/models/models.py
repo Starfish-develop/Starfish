@@ -36,7 +36,8 @@ class SpectrumModel:
         if parameters.logOmega is not None:
             fls = rescale(fls, parameters.logOmega)
 
-        if parameters.cheb is not None:
+        # Not my favorite solution because I don't like exploiting falsiness of None
+        if all(parameters.cheb):
             fls = chebyshev_correct(wave, fls, parameters.cheb)
 
         fls = resample(wave, fls, self.wave)
