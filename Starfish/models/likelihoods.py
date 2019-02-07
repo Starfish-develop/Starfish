@@ -12,16 +12,13 @@ log = logging.getLogger(__name__)
 
 class SpectrumLikelihood:
 
-    def __init__(self, spectrum, deque_length=100, jitter=None):
+    def __init__(self, spectrum, deque_length=100, jitter=1e-6):
         if not isinstance(spectrum, SpectrumModel):
             raise ValueError('Must provide a valid SpectrumModel')
         self.spectrum = spectrum
         self.log = logging.getLogger(self.__class__.__name__)
         self.residuals_deque = deque(maxlen=deque_length)
-        if jitter is None:
-            self.jitter = np.finfo(self.spectrum.flux.dtype).eps
-        else:
-            self.jitter = jitter
+        self.jitter = jitter
 
     @property
     def residuals(self):

@@ -9,7 +9,9 @@ from Starfish.emulator import Emulator
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
     HDF5Creator, HDF5Interface
 from Starfish.models import SpectrumParameter, SpectrumModel
+from Starfish.models.transforms import resample
 from Starfish.spectrum import DataSpectrum
+from Starfish.utils import create_log_lam_grid
 
 
 @pytest.fixture(scope='session')
@@ -70,13 +72,11 @@ def mock_hdf5_interface(mock_hdf5):
 
 
 @pytest.fixture
-def mock_data():
-    wave = np.linspace(1e4, 5e4, 1000)
-    peaks = -5 * st.norm.pdf(wave, 2e4, 200)
-    peaks += -4 * st.norm.pdf(wave, 2.5e4, 80)
-    peaks += -10 * st.norm.pdf(wave, 3e4, 50)
-    flux = peaks + np.random.normal(0, 5, size=1000)
-    yield wave, flux
+def mock_data(mock_hdf5_interface):
+    wave = mock_hdf5_interface.wl
+    new_wave = create_log_lam_grid(1e3, wave.min(), wave.max())['wl']
+    flux = resample(wave, next(mock_hdf5_interface.fluxes), new_wave)
+    yield new_wave, flux
 
 
 @pytest.fixture
