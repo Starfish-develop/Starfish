@@ -41,10 +41,10 @@ class SpectrumModel:
             fls = chebyshev_correct(wave, fls, parameters.cheb)
 
         fls = resample(wave, fls, self.wave)
-        mus, C = self.emulator(parameters.grid_params)
-        cho = cho_factor(C)
+        weights, weights_cov = self.emulator(parameters.grid_params)
+        cho = cho_factor(weights_cov)
         cov = fls.T @ cho_solve(cho, fls)
-        return mus @ fls, cov
+        return weights @ fls, cov
 
 
 class EchelleModel:

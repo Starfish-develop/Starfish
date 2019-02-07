@@ -49,7 +49,7 @@ class SpectrumLikelihood:
         self.residuals_deque.append(R)
 
         logdet = 2 * np.log(np.trace(factor))
-        lnprob = logdet - 0.5 * R @ cho_solve((factor, flag), R)
+        lnprob = -0.5 * (logdet + R.T @ cho_solve((factor, flag), R) + len(R) * np.log(2 * np.pi))
 
         self.log.debug("Evaluating lnprob={}".format(lnprob))
         return lnprob

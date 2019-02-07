@@ -71,8 +71,8 @@ class SpectrumParameter:
 
         return cls.from_dict(read)
 
-    def __str__(self):
-        return "grid_params:{} vz:{} vsini:{} logOmega:{} Av:{} c:{}".format(self.grid_params, self.vz, self.vsini,
+    def __repr__(self):
+        return "grid_params:{} vz:{} vsini:{} logOmega:{} Av:{} Cheb:{}".format(self.grid_params, self.vz, self.vsini,
                                                                              self.logOmega, self.Av, self.cheb)
 
     def __eq__(self, other):
