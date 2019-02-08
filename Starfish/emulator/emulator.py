@@ -30,11 +30,16 @@ class Emulator:
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
 
-        lengthscale_shape = (self.ncomps, grid_points.shape[-1])
-
         self.lambda_xi = lambda_xi
         self.variances = variances if variances is not None else np.ones(self.ncomps)
-        self.lengthscales = lengthscales if lengthscales is not None else np.ones(lengthscale_shape)
+
+        # Estimate teh lengthscales based on grid spacing
+        if lengthscales is None:
+            unique = [np.unique(grid) for grid in grid_points.T]
+            seps = [np.diff(param).mean() ** 2 for param in unique]
+            self.lengthscales = np.tile(seps, (self.ncomps, 1))
+        else:
+            self.lengthscales = lengthscales
 
         # Determine the minimum and maximum bounds of the grid
         self.min_params = grid_points.min(axis=0)
@@ -45,6 +50,7 @@ class Emulator:
         self.v11_cho = cho_factor(
             self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
         self.w_hat = w_hat
+        self._alpha = cho_solve(self.v11_cho, w_hat)
 
         self._trained = False
 
@@ -146,7 +152,7 @@ class Emulator:
         v22 = V22(params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
-        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
+        mu = v12.T @ self._alpha
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
         return mu, cov
 
@@ -162,7 +168,7 @@ class Emulator:
         v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
         v22 = V22m(params, self.variances, self.lengthscales)
 
-        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
+        mu = v12.T @ self._alpha
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
 
         weights = np.random.multivariate_normal(mu, cov).reshape((len(params), -1))
@@ -284,7 +290,7 @@ class Emulator:
         # Recalculate v11 given new parameters
         self.v11_cho = cho_factor(
             self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
-
+        self._alpha = cho_solve(self.v11_cho, self.w_hat)
         self._trained = True
 
     def get_index(self, params):

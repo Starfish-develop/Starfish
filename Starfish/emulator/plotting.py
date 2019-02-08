@@ -96,10 +96,10 @@ def plot_eigenspectra(emulator, params, filename=None):
     for i in range(emulator.ncomps):
         ax = plt.subplot(gs[i + 1], sharex=ax)
         ax.plot(emulator.wl, emulator.eigenspectra[i], c='0.4', lw=1)
-        ax.set_ylabel(rf'$\xi_{i}$')
+        ax.set_ylabel(r'$\xi_{}$'.format(i))
         if i < emulator.ncomps - 1:
             plt.setp(ax.get_xticklabels(), visible=False)
-        ax.legend([rf'$w_{i}$ = {weights[i]:.2e}'])
+        ax.legend([r'$w_{}$ = {:.2e}'.format(i, weights[i])])
     plt.xlabel('Wavelength (A)')
     plt.tight_layout(h_pad=0.2)
 
@@ -123,11 +123,11 @@ def plot_emulator(emulator):
         fix, axes = plt.subplots(int(np.ceil(emulator.ncomps / 2)), 2, sharex=True,
                                  figsize=(13, (emulator.ncomps - 1) * 2))
     axes = np.ravel(np.array(axes).T)
-    [ax.set_ylabel(f'$w_{i}$') for i, ax in enumerate(axes)]
+    [ax.set_ylabel('$w_{}$'.format(i)) for i, ax in enumerate(axes)]
     for i, w in enumerate(weights):
         axes[i].plot(T, w, 'o')
 
-    Ttest = np.linspace(T.min(), T.max())
+    Ttest = np.linspace(T.min(), T.max(), 100)
     Xtest = np.array(list(itertools.product(Ttest, logg[:1], Z[:1])))
     mus = []
     covs = []
@@ -142,5 +142,5 @@ def plot_emulator(emulator):
         axes[i].plot(Ttest, m, 'C1')
         axes[i].fill_between(Ttest, m - 2 * s, m + 2 * s, color='C1', alpha=0.4)
     axes[-1].set_xlabel('T (K)')
-    plt.suptitle(f'Weights for fixed $\log g={4:.2f}$, $[Fe/H]={0:.2f}$', fontsize=20)
+    plt.suptitle('Weights for fixed $\log g={:.2f}$, $[Fe/H]={:.2f}$'.format(logg[0], Z[0]), fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
