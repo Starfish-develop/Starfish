@@ -2,11 +2,12 @@
 # cython: profile=True
 # filename: _covariance.pyx
 
-import numpy as np
-from scipy.linalg import block_diag
+import math
+
 cimport numpy as np
 cimport cython
-import math
+import numpy as np
+from scipy.linalg import block_diag
 
 # Routines for emulator setup
 
@@ -37,8 +38,8 @@ cdef rbf_kernel(np.ndarray[np.double_t, ndim=1] X, np.ndarray[np.double_t, ndim=
     double
 
     """
-    dp = (X - Z) ** 2  # The covariance only depends on the distance squared
-    return variance * math.exp(-0.5 * np.sum(dp / lengthscale))
+    R = (X - Z) / lengthscale  # The covariance only depends on the distance squared
+    return variance * np.exp(-0.5 * R @ R.T)
 
 @cython.boundscheck(False)
 def sigma(np.ndarray[np.double_t, ndim=2] grid_points, double variance, np.ndarray[np.double_t, ndim=1] lengthscale):
@@ -211,4 +212,3 @@ def V22m(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=1]
                 mat[jj, ii] = cov
     return mat
 # Routines for data covariance matrix generation
-
