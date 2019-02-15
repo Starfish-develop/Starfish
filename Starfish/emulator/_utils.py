@@ -43,3 +43,11 @@ def skinny_kron(eigenspectra, M):
             j = jj * M + (i % M)
             out[i, j] = dots[ii, jj]
     return out
+
+def inverse_block_diag(array, size):
+    elements = int(array.shape[0] / size)
+    output = np.empty((size, elements, elements))
+    for i in range(size):
+        indices = slice(i*elements, (i + 1)* elements)
+        output[i] = array[indices, indices]
+    return output

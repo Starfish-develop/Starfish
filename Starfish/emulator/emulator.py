@@ -11,14 +11,14 @@ from sklearn.decomposition import NMF
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
 from ._covariance import block_sigma, V12, V22
-from ._utils import skinny_kron, get_w_hat
+from ._utils import skinny_kron, get_w_hat, inverse_block_diag
 
 log = logging.getLogger(__name__)
 
 
 class Emulator:
     def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variances=None,
-                 lengthscales=None):
+                 lengthscales=None, jitter=1e-8):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.wl = wavelength
@@ -29,7 +29,7 @@ class Emulator:
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e-4 * np.ones(self.ncomps)
         if lengthscales is None:
             unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
             sep = [2 * np.median(np.diff(param)) for param in unique]
@@ -41,9 +41,11 @@ class Emulator:
         self.min_params = grid_points.min(axis=0)
         self.max_params = grid_points.max(axis=0)
 
+        self.jitter = jitter * np.eye(self.ncomps * self.grid_points.shape[0])
+
         # TODO find better variable names for the following
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales)
+        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
         self.v11_cho = cho_factor(
             self.PhiPhi / self.lambda_xi + self.block_sigma)
         self.w_hat = w_hat
@@ -113,9 +115,9 @@ class Emulator:
         # This is basically the mean square error of the reconstruction
         log.info('NMF completed with reconstruction error {}'.format(nmf.reconstruction_err_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
-        return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
+        return cls(grid.grid_points.copy(), grid.wl.copy(), weights, eigenspectra, w_hat)
 
-    def __call__(self, params, full_cov=True):
+    def __call__(self, params, full_cov=True, reinterpret_batch=False):
         """
         Gets the mu and cov matrix for a given set of params
 
@@ -134,10 +136,15 @@ class Emulator:
         ValueError
             If querying the emulator outside of its trained grid points
         """
+        params = np.atleast_2d(params)
+
+        if full_cov and reinterpret_batch:
+            raise ValueError('Cannot reshape the full_covariance matrix for many parameters.')
+
         if not self._trained:
             warnings.warn(
                 'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
-        params = np.atleast_2d(params)
+
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
             raise ValueError('Querying emulator outside of original parameter range.')
@@ -152,6 +159,9 @@ class Emulator:
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
         if not full_cov:
             cov = np.diag(cov)
+        if reinterpret_batch:
+            mu = mu.reshape(-1, self.ncomps, order='F').squeeze()
+            cov = cov.reshape(-1, self.ncomps, order='F').squeeze()
         return mu, cov
 
     def load_flux(self, params, full_cov=False):
@@ -162,7 +172,7 @@ class Emulator:
         :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
         :type: array_like
         """
-        mu, cov = self(params)
+        mu, cov = self(params, reinterpret_batch=False)
         weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
         return weights @ self.eigenspectra
 
@@ -278,11 +288,9 @@ class Emulator:
         self.lambda_xi = params[0]
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
-        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales)
+        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
         self.v11_cho = cho_factor(
             self.PhiPhi / self.lambda_xi + self.block_sigma)
-
-        return self
 
     def log_likelihood(self):
         C = (1. / self.lambda_xi) * self.PhiPhi + self.block_sigma

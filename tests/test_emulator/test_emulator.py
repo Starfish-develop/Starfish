@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from scipy.linalg import block_diag
+from Starfish.emulator._utils import inverse_block_diag
+
 
 class TestEmulator:
 
@@ -20,6 +23,31 @@ class TestEmulator:
         mu, cov = mock_emulator(params)
         assert mu.shape == (12,)
         assert cov.shape == (12, 12)
+
+    def test_reinterpret_dims_fails(self, mock_emulator):
+        params = [
+            [6020, 4.21, -0.01],
+            [6104, 4.01, -0.23],
+            [6054, 4.15, -0.16]
+        ]
+        with pytest.raises(ValueError):
+            mock_emulator(params, full_cov=True, reinterpret_batch=True)
+
+
+    def test_reinterpret_dims(self, mock_emulator):
+        params = [
+            [6020, 4.21, -0.01],
+            [6104, 4.01, -0.23],
+            [6054, 4.15, -0.16]
+        ]
+        batch_mus, batch_vars = mock_emulator(params, full_cov=False, reinterpret_batch=True)
+        lin_mus = np.empty((3, 6))
+        lin_vars = np.empty((3, 6))
+        for i, p in enumerate(params):
+            lin_mus[i], lin_vars[i] = mock_emulator(p, full_cov=False, reinterpret_batch=True)
+        assert np.allclose(batch_mus, lin_mus)
+        assert np.allclose(batch_vars, lin_vars)
+
 
     def test_std(self, mock_emulator):
         mu, std = mock_emulator([6020, 4.21, -0.01], full_cov=False)
@@ -55,12 +83,21 @@ class TestEmulator:
         assert mock_emulator._trained == True
 
     def test_get_set_param_vector(self, mock_emulator):
-        P = mock_emulator.get_param_vector()
-        emu = mock_emulator.set_param_vector(P)
-        assert emu.lambda_xi == mock_emulator.lambda_xi
-        assert np.allclose(emu.variances, mock_emulator.variances)
-        assert np.allclose(emu.lengthscales, mock_emulator.lengthscales)
+        P0 = mock_emulator.get_param_vector()
+        mock_emulator.set_param_vector(P0)
+        P1 = mock_emulator.get_param_vector()
+        assert np.allclose(P0, P1)
 
     def test_log_likelihood(self, mock_emulator):
         ll = mock_emulator.log_likelihood()
         assert np.isfinite(ll)
+
+
+class TestUtils:
+
+    def test_inverse_block_diag(self):
+        n = 4
+        blocks = 10*np.random.randn(n, 6, 6)
+        block_matrix = block_diag(*blocks)
+        out = inverse_block_diag(block_matrix, n)
+        assert np.allclose(out, blocks)
