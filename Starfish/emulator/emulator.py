@@ -115,7 +115,7 @@ class Emulator:
         # This is basically the mean square error of the reconstruction
         log.info('NMF completed with reconstruction error {}'.format(nmf.reconstruction_err_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
-        return cls(grid.grid_points.copy(), grid.wl.copy(), weights, eigenspectra, w_hat)
+        return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
 
     def __call__(self, params, full_cov=True, reinterpret_batch=False):
         """

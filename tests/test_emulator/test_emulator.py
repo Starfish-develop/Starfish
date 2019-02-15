@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-
 from scipy.linalg import block_diag
+
 from Starfish.emulator._utils import inverse_block_diag
 
 
@@ -33,7 +33,6 @@ class TestEmulator:
         with pytest.raises(ValueError):
             mock_emulator(params, full_cov=True, reinterpret_batch=True)
 
-
     def test_reinterpret_dims(self, mock_emulator):
         params = [
             [6020, 4.21, -0.01],
@@ -47,7 +46,6 @@ class TestEmulator:
             lin_mus[i], lin_vars[i] = mock_emulator(p, full_cov=False, reinterpret_batch=True)
         assert np.allclose(batch_mus, lin_mus)
         assert np.allclose(batch_vars, lin_vars)
-
 
     def test_std(self, mock_emulator):
         mu, std = mock_emulator([6020, 4.21, -0.01], full_cov=False)
@@ -97,7 +95,7 @@ class TestUtils:
 
     def test_inverse_block_diag(self):
         n = 4
-        blocks = 10*np.random.randn(n, 6, 6)
+        blocks = 10 * np.random.randn(n, 6, 6)
         block_matrix = block_diag(*blocks)
         out = inverse_block_diag(block_matrix, n)
         assert np.allclose(out, blocks)

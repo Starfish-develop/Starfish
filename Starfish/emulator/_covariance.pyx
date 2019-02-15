@@ -37,10 +37,11 @@ cdef rbf_kernel(np.ndarray[np.double_t, ndim=2] X, np.ndarray[np.double_t, ndim=
     double
 
     """
-    X /= lengthscale
-    Z /= lengthscale
-    cdef np.ndarray[np.double_t, ndim=2] R = cdist(X, Z)  # The covariance only depends on the distance squared
-    return variance * np.exp(-0.5 * R ** 2)
+    X_scaled = X / lengthscale
+    Z_scaled = Z / lengthscale
+    # The covariance only depends on the distance squared
+    cdef np.ndarray[np.double_t, ndim=2] R2 = cdist(X_scaled, Z_scaled, 'sqeuclidean')
+    return variance * np.exp(-0.5 * R2)
 
 def block_sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=1] variances,
                 np.ndarray[np.double_t, ndim=2] lengthscales):

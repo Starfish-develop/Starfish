@@ -17,9 +17,9 @@ def get_w_hat(eigenspectra, fluxes, M):
         for j in range(M):
             out[i * M + j] = eigenspectra[i].T @ fluxes[j]
 
-    PhiPhi = np.linalg.inv(skinny_kron(eigenspectra, M))
+    PhiPhi = skinny_kron(eigenspectra, M)
 
-    return PhiPhi @ out
+    return np.linalg.solve(PhiPhi, out)
 
 
 def skinny_kron(eigenspectra, M):
