@@ -1,9 +1,6 @@
 import logging
 
 import numpy as np
-from scipy.linalg import cho_factor, cho_solve
-
-from ._covariance import Sigma
 
 log = logging.getLogger(__name__)
 
@@ -46,35 +43,3 @@ def skinny_kron(eigenspectra, M):
             j = jj * M + (i % M)
             out[i, j] = dots[ii, jj]
     return out
-
-
-def _ln_posterior(p, emulator):
-    """
-    Calculate the lnprob using Habib's posterior formula for the emulator.
-    """
-    # We don't allow negative parameters.
-    if np.any(p < 0.):
-        return -np.inf
-
-    lambda_xi, variances, lengthscales = deflatten_parameters(p, emulator.ncomps)
-
-    Sig_w = Sigma(emulator.grid_points, variances, lengthscales)
-    C = (1. / lambda_xi) * emulator.PhiPhi + Sig_w
-    factor = cho_factor(C)
-    logdet = np.log(np.trace(factor[0]))
-    central = emulator.w_hat.T @ cho_solve(factor, emulator.w_hat)
-    return -0.5 * (logdet + central + emulator.grid_points.size * np.log(2. * np.pi))
-
-
-def flatten_parameters(lambda_xi, variances, lengthscales):
-    params = [lambda_xi] + list(variances)
-    for l in lengthscales:
-        params.extend(l)
-    return np.array(params)
-
-
-def deflatten_parameters(params, ncomps):
-    lambda_xi = params[0]
-    variances = params[1:(ncomps + 1)]
-    lengthscales = params[(ncomps + 1):].reshape((ncomps, -1))
-    return lambda_xi, variances, lengthscales

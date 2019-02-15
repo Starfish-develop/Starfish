@@ -1,7 +1,6 @@
 import logging
 import os
 import warnings
-import sys
 
 import h5py
 import numpy as np
@@ -11,9 +10,8 @@ from sklearn.decomposition import NMF
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
-
-from ._covariance import Sigma, V12, V22, V12m, V22m
-from ._utils import skinny_kron, get_w_hat, _ln_posterior, flatten_parameters, deflatten_parameters
+from ._covariance import block_sigma, V12, V22
+from ._utils import skinny_kron, get_w_hat
 
 log = logging.getLogger(__name__)
 
@@ -32,14 +30,12 @@ class Emulator:
 
         self.lambda_xi = lambda_xi
         self.variances = variances if variances is not None else np.ones(self.ncomps)
-
-        # Estimate teh lengthscales based on grid spacing
         if lengthscales is None:
-            unique = [np.unique(grid) for grid in grid_points.T]
-            seps = [np.diff(param).mean() ** 2 for param in unique]
-            self.lengthscales = np.tile(seps, (self.ncomps, 1))
-        else:
-            self.lengthscales = lengthscales
+            unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
+            sep = [2 * np.median(np.diff(param)) for param in unique]
+            lengthscales = np.tile(sep, (self.ncomps, 1))
+
+        self.lengthscales = lengthscales
 
         # Determine the minimum and maximum bounds of the grid
         self.min_params = grid_points.min(axis=0)
@@ -47,10 +43,10 @@ class Emulator:
 
         # TODO find better variable names for the following
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
+        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales)
         self.v11_cho = cho_factor(
-            self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
+            self.PhiPhi / self.lambda_xi + self.block_sigma)
         self.w_hat = w_hat
-        self._alpha = cho_solve(self.v11_cho, w_hat)
 
         self._trained = False
 
@@ -119,7 +115,7 @@ class Emulator:
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
         return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
 
-    def __call__(self, params):
+    def __call__(self, params, full_cov=True):
         """
         Gets the mu and cov matrix for a given set of params
 
@@ -141,38 +137,22 @@ class Emulator:
         if not self._trained:
             warnings.warn(
                 'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
-        params = np.array(params)
+        params = np.atleast_2d(params)
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
             raise ValueError('Querying emulator outside of original parameter range.')
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = V12(params, self.grid_points, self.variances, self.lengthscales)
+        v12 = V12(self.grid_points, params, self.variances, self.lengthscales)
         v22 = V22(params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
-        mu = v12.T @ self._alpha
+        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
         cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
+        if not full_cov:
+            cov = np.diag(cov)
         return mu, cov
-
-    def draw_many_weights(self, params):
-        if not self._trained:
-            warnings.warn(
-                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
-        params = np.array(params)
-        # If the pars is outside of the range of emulator values, raise a ModelError
-        if np.any(params < self.min_params) or np.any(params > self.max_params):
-            raise ValueError('Querying emulator outside of original parameter range.')
-
-        v12 = V12m(params, self.grid_points, self.variances, self.lengthscales)
-        v22 = V22m(params, self.variances, self.lengthscales)
-
-        mu = v12.T @ self._alpha
-        cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
-
-        weights = np.random.multivariate_normal(mu, cov).reshape((len(params), -1))
-        return weights
 
     def load_flux(self, params, full_cov=False):
         """
@@ -180,24 +160,11 @@ class Emulator:
         by sampling from the weight distributions.
 
         :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
-        :type: iterable
-        :param full_cov: If true, will return the full covariance matrix for the weights
-        :type full_cov: bool
-        :return: tuple of (mu, cov) or (mu, var)
-
-        .. warning::
-            When returning the emulator covariance matrix, this is a costly operation and will return a
-            datastructure with (N_pix x N_pix) data points. For now, don't do it.
+        :type: array_like
         """
-        params = np.array(params)
         mu, cov = self(params)
-        weights = np.random.multivariate_normal(mu, cov)
-        if not full_cov:
-            cov = np.diag(cov)
-            C = (self.eigenspectra.T @ cov) * (cov @ self.eigenspectra)
-        else:
-            C = np.linalg.multi_dot([self.eigenspectra.T, cov, self.eigenspectra])
-        return weights @ self.eigenspectra, C
+        weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
+        return weights @ self.eigenspectra
 
     def determine_chunk_log(self, wavelength, buffer=50):
         """
@@ -236,18 +203,7 @@ class Emulator:
         self.wl = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
 
-    def draw_weights(self, params):
-        params = np.array(params)
-        mu, cov = self(params)
-        if params.ndim > 1:
-            weights = [np.random.multivariate_normal(m, c) for m, c in zip(mu, cov)]
-            weights = np.array(weights)
-        else:
-            weights = np.random.multivariate_normal(mu, cov)
-
-        return weights
-
-    def train(self, lambda_xi=None, variances=None, lengthscales=None, **opt_kwargs):
+    def train(self, **opt_kwargs):
         """
         Trains the emulator's hyperparameters using gradient descent
 
@@ -267,20 +223,19 @@ class Emulator:
         scipy.optimize.minimize
 
         """
-        if lambda_xi is None:
-            lambda_xi = self.lambda_xi
-        if variances is None:
-            variances = self.variances
-        if lengthscales is None:
-            lengthscales = self.lengthscales
+        P0 = self.get_param_vector()
 
-        P0 = flatten_parameters(lambda_xi, variances, lengthscales)
+        def nll(P):
+            if np.any(P) < 0:
+                return np.inf
+            self.set_param_vector(P)
+            return -self.log_likelihood()
 
-        nll = lambda P: -_ln_posterior(P, self)
         soln = minimize(nll, P0, **opt_kwargs)
 
         # Extract hyper parameters
-        self.lambda_xi, self.variances, self.lengthscales = deflatten_parameters(soln.x, self.ncomps)
+        self.set_param_vector(soln.x)
+        self.log.info(soln)
 
         self.log.info('Finished optimizing emulator hyperparameters')
         self.log.info('lambda_xi: {}'.format(self.lambda_xi))
@@ -289,8 +244,8 @@ class Emulator:
 
         # Recalculate v11 given new parameters
         self.v11_cho = cho_factor(
-            self.PhiPhi / self.lambda_xi + Sigma(self.grid_points, self.variances, self.lengthscales))
-        self._alpha = cho_solve(self.v11_cho, self.w_hat)
+            self.PhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales))
+
         self._trained = True
 
     def get_index(self, params):
@@ -309,7 +264,29 @@ class Emulator:
         index : int
 
         """
-        if not isinstance(params, np.ndarray):
-            params = np.array(params)
+        params = np.atleast_2d(params)
+        marks = np.abs(self.grid_points - np.expand_dims(params, 1)).sum(axis=-1)
+        return marks.argmin(axis=1).squeeze()
 
-        return np.abs(self.grid_points - params).sum(axis=1).argmin()
+    def get_param_vector(self):
+        params = [self.lambda_xi] + self.variances.tolist()
+        for l in self.lengthscales:
+            params.extend(l)
+        return np.array(params)
+
+    def set_param_vector(self, params):
+        self.lambda_xi = params[0]
+        self.variances = params[1:(self.ncomps + 1)]
+        self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
+        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales)
+        self.v11_cho = cho_factor(
+            self.PhiPhi / self.lambda_xi + self.block_sigma)
+
+        return self
+
+    def log_likelihood(self):
+        C = (1. / self.lambda_xi) * self.PhiPhi + self.block_sigma
+        L, flag = cho_factor(C)
+        logdet = np.log(np.trace(L))
+        central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
+        return -0.5 * (logdet + central + self.grid_points.size * np.log(2. * np.pi))
