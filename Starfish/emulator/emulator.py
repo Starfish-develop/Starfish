@@ -4,7 +4,7 @@ import warnings
 
 import h5py
 import numpy as np
-from scipy.linalg import cho_factor, cho_solve
+from scipy.linalg import cho_factor, cho_solve, block_diag
 from scipy.optimize import minimize
 from sklearn.decomposition import NMF
 
@@ -29,10 +29,10 @@ class Emulator:
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else 1e4 * np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e5 * np.ones(self.ncomps)
         if lengthscales is None:
             unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
-            sep = [np.median(5 * np.diff(param)) for param in unique]
+            sep = [np.median(10 * np.diff(param)) for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -44,9 +44,9 @@ class Emulator:
         self.jitter = jitter * np.eye(self.ncomps * self.grid_points.shape[0])
 
         # TODO find better variable names for the following
-        self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
+        self.iPhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
         self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(self.PhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11_cho = cho_factor(self.iPhiPhi / self.lambda_xi + self.block_sigma)
         self.w_hat = w_hat
 
         self._trained = False
@@ -246,22 +246,22 @@ class Emulator:
             self.log.debug('loss: {}\r'.format(loss))
             return loss
 
-        soln = minimize(nll, P0, **opt_kwargs)
+        default_kwargs = dict(method='Nelder-Mead')
+        default_kwargs.update(opt_kwargs)
+        soln = minimize(nll, P0, **default_kwargs)
 
-        # Extract hyper parameters
-        self.set_param_vector(soln.x)
-        self.log.debug(soln)
+        if not soln.success:
+            self.log.warning('Optimization did not succeed. Reverting.')
+            self.log.info(soln.message)
+            self.set_param_vector(P0)
+        else:
+            self.set_param_vector(soln.x)
+            self.log.info('Finished optimizing emulator hyperparameters')
+            self.log.info('lambda_xi: {}'.format(self.lambda_xi))
+            self.log.info('variances: {}'.format(self.variances))
+            self.log.info('lengthscales: {}'.format(self.lengthscales))
 
-        self.log.info('Finished optimizing emulator hyperparameters')
-        self.log.info('lambda_xi: {}'.format(self.lambda_xi))
-        self.log.info('variances: {}'.format(self.variances))
-        self.log.info('lengthscales: {}'.format(self.lengthscales))
-
-        # Recalculate v11 given new parameters
-        self.v11_cho = cho_factor(
-            self.PhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales))
-
-        self._trained = True
+            self._trained = True
 
     def get_index(self, params):
         """
@@ -294,24 +294,32 @@ class Emulator:
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
         self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(self.PhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11_cho = cho_factor(self.iPhiPhi / self.lambda_xi + self.block_sigma)
 
     def log_likelihood(self):
-        sigma = self.PhiPhi / self.lambda_xi + self.block_sigma
+        sigma = self.iPhiPhi / self.lambda_xi + self.block_sigma
         L, flag = cho_factor(sigma)
         logdet = np.log(np.trace(L))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
         return -0.5 * (logdet + central)
 
     def grad_log_likelihood(self):
-        sigma = self.PhiPhi / self.lambda_xi + self.block_sigma
-        sigma_adjugate = np.linalg.det(sigma) * np.linalg.inv(sigma)
-        dsigma__dlambda_xi = -self.PhiPhi / self.lambda_xi ** 2
+        raise NotImplementedError('Not implemented yet.')
+        sigma = self.iPhiPhi / self.lambda_xi + self.block_sigma
+        sigma_det = np.linalg.det(sigma)
+        sigma_w_hat = np.linalg.solve(sigma, self.w_hat)
+        dsigma__dlambda_xi = -self.iPhiPhi / self.lambda_xi ** 2
+        divided_kern = inverse_block_diag(self.block_sigma, self.ncomps) / self.variances
+        dsigma__dvariance = block_diag(*divided_kern)
+        dsigma__dls = None
 
-        d__lambda_xi = -0.5 * (np.trace(sigma_adjugate @ dsigma__dlambda_xi) +
-                               self.w_hat.T @ np.linalg.solve(sigma, -dsigma__dlambda_xi) @
-                               np.linalg.solve(sigma, self.w_hat))
+        sigma__dlambda_xi = np.linalg.solve(sigma, dsigma__dlambda_xi)
+        d__lambda_xi = -0.5 * (np.trace(sigma_det * sigma__dlambda_xi) -
+                                        self.w_hat.T @ sigma__dlambda_xi @ sigma_w_hat)
 
-        dkernel_dvariance = inverse_block_diag(block_sigma(self.grid_points, np.ones(self.ncomps),
-                                                           self.lengthscales[n]))
+        sigma__dvariance = np.linalg.solve(sigma, dsigma__dvariance)
+        d__dvariance = -0.5 * (np.trace(sigma_det * sigma__dvariance) -
+                                             self.w_hat.T @ sigma__dvariance @ sigma_w_hat)
 
+        sigma__dls = np.linalg.solve(sigma, dsigma__dls)
+        d__dls = -0.5 * (np.trace(sigma_det * sigma__dls) - self.w_hat.T @ sigma__dls @ sigma_w_hat)
