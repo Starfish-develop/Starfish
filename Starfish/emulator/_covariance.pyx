@@ -9,7 +9,6 @@ from scipy.linalg import block_diag
 from scipy.spatial.distance import cdist
 
 # Routines for emulator setup
-
 @cython.boundscheck(False)
 cdef rbf_kernel(np.ndarray[np.double_t, ndim=2] X, np.ndarray[np.double_t, ndim=2] Z, double variance,
                 np.ndarray[np.double_t, ndim=1] lengthscale):

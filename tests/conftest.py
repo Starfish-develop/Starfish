@@ -13,6 +13,8 @@ from Starfish.models.transforms import resample
 from Starfish.spectrum import DataSpectrum
 from Starfish.utils import create_log_lam_grid
 
+test_base = os.path.dirname(__file__)
+
 
 @pytest.fixture(scope='session')
 def grid_points():
@@ -25,7 +27,6 @@ def grid_points():
 
 @pytest.fixture(scope='session')
 def PHOENIXModels(grid_points):
-    test_base = os.path.dirname(os.path.dirname(__file__))
     outdir = os.path.join(test_base, 'data', 'phoenix')
     download_PHOENIX_models(grid_points, outdir)
     yield outdir
@@ -34,7 +35,6 @@ def PHOENIXModels(grid_points):
 @pytest.fixture(scope='session')
 def AlphaPHOENIXModels():
     params = [(6100, 4.5, 0.0, -0.2,)]
-    test_base = os.path.dirname(os.path.dirname(__file__))
     outdir = os.path.join(test_base, 'data', 'phoenix')
     download_PHOENIX_models(params, outdir)
     yield outdir
@@ -92,10 +92,9 @@ def mock_emulator(mock_hdf5_interface):
 
 @pytest.fixture
 def mock_trained_emulator(mock_emulator):
-    test_base = os.path.dirname(os.path.dirname(__file__))
     filename = os.path.join(test_base, 'data', 'emu.hdf5')
     if os.path.exists(filename):
-        yield Emulator.open(filename)
+        yield Emulator.load(filename)
     else:
         mock_emulator.train()
         mock_emulator.save(filename)

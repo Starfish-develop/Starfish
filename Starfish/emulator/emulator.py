@@ -29,10 +29,10 @@ class Emulator:
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else 1e-4 * np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e4 * np.ones(self.ncomps)
         if lengthscales is None:
             unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
-            sep = [2 * np.median(np.diff(param)) for param in unique]
+            sep = [np.median(5 * np.diff(param)) for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -46,14 +46,13 @@ class Emulator:
         # TODO find better variable names for the following
         self.PhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
         self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(
-            self.PhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11_cho = cho_factor(self.PhiPhi / self.lambda_xi + self.block_sigma)
         self.w_hat = w_hat
 
         self._trained = False
 
     @classmethod
-    def open(cls, filename):
+    def load(cls, filename):
         """
         Create an Emulator object from an HDF5 file.
         """
@@ -68,8 +67,10 @@ class Emulator:
             variances = base['hyper_parameters']['variances'][:]
             lengthscales = base['hyper_parameters']['lengthscales'][:]
             trained = base.attrs['trained']
+            jitter = base.attrs['jitter']
 
-        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales)
+        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales,
+                       jitter)
         emulator._trained = trained
         return emulator
 
@@ -84,6 +85,7 @@ class Emulator:
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
+            base.attrs['jitter'] = self.jitter.max()
             hp_group = base.create_group('hyper_parameters')
             hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
             hp_group.create_dataset('variances', data=self.variances, compression=9)
@@ -109,6 +111,7 @@ class Emulator:
         sklearn.decomposition.NMF
         """
         fluxes = np.array(list(grid.fluxes))
+        fluxes /= fluxes.mean(1, keepdims=True)
         nmf = NMF(n_components=ncomps)
         weights = nmf.fit_transform(fluxes)
         eigenspectra = nmf.components_
@@ -164,7 +167,7 @@ class Emulator:
             cov = cov.reshape(-1, self.ncomps, order='F').squeeze()
         return mu, cov
 
-    def load_flux(self, params, full_cov=False):
+    def load_flux(self, params):
         """
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
         by sampling from the weight distributions.
@@ -236,16 +239,18 @@ class Emulator:
         P0 = self.get_param_vector()
 
         def nll(P):
-            if np.any(P) < 0:
+            if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
-            return -self.log_likelihood()
+            loss = -self.log_likelihood()
+            self.log.debug('loss: {}\r'.format(loss))
+            return loss
 
         soln = minimize(nll, P0, **opt_kwargs)
 
         # Extract hyper parameters
         self.set_param_vector(soln.x)
-        self.log.info(soln)
+        self.log.debug(soln)
 
         self.log.info('Finished optimizing emulator hyperparameters')
         self.log.info('lambda_xi: {}'.format(self.lambda_xi))
@@ -289,12 +294,24 @@ class Emulator:
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
         self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(
-            self.PhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11_cho = cho_factor(self.PhiPhi / self.lambda_xi + self.block_sigma)
 
     def log_likelihood(self):
-        C = (1. / self.lambda_xi) * self.PhiPhi + self.block_sigma
-        L, flag = cho_factor(C)
+        sigma = self.PhiPhi / self.lambda_xi + self.block_sigma
+        L, flag = cho_factor(sigma)
         logdet = np.log(np.trace(L))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
-        return -0.5 * (logdet + central + self.grid_points.size * np.log(2. * np.pi))
+        return -0.5 * (logdet + central)
+
+    def grad_log_likelihood(self):
+        sigma = self.PhiPhi / self.lambda_xi + self.block_sigma
+        sigma_adjugate = np.linalg.det(sigma) * np.linalg.inv(sigma)
+        dsigma__dlambda_xi = -self.PhiPhi / self.lambda_xi ** 2
+
+        d__lambda_xi = -0.5 * (np.trace(sigma_adjugate @ dsigma__dlambda_xi) +
+                               self.w_hat.T @ np.linalg.solve(sigma, -dsigma__dlambda_xi) @
+                               np.linalg.solve(sigma, self.w_hat))
+
+        dkernel_dvariance = inverse_block_diag(block_sigma(self.grid_points, np.ones(self.ncomps),
+                                                           self.lengthscales[n]))
+

@@ -3,6 +3,7 @@ import pytest
 from scipy.linalg import block_diag
 
 from Starfish.emulator._utils import inverse_block_diag
+from Starfish.emulator import Emulator
 
 
 class TestEmulator:
@@ -90,6 +91,15 @@ class TestEmulator:
         ll = mock_emulator.log_likelihood()
         assert np.isfinite(ll)
 
+    def test_save_load(self, mock_emulator, tmpdir):
+        init = mock_emulator.get_param_vector()
+        filename = tmpdir.join('emu.hdf5')
+        mock_emulator.save(filename)
+        emulator = Emulator.load(filename)
+        final = emulator.get_param_vector()
+        assert np.allclose(init, final)
+        assert np.allclose(emulator.jitter, mock_emulator.jitter)
+        assert emulator._trained == mock_emulator._trained
 
 class TestUtils:
 

@@ -40,7 +40,7 @@ class SpectrumLikelihood:
         except np.linalg.LinAlgError:
             self.log.warning('Failed to decompose covariance. Entering covariance debugger')
             covariance_debugger(cov)
-            sys.exit()
+            return -np.inf
 
         R = self.spectrum.flux - fls
         self.residuals_deque.append(R)
