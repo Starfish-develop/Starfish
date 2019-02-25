@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import warnings
 
@@ -18,7 +19,7 @@ log = logging.getLogger(__name__)
 
 class Emulator:
     def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variances=None,
-                 lengthscales=None, jitter=1e-8):
+                 lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.wl = wavelength
@@ -29,10 +30,10 @@ class Emulator:
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else 1e5 * np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e6 * np.ones(self.ncomps)
         if lengthscales is None:
             unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
-            sep = [np.median(10 * np.diff(param)) for param in unique]
+            sep = [3 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -41,12 +42,10 @@ class Emulator:
         self.min_params = grid_points.min(axis=0)
         self.max_params = grid_points.max(axis=0)
 
-        self.jitter = jitter * np.eye(self.ncomps * self.grid_points.shape[0])
 
         # TODO find better variable names for the following
         self.iPhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(self.iPhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11 = self.iPhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales)
         self.w_hat = w_hat
 
         self._trained = False
@@ -67,10 +66,8 @@ class Emulator:
             variances = base['hyper_parameters']['variances'][:]
             lengthscales = base['hyper_parameters']['lengthscales'][:]
             trained = base.attrs['trained']
-            jitter = base.attrs['jitter']
 
-        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales,
-                       jitter)
+        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales,)
         emulator._trained = trained
         return emulator
 
@@ -85,7 +82,6 @@ class Emulator:
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
-            base.attrs['jitter'] = self.jitter.max()
             hp_group = base.create_group('hyper_parameters')
             hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
             hp_group.create_dataset('variances', data=self.variances, compression=9)
@@ -94,29 +90,30 @@ class Emulator:
         self.log.info('Saved file at {}'.format(filename))
 
     @classmethod
-    def from_grid(cls, grid, ncomps=6):
+    def from_grid(cls, grid, **pca_kwargs):
         """
-        Create an Emulator using NMF decomposition from a GridInterface.
+        Create an Emulator using PCA decomposition from a GridInterface.
 
         Parameters
         ----------
         grid : :class:`GridInterface`
             The grid interface to decompose
-        ncomps : int, optional
-            The number of eigenspectra to use for NMF. The larger this number, the less reconstruction error.
-            Default is 6.
+        pca_kwargs : dict, optional
 
         See Also
         --------
-        sklearn.decomposition.NMF
+        sklearn.decomposition.PCA
         """
         fluxes = np.array(list(grid.fluxes))
+        # Normalize to an average of 1 to remove uninteresting correlation
         fluxes /= fluxes.mean(1, keepdims=True)
-        nmf = NMF(n_components=ncomps)
+        default_pca_kwargs = dict(n_components=6)
+        default_pca_kwargs.update(pca_kwargs)
+        nmf = NMF(**default_pca_kwargs)
         weights = nmf.fit_transform(fluxes)
         eigenspectra = nmf.components_
         # This is basically the mean square error of the reconstruction
-        log.info('NMF completed with reconstruction error {}'.format(nmf.reconstruction_err_))
+        log.info('NMF completed with {} components and {} reconstruction error'.format(nmf.n_components_, nmf.reconstruction_err_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
         return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
 
@@ -158,8 +155,8 @@ class Emulator:
         v22 = V22(params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
-        mu = v12.T @ cho_solve(self.v11_cho, self.w_hat)
-        cov = v22 - v12.T @ cho_solve(self.v11_cho, v12)
+        mu = v12.T @ np.linalg.solve(self.v11, self.w_hat)
+        cov = v22 - v12.T @ np.linalg.solve(self.v11, v12)
         if not full_cov:
             cov = np.diag(cov)
         if reinterpret_batch:
@@ -237,13 +234,12 @@ class Emulator:
 
         """
         P0 = self.get_param_vector()
-
         def nll(P):
             if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
             loss = -self.log_likelihood()
-            self.log.debug('loss: {}\r'.format(loss))
+            self.log.debug('loss: {}'.format(loss))
             return loss
 
         default_kwargs = dict(method='Nelder-Mead')
@@ -253,7 +249,7 @@ class Emulator:
         if not soln.success:
             self.log.warning('Optimization did not succeed. Reverting.')
             self.log.info(soln.message)
-            self.set_param_vector(P0)
+            # self.set_param_vector(P0)
         else:
             self.set_param_vector(soln.x)
             self.log.info('Finished optimizing emulator hyperparameters')
@@ -293,15 +289,13 @@ class Emulator:
         self.lambda_xi = params[0]
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
-        self.block_sigma = block_sigma(self.grid_points, self.variances, self.lengthscales) + self.jitter
-        self.v11_cho = cho_factor(self.iPhiPhi / self.lambda_xi + self.block_sigma)
+        self.v11 = self.iPhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales)
 
     def log_likelihood(self):
-        sigma = self.iPhiPhi / self.lambda_xi + self.block_sigma
-        L, flag = cho_factor(sigma)
+        L, flag = cho_factor(self.v11)
         logdet = np.log(np.trace(L))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
-        return -0.5 * (logdet + central)
+        return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
 
     def grad_log_likelihood(self):
         raise NotImplementedError('Not implemented yet.')
