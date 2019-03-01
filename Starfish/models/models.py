@@ -16,13 +16,13 @@ class SpectrumModel:
         self.sigs = data.sigmas[0][mask]
         dv = calculate_dv(self.wave)
         self.min_dv_wl = create_log_lam_grid(dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
-        self.eigenspectra = resample(self.emulator.wl, self.emulator.eigenspectra, self.min_dv_wl)
+        self.bulk_fluxes = resample(self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
 
         self.log = logging.getLogger(self.__class__.__name__)
 
     def __call__(self, parameters):
         wave = self.min_dv_wl
-        fls = self.eigenspectra
+        fls = self.bulk_fluxes
 
         if parameters.vsini is not None:
             fls = rotational_broaden(wave, fls, parameters.vsini)
@@ -43,8 +43,11 @@ class SpectrumModel:
         fls = resample(wave, fls, self.wave)
         weights, weights_cov = self.emulator(parameters.grid_params)
         cho = cho_factor(weights_cov)
-        cov = fls.T @ cho_solve(cho, fls)
-        return weights @ fls, cov
+        eigenspectra = fls[:-2]
+        flux_mean, flux_std = fls[-2:]
+        X = eigenspectra * flux_std
+        cov = X.T @ cho_solve(cho, X)
+        return weights @ X + flux_mean, cov
 
 
 class EchelleModel:
