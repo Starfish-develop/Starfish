@@ -10,10 +10,6 @@ class TestSpectrumModel:
         assert cov.shape == (len(flux), len(flux))
         assert flux.shape == mock_model.wave.shape
 
-    def test_warns_without_data(self, mock_emulator):
-        with pytest.warns(UserWarning):
-            model = SpectrumModel(mock_emulator, [6000, 4.0, 0])
-
     def test_get_set_parameters(self, mock_model):
         P0 = mock_model.get_param_vector()
         mock_model.set_param_vector(P0)

@@ -11,7 +11,7 @@ from .transforms import rotational_broaden, resample, doppler_shift, extinct, re
 
 class SpectrumModel:
 
-    def __init__(self, emulator, grid_params, data=None, vsini=None, vz=None, Av=None, logOmega=None,
+    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, logOmega=None,
                  cheb=[1, 0, 0, 0], jitter=1e-8, deque_length=500):
         self.emulator = emulator
 
@@ -23,12 +23,6 @@ class SpectrumModel:
             dv = calculate_dv(self.wave)
             self.min_dv_wl = create_log_lam_grid(dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
             self.bulk_fluxes = resample(self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
-        else:
-            warnings.warn('Without providing a data spectrum the emulator will be vastly oversampled and cause much '
-                          'higher computation costs.')
-            self.wave = self.emulator.wavelength
-            self.bulk_fluxes = self.emulator.bulk_fluxes
-            self.min_dv_wl = self.wave
 
         self.grid_params = grid_params
         self.num_grid_params = len(grid_params)
@@ -124,7 +118,7 @@ class SpectrumModel:
         try:
             factor, flag = cho_factor(cov)
         except np.linalg.LinAlgError:
-            self.log.warning('Failed to decompose covariance. Entering covariance debugger')
+            self.log.warning('Failed to decompose covariance.')
             covariance_debugger(cov)
             return -np.inf
 
