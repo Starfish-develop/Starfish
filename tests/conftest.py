@@ -96,16 +96,11 @@ def mock_trained_emulator(mock_emulator):
     if os.path.exists(filename):
         yield Emulator.load(filename)
     else:
-        mock_emulator.train()
+        mock_emulator.train(options={'maxiter':100})
         mock_emulator.save(filename)
 
 
 @pytest.fixture
-def mock_parameter():
-    yield SpectrumParameter(grid_params=[6000., 4.32, -0.2], vz=10., vsini=4.0, logOmega=-0.2, Av=0.3,
-                            cheb=[0, 0, 0.03])
-
-
-@pytest.fixture
 def mock_model(mock_data_spectrum, mock_trained_emulator):
-    yield SpectrumModel(mock_trained_emulator, mock_data_spectrum)
+    yield SpectrumModel(mock_trained_emulator, grid_params=[6000, 4.0, 0.0], data=mock_data_spectrum, vz=0, Av=0,
+                        logOmega=-10, vsini=30)
