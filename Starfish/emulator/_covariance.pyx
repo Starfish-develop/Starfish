@@ -6,9 +6,9 @@ cimport numpy as np
 cimport cython
 import numpy as np
 from scipy.linalg import block_diag
+import math
 from scipy.spatial.distance import cdist
 
-# Routines for emulator setup
 @cython.boundscheck(False)
 cdef rbf_kernel(np.ndarray[np.double_t, ndim=2] X, np.ndarray[np.double_t, ndim=2] Z, double variance,
                 np.ndarray[np.double_t, ndim=1] lengthscale):
@@ -36,11 +36,27 @@ cdef rbf_kernel(np.ndarray[np.double_t, ndim=2] X, np.ndarray[np.double_t, ndim=
     double
 
     """
-    X_scaled = X / lengthscale
-    Z_scaled = Z / lengthscale
     # The covariance only depends on the distance squared
-    cdef np.ndarray[np.double_t, ndim=2] R2 = cdist(X_scaled, Z_scaled, 'sqeuclidean')
-    return variance * np.exp(-0.5 * R2)
+    return variance * np.exp(-0.5 * cdist(X / lengthscale, Z / lengthscale, 'sqeuclidean'))
+
+@cython.boundscheck(False)
+cdef k(np.ndarray[np.double_t, ndim=1] p0, np.ndarray[np.double_t, ndim=1] p1, double variance,
+       np.ndarray[np.double_t, ndim=1] lengthscale):
+    '''
+    Covariance function for the emulator. Defines the amount of covariance
+    between two sets of input parameters.
+    :param p0: first set of input parameters
+    :type p0: np.array
+    :param p1: second set of input parameters
+    :type p1: np.array
+    :param h2param: the set of Gaussian Process hyperparameters that set the
+      degree of covariance. [amplitude, l0, l1, l2, ..., l(len(parname) - 1)].
+      To save computation, these are already input squared.
+    :type h2param: np.array
+    :returns: (double) value of covariance
+    '''
+    R = (p1 - p0) / lengthscale # The covariance only depends on the distance squared
+    return variance * math.exp(-0.5 * np.sum(R**2))
 
 def block_sigma(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndim=1] variances,
                 np.ndarray[np.double_t, ndim=2] lengthscales):
@@ -81,10 +97,9 @@ def V12(np.ndarray[np.double_t, ndim=2] grid_points, np.ndarray[np.double_t, ndi
     -------
 
     """
-    cdef int m = len(variances)
-
-    blocks = [rbf_kernel(grid_points, params, variances[block], lengthscales[block]) for block in range(m)]
+    blocks = [rbf_kernel(grid_points, params, var, ls) for var, ls in zip(variances, lengthscales)]
     return block_diag(*blocks)
+
 
 def V22(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=1] variances,
         np.ndarray[np.double_t, ndim=2] lengthscales):
@@ -101,7 +116,4 @@ def V22(np.ndarray[np.double_t, ndim=2] params, np.ndarray[np.double_t, ndim=1] 
     -------
 
     """
-    cdef int m = len(variances)
-
-    blocks = [rbf_kernel(params, params, variances[block], lengthscales[block]) for block in range(m)]
-    return block_diag(*blocks)
+    return block_sigma(params, variances, lengthscales)

@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve, block_diag
 from scipy.optimize import minimize
-from sklearn.decomposition import NMF
+from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
@@ -18,22 +18,24 @@ log = logging.getLogger(__name__)
 
 
 class Emulator:
-    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi=1, variances=None,
-                 lengthscales=None):
+    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std,
+                 lambda_xi=1, variances=None, lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.wl = wavelength
         self.weights = weights
         self.eigenspectra = eigenspectra
+        self.flux_mean = flux_mean
+        self.flux_std = flux_std
 
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else 1e6 * np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e4 * np.ones(self.ncomps)
         if lengthscales is None:
             unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
-            sep = [3 * np.diff(param).max() for param in unique]
+            sep = [5 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -41,7 +43,6 @@ class Emulator:
         # Determine the minimum and maximum bounds of the grid
         self.min_params = grid_points.min(axis=0)
         self.max_params = grid_points.max(axis=0)
-
 
         # TODO find better variable names for the following
         self.iPhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
@@ -61,13 +62,16 @@ class Emulator:
             wavelength = base['wavelength'][:]
             weights = base['weights'][:]
             eigenspectra = base['eigenspectra'][:]
+            flux_mean = base['flux_mean'][:]
+            flux_std = base['flux_std'][:]
             w_hat = base['w_hat'][:]
             lambda_xi = base['hyper_parameters']['lambda_xi'][()]
             variances = base['hyper_parameters']['variances'][:]
             lengthscales = base['hyper_parameters']['lengthscales'][:]
             trained = base.attrs['trained']
 
-        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, lambda_xi, variances, lengthscales,)
+        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi,
+                       variances, lengthscales)
         emulator._trained = trained
         return emulator
 
@@ -79,6 +83,8 @@ class Emulator:
             waves.attrs['unit'] = 'Angstrom'
             base.create_dataset('weights', data=self.weights, compression=9)
             eigens = base.create_dataset('eigenspectra', data=self.eigenspectra, compression=9)
+            base.create_dataset('flux_mean', data=self.flux_mean, compression=9)
+            base.create_dataset('flux_std', data=self.flux_std, compression=9)
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
@@ -107,15 +113,22 @@ class Emulator:
         fluxes = np.array(list(grid.fluxes))
         # Normalize to an average of 1 to remove uninteresting correlation
         fluxes /= fluxes.mean(1, keepdims=True)
-        default_pca_kwargs = dict(n_components=6)
+        # Center and whiten
+        flux_mean = fluxes.mean(0)
+        fluxes -= flux_mean
+        flux_std = fluxes.std(0)
+        fluxes /= flux_std
+        default_pca_kwargs = dict(n_components=0.99, svd_solver='full')
         default_pca_kwargs.update(pca_kwargs)
-        nmf = NMF(**default_pca_kwargs)
-        weights = nmf.fit_transform(fluxes)
-        eigenspectra = nmf.components_
+        pca = PCA(**default_pca_kwargs)
+        weights = pca.fit_transform(fluxes)
+        eigenspectra = pca.components_
         # This is basically the mean square error of the reconstruction
-        log.info('NMF completed with {} components and {} reconstruction error'.format(nmf.n_components_, nmf.reconstruction_err_))
+        log.info('PCA fit {:.2f}% of the variance with {} components.'.format(pca.explained_variance_ratio_.sum(),
+                                                                              pca.n_components_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
-        return cls(grid.grid_points, grid.wl, weights, eigenspectra, w_hat)
+        return cls(grid_points=grid.grid_points, wavelength=grid.wl, weights=weights, eigenspectra=eigenspectra,
+                   w_hat=w_hat, flux_mean=flux_mean, flux_std=flux_std)
 
     def __call__(self, params, full_cov=True, reinterpret_batch=False):
         """
@@ -174,7 +187,7 @@ class Emulator:
         """
         mu, cov = self(params, reinterpret_batch=False)
         weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
-        return weights @ self.eigenspectra
+        return weights @ self.eigenspectra * self.flux_std + self.flux_mean
 
     def determine_chunk_log(self, wavelength, buffer=50):
         """
@@ -234,11 +247,18 @@ class Emulator:
 
         """
         P0 = self.get_param_vector()
+
+        def glnprior(x, s, r):
+            return s * np.log(r) + (s - 1.) * np.log(x) - r*x - math.lgamma(s)
+
         def nll(P):
             if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
-            loss = -self.log_likelihood()
+            prior = glnprior(self.lengthscales[:, 0], 2, 0.0075).sum()
+            prior += glnprior(self.lengthscales[:, 1], 2, 0.75).sum()
+            prior += glnprior(self.lengthscales[:, 2], 2, 0.75).sum()
+            loss = -(self.log_likelihood() + prior)
             self.log.debug('loss: {}'.format(loss))
             return loss
 
@@ -247,7 +267,7 @@ class Emulator:
         soln = minimize(nll, P0, **default_kwargs)
 
         if not soln.success:
-            self.log.warning('Optimization did not succeed. Reverting.')
+            self.log.warning('Optimization did not succeed.')
             self.log.info(soln.message)
             # self.set_param_vector(P0)
         else:
@@ -297,6 +317,7 @@ class Emulator:
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
         return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
 
+
     def grad_log_likelihood(self):
         raise NotImplementedError('Not implemented yet.')
         sigma = self.iPhiPhi / self.lambda_xi + self.block_sigma
@@ -309,11 +330,11 @@ class Emulator:
 
         sigma__dlambda_xi = np.linalg.solve(sigma, dsigma__dlambda_xi)
         d__lambda_xi = -0.5 * (np.trace(sigma_det * sigma__dlambda_xi) -
-                                        self.w_hat.T @ sigma__dlambda_xi @ sigma_w_hat)
+                               self.w_hat.T @ sigma__dlambda_xi @ sigma_w_hat)
 
         sigma__dvariance = np.linalg.solve(sigma, dsigma__dvariance)
         d__dvariance = -0.5 * (np.trace(sigma_det * sigma__dvariance) -
-                                             self.w_hat.T @ sigma__dvariance @ sigma_w_hat)
+                               self.w_hat.T @ sigma__dvariance @ sigma_w_hat)
 
         sigma__dls = np.linalg.solve(sigma, dsigma__dls)
         d__dls = -0.5 * (np.trace(sigma_det * sigma__dls) - self.w_hat.T @ sigma__dls @ sigma_w_hat)
