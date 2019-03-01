@@ -12,17 +12,18 @@ class TestEmulator:
 
     def test_call(self, mock_emulator):
         mu, cov = mock_emulator([6020, 4.21, -0.01])
-        assert mu.shape == (6,)
-        assert cov.shape == (6, 6)
+        assert mu.shape == (mock_emulator.ncomps,)
+        assert cov.shape == (mock_emulator.ncomps, mock_emulator.ncomps)
 
     def test_call_multiple(self, mock_emulator):
         params = [
             [6020, 4.21, -0.01],
             [6104, 4.01, -0.23]
         ]
+        n = mock_emulator.ncomps * len(params)
         mu, cov = mock_emulator(params)
-        assert mu.shape == (12,)
-        assert cov.shape == (12, 12)
+        assert mu.shape == (n,)
+        assert cov.shape == (n, n)
 
     def test_reinterpret_dims_fails(self, mock_emulator):
         params = [
@@ -40,8 +41,8 @@ class TestEmulator:
             [6054, 4.15, -0.16]
         ]
         batch_mus, batch_vars = mock_emulator(params, full_cov=False, reinterpret_batch=True)
-        lin_mus = np.empty((3, 6))
-        lin_vars = np.empty((3, 6))
+        lin_mus = np.empty((3, mock_emulator.ncomps))
+        lin_vars = np.empty((3, mock_emulator.ncomps))
         for i, p in enumerate(params):
             lin_mus[i], lin_vars[i] = mock_emulator(p, full_cov=False, reinterpret_batch=True)
         assert np.allclose(batch_mus, lin_mus)
@@ -49,8 +50,8 @@ class TestEmulator:
 
     def test_std(self, mock_emulator):
         mu, std = mock_emulator([6020, 4.21, -0.01], full_cov=False)
-        assert mu.shape == (6,)
-        assert std.shape == (6,)
+        assert mu.shape == (mock_emulator.ncomps,)
+        assert std.shape == (mock_emulator.ncomps,)
 
     def test_load_flux(self, mock_emulator):
         flux = mock_emulator.load_flux([6020, 4.21, -0.01])
@@ -71,14 +72,16 @@ class TestEmulator:
 
     def test_train(self, mock_emulator):
         initial = mock_emulator.get_param_vector()
-        init_v11 = mock_emulator.v11_cho[0]
+        init_ll = mock_emulator.log_likelihood()
+        init_v11 = mock_emulator.v11
         assert mock_emulator._trained == False
         mock_emulator.train(options={'maxiter': 10})
         final = mock_emulator.get_param_vector()
-        final_v11 = mock_emulator.v11_cho[1]
+        final_ll = mock_emulator.log_likelihood()
+        final_v11 = mock_emulator.v11
         assert not np.allclose(final_v11, init_v11)
         assert not np.allclose(final, initial)
-        assert mock_emulator._trained == True
+        assert final_ll > init_ll
 
     def test_get_set_param_vector(self, mock_emulator):
         P0 = mock_emulator.get_param_vector()
@@ -97,8 +100,11 @@ class TestEmulator:
         emulator = Emulator.load(filename)
         final = emulator.get_param_vector()
         assert np.allclose(init, final)
-        assert np.allclose(emulator.jitter, mock_emulator.jitter)
         assert emulator._trained == mock_emulator._trained
+
+    def test_bulk_flux(self, mock_emulator):
+        fluxes = mock_emulator.bulk_fluxes
+        assert fluxes.shape == (mock_emulator.ncomps + 2, mock_emulator.eigenspectra.shape[-1])
 
 class TestUtils:
 

@@ -5,14 +5,14 @@ import warnings
 
 import h5py
 import numpy as np
-from scipy.linalg import cho_factor, cho_solve, block_diag
+from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
-from ._covariance import block_sigma, V12, V22
-from ._utils import skinny_kron, get_w_hat, inverse_block_diag
+from ._covariance import block_kernel
+from ._utils import skinny_kron, get_w_hat
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,8 @@ class Emulator:
 
         # TODO find better variable names for the following
         self.iPhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.v11 = self.iPhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales)
+        self.v11 = self.iPhiPhi / self.lambda_xi + block_kernel(self.grid_points, self.grid_points, self.variances,
+                                                                self.lengthscales)
         self.w_hat = w_hat
 
         self._trained = False
@@ -164,8 +165,8 @@ class Emulator:
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = V12(self.grid_points, params, self.variances, self.lengthscales)
-        v22 = V22(params, self.variances, self.lengthscales)
+        v12 = block_kernel(self.grid_points, params, self.variances, self.lengthscales)
+        v22 = block_kernel(params, params, self.variances, self.lengthscales)
 
         # Recalculate the covariance
         mu = v12.T @ np.linalg.solve(self.v11, self.w_hat)
@@ -176,6 +177,10 @@ class Emulator:
             mu = mu.reshape(-1, self.ncomps, order='F').squeeze()
             cov = cov.reshape(-1, self.ncomps, order='F').squeeze()
         return mu, cov
+
+    @property
+    def bulk_fluxes(self):
+        return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
     def load_flux(self, params):
         """
@@ -249,7 +254,7 @@ class Emulator:
         P0 = self.get_param_vector()
 
         def glnprior(x, s, r):
-            return s * np.log(r) + (s - 1.) * np.log(x) - r*x - math.lgamma(s)
+            return s * np.log(r) + (s - 1.) * np.log(x) - r * x - math.lgamma(s)
 
         def nll(P):
             if np.any(P < 0):
@@ -309,7 +314,8 @@ class Emulator:
         self.lambda_xi = params[0]
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
-        self.v11 = self.iPhiPhi / self.lambda_xi + block_sigma(self.grid_points, self.variances, self.lengthscales)
+        self.v11 = self.iPhiPhi / self.lambda_xi + block_kernel(self.grid_points, self.grid_points,
+                                                                self.variances, self.lengthscales)
 
     def log_likelihood(self):
         L, flag = cho_factor(self.v11)
@@ -317,24 +323,5 @@ class Emulator:
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
         return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
 
-
     def grad_log_likelihood(self):
         raise NotImplementedError('Not implemented yet.')
-        sigma = self.iPhiPhi / self.lambda_xi + self.block_sigma
-        sigma_det = np.linalg.det(sigma)
-        sigma_w_hat = np.linalg.solve(sigma, self.w_hat)
-        dsigma__dlambda_xi = -self.iPhiPhi / self.lambda_xi ** 2
-        divided_kern = inverse_block_diag(self.block_sigma, self.ncomps) / self.variances
-        dsigma__dvariance = block_diag(*divided_kern)
-        dsigma__dls = None
-
-        sigma__dlambda_xi = np.linalg.solve(sigma, dsigma__dlambda_xi)
-        d__lambda_xi = -0.5 * (np.trace(sigma_det * sigma__dlambda_xi) -
-                               self.w_hat.T @ sigma__dlambda_xi @ sigma_w_hat)
-
-        sigma__dvariance = np.linalg.solve(sigma, dsigma__dvariance)
-        d__dvariance = -0.5 * (np.trace(sigma_det * sigma__dvariance) -
-                               self.w_hat.T @ sigma__dvariance @ sigma_w_hat)
-
-        sigma__dls = np.linalg.solve(sigma, dsigma__dls)
-        d__dls = -0.5 * (np.trace(sigma_det * sigma__dls) - self.w_hat.T @ sigma__dls @ sigma_w_hat)
