@@ -51,7 +51,7 @@ setup(
     version=Starfish.__version__,
     author="Ian Czekala",
     author_email="iancze",
-    packages=[find_packages(),
+    packages=find_packages(),
     url="https://github.com/iancze/Starfish",
     download_url="https://github.com/iancze/Starfish/archive/master.zip",
     license="BSD",
