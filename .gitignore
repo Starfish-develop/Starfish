@@ -162,4 +162,4 @@ Session.vim
 attic
 plots
 notebooks
-
+.vscode/*
