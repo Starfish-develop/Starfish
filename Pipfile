@@ -23,6 +23,7 @@ graphviz = "*"
 pytest = "*"
 pydot = "*"
 pylint = "*"
+autopep8 = "*"
 
 [pipenv]
 allow_prereleases = true
