@@ -163,3 +163,7 @@ attic
 notebooks
 .vscode/*
 plots
+
+## generated c code
+Starfish/emulator/_covariance.c
+Starfish/models/_kernels.c
