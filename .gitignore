@@ -160,6 +160,6 @@ Session.vim
 .netrwhist
 *~
 attic
-plots
 notebooks
 .vscode/*
+plots
