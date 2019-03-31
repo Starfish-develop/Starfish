@@ -1,69 +1,46 @@
 name: test
 data:
   grid_name: CIFIST
-  files:
-  - data.hdf5
-  instruments:
-  - DCT_DeVeny
+  files: [data.hdf5]
+  instruments: [DCT_DeVeny]
 outdir: output/
 plotdir: plots/
 grid:
   raw_path: ../libraries/raw/CIFIST/
   hdf5_path: grid.hdf5
-  parname:
-  - temp
-  - logg
+  parname: [temp, logg]
   key_name: t{0:.0f}g{1:.1f}
   parrange:
-  - - 2300
-    - 3700
-  - - 4.0
-    - 5.5
-  wl_range:
-  - 6300
-  - 6360
+  - [2300, 3700]
+  - [4.0, 5.5]
+  wl_range: [6300, 6360]
   buffer: 50.0
 PCA:
   path: PCA.hdf5
   threshold: 0.999
   priors:
-  - - 2.0
-    - 0.0075
-  - - 2.0
-    - 0.75
-  - - 2.0
-    - 0.75
+  - [2.0, 0.0075]
+  - [2.0, 0.75]
+  - [2.0, 0.75]
 Comments: 'Mid M dwarfs using emulator.
 
   '
 Theta:
-  grid:
-  - 2300.0
-  - 5.0
-  - 0.0
+  grid: [2300.0, 5.0, 0.0]
   vz: 0.0
   vsini: 5.79
   logOmega: -12.8
   Av: 0.0
 Theta_jump:
-  grid:
-  - 3
-  - 0.003
-  - 0.001
+  grid: [3, 0.003, 0.001]
   vz: 0.01
   vsini: 0.01
   logOmega: 0.0001
   Av: 0.01
 cheb_degree: 2
 cheb_jump: 0.0001
-Phi:
-  sigAmp: 1.0
-  logAmp: -13.6
-  l: 20.0
-Phi_jump:
-  sigAmp: 0.025
-  logAmp: 0.01
-  l: 0.25
+Phi: {sigAmp: 1.0, logAmp: -13.6, l: 20.0}
+Phi_jump: {sigAmp: 0.025, logAmp: 0.01, l: 0.25}
 specfmt: s{}_o{}
 chunk_ID: 0
 spectrum_ID: 0

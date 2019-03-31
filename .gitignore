@@ -163,6 +163,8 @@ attic
 notebooks
 .vscode/*
 plots
+.pytest_cache
+tests/data/emu.hdf5
 
 ## generated c code
 Starfish/emulator/_covariance.c

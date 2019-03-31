@@ -87,7 +87,7 @@ class PHOENIXGridInterface(RawGridInterface):
     """
     An Interface to the PHOENIX/Husser synthetic library.
 
-    Note that the wavelengths in the spectra are in Angstrom and the flux are in :math:`F_\lambda` as
+    Note that the wavelengths in the spectra are in Angstrom and the flux are in :math:`F_\\lambda` as
     :math:`erg/s/cm^2/cm`
     """
 
@@ -150,28 +150,28 @@ class PHOENIXGridInterface(RawGridInterface):
 
         # Still need to check that file is in the grid, otherwise raise a C.GridError
         # Read all metadata in from the FITS header, and append to spectrum
-        try:
-            flux_file = fits.open(fname)
-            f = flux_file[0].data
-            hdr = dict(flux_file[0].header)
-            flux_file.close()
-        except:
+        if not os.path.exists(fname):
             raise ValueError("{} is not on disk.".format(fname))
+        
+        hdu_list = fits.open(fname)
+        flux = hdu_list[0].data
+        hdr = dict(hdu_list[0].header)    
+        hdu_list.close()        
 
         # If we want to normalize the spectra, we must do it now since later we won't have the full EM range
         if norm:
-            f *= 1e-8  # convert from erg/cm^2/s/cm to erg/cm^2/s/A
-            F_bol = trapz(f, self.wl_full)
-            f = f * (C.F_sun / F_bol)  # bolometric luminosity is always 1 L_sun
+            flux *= 1e-8  # convert from erg/cm^2/s/cm to erg/cm^2/s/A
+            F_bol = trapz(flux, self.wl_full)
+            flux *= (C.F_sun / F_bol)  # bolometric luminosity is always 1 L_sun
 
         # Add temp, logg, Z, alpha, norm to the metadata
         hdr["norm"] = norm
         hdr["air"] = self.air
 
         if header:
-            return (f[self.ind], hdr)
+            return (flux[self.ind], hdr)
         else:
-            return f[self.ind]
+            return flux[self.ind]
 
 
 class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
@@ -340,7 +340,7 @@ class BTSettlGridInterface(RawGridInterface):
         # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
 
-        wl_dict = create_log_lam_grid(wl_start=self.wl_range[0], wl_end=self.wl_range[1], min_vc=0.08 / C.c_kms)
+        wl_dict = create_log_lam_grid(0.08 / C.c_kms, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
         self.wl = wl_dict['wl']
 
     def load_flux(self, parameters, norm=True):

@@ -34,7 +34,7 @@ class TestRawGridInterface:
             "Z"      : (-0.5, 0.0),
             "bunnies": ("furry", "happy"),
         }
-        with pytest.raises(KeyError) as e:
+        with pytest.raises(KeyError) :
             RawGridInterface("PHOENIX",
                              list(params),
                              params.values(),
@@ -44,11 +44,11 @@ class TestRawGridInterface:
         assert rawgrid.check_params((6100, 4.5, 0.0))
 
     def test_check_params_extra(self, rawgrid):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValueError):
             rawgrid.check_params((6100, 4.5, 0.0, 'John Cena'))
 
     def test_check_params_out_of_bounds(self, rawgrid):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValueError):
             rawgrid.check_params((6100, 4.5, 0.5))
 
     def test_implementation_error(self, rawgrid):
@@ -76,25 +76,25 @@ class TestPHOENIXGridInterface:
         assert header['PHXALPHA'] == 0.0
 
     def test_load_alpha(self, grid):
-        fl, header = grid.load_flux((6100, 4.5, 0.0, -0.2), header=True)
+        _, header = grid.load_flux((6100, 4.5, 0.0, -0.2), header=True)
         assert header['PHXALPHA'] == -0.2
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert isinstance(hdr, dict)
 
     def test_bad_base(self):
         # Set a different base location, should raise an error because on this machine there is not file.
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValueError):
             PHOENIXGridInterface(base="wrong_base/")
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterface(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True, norm=False)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True, norm=False)
         assert hdr['norm'] == False
 
     def test_no_header(self, grid):
@@ -121,16 +121,16 @@ class TestPHOENIXGridInterfaceNoAlpha:
         assert header['PHXALPHA'] == 0.0
 
     def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert isinstance(hdr, dict)
 
     def test_no_air(self, PHOENIXModels):
         grid = PHOENIXGridInterfaceNoAlpha(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert hdr['air'] == False
 
     def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5, 0.0), header=True, norm=False)
+        _, hdr = grid.load_flux((6100, 4.5, 0.0), header=True, norm=False)
         assert hdr['norm'] == False
 
     def test_no_header(self, grid):
