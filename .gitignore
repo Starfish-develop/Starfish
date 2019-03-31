@@ -161,7 +161,7 @@ Session.vim
 *~
 attic
 notebooks
-.vscode/*
+.vscode
 plots
 .pytest_cache
 tests/data/emu.hdf5

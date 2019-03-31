@@ -24,6 +24,8 @@ pytest = "*"
 pydot = "*"
 pylint = "*"
 autopep8 = "*"
+rope = "*"
+pytest-cov = "*"
 
 [pipenv]
 allow_prereleases = true
