@@ -169,3 +169,5 @@ tests/data/emu.hdf5
 ## generated c code
 Starfish/emulator/_covariance.c
 Starfish/models/_kernels.c
+.python-version
+
