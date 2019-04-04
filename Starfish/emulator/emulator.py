@@ -11,8 +11,8 @@ from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
-from ._covariance import block_kernel
-from ._utils import skinny_kron, get_w_hat
+from .covariance import batch_kernel
+from ._utils import get_phi_squared, get_w_hat
 
 log = logging.getLogger(__name__)
 
@@ -32,9 +32,11 @@ class Emulator:
         self.ncomps = eigenspectra.shape[0]
 
         self.lambda_xi = lambda_xi
-        self.variances = variances if variances is not None else 1e4 * np.ones(self.ncomps)
+        self.variances = variances if variances is not None else 1e4 * \
+            np.ones(self.ncomps)
         if lengthscales is None:
-            unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
+            unique = [sorted(np.unique(param_set))
+                      for param_set in self.grid_points.T]
             sep = [5 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
@@ -45,12 +47,37 @@ class Emulator:
         self.max_params = grid_points.max(axis=0)
 
         # TODO find better variable names for the following
-        self.iPhiPhi = np.linalg.inv(skinny_kron(self.eigenspectra, self.grid_points.shape[0]))
-        self.v11 = self.iPhiPhi / self.lambda_xi + block_kernel(self.grid_points, self.grid_points, self.variances,
-                                                                self.lengthscales)
+        self.iPhiPhi = np.linalg.inv(get_phi_squared(
+            self.eigenspectra, self.grid_points.shape[0]))
+        self.v11 = self.iPhiPhi / self.lambda_xi + batch_kernel(
+            self.grid_points, self.grid_points, self.variances, self.lengthscales)
         self.w_hat = w_hat
 
         self._trained = False
+
+    @property
+    def lambda_xi(self):
+        return np.exp(self._log_lambda_xi)
+
+    @lambda_xi.setter
+    def lambda_xi(self, value):
+        self._log_lambda_xi = np.log(value)
+
+    @property
+    def variances(self):
+        return np.exp(self._log_variances)
+
+    @variances.setter
+    def variances(self, values):
+        self._log_variances = np.log(values)
+
+    @property
+    def lengthscales(self):
+        return np.exp(self._log_lengthscales)
+
+    @lengthscales.setter
+    def lengthscales(self, values):
+        self._log_lengthscales = np.log(values)
 
     @classmethod
     def load(cls, filename):
@@ -79,20 +106,26 @@ class Emulator:
     def save(self, filename):
         filename = os.path.expandvars(filename)
         with h5py.File(filename, 'w') as base:
-            base.create_dataset('grid_points', data=self.grid_points, compression=9)
-            waves = base.create_dataset('wavelength', data=self.wl, compression=9)
+            base.create_dataset(
+                'grid_points', data=self.grid_points, compression=9)
+            waves = base.create_dataset(
+                'wavelength', data=self.wl, compression=9)
             waves.attrs['unit'] = 'Angstrom'
             base.create_dataset('weights', data=self.weights, compression=9)
-            eigens = base.create_dataset('eigenspectra', data=self.eigenspectra, compression=9)
-            base.create_dataset('flux_mean', data=self.flux_mean, compression=9)
+            eigens = base.create_dataset(
+                'eigenspectra', data=self.eigenspectra, compression=9)
+            base.create_dataset(
+                'flux_mean', data=self.flux_mean, compression=9)
             base.create_dataset('flux_std', data=self.flux_std, compression=9)
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
             hp_group = base.create_group('hyper_parameters')
             hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
-            hp_group.create_dataset('variances', data=self.variances, compression=9)
-            hp_group.create_dataset('lengthscales', data=self.lengthscales, compression=9)
+            hp_group.create_dataset(
+                'variances', data=self.variances, compression=9)
+            hp_group.create_dataset(
+                'lengthscales', data=self.lengthscales, compression=9)
 
         self.log.info('Saved file at {}'.format(filename))
 
@@ -153,7 +186,8 @@ class Emulator:
         params = np.atleast_2d(params)
 
         if full_cov and reinterpret_batch:
-            raise ValueError('Cannot reshape the full_covariance matrix for many parameters.')
+            raise ValueError(
+                'Cannot reshape the full_covariance matrix for many parameters.')
 
         if not self._trained:
             warnings.warn(
@@ -161,16 +195,19 @@ class Emulator:
 
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
-            raise ValueError('Querying emulator outside of original parameter range.')
+            raise ValueError(
+                'Querying emulator outside of original parameter range.')
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = block_kernel(self.grid_points, params, self.variances, self.lengthscales)
-        v22 = block_kernel(params, params, self.variances, self.lengthscales)
+        v12 = batch_kernel(self.grid_points, params,
+                           self.variances, self.lengthscales)
+        v22 = batch_kernel(params, params, self.variances, self.lengthscales)
+        v21 = v12.T
 
         # Recalculate the covariance
-        mu = v12.T @ np.linalg.solve(self.v11, self.w_hat)
-        cov = v22 - v12.T @ np.linalg.solve(self.v11, v12)
+        mu = v21 @ np.linalg.solve(self.v11, self.w_hat)
+        cov = v22 - v21 @ np.linalg.solve(self.v11, v12)
         if not full_cov:
             cov = np.diag(cov)
         if reinterpret_batch:
@@ -191,7 +228,8 @@ class Emulator:
         :type: array_like
         """
         mu, cov = self(params, reinterpret_batch=False)
-        weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
+        weights = np.random.multivariate_normal(
+            mu, cov).reshape(-1, self.ncomps)
         return weights @ self.eigenspectra * self.flux_std + self.flux_mean
 
     def determine_chunk_log(self, wavelength, buffer=50):
@@ -253,17 +291,11 @@ class Emulator:
         """
         P0 = self.get_param_vector()
 
-        def glnprior(x, s, r):
-            return s * np.log(r) + (s - 1.) * np.log(x) - r * x - math.lgamma(s)
-
         def nll(P):
             if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
-            prior = glnprior(self.lengthscales[:, 0], 2, 0.0075).sum()
-            prior += glnprior(self.lengthscales[:, 1], 2, 0.75).sum()
-            prior += glnprior(self.lengthscales[:, 2], 2, 0.75).sum()
-            loss = -(self.log_likelihood() + prior)
+            loss = -self.log_likelihood()
             self.log.debug('loss: {}'.format(loss))
             return loss
 
@@ -301,7 +333,8 @@ class Emulator:
 
         """
         params = np.atleast_2d(params)
-        marks = np.abs(self.grid_points - np.expand_dims(params, 1)).sum(axis=-1)
+        marks = np.abs(self.grid_points -
+                       np.expand_dims(params, 1)).sum(axis=-1)
         return marks.argmin(axis=1).squeeze()
 
     def get_param_vector(self):
@@ -314,12 +347,13 @@ class Emulator:
         self.lambda_xi = params[0]
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
-        self.v11 = self.iPhiPhi / self.lambda_xi + block_kernel(self.grid_points, self.grid_points,
-                                                                self.variances, self.lengthscales)
+        self.v11 = self.iPhiPhi / self.lambda_xi + \
+            batch_kernel(self.grid_points, self.grid_points,
+                         self.variances, self.lengthscales)
 
     def log_likelihood(self):
         L, flag = cho_factor(self.v11)
-        logdet = np.log(np.trace(L))
+        logdet = 2 * np.trace(np.log(L))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
         return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
 

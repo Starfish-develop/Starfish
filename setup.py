@@ -10,14 +10,7 @@ try:
 except ImportError:
     from setuptools.command.build_ext import build_ext
 
-    ext_modules = [Extension("Starfish.emulator._covariance",
-                             sources=["Starfish/emulator/_covariance.c"],
-                             extra_compile_args=["-Wno-declaration-after-statement",
-                                                 "-Wno-error=declaration-after-statement",
-                                                 "-Wno-unused-function",
-                                                 "-Wno-unused-variable",
-                                                 "-Wno-unused-but-set-variable"]),
-                   Extension("Starfish.models._kernels",
+    ext_modules = [Extension("Starfish.models._kernels",
                              sources=["Starfish/emulator/_kernels.c"],
                              extra_compile_args=["-Wno-declaration-after-statement",
                                                  "-Wno-error=declaration-after-statement",
@@ -26,14 +19,7 @@ except ImportError:
                                                  "-Wno-unused-but-set-variable"]),
                    ]
 else:
-    ext_modules = [Extension("Starfish.emulator._covariance",
-                             sources=["Starfish/emulator/_covariance.pyx"],
-                             extra_compile_args=["-Wno-declaration-after-statement",
-                                                 "-Wno-error=declaration-after-statement",
-                                                 "-Wno-unused-function",
-                                                 "-Wno-unused-variable",
-                                                 "-Wno-unused-but-set-variable"]),
-                   Extension("Starfish.models._kernels",
+    ext_modules = [Extension("Starfish.models._kernels",
                              sources=["Starfish/models/_kernels.pyx"],
                              extra_compile_args=["-Wno-declaration-after-statement",
                                                  "-Wno-error=declaration-after-statement",

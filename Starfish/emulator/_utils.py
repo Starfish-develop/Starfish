@@ -17,12 +17,12 @@ def get_w_hat(eigenspectra, fluxes, M):
         for j in range(M):
             out[i * M + j] = eigenspectra[i].T @ fluxes[j]
 
-    PhiPhi = skinny_kron(eigenspectra, M)
+    phi_squared = get_phi_squared(eigenspectra, M)
 
-    return np.linalg.solve(PhiPhi, out)
+    return np.linalg.solve(phi_squared, out)
 
 
-def skinny_kron(eigenspectra, M):
+def get_phi_squared(eigenspectra, M):
     """
     Compute Phi.T.dot(Phi) in a memory efficient manner.
 
