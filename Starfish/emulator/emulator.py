@@ -40,7 +40,8 @@ class Emulator:
             sep = [5 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
-        self.lengthscales = lengthscales
+        # self.lengthscales = lengthscales
+        self.lengthscales = np.ones((len(self.variances), 3))
 
         # Determine the minimum and maximum bounds of the grid
         self.min_params = grid_points.min(axis=0)
@@ -54,30 +55,6 @@ class Emulator:
         self.w_hat = w_hat
 
         self._trained = False
-
-    @property
-    def lambda_xi(self):
-        return np.exp(self._log_lambda_xi)
-
-    @lambda_xi.setter
-    def lambda_xi(self, value):
-        self._log_lambda_xi = np.log(value)
-
-    @property
-    def variances(self):
-        return np.exp(self._log_variances)
-
-    @variances.setter
-    def variances(self, values):
-        self._log_variances = np.log(values)
-
-    @property
-    def lengthscales(self):
-        return np.exp(self._log_lengthscales)
-
-    @lengthscales.setter
-    def lengthscales(self, values):
-        self._log_lengthscales = np.log(values)
 
     @classmethod
     def load(cls, filename):
