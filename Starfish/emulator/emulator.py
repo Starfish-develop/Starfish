@@ -40,8 +40,7 @@ class Emulator:
             sep = [5 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
-        # self.lengthscales = lengthscales
-        self.lengthscales = np.ones((len(self.variances), 3))
+        self.lengthscales = lengthscales
 
         # Determine the minimum and maximum bounds of the grid
         self.min_params = grid_points.min(axis=0)
@@ -276,7 +275,7 @@ class Emulator:
             self.log.debug('loss: {}'.format(loss))
             return loss
 
-        default_kwargs = dict(method='Nelder-Mead')
+        default_kwargs = {}
         default_kwargs.update(opt_kwargs)
         soln = minimize(nll, P0, **default_kwargs)
 
@@ -330,7 +329,7 @@ class Emulator:
 
     def log_likelihood(self):
         L, flag = cho_factor(self.v11)
-        logdet = 2 * np.trace(np.log(L))
+        logdet = 2 * np.sum(np.log(np.diag(L)))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
         return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
 

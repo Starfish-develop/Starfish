@@ -109,6 +109,31 @@ class SpectrumModel:
         self.vsini, self.vz, self.Av, self.logOmega = P[self.num_grid_params:self.num_grid_params + 4]
         self.cheb[1:] = P[self.num_grid_params + 4:]
 
+    def log_likelihood(self):
+        try:
+            fls, cov = self()
+        except ValueError:
+            return -np.inf
+        cov += np.diag(self.sigs) + self.jitter * np.eye(len(self.wave))
+        try:
+            factor, flag = cho_factor(cov)
+        except np.linalg.LinAlgError:
+            self.log.warning('Failed to decompose covariance.')
+            covariance_debugger(cov)
+            return -np.inf
+
+        R = self.flux - fls
+        self.residuals_deque.append(R)
+
+        logdet = 2 * np.sum(np.log(np.diag(factor)))
+        lnprob = -0.5 * (logdet + R.T @ cho_solve((factor, flag), R) + len(R) * np.log(2 * np.pi))
+
+        self.log.debug("Evaluating lnprob={}".format(lnprob))
+        return lnprob
+
+    def grad_log_likelihood(self):
+        raise NotImplementedError("If you've stumbled across this, we'd love someone to calculate this gradient!")
+
     def save(self):
         pass
 
