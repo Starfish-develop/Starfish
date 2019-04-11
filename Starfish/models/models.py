@@ -21,8 +21,10 @@ class SpectrumModel:
             self.flux = data.fls[0][mask]
             self.sigs = data.sigmas[0][mask]
             dv = calculate_dv(self.wave)
-            self.min_dv_wl = create_log_lam_grid(dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
-            self.bulk_fluxes = resample(self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
+            self.min_dv_wl = create_log_lam_grid(
+                dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
+            self.bulk_fluxes = resample(
+                self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
 
         self.grid_params = grid_params
         self.num_grid_params = len(grid_params)
@@ -33,18 +35,6 @@ class SpectrumModel:
         self.cheb = cheb
 
         self.log = logging.getLogger(self.__class__.__name__)
-
-        self.residuals_deque = deque(maxlen=deque_length)
-        self.jitter = jitter
-
-    @property
-    def residuals(self):
-        count = 0
-        n = 0
-        for r in self.residuals_deque:
-            count += r
-            n += 1
-        return count / n
 
     def __call__(self):
         wave = self.min_dv_wl
@@ -63,7 +53,7 @@ class SpectrumModel:
             fluxes = rescale(fluxes, self.logOmega)
 
         # Not my favorite solution because I don't like exploiting falsiness of None
-        if all(self.cheb):
+        if self.cheb is not None and all(self.cheb):
             fluxes = chebyshev_correct(wave, fluxes, self.cheb)
 
         fluxes = resample(wave, fluxes, self.wave)
@@ -82,11 +72,11 @@ class SpectrumModel:
     def get_param_dict(self):
         params = {
             'grid_params': self.grid_params,
-            'vsini'      : self.vsini,
-            'vz'         : self.vz,
-            'Av'         : self.Av,
-            'logOmega'   : self.logOmega,
-            'cheb'       : self.cheb
+            'vsini': self.vsini,
+            'vz': self.vz,
+            'Av': self.Av,
+            'logOmega': self.logOmega,
+            'cheb': self.cheb
         }
         return params
 
@@ -109,31 +99,6 @@ class SpectrumModel:
         self.vsini, self.vz, self.Av, self.logOmega = P[self.num_grid_params:self.num_grid_params + 4]
         self.cheb[1:] = P[self.num_grid_params + 4:]
 
-    def log_likelihood(self):
-        try:
-            fls, cov = self()
-        except ValueError:
-            return -np.inf
-        cov += np.diag(self.sigs) + self.jitter * np.eye(len(self.wave))
-        try:
-            factor, flag = cho_factor(cov)
-        except np.linalg.LinAlgError:
-            self.log.warning('Failed to decompose covariance.')
-            covariance_debugger(cov)
-            return -np.inf
-
-        R = self.flux - fls
-        self.residuals_deque.append(R)
-
-        logdet = 2 * np.sum(np.log(np.diag(factor)))
-        lnprob = -0.5 * (logdet + R.T @ cho_solve((factor, flag), R) + len(R) * np.log(2 * np.pi))
-
-        self.log.debug("Evaluating lnprob={}".format(lnprob))
-        return lnprob
-
-    def grad_log_likelihood(self):
-        raise NotImplementedError("If you've stumbled across this, we'd love someone to calculate this gradient!")
-
     def save(self):
         pass
 
@@ -144,4 +109,3 @@ class SpectrumModel:
 
 class EchelleModel:
     pass
-
