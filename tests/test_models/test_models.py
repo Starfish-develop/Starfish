@@ -1,50 +1,94 @@
+import os
+
 import pytest
 import numpy as np
 
 from Starfish.models import SpectrumModel
 
+
 class TestSpectrumModel:
 
-    def test_transform(self, mock_model):
-        flux, cov = mock_model()
+    GP = [6200, 4.2, 0]
+
+    @pytest.fixture
+    def simple_model(self, mock_emulator, mock_data_spectrum):
+
+        model = SpectrumModel(mock_emulator, mock_data_spectrum, self.GP)
+        yield model
+
+    def test_param_dict(self, simple_model):
+        assert simple_model['grid_param:0'] == self.GP[0]
+        assert simple_model['grid_param:1'] == self.GP[1]
+        assert simple_model['grid_param:2'] == self.GP[2]
+
+    def test_grid_params(self, simple_model):
+        assert np.all(simple_model.grid_params == self.GP)
+
+    def test_transform(self, simple_model):
+        flux, cov = simple_model()
         assert cov.shape == (len(flux), len(flux))
-        assert flux.shape == mock_model.wave.shape
+        assert flux.shape == simple_model.wave.shape
 
-    def test_get_set_parameters(self, mock_model):
-        P0 = mock_model.get_param_vector()
-        mock_model.set_param_vector(P0)
-        P1 = mock_model.get_param_vector()
-        assert np.allclose(P1, P0)
-        assert mock_model.cheb[0] == 1.0
+    def test_freeze_vsini(self, simple_model):
+        simple_model['vsini'] = 84.0
+        simple_model.freeze('vsini')
+        params = simple_model.get_param_dict()
+        assert 'vsini' not in params
 
-    def test_get_set_param_dict(self, mock_model):
-        P0 = mock_model.get_param_dict()
-        mock_model.set_param_dict(P0)
-        P1 = mock_model.get_param_dict()
+    def test_freeze_grid_param(self, simple_model):
+        simple_model.freeze('grid_param:2')
+        params = simple_model.get_param_dict()
+        assert 'grid_param:0' in params
+        assert 'grid_param:1' in params
+        assert 'grid_param:2' not in params
+
+    def test_freeze_thaw(self, simple_model):
+        pre = simple_model['grid_param:1']
+        assert pre == 4.2
+        simple_model.freeze('grid_param:1')
+        assert 'grid_param:1' not in simple_model.get_param_dict()
+        simple_model.thaw('grid_param:1')
+        assert 'grid_param:1' in simple_model.get_param_dict()
+        assert simple_model.grid_params[1] == pre
+
+    def test_get_set_param_dict(self, simple_model):
+        P0 = simple_model.get_param_dict()
+        simple_model.set_param_dict(P0)
+        P1 = simple_model.get_param_dict()
         assert P0 == P1
-        assert mock_model.cheb[0] == 1.0
 
-    def test_log_likelihood(self, mock_model):
-        logl = mock_model.log_likelihood()
-        assert np.isfinite(logl)
+    def test_set_param_dict_frozen_params(self, simple_model):
+        P0 = simple_model.get_param_dict()
+        simple_model.freeze('grid_param:2')
+        P0['grid_param:2'] = 7
+        simple_model.set_param_dict(P0)
+        assert simple_model['grid_param:2'] == 0
 
-    def test_grad_log_likelihood(self, mock_model):
-        with pytest.raises(NotImplementedError):
-            mock_model.grad_log_likelihood()
 
-    def test_save_load(self, mock_model, tmpdir):
-        path = tmpdir.join('model.hdf5')
-        mock_model.save(path)
-        model = SpectrumModel.load(path)
-        assert model == mock_model
+    def test_get_set_parameters(self, simple_model):
+        P0 = simple_model.get_param_vector()
+        simple_model.set_param_vector(P0)
+        P1 = simple_model.get_param_vector()
+        assert np.all(P1 == P0)
 
-    @pytest.mark.parametrize('param', [
-        dict(grid_params=[6000, 4.2, 0.0], vz=0, vsini=-1),
-        dict(grid_params=[6000, 4.2, 0.0], vz=0, Av=-3),
-        dict(grid_params=[3000, 4.2, 0.0]),
-        dict(grid_params=[-1000, 4.2, 0.0]),
-        dict(grid_params=[3000, 4.2, 0.0]),
-    ])
-    def test_bad_parameters(self, mock_model, param):
+    def test_set_wrong_length_param_vector(self, simple_model):
+        P0 = simple_model.get_param_vector()
+        P1 = np.append(P0, 7)
         with pytest.raises(ValueError):
-            mock_model.set_param_dict(param)
+            simple_model.set_param_vector(P1)
+
+    def test_set_param_vector(self, simple_model):
+        P0 = simple_model.get_param_vector()
+        P0[2] = 7
+        simple_model.set_param_vector(P0)
+        assert simple_model['grid_param:2'] == 7
+
+
+    def test_save_load(self, simple_model, tmpdir):
+        path = os.path.join(tmpdir, 'model.json')
+        P0 = simple_model.params
+        P0_f = simple_model.get_param_dict()
+        simple_model.save(path)
+        simple_model.load(path)
+        assert P0 == simple_model.params
+        assert P0_f == simple_model.get_param_dict()

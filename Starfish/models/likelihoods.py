@@ -5,7 +5,7 @@ from collections import deque
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
-from .models import SpectrumModel
+from ..models import SpectrumModel
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class SpectrumLikelihood:
         except np.linalg.LinAlgError:
             self.log.warning('Failed to decompose covariance. Entering covariance debugger')
             covariance_debugger(cov)
-            return -np.inf
+            # return -np.inf
 
         R = self.spectrum.flux - fls
 

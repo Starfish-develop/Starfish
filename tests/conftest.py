@@ -103,4 +103,4 @@ def mock_trained_emulator(mock_emulator):
 @pytest.fixture
 def mock_model(mock_data_spectrum, mock_trained_emulator):
     yield SpectrumModel(mock_trained_emulator, grid_params=[6000, 4.0, 0.0], data=mock_data_spectrum, vz=0, Av=0,
-                        logOmega=-10, vsini=30)
+                        scale=-10, vsini=30)
