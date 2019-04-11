@@ -37,7 +37,7 @@ class Emulator:
         if lengthscales is None:
             unique = [sorted(np.unique(param_set))
                       for param_set in self.grid_points.T]
-            sep = [5 * np.diff(param).max() for param in unique]
+            sep = [3 * np.diff(param).max() for param in unique]
             lengthscales = np.tile(sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -251,12 +251,6 @@ class Emulator:
 
         Parameters
         ----------
-        lambda_xi : float, optional
-            Starting guess for lambda_xi. If None defaults to the current value. Default is None.
-        variances : numpy.ndarray, optional
-            Starting guess for variances. If None defaults to the current value. Default is None.
-        lengthscales : numpy.ndarray, optional
-            Starting guess for lengthscales. If None defaults to the current value. Default is None.
         **opt_kwargs
             Any arguments to pass to the optimizer
 
@@ -275,7 +269,10 @@ class Emulator:
             self.log.debug('loss: {}'.format(loss))
             return loss
 
-        default_kwargs = {}
+        default_kwargs = {
+            'method': 'Nelder-Mead',
+            'options': {'maxiter': 10000}
+        }
         default_kwargs.update(opt_kwargs)
         soln = minimize(nll, P0, **default_kwargs)
 
