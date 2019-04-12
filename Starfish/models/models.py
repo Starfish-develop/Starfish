@@ -62,9 +62,6 @@ class SpectrumModel:
         if 'vz' in self.params:
             wave = doppler_shift(wave, self.params['vz'])
 
-        if 'Av' in self.params:
-            fluxes = extinct(wave, fluxes, self.params['Av'])
-
         if 'scale' in self.params:
             fluxes = rescale(fluxes, self.params['scale'])
 
@@ -73,6 +70,10 @@ class SpectrumModel:
         #     fluxes = chebyshev_correct(wave, fluxes, self.cheb)
 
         fluxes = resample(wave, fluxes, self.wave)
+
+        if 'Av' in self.params:
+            fluxes = extinct(self.wave, fluxes, self.params['Av'])
+
         weights, weights_cov = self.emulator(self.grid_params)
         L, flag = cho_factor(weights_cov)
 

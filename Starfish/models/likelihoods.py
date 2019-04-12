@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class SpectrumLikelihood:
 
-    def __init__(self, spectrum, jitter=1e-6):
+    def __init__(self, spectrum, jitter=1e-8):
         if not isinstance(spectrum, SpectrumModel):
             raise ValueError('Must provide a valid SpectrumModel')
         self.spectrum = spectrum
@@ -30,7 +30,6 @@ class SpectrumLikelihood:
         except np.linalg.LinAlgError:
             self.log.warning('Failed to decompose covariance. Entering covariance debugger')
             covariance_debugger(cov)
-            # return -np.inf
 
         R = self.spectrum.flux - fls
 

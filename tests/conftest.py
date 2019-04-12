@@ -96,7 +96,7 @@ def mock_trained_emulator(mock_emulator):
     if os.path.exists(filename):
         yield Emulator.load(filename)
     else:
-        mock_emulator.train(options={'maxiter':100})
+        mock_emulator.train()
         mock_emulator.save(filename)
 
 
