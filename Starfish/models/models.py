@@ -9,6 +9,8 @@ from scipy.linalg import cho_factor, cho_solve
 
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
+from ._likelihoods import mvn_likelihood, normal_likelihood
+from .kernels import k_global_matrix
 
 
 class SpectrumModel:
@@ -82,6 +84,10 @@ class SpectrumModel:
         # Complete the reconstruction
         X = eigenspectra * flux_std
         cov = X.T @ cho_solve((L, flag), X)
+
+        if 'aG' in self.params and 'lG' in self.params:
+            cov += k_global_matrix(wave, self.params['aG'], self.params['lG'])
+
         return weights @ X + flux_mean, cov
 
     def __getitem__(self, key):
@@ -169,6 +175,16 @@ class SpectrumModel:
         frozen = data.pop('frozen')
         self.set_param_dict(data)
         self.frozen = frozen
+
+    def log_likelihood(self):
+        try:
+            flux, cov = self()
+        except ValueError:
+            return -np.inf
+        return mvn_likelihood(flux, self.flux, cov)
+
+    def grad_log_likelihood(self):
+        raise NotImplementedError('Not Implemented yet')
 
 
 class EchelleModel:
