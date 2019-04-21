@@ -11,7 +11,7 @@ from Starfish.utils import calculate_dv
 def resample(wave, flux, new_wave):
     """
     Resample onto a new wavelength grid using k=5 spline interpolation
-    
+
     Parameters
     ----------
     wave : array_like
@@ -20,12 +20,12 @@ def resample(wave, flux, new_wave):
         The fluxes to resample
     new_wave : array_like
         The new wavelength grid
-    
+
     Raises
     ------
     ValueError
         If the new wavelength grid is not strictly increasing monotonic
-    
+
     Returns
     -------
     numpy.ndarray
@@ -36,7 +36,8 @@ def resample(wave, flux, new_wave):
         raise ValueError('Wavelengths must be positive')
 
     if flux.ndim > 1:
-        interpolators = [InterpolatedUnivariateSpline(wave, fl, k=5) for fl in flux]
+        interpolators = [InterpolatedUnivariateSpline(
+            wave, fl, k=5) for fl in flux]
         return np.array([interpolator(new_wave) for interpolator in interpolators])
     else:
         return InterpolatedUnivariateSpline(wave, flux, k=5)(new_wave)
@@ -51,7 +52,7 @@ def instrumental_broaden(wave, flux, fwhm):
 
     .. math::
         \\mathcal{F}^{\\text{inst}}_v = \\frac{1}{\\sqrt{2\\pi \\sigma^2}} \\exp \\left[-\\frac12 \\left( \\frac{v}{\\sigma} \\right)^2 \\right]
-    
+
     This is carried out by multiplication in the Fourier domain rather than using a convolution function.
 
     Parameters
@@ -62,12 +63,12 @@ def instrumental_broaden(wave, flux, fwhm):
         The current flux
     fwhm : float
         The full width half-maximum of the instrument in km/s. Note that this is equivalent to :math:`2.355\\cdot \\sigma`
-    
+
     Raises
     ------
     ValueError
         If the full width half maximum is negative.
-    
+
     Returns
     -------
     numpy.ndarray
@@ -90,7 +91,7 @@ def instrumental_broaden(wave, flux, fwhm):
 def rotational_broaden(wave, flux, vsini):
     """
     Broadens flux according to a rotational broadening kernel from Gray (2005) [1]_
-    
+
     Parameters
     ----------
     wave : array_like
@@ -99,18 +100,18 @@ def rotational_broaden(wave, flux, vsini):
         The current flux
     vsini : float
         The rotational velocity in km/s
-    
+
     Raises
     ------
     ValueError
         if `vsini` is not positive
-    
+
     Returns
     -------
     numpy.ndarray
         The broadened flux with the same shape as the input flux
 
-    
+
     .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*. Cambridge: Cambridge University Press. doi:10.1017/CB09781316036570
     """
 
@@ -124,7 +125,8 @@ def rotational_broaden(wave, flux, vsini):
     ub = 2. * np.pi * vsini * freq
     # Remove 0th frequency
     ub = ub[1:]
-    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + \
+        3. * np.sin(ub) / (2 * ub ** 3)
     flux_ff *= np.insert(sb, 0, 1.)
     flux_final = np.fft.irfft(flux_ff, n=flux.shape[-1])
     return flux_final
@@ -133,14 +135,14 @@ def rotational_broaden(wave, flux, vsini):
 def doppler_shift(wave, vz):
     """
     Doppler shift a spectrum
-    
+
     Parameters
     ----------
     wave : array_like
         The unshifted wavelengths
     vz : float
         The doppler velocity in km/s
-    
+
     Returns
     -------
     numpy.ndarray
@@ -154,7 +156,7 @@ def doppler_shift(wave, vz):
 def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
     """
     Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package.
-    
+
     Parameters
     ----------
     wave : array_like
@@ -167,14 +169,14 @@ def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
         The relative attenuation (the default is 3.1, which is the Milky Way average)
     law : str, optional
         The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07'}` (the default is 'ccm89')
-    
+
     Raises
     ------
     ValueError
         If `law` does not match one of the availabe laws
     ValueError
         If Av or Rv is not positive
-    
+
     Returns
     -------
     numpy.ndarray
@@ -202,14 +204,14 @@ def rescale(flux, log_scale):
     Rescale the given flux via the following equation
 
     .. math:: f(\\log \\Omega) = f \\times 10^{\\log \\Omega}
-    
+
     Parameters
     ----------
     flux : array_like
         The input fluxes
     log_scale : float
         The base-10 logarithm of the scaling factor
-    
+
     Returns
     -------
     numpy.ndarray
@@ -225,7 +227,8 @@ def chebyshev_correct(wave, flux, coeffs):
     if not isinstance(coeffs, np.ndarray):
         coeffs = np.array(coeffs)
     if coeffs.ndim == 1 and coeffs[0] != 1:
-        raise ValueError('For single spectrum the linear Chebyshev coefficient (c[0]) must be 1')
+        raise ValueError(
+            'For single spectrum the linear Chebyshev coefficient (c[0]) must be 1')
 
     scale_wave = wave / wave.max()
     p = chebval(scale_wave, coeffs, tensor=False)

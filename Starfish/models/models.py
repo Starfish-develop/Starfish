@@ -1,4 +1,5 @@
 import logging
+
 import warnings
 from collections import OrderedDict
 import json
@@ -71,7 +72,7 @@ class SpectrumModel:
             fluxes = extinct(self.wave, fluxes, self.params['Av'])
 
         weights, weights_cov = self.emulator(self.grid_params)
-        
+
         L, flag = cho_factor(weights_cov)
 
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)
@@ -164,7 +165,6 @@ class SpectrumModel:
         frozen = data.pop('frozen')
         self.set_param_dict(data)
         self.frozen = frozen
-        
 
 
 class EchelleModel:
