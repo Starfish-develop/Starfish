@@ -60,7 +60,6 @@ class TestSpectrumModel:
         mock_model.set_param_dict(P0)
         assert mock_model['grid_param:2'] == 0
 
-
     def test_get_set_parameters(self, mock_model):
         P0 = mock_model.get_param_vector()
         mock_model.set_param_vector(P0)
@@ -79,7 +78,6 @@ class TestSpectrumModel:
         mock_model.set_param_vector(P0)
         assert mock_model['grid_param:2'] == 7
 
-
     def test_save_load(self, mock_model, tmpdir):
         path = os.path.join(tmpdir, 'model.json')
         P0 = mock_model.params
@@ -88,3 +86,11 @@ class TestSpectrumModel:
         mock_model.load(path)
         assert P0 == mock_model.params
         assert P0_f == mock_model.get_param_dict()
+
+    def test_log_likelihood(self, mock_model):
+        lnprob = mock_model.log_likelihood()
+        assert np.isfinite(lnprob)
+
+    def test_grad_log_likelihood_doesnt_exist(self, mock_model):
+        with pytest.raises(NotImplementedError):
+            mock_model.grad_log_likelihood()

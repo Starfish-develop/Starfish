@@ -1,11 +1,8 @@
 import logging
 import sys
-from collections import deque
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
-
-from ..models import SpectrumModel
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +22,6 @@ def mvn_likelihood(fluxes, y, cov, jitter=1e-8):
     central = R.T @ cho_solve((factor, flag), R)
     lnprob = -0.5 * (logdet + central)
 
-    log.debug("Evaluating lnprob={}".format(lnprob))
     return lnprob
 
 
@@ -33,7 +29,7 @@ def normal_likelihood(fluxes, y, var):
     R = y - fluxes
     l2 = R ** 2 / var
     lnprob = - 0.5 * np.sum(len(R) * np.log(var) + l2)
-    log.debug("Evaluating lnprob={}".format(lnprob))
+
     return lnprob
 
 

@@ -1,7 +1,6 @@
 import logging
-
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import json
 
 import numpy as np
@@ -15,7 +14,7 @@ from .kernels import k_global_matrix
 
 class SpectrumModel:
 
-    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, scale=None):
+    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, scale=None, aG=None, lG=None, max_residual_queue=100):
         self.emulator = emulator
 
         mask = data.masks[0].astype(bool)
@@ -27,6 +26,8 @@ class SpectrumModel:
             dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
         self.bulk_fluxes = resample(
             self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
+
+        self.residuals_queue = deque(maxlen=max_residual_queue)
 
         self.params = OrderedDict()
         self.frozen = []
@@ -46,6 +47,12 @@ class SpectrumModel:
 
         if scale is not None:
             self.params['scale'] = scale
+
+        if aG is not None:
+            self.params['aG'] = aG
+
+        if lG is not None:
+            self.params['lG'] = lG
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -181,7 +188,10 @@ class SpectrumModel:
             flux, cov = self()
         except ValueError:
             return -np.inf
-        return mvn_likelihood(flux, self.flux, cov)
+        self.residuals_queue.append(flux - self.flux)
+        lnprob = mvn_likelihood(flux, self.flux, cov)
+        self.log.debug("Evaluating lnprob={}".format(lnprob))
+        return lnprob
 
     def grad_log_likelihood(self):
         raise NotImplementedError('Not Implemented yet')
