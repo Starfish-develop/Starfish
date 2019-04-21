@@ -91,10 +91,14 @@ class SpectrumModel:
         self.params[key] = value
 
     def freeze(self, name):
+        if not name in self.params:
+            raise ValueError('Parameter not found')
         if name not in self.frozen:
             self.frozen.append(name)
 
     def thaw(self, name):
+        if not name in self.params:
+            raise ValueError('Parameter not found')
         if name in self.frozen:
             self.frozen.remove(name)
 
