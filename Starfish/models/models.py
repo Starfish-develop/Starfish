@@ -65,16 +65,13 @@ class SpectrumModel:
         if 'scale' in self.params:
             fluxes = rescale(fluxes, self.params['scale'])
 
-        # Not my favorite solution because I don't like exploiting falsiness of None
-        # if 'cheb' in self.params:
-        #     fluxes = chebyshev_correct(wave, fluxes, self.cheb)
-
         fluxes = resample(wave, fluxes, self.wave)
 
         if 'Av' in self.params:
             fluxes = extinct(self.wave, fluxes, self.params['Av'])
 
         weights, weights_cov = self.emulator(self.grid_params)
+        
         L, flag = cho_factor(weights_cov)
 
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)

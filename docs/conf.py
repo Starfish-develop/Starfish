@@ -28,7 +28,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['Starfish.covariance']
+MOCK_MODULES = ['Starfish.models._kernels']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 version = Starfish.__version__
@@ -42,7 +42,7 @@ release = version
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.mathjax',
-              'sphinx.ext.viewcode', 'sphinx.ext.graphviz', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.autosectionlabel']
+              'sphinx.ext.viewcode', 'sphinx.ext.graphviz', 'sphinx.ext.inheritance_diagram', 'sphinx.ext.autosectionlabel', 'sphinx.ext.napoleon']
 
 # Autodocs parameters
 # autodoc_default_flags = ['show-inheritance']

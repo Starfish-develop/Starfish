@@ -17,7 +17,6 @@ oyaml = "*"
 extinction = "*"
 
 [dev-packages]
-sphinx = "*"
 sphinx-rtd-theme = "*"
 graphviz = "*"
 pytest = "*"
@@ -26,6 +25,8 @@ pylint = "*"
 autopep8 = "*"
 rope = "*"
 pytest-cov = "*"
+doc8 = "*"
+sphinx = "*"
 
 [pipenv]
 allow_prereleases = true

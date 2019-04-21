@@ -9,7 +9,29 @@ from Starfish.utils import calculate_dv
 
 
 def resample(wave, flux, new_wave):
-    # TODO docstring
+    """
+    Resample onto a new wavelength grid using k=5 spline interpolation
+    
+    Parameters
+    ----------
+    wave : array_like
+        The original wavelength grid
+    flux : array_like
+        The fluxes to resample
+    new_wave : array_like
+        The new wavelength grid
+    
+    Raises
+    ------
+    ValueError
+        If the new wavelength grid is not strictly increasing monotonic
+    
+    Returns
+    -------
+    numpy.ndarray
+        The resampled flux with the same 1st dimension as the input flux
+    """
+
     if np.any(new_wave <= 0):
         raise ValueError('Wavelengths must be positive')
 
@@ -21,7 +43,37 @@ def resample(wave, flux, new_wave):
 
 
 def instrumental_broaden(wave, flux, fwhm):
-    # TODO docstring
+    """
+    Broadens given flux by convolving with a Gaussian kernel appropriate for a spectrograph's instrumental properties. Follows the given equation
+
+    .. math::
+        f = f * \\mathcal{F}^{\\text{inst}}_v
+
+    .. math::
+        \\mathcal{F}^{\\text{inst}}_v = \\frac{1}{\\sqrt{2\\pi \\sigma^2}} \\exp \\left[-\\frac12 \\left( \\frac{v}{\\sigma} \\right)^2 \\right]
+    
+    This is carried out by multiplication in the Fourier domain rather than using a convolution function.
+
+    Parameters
+    ----------
+    wave : array_like
+        The current wavelength grid
+    flux : array_like
+        The current flux
+    fwhm : float
+        The full width half-maximum of the instrument in km/s. Note that this is equivalent to :math:`2.355\\cdot \\sigma`
+    
+    Raises
+    ------
+    ValueError
+        If the full width half maximum is negative.
+    
+    Returns
+    -------
+    numpy.ndarray
+        The broadened flux with the same shape as the input flux
+    """
+
     if fwhm < 0:
         raise ValueError('FWHM must be non-negative')
     dv = calculate_dv(wave)
@@ -36,7 +88,32 @@ def instrumental_broaden(wave, flux, fwhm):
 
 
 def rotational_broaden(wave, flux, vsini):
-    # TODO docstring
+    """
+    Broadens flux according to a rotational broadening kernel from Gray (2005) [1]_
+    
+    Parameters
+    ----------
+    wave : array_like
+        The current wavelength grid
+    flux : array_like
+        The current flux
+    vsini : float
+        The rotational velocity in km/s
+    
+    Raises
+    ------
+    ValueError
+        if `vsini` is not positive
+    
+    Returns
+    -------
+    numpy.ndarray
+        The broadened flux with the same shape as the input flux
+
+    
+    .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*. Cambridge: Cambridge University Press. doi:10.1017/CB09781316036570
+    """
+
     if vsini <= 0:
         raise ValueError('vsini must be positive')
 
@@ -54,13 +131,56 @@ def rotational_broaden(wave, flux, vsini):
 
 
 def doppler_shift(wave, vz):
-    # TODO docstring
+    """
+    Doppler shift a spectrum
+    
+    Parameters
+    ----------
+    wave : array_like
+        The unshifted wavelengths
+    vz : float
+        The doppler velocity in km/s
+    
+    Returns
+    -------
+    numpy.ndarray
+        Altered wavelengths with the same shape as the input wavelengths
+    """
+
     dv = np.sqrt((c_kms + vz) / (c_kms - vz))
     return wave * dv
 
 
 def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
-    # TODO docstring
+    """
+    Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package.
+    
+    Parameters
+    ----------
+    wave : array_like
+        The input wavelengths in Angstrom
+    flux : array_like
+        The input fluxes
+    Av : float
+        The absolute attenuation
+    Rv : float, optional
+        The relative attenuation (the default is 3.1, which is the Milky Way average)
+    law : str, optional
+        The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07'}` (the default is 'ccm89')
+    
+    Raises
+    ------
+    ValueError
+        If `law` does not match one of the availabe laws
+    ValueError
+        If Av or Rv is not positive
+    
+    Returns
+    -------
+    numpy.ndarray
+        The extincted fluxes, with same shape as input fluxes.
+    """
+
     if law not in ['ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07']:
         raise ValueError('Invalid extinction law given')
     if Av < 0:
@@ -77,9 +197,26 @@ def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
     return flux_final
 
 
-def rescale(flux, w):
-    # TODO docstring
-    return flux * 10 ** w
+def rescale(flux, log_scale):
+    """
+    Rescale the given flux via the following equation
+
+    .. math:: f(\\log \\Omega) = f \\times 10^{\\log \\Omega}
+    
+    Parameters
+    ----------
+    flux : array_like
+        The input fluxes
+    log_scale : float
+        The base-10 logarithm of the scaling factor
+    
+    Returns
+    -------
+    numpy.ndarray
+        The rescaled fluxes with the same shape as the input fluxes
+    """
+
+    return flux * 10 ** log_scale
 
 
 def chebyshev_correct(wave, flux, coeffs):
