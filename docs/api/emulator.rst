@@ -14,7 +14,7 @@ The first step of configuring the spectral emulator is to choose a subregion of 
 
 The eigenspectra decomposition is performed via Principal Component Analysis (PCA). Thankfully, most of the heavy lifting is already implemented by the ``sklearn`` package.
 
-:func:`Emulator.from_grid` allows easy creation of spectral emulators from an :class:`Starfish.grid_tools.HDF5Interface`, which includes doing the initial PCA to create the eigenspectra.
+:meth:`Emulator.from_grid` allows easy creation of spectral emulators from an :class:`Starfish.grid_tools.HDF5Interface`, which includes doing the initial PCA to create the eigenspectra.
 
 
 .. code-block:: python
@@ -31,7 +31,7 @@ Once the synthetic library is decomposed into a set of eigenspectra, the next st
 
 The optimization of the GP hyperparameters can be carried out by any maximum likelihood estimation framework, but we include a direct method that uses ``scipy.optimize.minimize``.
 
-To optimize the code, we will use the :func:`Emulator.train` routine.
+To optimize the code, we will use the :meth:`Emulator.train` routine.
 
 Example optimizing using minimization optimizer
 
@@ -42,7 +42,7 @@ Example optimizing using minimization optimizer
     >>> emulator = Emulator.from_grid(HDF5Interface('grid.hdf5'))
     >>> emulator.train()
 
-If you want to perform MLE with a different method, feel free to make use of the general modeling framework provided by the function :func:`Emulator.get_param_vector`, :func:`Emulator.set_param_vector`, and :func:`Emulator.log_likelihood`.
+If you want to perform MLE with a different method, feel free to make use of the general modeling framework provided by the function :meth:`Emulator.get_param_vector`, :meth:`Emulator.set_param_vector`, and :meth:`Emulator.log_likelihood`.
 
 Model spectrum reconstruction
 =============================

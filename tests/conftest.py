@@ -8,7 +8,7 @@ import scipy.stats as st
 from Starfish.emulator import Emulator
 from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGridInterfaceNoAlpha, \
     HDF5Creator, HDF5Interface
-from Starfish.models import SpectrumParameter, SpectrumModel
+from Starfish.models import SpectrumModel
 from Starfish.models.transforms import resample
 from Starfish.spectrum import DataSpectrum
 from Starfish.utils import create_log_lam_grid

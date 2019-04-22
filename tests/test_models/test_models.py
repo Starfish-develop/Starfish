@@ -19,13 +19,17 @@ class TestSpectrumModel:
         assert mock_model['scale'] == -10
         assert mock_model['vsini'] == 30
 
+    def test_add_bad_param(self, mock_model):
+        with pytest.raises(ValueError):
+            mock_model['garbage_key'] = -4
+
     def test_grid_params(self, mock_model):
         assert np.all(mock_model.grid_params == self.GP)
 
     def test_transform(self, mock_model):
         flux, cov = mock_model()
         assert cov.shape == (len(flux), len(flux))
-        assert flux.shape == mock_model.wave.shape
+        assert flux.shape == mock_model.data.waves.shape
 
     def test_freeze_vsini(self, mock_model):
         mock_model.freeze('vsini')

@@ -13,46 +13,95 @@ from .kernels import k_global_matrix
 
 
 class SpectrumModel:
+    """
+    A single-order spectrum model.
 
-    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, scale=None, log_ag=None, log_lg=None, max_residual_queue=100):
+
+    Parameters
+    ----------
+    emulator : :class:`Starfish.emulators.Emulator`
+        The emulator to use for this model.
+    data : :class:`Starfish.spectrum.DataSpectrum`
+        The data to use for this model
+    grid_params : array-like
+        The parameters that are used with the associated emulator
+    max_deque_len : int, optional
+        The maximum number of residuals to retain in a deque of residuals. Default is 100
+
+    Keyword Arguments
+    -----------------
+    params : dict
+        Any remaining keyword arguments will be interpreted as parameters. 
+
+
+    Here is a table describing the avialable parameters and their related functions
+
+    =========== ======================================= =============
+     Parameter                 Function                  Description       
+    =========== ======================================= =============
+    vsini        :func:`transforms.rotational_broaden`
+    vz           :func:`transforms.doppler_shift`
+    Av           :func:`transforms.extinct`
+    Rv           :func:`transforms.extinct`              Not required. If not specified, will default to 3.1
+    scale        :func:`transforms.rescale`
+    log_ag       :func:`kernels.k_global_matrix`
+    log_lg       :func:`kernels.k_global_matrix`
+    =========== ======================================= =============
+
+    Attributes
+    ----------
+    params : dict
+        The dictionary of parameters that are used for doing the modeling.
+    grid_params : numpy.ndarray
+        A direct interface to the grid parameters rather than indexing like self['grid_param:i']
+    frozen : list
+        A list of strings corresponding to frozen parameters
+    labels : list
+        A list of strings corresponding to the active (thawed) parameters
+
+
+    Raises
+    ------
+    ValueError
+        If any of the keyword argument params do not exist in ``self._PARAMS``
+
+
+    An example of adding a previously uninitialized parameter is 
+
+    .. code-block:: python
+
+        >>> model['<new_param>'] = new_value
+
+    """
+
+    _PARAMS = ['vz', 'vsini', 'Av', 'Rv',
+               'global:log_ag', 'global:log_lg', 'scale']
+
+    def __init__(self, emulator, data, grid_params, max_deque_len=100, **params):
         self.emulator = emulator
 
-        mask = data.masks[0].astype(bool)
-        self.data_wave = data.wls[0][mask]
-        self.data_flux = data.fls[0][mask]
-        self.data_stds = data.sigmas[0][mask]
-        dv = calculate_dv(self.data_wave)
-        self.min_dv_wl = create_log_lam_grid(
+        self.data = data
+        dv = calculate_dv(self.data.waves)
+        self.min_dv_wave = create_log_lam_grid(
             dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
         self.bulk_fluxes = resample(
-            self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wl)
+            self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wave)
 
-        self.residuals_queue = deque(maxlen=max_residual_queue)
+        self.residuals_queue = deque(maxlen=max_deque_len)
 
         self.params = OrderedDict()
         self.frozen = []
+
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
         for i, value in enumerate(grid_params):
             self.params['grid_param:{}'.format(i)] = value
 
-        if vsini is not None:
-            self.params['vsini'] = vsini
-
-        if vz is not None:
-            self.params['vz'] = vz
-
-        if Av is not None:
-            self.params['Av'] = Av
-
-        if scale is not None:
-            self.params['scale'] = scale
-
-        if log_ag is not None:
-            self.params['global:log_ag'] = log_ag
-
-        if log_lg is not None:
-            self.params['global:log_lg'] = log_lg
+        # Unpack the keyword arguments
+        for param, value in params.items():
+            if param == 'log_ag' or param == 'log_lg':
+                param = 'global:' + param
+            self.params[param] = value
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -62,12 +111,16 @@ class SpectrumModel:
                  if key.startswith('grid_param')]
         return np.array(items)
 
-    @property
-    def mean_residual(self):
-        return np.mean(list(self.residuals_queue))
-
     def __call__(self):
-        wave = self.min_dv_wl
+        """
+        Performs the transformations according to the parameters available in ``self.params``
+
+        Returns
+        -------
+        flux, cov : tuple
+            The transformed flux and covariance matrix from the model
+        """
+        wave = self.min_dv_wave
         fluxes = self.bulk_fluxes
 
         if 'vsini' in self.params:
@@ -79,10 +132,10 @@ class SpectrumModel:
         if 'scale' in self.params:
             fluxes = rescale(fluxes, self.params['scale'])
 
-        fluxes = resample(wave, fluxes, self.data_wave)
+        fluxes = resample(wave, fluxes, self.data.waves)
 
         if 'Av' in self.params:
-            fluxes = extinct(self.data_wave, fluxes, self.params['Av'])
+            fluxes = extinct(self.data.waves, fluxes, self.params['Av'])
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -96,10 +149,17 @@ class SpectrumModel:
         X = eigenspectra * flux_std
         cov = X.T @ cho_solve((L, flag), X)
 
+        # Poisson covariance
+        np.fill_diagonal(cov, self.data.sigmas ** 2)
+
+        # Global covariance
         if 'global:log_ag' in self.params and 'global:log_lg' in self.params:
             ag = np.exp(self.params['global:log_ag'])
             lg = np.exp(self.params['global:log_lg'])
-            cov += k_global_matrix(self.data_wave, ag, lg)
+            cov += k_global_matrix(self.data.waves, ag, lg)
+
+        # Local covariance
+        # TODO
 
         return weights @ X + flux_mean, cov
 
@@ -107,15 +167,51 @@ class SpectrumModel:
         return self.params[key]
 
     def __setitem__(self, key, value):
+        if not key.startswith('grid_param:') and key not in self._PARAMS:
+            raise ValueError('{} is not a valid parameter.'.format(key))
         self.params[key] = value
 
     def freeze(self, name):
+        """
+        Freeze the given parameter such that :meth:`get_param_dict` and :meth:`get_param_vector` no longer include this parameter, however it will still be used when calling the model.
+
+        Parameters
+        ----------
+        name : str
+            The parameter to freeze
+
+        Raises
+        ------
+        ValueError
+            If the given parameter does not exist
+
+        See Also
+        --------
+        :meth:`thaw`
+        """
         if not name in self.params:
             raise ValueError('Parameter not found')
         if name not in self.frozen:
             self.frozen.append(name)
 
     def thaw(self, name):
+        """
+        Thaws the given parameter. Opposite of freezing
+
+        Parameters
+        ----------
+        name : str
+            The parameter to thaw
+
+        Raises
+        ------
+        ValueError
+            If the given parameter does not exist.
+
+        See Also
+        --------
+        :meth:`freeze`
+        """
         if not name in self.params:
             raise ValueError('Parameter not found')
         if name in self.frozen:
@@ -136,9 +232,21 @@ class SpectrumModel:
         return params
 
     def set_param_dict(self, params):
+        """
+        Sets the parameters with a dictionary
+
+        Parameters
+        ----------
+        params : dict
+            The new parameters. If a key is present in ``self.frozen`` it will not be changed
+        """
         for key, val in params.items():
             if key in self.params and key not in self.frozen:
                 self.params[key] = val
+
+    @property
+    def labels(self):
+        return list(self.get_param_dict)
 
     def get_param_vector(self):
         """
@@ -152,7 +260,7 @@ class SpectrumModel:
 
     def set_param_vector(self, params):
         """
-        Sets the parameters based on the current thawed state. The values will be inserted according to the order of :function:`SpectrumModel.get_param_dict()`.
+        Sets the parameters based on the current thawed state. The values will be inserted according to the order of :obj:`SpectrumModel.labels`.
 
         Parameters
         ----------
@@ -168,11 +276,19 @@ class SpectrumModel:
         thawed_parameters = self.get_param_dict()
         if len(params) != len(thawed_parameters):
             raise ValueError(
-                'params must match length of thawed parameters (get_param_dict())')
+                'params must match length of thawed parameters (get_param_vector())')
         for i, key in enumerate(self.get_param_dict()):
             self.params[key] = params[i]
 
     def save(self, filename):
+        """
+        Saves the model as a set of parameters into a JSON file
+
+        Parameters
+        ----------
+        filename : str or path-like
+            The JSON filename to save to.
+        """
         output = {
             **self.params,
             'frozen': self.frozen
@@ -182,6 +298,14 @@ class SpectrumModel:
         self.log.info('Saved current state at {}'.format(filename))
 
     def load(self, filename):
+        """
+        Load a saved model state from a JSON file
+
+        Parameters
+        ----------
+        filename : str or path-like
+            The saved state to load
+        """
         with open(filename, 'r') as handler:
             data = json.load(handler)
 
@@ -190,14 +314,22 @@ class SpectrumModel:
         self.frozen = frozen
 
     def log_likelihood(self):
+        """
+        Returns a multivariate normal log-likelihood
+
+        Returns
+        -------
+        float
+            The current log-likelihood
+        """
         try:
             flux, cov = self()
         except ValueError:
             return -np.inf
 
-        self.residuals_queue.append(flux - self.data_flux)
+        self.residuals_queue.append(flux - self.data.fluxes)
 
-        lnprob = mvn_likelihood(flux, self.data_flux, cov)
+        lnprob = mvn_likelihood(flux, self.data.fluxes, cov)
 
         self.log.debug("Evaluating lnprob={}".format(lnprob))
 

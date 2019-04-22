@@ -11,9 +11,9 @@ the source code at `GitHub <https://github.com/iancze/Starfish>`_. Make sure you
 
    config
    grid_tools
-   spectrum
-   transforms
    emulator
-   model
+   spectrum
+   models
+   transforms
    MCMC
    scripts
