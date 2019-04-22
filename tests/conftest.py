@@ -82,7 +82,8 @@ def mock_data(mock_hdf5_interface):
 @pytest.fixture
 def mock_data_spectrum(mock_data):
     wave, flux = mock_data
-    yield DataSpectrum(wls=wave, fls=flux)
+    sigs = np.random.randn(len(flux))
+    yield DataSpectrum(waves=wave, fluxes=flux, sigmas=sigs)
 
 
 @pytest.fixture

@@ -66,34 +66,22 @@ The :obj:`DataSpectrum` holds the data spectrum that you wish to fit. You may re
 
 First, you can construct an instance using the traditional ``__init__`` method::
 
-    # Read wls, fls, and sigmas from your dataset
+    # Read waves, fluxes, and sigmas from your dataset
     # as numpy arrays using your own method.
-    wls, fls, sigmas = myownmethod()
+    waves, fluxes, sigmas = myownmethod()
 
-    myspec = DataSpectrum(wls, fls, sigmas)
+    myspec = DataSpectrum(waves, fluxes, sigmas)
 
-Since :meth:`myownmethod` may require a bunch of additional dependencies (e.g, *IRAF*), for convenience you may want to first read your data using your own custom method but then save it to a simpler format, such as ``numpy`` arrays. If you save the wavelengths, flux, sigmas, and masks for your data set as ``(norders, npix)`` size numpy arrays with the following convention::
-
-    myspec.wls.npy
-    myspec.fls.npy
-    myspec.sigmas.npy
-    myspec.masks.npy
-
-Then you can accomplish the same loading behaviour using::
-
-    myspec = DataSpectrum.open_npy("myspec")
-
-If you don't want to use a mask, just use an array of all ``True`` the same shape as the data.
-
-Since ``HDF5`` files are all the rage these days, you may want to use them to store your entire data set in a single binary file. If you store your spectra in an HDF5 file as ``(norders, npix)`` arrays::
+Since :meth:`myownmethod` may require a bunch of additional dependencies (e.g, *IRAF*), for convenience you may want to first read your data using your own custom method but then save it to a different format, like ``hdf5``. Since ``HDF5`` files are all the rage these days, you may want to use them to store your entire data set in a single binary file. If you store your spectra in an HDF5 file as ``(norders, npix)`` arrays::
 
     /
-    wls
-    fls
-    sigmas
+    /waves
+    /fluxes
+    /sigmas
+    /masks
 
 Then can read your data in as::
 
-    myspec = DataSpectrum.open("myspec.HDF5")
+    myspec = DataSpectrum.load("myspec.HDF5")
 
 When using HDF5 files, we highly recommended using a GUI program like `HDF View <http://www.hdfgroup.org/products/java/hdfview/index.html>`_ to make it easer to see what's going on.
