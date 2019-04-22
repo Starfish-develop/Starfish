@@ -7,7 +7,7 @@ from scipy.linalg import cho_factor, cho_solve
 log = logging.getLogger(__name__)
 
 
-def mvn_likelihood(fluxes, y, cov, jitter=1e-8):
+def mvn_likelihood(fluxes, y, cov, jitter=1e-6):
     C = cov.copy()
     np.fill_diagonal(C, C.diagonal() + jitter)
     try:
@@ -16,8 +16,7 @@ def mvn_likelihood(fluxes, y, cov, jitter=1e-8):
         log.warning(
             'Failed to decompose covariance. Entering covariance debugger')
         covariance_debugger(cov)
-        # TODO consider this?
-        return -np.inf
+        sys.exit()
 
     R = y - fluxes
 

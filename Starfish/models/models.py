@@ -9,7 +9,7 @@ from scipy.linalg import cho_factor, cho_solve
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
 from .likelihoods import mvn_likelihood, normal_likelihood
-from .kernels import k_global_matrix
+from .kernels import k_global_matrix, k_local_matrix
 
 
 class SpectrumModel:
@@ -94,14 +94,20 @@ class SpectrumModel:
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
-        for i, value in enumerate(grid_params):
-            self.params['grid_param:{}'.format(i)] = value
+        self.grid_params = grid_params
 
         # Unpack the keyword arguments
         for param, value in params.items():
             if param == 'log_ag' or param == 'log_lg':
                 param = 'global:' + param
-            self.params[param] = value
+            if param == 'amps':
+                self.amps = value
+            elif param == 'mus':
+                self.mus = value
+            elif param == 'stds':
+                self.stds = value
+            else:
+                self.params[param] = value
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -110,6 +116,46 @@ class SpectrumModel:
         items = [vals for key, vals in self.params.items()
                  if key.startswith('grid_param')]
         return np.array(items)
+
+    @grid_params.setter
+    def grid_params(self, values):
+        for i, value in enumerate(values):
+            self.params['grid_param:{}'.format(i)] = value
+
+    @property
+    def amps(self):
+        items = [vals for key, vals in self.params.items()
+                 if key.startswith('local:amp:')]
+        return np.array(items)
+    
+    @amps.setter
+    def amps(self, values):
+        for i, value in enumerate(values):
+            self.params['local:amp:{}'.format(i)] = value
+
+
+    @property
+    def mus(self):
+        items = [vals for key, vals in self.params.items()
+                 if key.startswith('local:mu:')]
+        return np.array(items)
+    
+    @mus.setter
+    def mus(self, values):
+        for i, value in enumerate(values):
+            self.params['local:mu:{}'.format(i)] = value
+
+    @property
+    def stds(self):
+        items = [vals for key, vals in self.params.items()
+                 if key.startswith('local:std:')]
+        return np.array(items)
+    
+    @stds.setter
+    def stds(self, values):
+        for i, value in enumerate(values):
+            self.params['local:std:{}'.format(i)] = value
+
 
     def __call__(self):
         """
@@ -159,7 +205,8 @@ class SpectrumModel:
             cov += k_global_matrix(self.data.waves, ag, lg)
 
         # Local covariance
-        # TODO
+        if len(self.mus) and len(self.stds) and len(self.amps):
+            cov += k_local_matrix(self.data.waves, self.amps, self.mus, self.stds)
 
         return weights @ X + flux_mean, cov
 
@@ -310,7 +357,7 @@ class SpectrumModel:
             data = json.load(handler)
 
         frozen = data.pop('frozen')
-        self.set_param_dict(data)
+        self.params = data
         self.frozen = frozen
 
     def log_likelihood(self):
@@ -337,6 +384,43 @@ class SpectrumModel:
 
     def grad_log_likelihood(self):
         raise NotImplementedError('Not Implemented yet')
+
+    def find_residual_peaks(self, threshold=4.0, buffer=2):
+        """
+        Find the peaks of the most recent residual and return their properties to aid in setting up local kernels
+        
+        Parameters
+        ----------
+        threshold : float, optional
+            The sigma clipping threshold, by default 4.0
+        buffer : float, optional
+            The minimum distance between peaks, in Angstrom, by default 2.0
+        
+        Returns
+        -------
+        means : list
+            The means of the found peaks, with the same units as self.data.waves
+        """
+        residual = self.residuals_queue[-1]
+        low = (residual.mean() - residual.std() * threshold) < residual
+        high = residual < (residual.mean() + residual.std() * threshold)
+        mask = ~(low & high)
+        peak_waves = self.data.waves[1:-1][mask[1:-1]]
+        mus = []
+        covered = np.zeros_like(peak_waves, dtype=bool)
+        # Sort from largest residual to smallest
+        abs_resid = np.abs(residual[1:-1][mask[1:-1]])
+        for wl, resid in sorted(zip(peak_waves, abs_resid), reverse=True):
+            if wl in peak_waves[covered]:
+                continue
+            ind = (peak_waves >= (wl - buffer)) & (peak_waves <= (wl + buffer))
+            mus.append(wl)
+            
+            covered |= ind
+        
+        return mus 
+
+
 
 
 class EchelleModel:
