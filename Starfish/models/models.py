@@ -14,14 +14,14 @@ from .kernels import k_global_matrix
 
 class SpectrumModel:
 
-    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, scale=None, aG=None, lG=None, max_residual_queue=100):
+    def __init__(self, emulator, data, grid_params, vsini=None, vz=None, Av=None, scale=None, log_ag=None, log_lg=None, max_residual_queue=100):
         self.emulator = emulator
 
         mask = data.masks[0].astype(bool)
-        self.wave = data.wls[0][mask]
-        self.flux = data.fls[0][mask]
-        self.sigs = data.sigmas[0][mask]
-        dv = calculate_dv(self.wave)
+        self.data_wave = data.wls[0][mask]
+        self.data_flux = data.fls[0][mask]
+        self.data_stds = data.sigmas[0][mask]
+        dv = calculate_dv(self.data_wave)
         self.min_dv_wl = create_log_lam_grid(
             dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
         self.bulk_fluxes = resample(
@@ -48,11 +48,11 @@ class SpectrumModel:
         if scale is not None:
             self.params['scale'] = scale
 
-        if aG is not None:
-            self.params['aG'] = aG
+        if log_ag is not None:
+            self.params['global:log_ag'] = log_ag
 
-        if lG is not None:
-            self.params['lG'] = lG
+        if log_lg is not None:
+            self.params['global:log_lg'] = log_lg
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -61,6 +61,10 @@ class SpectrumModel:
         items = [vals for key, vals in self.params.items()
                  if key.startswith('grid_param')]
         return np.array(items)
+
+    @property
+    def mean_residual(self):
+        return np.mean(list(self.residuals_queue))
 
     def __call__(self):
         wave = self.min_dv_wl
@@ -75,10 +79,10 @@ class SpectrumModel:
         if 'scale' in self.params:
             fluxes = rescale(fluxes, self.params['scale'])
 
-        fluxes = resample(wave, fluxes, self.wave)
+        fluxes = resample(wave, fluxes, self.data_wave)
 
         if 'Av' in self.params:
-            fluxes = extinct(self.wave, fluxes, self.params['Av'])
+            fluxes = extinct(self.data_wave, fluxes, self.params['Av'])
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -92,8 +96,10 @@ class SpectrumModel:
         X = eigenspectra * flux_std
         cov = X.T @ cho_solve((L, flag), X)
 
-        if 'aG' in self.params and 'lG' in self.params:
-            cov += k_global_matrix(wave, self.params['aG'], self.params['lG'])
+        if 'global:log_ag' in self.params and 'global:log_lg' in self.params:
+            ag = np.exp(self.params['global:log_ag'])
+            lg = np.exp(self.params['global:log_lg'])
+            cov += k_global_matrix(self.data_wave, ag, lg)
 
         return weights @ X + flux_mean, cov
 
@@ -188,9 +194,13 @@ class SpectrumModel:
             flux, cov = self()
         except ValueError:
             return -np.inf
-        self.residuals_queue.append(flux - self.flux)
-        lnprob = mvn_likelihood(flux, self.flux, cov)
+
+        self.residuals_queue.append(flux - self.data_flux)
+
+        lnprob = mvn_likelihood(flux, self.data_flux, cov)
+
         self.log.debug("Evaluating lnprob={}".format(lnprob))
+
         return lnprob
 
     def grad_log_likelihood(self):

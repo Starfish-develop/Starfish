@@ -8,9 +8,10 @@ log = logging.getLogger(__name__)
 
 
 def mvn_likelihood(fluxes, y, cov, jitter=1e-8):
-    cov += jitter * np.eye(*cov.shape)
+    np.fill_diagonal(cov, cov.diagonal() + jitter)
     try:
         factor, flag = cho_factor(cov)
+
     except np.linalg.LinAlgError:
         log.warning(
             'Failed to decompose covariance. Entering covariance debugger')
@@ -18,7 +19,7 @@ def mvn_likelihood(fluxes, y, cov, jitter=1e-8):
 
     R = y - fluxes
 
-    logdet = 2 * np.log(np.sum(np.diag(factor)))
+    logdet = 2 * np.log(np.sum(factor.diagonal()))
     central = R.T @ cho_solve((factor, flag), R)
     lnprob = -0.5 * (logdet + central)
 
