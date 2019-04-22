@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 numpy = "*"
 scipy = "*"
-cython = "*"
 scikit-learn = "*"
 astropy = "*"
 h5py = "*"

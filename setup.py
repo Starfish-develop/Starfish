@@ -1,9 +1,9 @@
 import Starfish
 import sys
-from setuptools import setup, Extension, find_packages
+from setuptools import setup, find_packages
 import builtins
 
-with open("README.md", "r") as fh:
+with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 if sys.version < '3.5.2':
@@ -18,27 +18,26 @@ builtins.__STARFISH_SETUP__ = True
 
 
 setup(
-    name="astrostarfish",
+    name='astrostarfish',
     version=Starfish.__version__,
-    author="Ian Czekala",
-    author_email="iancze",
+    author='Ian Czekala',
+    author_email='iancze',
     packages=find_packages(),
-    url="https://github.com/iancze/Starfish",
-    download_url="https://github.com/iancze/Starfish/archive/master.zip",
-    license="BSD",
-    description="Covariance tools for fitting stellar spectra",
+    url='https://github.com/iancze/Starfish',
+    download_url='https://github.com/iancze/Starfish/archive/master.zip',
+    license='BSD',
+    description='Covariance tools for fitting stellar spectra',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     classifiers=[
-        "Intended Audience :: Science/Research",
-        "Programming Language :: Python :: 3",
-        "Topic :: Scientific/Engineering :: Astronomy",
-        "Topic :: Scientific/Engineering :: Physics"
+        'Intended Audience :: Science/Research',
+        'Programming Language :: Python :: 3',
+        'Topic :: Scientific/Engineering :: Astronomy',
+        'Topic :: Scientific/Engineering :: Physics'
     ],
     install_requires=['numpy',
                       'scipy',
                       'extinction',
-                      'cython',
                       'scikit-learn',
                       'emcee==3.0rc2',
                       'h5py',
@@ -46,7 +45,7 @@ setup(
                       'astropy',
                       'tqdm',
                       'oyaml'],
-    maintainer="Ian Czekala",
-    maintainer_email="iancze@gmail.com",
+    maintainer='Ian Czekala',
+    maintainer_email='iancze@gmail.com',
     include_package_data=True,
 )
