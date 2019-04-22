@@ -8,7 +8,7 @@ from scipy.linalg import cho_factor, cho_solve
 
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
-from ._likelihoods import mvn_likelihood, normal_likelihood
+from .likelihoods import mvn_likelihood, normal_likelihood
 from .kernels import k_global_matrix
 
 
