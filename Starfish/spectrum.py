@@ -121,3 +121,6 @@ class DataSpectrum:
             base.create_dataset('masks', data=self.masks, compression=9)
             if self.name is not None:
                 base.attrs['name'] = self.name
+
+    def __str__(self):
+        return self.name

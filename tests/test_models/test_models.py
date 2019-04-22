@@ -23,6 +23,9 @@ class TestSpectrumModel:
         with pytest.raises(ValueError):
             mock_model['garbage_key'] = -4
 
+    def test_labels(self, mock_model):
+        assert mock_model.labels == list(mock_model.get_param_dict())
+
     def test_grid_params(self, mock_model):
         assert np.all(mock_model.grid_params == self.GP)
 

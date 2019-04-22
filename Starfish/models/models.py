@@ -246,7 +246,7 @@ class SpectrumModel:
 
     @property
     def labels(self):
-        return list(self.get_param_dict)
+        return list(self.get_param_dict())
 
     def get_param_vector(self):
         """
