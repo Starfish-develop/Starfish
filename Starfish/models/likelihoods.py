@@ -22,7 +22,7 @@ def mvn_likelihood(fluxes, y, cov, jitter=1e-6):
 
     logdet = 2 * np.log(factor.diagonal().sum())
     central = R.T @ cho_solve((factor, flag), R)
-    lnprob = -0.5 * (logdet + central)
+    lnprob = -0.5 * (len(fluxes) * logdet + central)
     return lnprob
 
 

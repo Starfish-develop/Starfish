@@ -43,7 +43,7 @@ class SpectrumModel:
     vz           :func:`transforms.doppler_shift`
     Av           :func:`transforms.extinct`
     Rv           :func:`transforms.extinct`              Not required. If not specified, will default to 3.1
-    scale        :func:`transforms.rescale`
+    log_scale    :func:`transforms.rescale`
     log_ag       :func:`kernels.k_global_matrix`
     log_lg       :func:`kernels.k_global_matrix`
     =========== ======================================= =============
@@ -58,7 +58,8 @@ class SpectrumModel:
         A list of strings corresponding to frozen parameters
     labels : list
         A list of strings corresponding to the active (thawed) parameters
-
+    residuals : deque
+        A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood()`
 
     Raises
     ------
@@ -75,7 +76,7 @@ class SpectrumModel:
     """
 
     _PARAMS = ['vz', 'vsini', 'Av', 'Rv',
-               'global:log_ag', 'global:log_lg', 'scale']
+               'global:log_ag', 'global:log_lg', 'log_scale']
 
     def __init__(self, emulator, data, grid_params, max_deque_len=100, **params):
         self.emulator = emulator
@@ -87,7 +88,7 @@ class SpectrumModel:
         self.bulk_fluxes = resample(
             self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wave)
 
-        self.residuals_queue = deque(maxlen=max_deque_len)
+        self.residuals = deque(maxlen=max_deque_len)
 
         self.params = OrderedDict()
         self.frozen = []
@@ -126,20 +127,19 @@ class SpectrumModel:
     def amps(self):
         items = [vals for key, vals in self.params.items()
                  if key.startswith('local:amp:')]
-        return np.array(items)
-    
+        return np.exp(items)
+
     @amps.setter
     def amps(self, values):
         for i, value in enumerate(values):
-            self.params['local:amp:{}'.format(i)] = value
-
+            self.params['local:log_amp:{}'.format(i)] = np.log(value)
 
     @property
     def mus(self):
         items = [vals for key, vals in self.params.items()
                  if key.startswith('local:mu:')]
         return np.array(items)
-    
+
     @mus.setter
     def mus(self, values):
         for i, value in enumerate(values):
@@ -150,12 +150,11 @@ class SpectrumModel:
         items = [vals for key, vals in self.params.items()
                  if key.startswith('local:std:')]
         return np.array(items)
-    
+
     @stds.setter
     def stds(self, values):
         for i, value in enumerate(values):
             self.params['local:std:{}'.format(i)] = value
-
 
     def __call__(self):
         """
@@ -175,13 +174,13 @@ class SpectrumModel:
         if 'vz' in self.params:
             wave = doppler_shift(wave, self.params['vz'])
 
-        if 'scale' in self.params:
-            fluxes = rescale(fluxes, self.params['scale'])
-
         fluxes = resample(wave, fluxes, self.data.waves)
 
         if 'Av' in self.params:
             fluxes = extinct(self.data.waves, fluxes, self.params['Av'])
+
+        if 'log_scale' in self.params:
+            fluxes = rescale(fluxes, self.params['log_scale'])
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -193,6 +192,8 @@ class SpectrumModel:
 
         # Complete the reconstruction
         X = eigenspectra * flux_std
+        flux = weights @ X + flux_mean
+
         cov = X.T @ cho_solve((L, flag), X)
 
         # Poisson covariance
@@ -206,9 +207,12 @@ class SpectrumModel:
 
         # Local covariance
         if len(self.mus) and len(self.stds) and len(self.amps):
-            cov += k_local_matrix(self.data.waves, self.amps, self.mus, self.stds)
+            cov += k_local_matrix(self.data.waves,
+                                  self.amps, self.mus, self.stds)
 
-        return weights @ X + flux_mean, cov
+        
+
+        return flux, cov
 
     def __getitem__(self, key):
         return self.params[key]
@@ -374,7 +378,7 @@ class SpectrumModel:
         except ValueError:
             return -np.inf
 
-        self.residuals_queue.append(flux - self.data.fluxes)
+        self.residuals.append(flux - self.data.fluxes)
 
         lnprob = mvn_likelihood(flux, self.data.fluxes, cov)
 
@@ -388,20 +392,20 @@ class SpectrumModel:
     def find_residual_peaks(self, threshold=4.0, buffer=2):
         """
         Find the peaks of the most recent residual and return their properties to aid in setting up local kernels
-        
+
         Parameters
         ----------
         threshold : float, optional
             The sigma clipping threshold, by default 4.0
         buffer : float, optional
             The minimum distance between peaks, in Angstrom, by default 2.0
-        
+
         Returns
         -------
         means : list
             The means of the found peaks, with the same units as self.data.waves
         """
-        residual = self.residuals_queue[-1]
+        residual = self.residuals[-1]
         low = (residual.mean() - residual.std() * threshold) < residual
         high = residual < (residual.mean() + residual.std() * threshold)
         mask = ~(low & high)
@@ -415,12 +419,10 @@ class SpectrumModel:
                 continue
             ind = (peak_waves >= (wl - buffer)) & (peak_waves <= (wl + buffer))
             mus.append(wl)
-            
+
             covered |= ind
-        
-        return mus 
 
-
+        return mus
 
 
 class EchelleModel:

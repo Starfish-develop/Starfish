@@ -218,7 +218,7 @@ def rescale(flux, log_scale):
         The rescaled fluxes with the same shape as the input fluxes
     """
 
-    return flux * 10 ** log_scale
+    return flux * (10 ** log_scale)
 
 
 def chebyshev_correct(wave, flux, coeffs):

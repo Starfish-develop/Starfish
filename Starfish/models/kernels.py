@@ -19,7 +19,7 @@ def k_global_matrix(wave, a, l):
         r = C.c_kms / 2 * np.abs((wave - w1) / (wave + w1))
 
         taper = 1/2 + 1/2 * np.cos(np.pi * r / r0)
-        matern = a**2 * (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r / l)
+        matern = a * (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r / l)
         out[i, r < r0] = (taper * matern)[r < r0]
 
     return out
@@ -34,7 +34,7 @@ def k_local_matrix(wave, amps, mus, sigs):
             row = np.tile(val, len(metric))
             r_tap = np.max([row, metric], axis=0)
             taper = (1/2 + 1/2 * np.cos(np.pi * r_tap / r0))
-            guass = taper * amp ** 2 * \
+            guass = taper * amp * \
                 np.exp(-0.5 * (row**2 + metric**2) / sig ** 2)
             out[i, r_tap < r0] += guass[r_tap < r0]
     return out

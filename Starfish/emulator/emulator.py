@@ -328,7 +328,8 @@ class Emulator:
         L, flag = cho_factor(self.v11)
         logdet = 2 * np.sum(np.log(np.diag(L)))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
-        return -0.5 * (logdet + central + self.weights.size * np.log(2 * np.pi))
+        N = len(self.grid_points) * len(self.eigenspectra)
+        return -0.5 * (N * logdet + central)
 
     def grad_log_likelihood(self):
         raise NotImplementedError('Not implemented yet.')
