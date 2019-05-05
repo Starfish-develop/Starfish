@@ -22,14 +22,14 @@ def mvn_likelihood(fluxes, y, C):
 
     logdet = 2 * np.log(factor.diagonal().sum())
     central = R.T @ cho_solve((factor, flag), R)
-    lnprob = -0.5 * (len(fluxes) * logdet + central)
+    lnprob = -0.5 * (logdet + central)
     return lnprob, R
 
 
 def normal_likelihood(fluxes, y, var):
     R = y - fluxes
     l2 = R ** 2 / var
-    lnprob = - 0.5 * np.sum(len(R) * np.log(var) + l2)
+    lnprob = - 0.5 * np.sum(np.log(var) + l2)
 
     return lnprob, R
 
