@@ -7,11 +7,11 @@ from scipy.linalg import cho_factor, cho_solve
 log = logging.getLogger(__name__)
 
 
-def mvn_likelihood(fluxes, y, cov, jitter=1e-6):
-    C = cov.copy()
-    np.fill_diagonal(C, C.diagonal() + jitter)
+def mvn_likelihood(fluxes, y, C):
+    cov = C.copy()
+    np.fill_diagonal(cov, cov.diagonal() + 1e-8)
     try:
-        factor, flag = cho_factor(C)
+        factor, flag = cho_factor(cov)
     except np.linalg.LinAlgError:
         log.warning(
             'Failed to decompose covariance. Entering covariance debugger')
@@ -23,7 +23,7 @@ def mvn_likelihood(fluxes, y, cov, jitter=1e-6):
     logdet = 2 * np.log(factor.diagonal().sum())
     central = R.T @ cho_solve((factor, flag), R)
     lnprob = -0.5 * (len(fluxes) * logdet + central)
-    return lnprob
+    return lnprob, R
 
 
 def normal_likelihood(fluxes, y, var):
@@ -31,7 +31,7 @@ def normal_likelihood(fluxes, y, var):
     l2 = R ** 2 / var
     lnprob = - 0.5 * np.sum(len(R) * np.log(var) + l2)
 
-    return lnprob
+    return lnprob, R
 
 
 def covariance_debugger(cov):

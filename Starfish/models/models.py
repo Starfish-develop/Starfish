@@ -76,7 +76,7 @@ class SpectrumModel:
     """
 
     _PARAMS = ['vz', 'vsini', 'Av', 'Rv',
-               'global:log_ag', 'global:log_lg', 'log_scale']
+               'global:log_amp', 'global:log_l', 'log_scale']
 
     def __init__(self, emulator, data, grid_params, max_deque_len=100, **params):
         self.emulator = emulator
@@ -99,7 +99,7 @@ class SpectrumModel:
 
         # Unpack the keyword arguments
         for param, value in params.items():
-            if param == 'log_ag' or param == 'log_lg':
+            if param == 'log_amp' or param == 'log_l':
                 param = 'global:' + param
             if param == 'amps':
                 self.amps = value
@@ -126,7 +126,7 @@ class SpectrumModel:
     @property
     def amps(self):
         items = [vals for key, vals in self.params.items()
-                 if key.startswith('local:amp:')]
+                 if key.startswith('local:log_amp:')]
         return np.exp(items)
 
     @amps.setter
@@ -179,8 +179,9 @@ class SpectrumModel:
         if 'Av' in self.params:
             fluxes = extinct(self.data.waves, fluxes, self.params['Av'])
 
+        # Only rescale flux_mean and flux_std
         if 'log_scale' in self.params:
-            fluxes = rescale(fluxes, self.params['log_scale'])
+            fluxes[-2:] = rescale(fluxes[-2:], self.params['log_scale'])
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -196,21 +197,19 @@ class SpectrumModel:
 
         cov = X.T @ cho_solve((L, flag), X)
 
-        # Poisson covariance
-        np.fill_diagonal(cov, self.data.sigmas ** 2)
+        # Trivial covariance
+        np.fill_diagonal(cov, cov.diagonal() + self.data.sigmas ** 2)
 
         # Global covariance
         if 'global:log_ag' in self.params and 'global:log_lg' in self.params:
-            ag = np.exp(self.params['global:log_ag'])
-            lg = np.exp(self.params['global:log_lg'])
+            ag = np.exp(self.params['global:log_amp'])
+            lg = np.exp(self.params['global:log_l'])
             cov += k_global_matrix(self.data.waves, ag, lg)
 
         # Local covariance
         if len(self.mus) and len(self.stds) and len(self.amps):
             cov += k_local_matrix(self.data.waves,
                                   self.amps, self.mus, self.stds)
-
-        
 
         return flux, cov
 
@@ -378,10 +377,8 @@ class SpectrumModel:
         except ValueError:
             return -np.inf
 
-        self.residuals.append(flux - self.data.fluxes)
-
-        lnprob = mvn_likelihood(flux, self.data.fluxes, cov)
-
+        lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
+        self.residuals.append(R)
         self.log.debug("Evaluating lnprob={}".format(lnprob))
 
         return lnprob
