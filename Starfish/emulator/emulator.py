@@ -2,6 +2,7 @@ import logging
 import math
 import os
 import warnings
+from collections import OrderedDict
 
 import h5py
 import numpy as np
@@ -51,6 +52,12 @@ class Emulator:
     ----------
     bulk_fluxes : numpy.ndarray
         A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator. 
+    variances : numpy.ndarray
+        The variances of each Gaussian process
+    lengthscales : numpy.ndarray
+        The lengthscales for each parameter for each Gaussian process
+    params : dict
+        The underlying parameter dictionary
     """
 
     def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std,
@@ -66,9 +73,13 @@ class Emulator:
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
 
+        self.params = OrderedDict()
+
         self.lambda_xi = lambda_xi
+
         self.variances = variances if variances is not None else 1e4 * \
             np.ones(self.ncomps)
+
         if lengthscales is None:
             unique = [sorted(np.unique(param_set))
                       for param_set in self.grid_points.T]
@@ -90,6 +101,40 @@ class Emulator:
 
         self._trained = False
 
+    @property
+    def lambda_xi(self):
+        return np.exp(self.params['log_lambda_xi'])
+
+    @lambda_xi.setter
+    def lambda_xi(self, value):
+        self.params['log_lambda_xi'] = np.log(value)
+
+    @property
+    def variances(self):
+        values = [val for key, val in self.params.items(
+        ) if key.startswith('log_variance:')]
+        return np.exp(values)
+
+    @variances.setter
+    def variances(self, values):
+        for i, value in enumerate(values):
+            self.params['log_variance:{}'.format(i)] = np.log(value)
+
+    @property
+    def lengthscales(self):
+        values = [val for key, val in self.params.items(
+        ) if key.startswith('log_lengthscale:')]
+        return np.exp(values).reshape(self.ncomps, -1)
+
+    @lengthscales.setter
+    def lengthscales(self, values):
+        for i, value in enumerate(values):
+            for j, ls in enumerate(value):
+                self.params['log_lengthscale:{}:{}'.format(i, j)] = np.log(ls)
+
+    def __getitem__(self, key):
+        return self.params[key]
+
     @classmethod
     def load(cls, filename):
         """
@@ -108,9 +153,9 @@ class Emulator:
             flux_mean = base['flux_mean'][:]
             flux_std = base['flux_std'][:]
             w_hat = base['w_hat'][:]
-            lambda_xi = base['hyper_parameters']['lambda_xi'][()]
-            variances = base['hyper_parameters']['variances'][:]
-            lengthscales = base['hyper_parameters']['lengthscales'][:]
+            lambda_xi = base['hyperparameters']['lambda_xi'][()]
+            variances = base['hyperparameters']['variances'][:]
+            lengthscales = base['hyperparameters']['lengthscales'][:]
             trained = base.attrs['trained']
 
         emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi,
@@ -121,7 +166,7 @@ class Emulator:
     def save(self, filename):
         """
         Save the emulator to an HDF5 file
-        
+
         Parameters
         ----------
         filename : str or path-like
@@ -142,7 +187,7 @@ class Emulator:
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
-            hp_group = base.create_group('hyper_parameters')
+            hp_group = base.create_group('hyperparameters')
             hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
             hp_group.create_dataset(
                 'variances', data=self.variances, compression=9)
@@ -174,17 +219,20 @@ class Emulator:
         fluxes -= flux_mean
         flux_std = fluxes.std(0)
         fluxes /= flux_std
+
+        # Perform PCA using sklearn
         default_pca_kwargs = dict(n_components=0.99, svd_solver='full')
         default_pca_kwargs.update(pca_kwargs)
         pca = PCA(**default_pca_kwargs)
         weights = pca.fit_transform(fluxes)
         eigenspectra = pca.components_
+
         # This is basically the mean square error of the reconstruction
         log.info('PCA fit {:.2f}% of the variance with {} components.'.format(pca.explained_variance_ratio_.sum(),
                                                                               pca.n_components_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
-        return cls(grid_points=grid.grid_points, wavelength=grid.wl, weights=weights, eigenspectra=eigenspectra,
-                   w_hat=w_hat, flux_mean=flux_mean, flux_std=flux_std)
+
+        return cls(grid_points=grid.grid_points, wavelength=grid.wl, weights=weights, eigenspectra=eigenspectra, w_hat=w_hat, flux_mean=flux_mean, flux_std=flux_std)
 
     def __call__(self, params, full_cov=True, reinterpret_batch=False):
         """
@@ -336,12 +384,9 @@ class Emulator:
             # self.set_param_vector(P0)
         else:
             self.set_param_vector(soln.x)
-            self.log.info('Finished optimizing emulator hyperparameters')
-            self.log.info('lambda_xi: {}'.format(self.lambda_xi))
-            self.log.info('variances: {}'.format(self.variances))
-            self.log.info('lengthscales: {}'.format(self.lengthscales))
-
             self._trained = True
+            self.log.info('Finished optimizing emulator hyperparameters')
+            self.log.info(self)
 
     def get_index(self, params):
         """
@@ -364,30 +409,59 @@ class Emulator:
                        np.expand_dims(params, 1)).sum(axis=-1)
         return marks.argmin(axis=1).squeeze()
 
+    def get_param_dict(self):
+        """
+        Gets the dictionary of parameters. This is the same as `Emulator.params`
+
+        Returns
+        -------
+        dict
+        """
+        return self.params
+
+    def set_param_dict(self, params):
+        """
+        Sets the parameters with a dictionary
+
+        Parameters
+        ----------
+        params : dict
+            The new parameters. If a key is present in ``self.frozen`` it will not be changed
+        """
+        for key, val in params.items():
+            if key in self.params:
+                self.params[key] = val
+
+        self.v11 = self.iPhiPhi / self.lambda_xi + \
+            batch_kernel(self.grid_points, self.grid_points,
+                         self.variances, self.lengthscales)
+
     def get_param_vector(self):
         """
         Get a vector of the current trainable parameters of the emulator
-        
+
         Returns
         -------
         numpy.ndarray
         """
-        params = [self.lambda_xi] + self.variances.tolist()
-        for l in self.lengthscales:
-            params.extend(l)
-        return np.array(params)
+        values = list(self.get_param_dict().values())
+        return np.array(values)
 
     def set_param_vector(self, params):
         """
         Set the current trainable parameters given a vector. Must have the same form as :meth:`get_param_vector`
-        
+
         Parameters
         ----------
         params : numpy.ndarray
         """
-        self.lambda_xi = params[0]
-        self.variances = params[1:(self.ncomps + 1)]
-        self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
+        thawed_parameters = self.get_param_dict()
+        if len(params) != len(thawed_parameters):
+            raise ValueError(
+                'params must match length of parameters (get_param_vector())')
+        for i, key in enumerate(thawed_parameters):
+            self.params[key] = params[i]
+
         self.v11 = self.iPhiPhi / self.lambda_xi + \
             batch_kernel(self.grid_points, self.grid_points,
                          self.variances, self.lengthscales)
@@ -395,7 +469,7 @@ class Emulator:
     def log_likelihood(self):
         """
         Get the log likelihood of the emulator in its current state as calculated in the appendix of Czekala et al. (2015)
-        
+
         Returns
         -------
         float
@@ -406,4 +480,21 @@ class Emulator:
         return -0.5 * (logdet + central)
 
     def grad_log_likelihood(self):
-        raise NotImplementedError('Not implemented yet.')
+        raise NotImplementedError('Pull requests welcome!')
+
+    def __str__(self):
+        output = 'Emulator\n'
+        output += '--------\n'
+        output += '\tTrained: {}\n'.format(self._trained)
+        output += '\tlambda_xi: {}\n'.format(
+            np.exp(self.lambda_xi))
+        output += '\tVariances:\n'
+        output += '\n'.join(['\t\t{:.2f}'.format(v) for v in self.variances])
+        output += '\tLengthscales:\n'
+        output += '\n'.join(
+            [' '.join(
+                ['\t\t{:.2f} '.format(l) for l in ls]
+            ) for ls in self.lengthscales]
+        )
+        output += '\tLog Likelihood: {}\n'.format(self.log_likelihood())
+        return output

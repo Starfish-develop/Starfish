@@ -327,7 +327,7 @@ class SpectrumModel:
         if len(params) != len(thawed_parameters):
             raise ValueError(
                 'params must match length of thawed parameters (get_param_vector())')
-        for i, key in enumerate(self.get_param_dict()):
+        for i, key in enumerate(thawed_parameters):
             self.params[key] = params[i]
 
     def save(self, filename):
