@@ -386,12 +386,14 @@ class SpectrumModel:
     def grad_log_likelihood(self):
         raise NotImplementedError('Not Implemented yet')
 
-    def find_residual_peaks(self, threshold=4.0, buffer=2):
+    def find_residual_peaks(self, num_residuals=100, threshold=4.0, buffer=2):
         """
         Find the peaks of the most recent residual and return their properties to aid in setting up local kernels
 
         Parameters
         ----------
+        num_residuals : int, optional
+            The number of residuals to average together for determining peaks. By default 100.
         threshold : float, optional
             The sigma clipping threshold, by default 4.0
         buffer : float, optional
@@ -402,7 +404,7 @@ class SpectrumModel:
         means : list
             The means of the found peaks, with the same units as self.data.waves
         """
-        residual = self.residuals[-1]
+        residual = np.mean(self.residuals[-num_residuals:], axis=0)
         low = (residual.mean() - residual.std() * threshold) < residual
         high = residual < (residual.mean() + residual.std() * threshold)
         mask = ~(low & high)

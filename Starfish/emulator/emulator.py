@@ -18,6 +18,41 @@ log = logging.getLogger(__name__)
 
 
 class Emulator:
+    """
+    A Bayesian spectral emulator.
+
+    This emulator offers an interface to spectral libraries that offers interpolation while providing a variance-covariance matrix that can be forward-propagated in likelihood calculations. For more details, see the appendix from Czekala et al. (2015). 
+
+    Parameters
+    ----------
+    grid_points : numpy.ndarray
+        The parameter space from the library.
+    wavelength : numpy.ndarray
+        The wavelength of the library models
+    weights : numpy.ndarray
+        The PCA weights for the original grid points
+    eigenspectra : numpy.ndarray
+        The PCA components from the decomposition
+    w_hat : numpy.ndarray
+        The best-fit weights estimator
+    flux_mean : numpy.ndarray
+        The mean flux spectrum
+    flux_std : numpy.ndarray
+        The standard deviation flux spectrum
+    lambda_xi : float, optional
+        The scaling parameter for the augmented covariance calculations, default is 1
+    variances : numpy.ndarray, optional
+        The variance parameters for each of Gaussian process, default is array of 1s
+    lengthscales : numpy.ndarray, optional
+        The lengthscales for each Gaussian process, each row should have length equal to number of library parameters, default is arrays of 3 * the max grid separation for the grid_points
+
+
+    Attributes
+    ----------
+    bulk_fluxes : numpy.ndarray
+        A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator. 
+    """
+
     def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std,
                  lambda_xi=1, variances=None, lengthscales=None):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -58,7 +93,11 @@ class Emulator:
     @classmethod
     def load(cls, filename):
         """
-        Create an Emulator object from an HDF5 file.
+        Load an emulator from and HDF5 file
+
+        Parameters
+        ----------
+        filename : str or path-like
         """
         filename = os.path.expandvars(filename)
         with h5py.File(filename) as base:
@@ -80,6 +119,13 @@ class Emulator:
         return emulator
 
     def save(self, filename):
+        """
+        Save the emulator to an HDF5 file
+        
+        Parameters
+        ----------
+        filename : str or path-like
+        """
         filename = os.path.expandvars(filename)
         with h5py.File(filename, 'w') as base:
             base.create_dataset(
@@ -148,6 +194,10 @@ class Emulator:
         ----------
         params : array_like
             The parameters to sample at. Should be consistent with the shapes of the original grid points.
+        full_cov : bool, optional
+            Return the full covariance or just the variance, default is True. This will have no effect of reinterpret_batch is true
+        reinterpret_batch : bool, optional
+            Will try and return a batch of output matrices if the input params are a list of params, default is False.
 
         Returns
         -------
@@ -156,6 +206,8 @@ class Emulator:
 
         Raises
         ------
+        ValueError
+            If full_cov and reinterpret_batch are True
         ValueError
             If querying the emulator outside of its trained grid points
         """
@@ -200,8 +252,10 @@ class Emulator:
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
         by sampling from the weight distributions.
 
-        :param params: The parameters to sample at. Should have same length as ``grid["parname"]`` in ``config.yaml``
-        :type: array_like
+        Parameters
+        ----------
+        params : array_like
+            The parameters to sample at.
         """
         mu, cov = self(params, reinterpret_batch=False)
         weights = np.random.multivariate_normal(
@@ -311,12 +365,26 @@ class Emulator:
         return marks.argmin(axis=1).squeeze()
 
     def get_param_vector(self):
+        """
+        Get a vector of the current trainable parameters of the emulator
+        
+        Returns
+        -------
+        numpy.ndarray
+        """
         params = [self.lambda_xi] + self.variances.tolist()
         for l in self.lengthscales:
             params.extend(l)
         return np.array(params)
 
     def set_param_vector(self, params):
+        """
+        Set the current trainable parameters given a vector. Must have the same form as :meth:`get_param_vector`
+        
+        Parameters
+        ----------
+        params : numpy.ndarray
+        """
         self.lambda_xi = params[0]
         self.variances = params[1:(self.ncomps + 1)]
         self.lengthscales = params[(self.ncomps + 1):].reshape((self.ncomps, -1))
@@ -325,6 +393,13 @@ class Emulator:
                          self.variances, self.lengthscales)
 
     def log_likelihood(self):
+        """
+        Get the log likelihood of the emulator in its current state as calculated in the appendix of Czekala et al. (2015)
+        
+        Returns
+        -------
+        float
+        """
         L, flag = cho_factor(self.v11)
         logdet = 2 * np.sum(np.log(np.diag(L)))
         central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
