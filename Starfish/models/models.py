@@ -60,6 +60,8 @@ class SpectrumModel:
         A list of strings corresponding to the active (thawed) parameters
     residuals : deque
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood()`
+    lnprob : float
+        The most recently evaluated log-likelihood. Initialized to None
 
     Raises
     ------
@@ -92,6 +94,7 @@ class SpectrumModel:
 
         self.params = OrderedDict()
         self.frozen = []
+        self.lnprob = None
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
@@ -380,6 +383,7 @@ class SpectrumModel:
         lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
         self.residuals.append(R)
         self.log.debug("Evaluating lnprob={}".format(lnprob))
+        self.lnprob = lnprob
 
         return lnprob
 
@@ -422,6 +426,16 @@ class SpectrumModel:
             covered |= ind
 
         return mus
+
+    def __repr__(self):
+        output = 'SpectrumModel\n'
+        output += '-' * 13 + '\n'
+        output += 'Data: {}\n'.format(self.data.name)
+        output += 'Parameters:\n'
+        for key, value in self.params:
+            output += '\t{}: {}'.format(key, value)
+        lnprob = self.lnprob if self.lnprob is None else self.log_likelihood()
+        output += 'Log Likelihood: {:.2f}'.format(lnprob)
 
 
 class EchelleModel:

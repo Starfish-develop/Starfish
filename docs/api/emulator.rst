@@ -40,7 +40,44 @@ Example optimizing using minimization optimizer
     >>> from Starfish.grid_tools import HDF5Interface
     >>> from Starfish.emulator import Emulator
     >>> emulator = Emulator.from_grid(HDF5Interface('grid.hdf5'))
+    >>> emulator
+    Emulator
+    --------
+    Trained: False
+    lambda_xi: 2.718
+    Variances:
+        10000.00
+        10000.00
+        10000.00
+        10000.00
+    Lengthscales:
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+    Log Likelihood: -1412.00
     >>> emulator.train()
+    >>> emulator
+    Emulator
+    --------
+    Trained: True
+    lambda_xi: 2.722
+    Variances:
+        238363.85
+        5618.02
+        9358.09
+        2853.22
+    Lengthscales:
+        [ 1582.39  3.19  3.11 ]
+        [ 730.81  1.61  2.14 ]
+        [ 1239.45  3.71  2.78 ]
+        [ 1127.40  1.63  4.46 ]
+    Log Likelihood: -1158.83
+    >>> emulator.save('trained_emulator.hdf5')
+
+.. note::
+
+    The built in optimization target changes the state of the emulator, so even if the output of the minimizer has not converged, you can simply run :meth:`Emulator.train` again.
 
 If you want to perform MLE with a different method, feel free to make use of the general modeling framework provided by the function :meth:`Emulator.get_param_vector`, :meth:`Emulator.set_param_vector`, and :meth:`Emulator.log_likelihood`.
 
@@ -52,9 +89,39 @@ Once the emulator has been optimized, we can finally use it as a means of interp
 .. code-block:: python
 
     >>> from Starfish.emulator import Emulator
-    >>> emulator = Emulator.load('emulator.hdf5')
+    >>> emulator = Emulator.load('trained_emulator.hdf5')
     >>> flux = emulator.load_flux([7054, 4.0324, 0.01])
     >>> wl = emu.wl
+
+If you want to take advantage of the emulator covariance matrix, you must use the interface via the :meth:`Emulator.__call__` function
+
+.. code-block:: python
+
+    >>> from Starfish.emulator import Emulator
+    >>> emulator = Emulator.load('trained_emulator.hdf5')
+    >>> weights, cov = emulator([7054, 4.0324, 0.01])
+    >>> X = emulator.eigenspectra * emulator.flux_std
+    >>> flux = weights @ X + emulator.flux_mean
+    >>> emu_cov = X.T @ weights @ X
+
+Lastly, if you want to process the model, it is useful to process the eigenspectra before reconstructing, especially if a resampling action has to occur. The :class:`Emulator` provides the attribute :attr:`Emulator.bulk_fluxes` for such processing. For example
+
+.. code-block:: python
+
+    >>> from Starfish.emulator import Emulator
+    >>> from Starfish.models.transforms import instrumental_broaden
+    >>> emulator = Emulator.load('trained_emulator.hdf5')
+    >>> fluxes = emulator.bulk_fluxes
+    >>> fluxes = instrumental_broaden(emulator.wl, fluxes, 10)
+    >>> eigs = fluxes[:-2]
+    >>> flux_mean, flux_std = fluxes[-2:]
+    >>> weights, cov = emulator([7054, 4.0324, 0.01])
+    >>> X = emulator.eigenspectra * flux_std
+    >>> flux = weights @ X + flux_mean
+    >>> emu_cov = X.T @ weights @ X
+
+.. note::
+    :attr:`Emulator.bulk_fluxes` provides a copy of the underlying arrays, so there is no change to the emulator when bulk processing.
 
 
 Reference
@@ -65,3 +132,4 @@ Emulator
 
 .. autoclass:: Emulator
     :members:
+    :special-members: __call__, __str__, __getitem__

@@ -46,6 +46,8 @@ class Emulator:
         The variance parameters for each of Gaussian process, default is array of 1s
     lengthscales : numpy.ndarray, optional
         The lengthscales for each Gaussian process, each row should have length equal to number of library parameters, default is arrays of 3 * the max grid separation for the grid_points
+    name : str, optional
+        If provided, will give a name to the emulator; useful for keeping track of filenames. Default is None.
 
 
     Attributes
@@ -56,12 +58,11 @@ class Emulator:
         The variances of each Gaussian process
     lengthscales : numpy.ndarray
         The lengthscales for each parameter for each Gaussian process
-    params : dict
-        The underlying parameter dictionary
+    params : OrderedDict
+        The underlying hyperparameter dictionary
     """
 
-    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std,
-                 lambda_xi=1, variances=None, lengthscales=None):
+    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi=1, variances=None, lengthscales=None, name=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.wl = wavelength
@@ -73,7 +74,8 @@ class Emulator:
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
 
-        self.params = OrderedDict()
+        self.hyperparams = OrderedDict()
+        self.name = name
 
         self.lambda_xi = lambda_xi
 
@@ -103,26 +105,26 @@ class Emulator:
 
     @property
     def lambda_xi(self):
-        return np.exp(self.params['log_lambda_xi'])
+        return np.exp(self.hyperparams['log_lambda_xi'])
 
     @lambda_xi.setter
     def lambda_xi(self, value):
-        self.params['log_lambda_xi'] = np.log(value)
+        self.hyperparams['log_lambda_xi'] = np.log(value)
 
     @property
     def variances(self):
-        values = [val for key, val in self.params.items(
+        values = [val for key, val in self.hyperparams.items(
         ) if key.startswith('log_variance:')]
         return np.exp(values)
 
     @variances.setter
     def variances(self, values):
         for i, value in enumerate(values):
-            self.params['log_variance:{}'.format(i)] = np.log(value)
+            self.hyperparams['log_variance:{}'.format(i)] = np.log(value)
 
     @property
     def lengthscales(self):
-        values = [val for key, val in self.params.items(
+        values = [val for key, val in self.hyperparams.items(
         ) if key.startswith('log_lengthscale:')]
         return np.exp(values).reshape(self.ncomps, -1)
 
@@ -130,10 +132,10 @@ class Emulator:
     def lengthscales(self, values):
         for i, value in enumerate(values):
             for j, ls in enumerate(value):
-                self.params['log_lengthscale:{}:{}'.format(i, j)] = np.log(ls)
+                self.hyperparams['log_lengthscale:{}:{}'.format(i, j)] = np.log(ls)
 
     def __getitem__(self, key):
-        return self.params[key]
+        return self.hyperparams[key]
 
     @classmethod
     def load(cls, filename):
@@ -157,9 +159,24 @@ class Emulator:
             variances = base['hyperparameters']['variances'][:]
             lengthscales = base['hyperparameters']['lengthscales'][:]
             trained = base.attrs['trained']
+            if 'name' in base.attrs:
+                name = base.attrs['name']
+            else:
+                name = '.'.join(filename.split('.')[:-1])
 
-        emulator = cls(grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi,
-                       variances, lengthscales)
+        emulator = cls(
+            grid_points=grid_points,
+            wavelength=wavelength,
+            weights=weights,
+            eigenspectra=eigenspectra,
+            w_hat=w_hat,
+            flux_mean=flux_mean,
+            flux_std=flux_std,
+            lambda_xi=lambda_xi,
+            variances=variances,
+            lengthscales=lengthscales,
+            name=name
+        )
         emulator._trained = trained
         return emulator
 
@@ -187,6 +204,8 @@ class Emulator:
             eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
+            if self.name is not None:
+                base.attrs['name'] = self.name
             hp_group = base.create_group('hyperparameters')
             hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
             hp_group.create_dataset(
@@ -206,6 +225,7 @@ class Emulator:
         grid : :class:`GridInterface`
             The grid interface to decompose
         pca_kwargs : dict, optional
+            The keyword arguments to pass to PCA. By default, `n_components=0.99` and `svd_solver='full'`.
 
         See Also
         --------
@@ -227,12 +247,23 @@ class Emulator:
         weights = pca.fit_transform(fluxes)
         eigenspectra = pca.components_
 
+        exp_var = pca.explained_variance_ratio_.sum()
         # This is basically the mean square error of the reconstruction
-        log.info('PCA fit {:.2f}% of the variance with {} components.'.format(pca.explained_variance_ratio_.sum(),
-                                                                              pca.n_components_))
+        log.info(
+            'PCA fit {:.2f}% of the variance with {:d} components.'.format(
+                exp_var, pca.n_components_))
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
 
-        return cls(grid_points=grid.grid_points, wavelength=grid.wl, weights=weights, eigenspectra=eigenspectra, w_hat=w_hat, flux_mean=flux_mean, flux_std=flux_std)
+        emulator = cls(
+            grid_points=grid.grid_points,
+            wavelength=grid.wl,
+            weights=weights,
+            eigenspectra=eigenspectra,
+            w_hat=w_hat,
+            flux_mean=flux_mean,
+            flux_std=flux_std
+        )
+        return emulator
 
     def __call__(self, params, full_cov=True, reinterpret_batch=False):
         """
@@ -304,11 +335,16 @@ class Emulator:
         ----------
         params : array_like
             The parameters to sample at.
+
+        Returns
+        -------
+        flux : numpy.ndarray
         """
         mu, cov = self(params, reinterpret_batch=False)
         weights = np.random.multivariate_normal(
             mu, cov).reshape(-1, self.ncomps)
-        return weights @ self.eigenspectra * self.flux_std + self.flux_mean
+        X = self.eigenspectra * self.flux_std
+        return weights @ X + self.flux_mean
 
     def determine_chunk_log(self, wavelength, buffer=50):
         """
@@ -354,7 +390,7 @@ class Emulator:
         Parameters
         ----------
         **opt_kwargs
-            Any arguments to pass to the optimizer
+            Any arguments to pass to the optimizer. By default, `method='Nelder-Mead'` and `maxiter=10000`. 
 
         See Also
         --------
@@ -417,7 +453,7 @@ class Emulator:
         -------
         dict
         """
-        return self.params
+        return self.hyperparams
 
     def set_param_dict(self, params):
         """
@@ -429,8 +465,8 @@ class Emulator:
             The new parameters. If a key is present in ``self.frozen`` it will not be changed
         """
         for key, val in params.items():
-            if key in self.params:
-                self.params[key] = val
+            if key in self.hyperparams:
+                self.hyperparams[key] = val
 
         self.v11 = self.iPhiPhi / self.lambda_xi + \
             batch_kernel(self.grid_points, self.grid_points,
@@ -455,12 +491,12 @@ class Emulator:
         ----------
         params : numpy.ndarray
         """
-        thawed_parameters = self.get_param_dict()
-        if len(params) != len(thawed_parameters):
+        parameters = self.get_param_dict()
+        if len(params) != len(parameters):
             raise ValueError(
                 'params must match length of parameters (get_param_vector())')
-        for i, key in enumerate(thawed_parameters):
-            self.params[key] = params[i]
+        for i, key in enumerate(parameters):
+            self.hyperparams[key] = params[i]
 
         self.v11 = self.iPhiPhi / self.lambda_xi + \
             batch_kernel(self.grid_points, self.grid_points,
@@ -482,19 +518,21 @@ class Emulator:
     def grad_log_likelihood(self):
         raise NotImplementedError('Pull requests welcome!')
 
-    def __str__(self):
+    def __repr__(self):
         output = 'Emulator\n'
-        output += '--------\n'
-        output += '\tTrained: {}\n'.format(self._trained)
-        output += '\tlambda_xi: {}\n'.format(
+        output += '-' * 8 + '\n'
+        if self.name is not None:
+            output += 'Name: {}\n'.format(self.name)
+        output += 'Trained: {}\n'.format(self._trained)
+        output += 'lambda_xi: {:.3f}\n'.format(
             np.exp(self.lambda_xi))
-        output += '\tVariances:\n'
-        output += '\n'.join(['\t\t{:.2f}'.format(v) for v in self.variances])
-        output += '\tLengthscales:\n'
+        output += 'Variances:\n'
+        output += '\n'.join(['\t{:.2f}'.format(v) for v in self.variances])
+        output += '\nLengthscales:\n'
         output += '\n'.join(
-            [' '.join(
-                ['\t\t{:.2f} '.format(l) for l in ls]
-            ) for ls in self.lengthscales]
+            ['\t[ ' + ' '.join(
+                ['{:.2f} '.format(l) for l in ls]
+            ) + ']' for ls in self.lengthscales]
         )
-        output += '\tLog Likelihood: {}\n'.format(self.log_likelihood())
+        output += '\nLog Likelihood: {:.2f}\n'.format(self.log_likelihood())
         return output

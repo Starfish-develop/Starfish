@@ -5,7 +5,7 @@ try:
 except NameError:
     __STARFISH_SETUP__ = False
 
-__version__ = '0.2.3'
+__version__ = '0.3.0'
 
 if not __STARFISH_SETUP__:
     import os
@@ -26,6 +26,5 @@ if not __STARFISH_SETUP__:
             UserWarning)
         config = Config(DEFAULT_CONFIG_FILE)
 
-    __all__ = ['config', 'constants', 'covariance', 'emulator', 'grid_tools', 'model', 'samplers', 'spectrum',
-               'transforms', 'utils']
+    __all__ = ['config', 'constants', 'emulator', 'grid_tools', 'models', 'samplers', 'spectrum', 'utils']
 
