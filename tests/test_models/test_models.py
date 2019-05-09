@@ -101,3 +101,6 @@ class TestSpectrumModel:
     def test_grad_log_likelihood_doesnt_exist(self, mock_model):
         with pytest.raises(NotImplementedError):
             mock_model.grad_log_likelihood()
+    
+    def test_str(self, mock_model):
+        assert str(mock_model).startswith('SpectrumModel')

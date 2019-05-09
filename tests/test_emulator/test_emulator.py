@@ -114,8 +114,8 @@ class TestEmulator:
     def test_param_dict(self, mock_emulator):
         assert mock_emulator['log_lambda_xi'] == 0.0
         assert np.allclose(mock_emulator.variances, 1e4)
-        assert 'log_variance:0' in mock_emulator.params
-        assert 'log_lengthscale:0:0' in mock_emulator.params
+        assert 'log_variance:0' in mock_emulator.hyperparams
+        assert 'log_lengthscale:0:0' in mock_emulator.hyperparams
 
     def test_get_set_param_dict(self, mock_emulator):
         P0 = mock_emulator.get_param_dict()

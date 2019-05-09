@@ -432,10 +432,11 @@ class SpectrumModel:
         output += '-' * 13 + '\n'
         output += 'Data: {}\n'.format(self.data.name)
         output += 'Parameters:\n'
-        for key, value in self.params:
-            output += '\t{}: {}'.format(key, value)
-        lnprob = self.lnprob if self.lnprob is None else self.log_likelihood()
+        for key, value in self.params.items():
+            output += '\t{}: {}\n'.format(key, value)
+        lnprob = self.lnprob if self.lnprob is not None else self.log_likelihood()
         output += 'Log Likelihood: {:.2f}'.format(lnprob)
+        return output
 
 
 class EchelleModel:
