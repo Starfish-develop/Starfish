@@ -3,21 +3,28 @@ import numpy as np
 from Starfish import constants as C
 
 
-def Poisson_matrix(wl, sigma):
-    '''
-    Sigma can be an array or a single float.
-    '''
-    N = len(wl)
-    matrix = sigma ** 2 * np.eye(N)
-    return matrix
-
-
 def k_global_matrix(wave, a, l):
+    """
+    A matern-3/2 kernel where the metric is defined as the velocity separation of the wavelengths.
+
+    Parameters
+    ----------
+    wave : numpy.ndarray
+        The wavelength grid
+    a : float
+        The amplitude of the kernel
+    l : float
+        The lengthscale of the kernel
+
+    Returns
+    -------
+    cov : numpy.ndarray
+        The global covariance matrix
+    """
     out = np.zeros((len(wave), len(wave)))
     r0 = 6 * l
     for i, w1 in enumerate(wave):
         r = C.c_kms / 2 * np.abs((wave - w1) / (wave + w1))
-
         taper = 1/2 + 1/2 * np.cos(np.pi * r / r0)
         matern = a * (1 + np.sqrt(3) * r/l) * np.exp(-np.sqrt(3) * r / l)
         out[i, r < r0] = (taper * matern)[r < r0]
@@ -26,6 +33,25 @@ def k_global_matrix(wave, a, l):
 
 
 def k_local_matrix(wave, amps, mus, sigs):
+    """
+    A local Gaussian kernel.
+
+    Parameters
+    ----------
+    wave : numpy.ndarray
+        The wavelength grid
+    amps : array_like
+        The amplitudes of each Gaussian
+    mus : array_like
+        The means of each Gaussian
+    sigs : array_like
+        The standard deviations of each Gaussian
+
+    Returns
+    -------
+    cov : numpy.ndarray
+        The sum of each Gaussian kernel, or the local covariance kernel
+    """
     out = np.zeros((len(wave), len(wave)))
     for amp, mu, sig in zip(amps, mus, sigs):
         r0 = 4 * sig

@@ -62,6 +62,12 @@ class SpectrumModel:
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood()`
     lnprob : float
         The most recently evaluated log-likelihood. Initialized to None
+    amps : numpy.ndarray
+        The amplitudes for any Gaussians in the local kernel
+    mus : numpy.ndarray
+        The means for any Gaussians in the local kernel
+    stds : numpy.ndarray
+        The standard deviations for any Gaussians in the local kernel
 
     Raises
     ------
@@ -191,7 +197,7 @@ class SpectrumModel:
         L, flag = cho_factor(weights_cov)
 
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)
-        eigenspectra = fluxes[: -2]
+        eigenspectra = fluxes[:-2]
         flux_mean, flux_std = fluxes[-2:]
 
         # Complete the reconstruction
