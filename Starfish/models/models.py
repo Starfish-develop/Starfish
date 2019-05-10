@@ -414,21 +414,18 @@ class SpectrumModel:
         means : list
             The means of the found peaks, with the same units as self.data.waves
         """
-        residual = np.mean(self.residuals[-num_residuals:], axis=0)
-        low = (residual.mean() - residual.std() * threshold) < residual
-        high = residual < (residual.mean() + residual.std() * threshold)
-        mask = ~(low & high)
+        residual = np.mean(list(self.residuals)[-num_residuals:], axis=0)
+        mask = np.abs(residual - residual.mean()) > threshold * residual.std()
         peak_waves = self.data.waves[1:-1][mask[1:-1]]
         mus = []
         covered = np.zeros_like(peak_waves, dtype=bool)
         # Sort from largest residual to smallest
         abs_resid = np.abs(residual[1:-1][mask[1:-1]])
-        for wl, resid in sorted(zip(peak_waves, abs_resid), reverse=True):
+        for wl, resid in sorted(zip(peak_waves, abs_resid), key=lambda t: t[1], reverse=True):
             if wl in peak_waves[covered]:
                 continue
-            ind = (peak_waves >= (wl - buffer)) & (peak_waves <= (wl + buffer))
             mus.append(wl)
-
+            ind = (peak_waves >= (wl - buffer)) & (peak_waves <= (wl + buffer))
             covered |= ind
 
         return mus

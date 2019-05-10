@@ -1,4 +1,5 @@
 import os
+from collections import deque
 
 import pytest
 import numpy as np
@@ -104,3 +105,12 @@ class TestSpectrumModel:
     
     def test_str(self, mock_model):
         assert str(mock_model).startswith('SpectrumModel')
+
+    def test_find_residuals_peaks(self, mock_model):
+        n = 100
+        fake_residual = np.random.randn(100, *mock_model.data.waves.shape)
+        fake_residual[:, 10] = 1000
+        mock_model.residuals = deque(fake_residual.tolist())
+        peaks = mock_model.find_residual_peaks(num_residuals=50)
+        assert mock_model.data.waves[10] == peaks[0]
+        assert len(peaks) < len(mock_model.data.waves) - 2
