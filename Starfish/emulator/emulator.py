@@ -28,6 +28,8 @@ class Emulator:
     ----------
     grid_points : numpy.ndarray
         The parameter space from the library.
+    param_names : array_like of str
+        The names of each parameter from the grid
     wavelength : numpy.ndarray
         The wavelength of the library models
     weights : numpy.ndarray
@@ -62,9 +64,10 @@ class Emulator:
         The underlying hyperparameter dictionary
     """
 
-    def __init__(self, grid_points, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi=1, variances=None, lengthscales=None, name=None):
+    def __init__(self, grid_points, param_names, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi=1, variances=None, lengthscales=None, name=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
+        self.param_names = param_names
         self.wl = wavelength
         self.weights = weights
         self.eigenspectra = eigenspectra
@@ -149,6 +152,7 @@ class Emulator:
         filename = os.path.expandvars(filename)
         with h5py.File(filename) as base:
             grid_points = base['grid_points'][:]
+            param_names = base['grid_points'].attrs['names']
             wavelength = base['wavelength'][:]
             weights = base['weights'][:]
             eigenspectra = base['eigenspectra'][:]
@@ -166,6 +170,7 @@ class Emulator:
 
         emulator = cls(
             grid_points=grid_points,
+            param_names=param_names,
             wavelength=wavelength,
             weights=weights,
             eigenspectra=eigenspectra,
@@ -190,18 +195,19 @@ class Emulator:
         """
         filename = os.path.expandvars(filename)
         with h5py.File(filename, 'w') as base:
-            base.create_dataset(
+            grid_points = base.create_dataset(
                 'grid_points', data=self.grid_points, compression=9)
+            grid_points.attrs['names'] = self.param_names
             waves = base.create_dataset(
                 'wavelength', data=self.wl, compression=9)
-            waves.attrs['unit'] = 'Angstrom'
+            waves.attrs['units'] = 'Angstrom'
             base.create_dataset('weights', data=self.weights, compression=9)
             eigens = base.create_dataset(
                 'eigenspectra', data=self.eigenspectra, compression=9)
             base.create_dataset(
                 'flux_mean', data=self.flux_mean, compression=9)
             base.create_dataset('flux_std', data=self.flux_std, compression=9)
-            eigens.attrs['unit'] = 'erg/cm^2/s/Angstrom'
+            eigens.attrs['units'] = 'erg/cm^2/s/Angstrom'
             base.create_dataset('w_hat', data=self.w_hat, compression=9)
             base.attrs['trained'] = self._trained
             if self.name is not None:
@@ -256,6 +262,7 @@ class Emulator:
 
         emulator = cls(
             grid_points=grid.grid_points,
+            param_names=grid.param_names,
             wavelength=grid.wl,
             weights=weights,
             eigenspectra=eigenspectra,

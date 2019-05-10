@@ -124,13 +124,13 @@ class SpectrumModel:
     @property
     def grid_params(self):
         items = [vals for key, vals in self.params.items()
-                 if key.startswith('grid_param')]
+                 if key in self.emulator.param_names]
         return np.array(items)
 
     @grid_params.setter
     def grid_params(self, values):
-        for i, value in enumerate(values):
-            self.params['grid_param:{}'.format(i)] = value
+        for i, (key, value) in enumerate(zip(self.emulator.param_names, values)):
+            self.params[key] = value
 
     @property
     def amps(self):
@@ -226,7 +226,7 @@ class SpectrumModel:
         return self.params[key]
 
     def __setitem__(self, key, value):
-        if not key.startswith('grid_param:') and key not in self._PARAMS:
+        if not key in self.emulator.param_names and key not in self._PARAMS:
             raise ValueError('{} is not a valid parameter.'.format(key))
         self.params[key] = value
 

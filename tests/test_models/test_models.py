@@ -12,9 +12,9 @@ class TestSpectrumModel:
     GP = [6000, 4.0, 0]
 
     def test_param_dict(self, mock_model):
-        assert mock_model['grid_param:0'] == self.GP[0]
-        assert mock_model['grid_param:1'] == self.GP[1]
-        assert mock_model['grid_param:2'] == self.GP[2]
+        assert mock_model['T'] == self.GP[0]
+        assert mock_model['logg'] == self.GP[1]
+        assert mock_model['Z'] == self.GP[2]
         assert mock_model['vz'] == 0
         assert mock_model['Av'] == 0
         assert mock_model['scale'] == -10
@@ -41,18 +41,18 @@ class TestSpectrumModel:
         assert 'vsini' not in params
 
     def test_freeze_grid_param(self, mock_model):
-        mock_model.freeze('grid_param:2')
+        mock_model.freeze('logg')
         params = mock_model.get_param_dict()
-        assert 'grid_param:0' in params
-        assert 'grid_param:1' in params
-        assert 'grid_param:2' not in params
+        assert 'T' in params
+        assert 'Z' in params
+        assert 'logg' not in params
 
     def test_freeze_thaw(self, mock_model):
-        pre = mock_model['grid_param:1']
-        mock_model.freeze('grid_param:1')
-        assert 'grid_param:1' not in mock_model.get_param_dict()
-        mock_model.thaw('grid_param:1')
-        assert 'grid_param:1' in mock_model.get_param_dict()
+        pre = mock_model['logg']
+        mock_model.freeze('logg')
+        assert 'logg' not in mock_model.get_param_dict()
+        mock_model.thaw('logg')
+        assert 'logg' in mock_model.get_param_dict()
         assert mock_model.grid_params[1] == pre
 
     def test_get_set_param_dict(self, mock_model):
@@ -63,10 +63,10 @@ class TestSpectrumModel:
 
     def test_set_param_dict_frozen_params(self, mock_model):
         P0 = mock_model.get_param_dict()
-        mock_model.freeze('grid_param:2')
-        P0['grid_param:2'] = 7
+        mock_model.freeze('Z')
+        P0['Z'] = 7
         mock_model.set_param_dict(P0)
-        assert mock_model['grid_param:2'] == 0
+        assert mock_model['Z'] == 0
 
     def test_get_set_parameters(self, mock_model):
         P0 = mock_model.get_param_vector()
@@ -84,7 +84,7 @@ class TestSpectrumModel:
         P0 = mock_model.get_param_vector()
         P0[2] = 7
         mock_model.set_param_vector(P0)
-        assert mock_model['grid_param:2'] == 7
+        assert mock_model['Z'] == 7
 
     def test_save_load(self, mock_model, tmpdir):
         path = os.path.join(tmpdir, 'model.json')

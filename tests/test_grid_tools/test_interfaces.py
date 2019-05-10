@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-from Starfish.grid_tools import RawGridInterface, PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha, \
-    PHOENIXGridInterfaceNoAlphaNoFE
+from Starfish.grid_tools import GridInterface, PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha
 
 
 def test_phoenix_downloads(PHOENIXModels, AlphaPHOENIXModels):
@@ -18,27 +17,29 @@ class TestRawGridInterface:
         params = {
             "temp": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
-            "Z"   : (-0.5, 0.0)
+            "Z": (-0.5, 0.0)
         }
-        yield RawGridInterface("PHOENIX",
-                               list(params),
-                               params.values(),
-                               wl_range=(3000, 64000))
+        yield GridInterface("PHOENIX",
+                            list(params),
+                            params.values(),
+                            'AA', 'erg s-1 cm-2 cm-1',
+                            wl_range=(3000, 64000))
 
     @pytest.mark.skip("There is no implementation of this in the code, but could be useful. At the super-class level "
                       "it's tough to be able to check all params for sensible keys")
     def test_initialize(self):
         params = {
-            "temp"   : (6000, 6100, 6200),
-            "logg"   : (4.0, 4.5, 5.0),
-            "Z"      : (-0.5, 0.0),
+            "temp": (6000, 6100, 6200),
+            "logg": (4.0, 4.5, 5.0),
+            "Z": (-0.5, 0.0),
             "bunnies": ("furry", "happy"),
         }
-        with pytest.raises(KeyError) :
-            RawGridInterface("PHOENIX",
-                             list(params),
-                             params.values(),
-                             wl_range=(3000, 54000))
+        with pytest.raises(KeyError):
+            GridInterface("PHOENIX",
+                          list(params),
+                          params.values(),
+                          'AA', 'erg s-1 cm-2 cm-1',
+                          wl_range=(3000, 54000))
 
     def test_check_params(self, rawgrid):
         assert rawgrid.check_params((6100, 4.5, 0.0))
@@ -135,42 +136,4 @@ class TestPHOENIXGridInterfaceNoAlpha:
 
     def test_no_header(self, grid):
         fl = grid.load_flux((6100, 4.5, 0.0), header=False)
-        assert len(fl) == 1540041
-
-
-class TestPHOENIXGridInterfaceNoAlphaNoFE:
-
-    @pytest.fixture(scope='class')
-    def grid(self, PHOENIXModels):
-        yield PHOENIXGridInterfaceNoAlphaNoFE(base=PHOENIXModels)
-
-    def test_overload_params_failure(self, grid):
-        with pytest.raises(ValueError):
-            grid.load_flux((6100, 4.5, 0.0, 0.2))
-        with pytest.raises(ValueError):
-            grid.load_flux((6100, 4.5, 0.0))
-
-    def test_load_flux(self, grid):
-        fl, header = grid.load_flux((6100, 4.5), header=True)
-        assert len(fl) == 1540041
-        assert header['PHXTEFF'] == 6100
-        assert header['PHXLOGG'] == 4.5
-        assert header['PHXM_H'] == 0.0
-        assert header['PHXALPHA'] == 0.0
-
-    def test_load_flux_metadata(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5), header=True)
-        assert isinstance(hdr, dict)
-
-    def test_no_air(self, PHOENIXModels):
-        grid = PHOENIXGridInterfaceNoAlphaNoFE(air=False, base=PHOENIXModels)
-        fl, hdr = grid.load_flux((6100, 4.5), header=True)
-        assert hdr['air'] == False
-
-    def test_no_norm(self, grid):
-        fl, hdr = grid.load_flux((6100, 4.5), header=True, norm=False)
-        assert hdr['norm'] == False
-
-    def test_no_header(self, grid):
-        fl = grid.load_flux((6100, 4.5), header=False)
         assert len(fl) == 1540041
