@@ -1,18 +1,51 @@
 # Starfish
 
 [![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
-[![Doc Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
+[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg)](https://starfish.readthedocs.io/en/latest/?badge=latest)
+[![Coverage Status](https://coveralls.io/repos/github/iancze/Starfish/badge.svg?branch=master)](https://coveralls.io/github/iancze/Starfish?branch=master)
+[![PyPi](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
-**Beta Version 0.3**
+## Beta Version 0.3
 
-Documentation: https://starfish.rtfd.io/en/latest/
+**Documentation**
+
+[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
+
+[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=develop)](https://starfish.readthedocs.io/en/develop/?badge=develop)
 
 **Citation**
 
-If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract) as well as the [code](#)
+If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](#)
+
+<details>
+<summary>BibTex citation</summary>
+
+```
+@ARTICLE{2015ApJ...812..128C,
+       author = {{Czekala}, Ian and {Andrews}, Sean M. and {Mandel}, Kaisey S. and
+         {Hogg}, David W. and {Green}, Gregory M.},
+        title = "{Constructing a Flexible Likelihood Function for Spectroscopic Inference}",
+      journal = {\apj},
+     keywords = {methods: data analysis, methods: statistical, stars: fundamental parameters, stars: late-type, stars: statistics, techniques: spectroscopic, Astrophysics - Solar and Stellar Astrophysics, Astrophysics - Earth and Planetary Astrophysics, Astrophysics - Instrumentation and Methods for Astrophysics},
+         year = "2015",
+        month = "Oct",
+       volume = {812},
+       number = {2},
+          eid = {128},
+        pages = {128},
+          doi = {10.1088/0004-637X/812/2/128},
+archivePrefix = {arXiv},
+       eprint = {1412.5177},
+ primaryClass = {astro-ph.SR},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
+
+</details>
 
 **Warning!**
 

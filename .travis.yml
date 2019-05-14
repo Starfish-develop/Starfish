@@ -13,13 +13,13 @@ matrix:
       env: TRAVIS_PYTHON_VERSION=3.6
       language: generic
       before_install:
-        - pyenv install 3.6.1
-        - pyenv global 3.6.1
+        - brew install python@3.6
         - pip install -U pipenv
     - os: osx
       osx_image: xcode10.2
       env: TRAVIS_PYTHON_VERSION=3.7
-      language: generic     
+      language: generic   
+  allow_failures:     
     - os: windows
       python: 3.6
       language: shell
@@ -28,7 +28,7 @@ matrix:
         - python -m pip install -U pipenv
       env: 
         - PATH=/c/Python36:/c/Python36/Scripts:$PATH  
-        - TRAVIS_PYTHON_VERSION=3.6     
+        - TRAVIS_PYTHON_VERSION=3.6  
     - os: windows 
       python: 3.7
       language: shell
