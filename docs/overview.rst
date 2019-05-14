@@ -65,12 +65,6 @@ The MCMC driver script
 
 The main purpose of *Starfish* is to provide a framework for robustly deriving model parameters using spectra. The ability to self-consistently downweight model systematics resulting from incorrectly modeled spectral lines is accomplished by using a non-trivial covariance matrix as part of a multi-dimensional Gaussian likelihood function. In principle, one could use traditional non-linear optimization techniques to find the maximum of the posterior probability distribution with respect to the model parameters. However, because one is usually keenly interested in the *uncertainties* on the best-fitting parameters, we must use an optimization technique that explores the full posterior, such as Markov Chain Monte Carlo (MCMC).
 
-Because each dataset has its own requirements, it is up to the user to modify the MCMC driver script to suit their needs. For now, a complicated parallel example is available `here <https://github.com/iancze/Starfish/blob/master/Starfish/parallel.py>`_. We hope to provide more user-friendly scripts soon.
-
-*Starfish* relies upon a modified version of *emcee*, a popular Markov Chain Monte Carlo package, to run a Gibbs
-sampler, available `here <https://github.com/iancze/emcee>`_. To help examine the output of any MCMC run and
-generate plots of the samples, we also provide some helpful command-line :doc:`api/scripts`.
-
 Memory usage
 ============
 

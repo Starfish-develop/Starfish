@@ -24,8 +24,6 @@ Contents
    overview
    api/api
    examples/examples
-   troubleshooting
-   tips_and_tricks
 
 
 Indices and tables
