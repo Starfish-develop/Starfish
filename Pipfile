@@ -10,13 +10,10 @@ scikit-learn = "*"
 astropy = "*"
 h5py = "*"
 tqdm = "*"
-pyyaml = "~=4.2b1"
-oyaml = "*"
 extinction = "*"
 
 [dev-packages]
 sphinx-rtd-theme = "*"
-graphviz = "*"
 pytest = "*"
 pydot = "*"
 pylint = "*"

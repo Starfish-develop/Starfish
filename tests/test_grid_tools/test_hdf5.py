@@ -6,7 +6,6 @@ import h5py
 import numpy as np
 import pytest
 
-from Starfish import config
 from Starfish.grid_tools import HDF5Creator, HDF5Interface
 
 
@@ -70,11 +69,11 @@ class TestHDF5Creator:
                         instrument=mock_instrument, wl_range=wl_range)
 
     @pytest.mark.parametrize('wl_range, wl_expected', [
-        [(5e3, 2e4), (1e4, 2e4 + config.grid['buffer'])],
-        [(1e4, 2e4), (1e4, 2e4 + config.grid['buffer'])],
+        [(5e3, 2e4), (1e4, 2e4 + 50)],
+        [(1e4, 2e4), (1e4, 2e4 + 50)],
         [(1e4, 4e4), (1e4, 4e4)],
-        [(2e4, 4e4), (2e4 - config.grid['buffer'], 4e4)],
-        [(2e4, 6e4), (2e4 - config.grid['buffer'], 4e4)],
+        [(2e4, 4e4), (2e4 - 50, 4e4)],
+        [(2e4, 6e4), (2e4 - 50, 4e4)],
     ])
     def test_wavelength_truncation(self, wl_range, wl_expected, mock_no_alpha_grid, mock_instrument, tmpdir_factory):
         tmpdir = tmpdir_factory.mktemp('hdf5tests')

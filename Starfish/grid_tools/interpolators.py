@@ -5,10 +5,9 @@ import logging
 import numpy as np
 from scipy.interpolate import interp1d
 
-from Starfish import config
 from .utils import determine_chunk_log
 
-
+BUFFER = 50
 class IndexInterpolator:
     """
     Object to return fractional distance between grid points of a single grid variable.
@@ -75,7 +74,7 @@ class Interpolator:
         mask = (self.wl < wl_range[-1]) & (self.wl < wl_range[1])
         self.wl = self.wl[mask]
         self.dv = self.interface.dv
-        self.npars = len(config.grid["parname"])
+        self.npars = len(interface.param_names)
         self._determine_chunk_log()
 
         self._setup_index_interpolators()

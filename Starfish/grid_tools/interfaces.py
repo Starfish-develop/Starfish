@@ -9,7 +9,6 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from tqdm import tqdm
 
 import Starfish.constants as C
-from Starfish import config
 from Starfish.utils import create_log_lam_grid
 from .base_interfaces import GridInterface
 from .utils import vacuum_to_air, idl_float

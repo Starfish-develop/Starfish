@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import numpy as np
 
-from Starfish import config
 from Starfish.grid_tools import HDF5Interface
 from .emulator import Emulator
 

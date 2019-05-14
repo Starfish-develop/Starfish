@@ -9,7 +9,6 @@ the source code at `GitHub <https://github.com/iancze/Starfish>`_. Make sure you
 .. toctree::
    :maxdepth: 2
 
-   config
    grid_tools
    emulator
    spectrum

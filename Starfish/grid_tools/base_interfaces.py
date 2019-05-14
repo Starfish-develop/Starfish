@@ -9,7 +9,6 @@ from astropy.io import fits
 from tqdm import tqdm
 
 import Starfish.constants as C
-from Starfish import config
 from Starfish.models.transforms import instrumental_broaden, resample
 from Starfish.utils import calculate_dv, calculate_dv_dict, create_log_lam_grid
 from .utils import chunk_list
@@ -412,7 +411,7 @@ class HDF5Creator:
 
         # Remove parameters that do no exist
         all_params = np.delete(all_params, invalid_params, axis=0)
-        
+
         gp = self.hdf5.create_dataset(
             'grid_points', data=all_params, compression=9)
         gp.attrs['names'] = self.GridInterface.param_names
