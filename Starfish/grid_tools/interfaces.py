@@ -25,9 +25,9 @@ class PHOENIXGridInterface(GridInterface):
     :math:`erg/s/cm^2/cm`
     """
 
-    def __init__(self, air=True, wl_range=(3000, 54000), base=config.grid["raw_path"]):
-        super().__init__(name="PHOENIX",
-                         param_names=["T", "logg", "Z", "alpha"],
+    def __init__(self, air=True, wl_range=(3000, 54000), path=config.grid['raw_path']):
+        super().__init__(name='PHOENIX',
+                         param_names=['T', 'logg', 'Z', 'alpha'],
                          points=[
                              np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
                                        3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
@@ -40,23 +40,23 @@ class PHOENIXGridInterface(GridInterface):
                              np.arange(-2., 1.1, 0.5),
                              np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
                          wave_units='AA', flux_units='erg/s/cm^2/cm',
-                         air=air, wl_range=wl_range, base=base)  # wl_range used to be (2999, 13001)
+                         air=air, wl_range=wl_range, path=path)  # wl_range used to be (2999, 13001)
 
         self.par_dicts = [None,
                           None,
-                          {-2: "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
+                          {-2: '-2.0', -1.5: '-1.5', -1: '-1.0', -0.5: '-0.5',
                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
-                          {-0.4: ".Alpha=-0.40", -0.2: ".Alpha=-0.20",
-                           0.0: "", 0.2: ".Alpha=+0.20", 0.4: ".Alpha=+0.40",
-                           0.6: ".Alpha=+0.60", 0.8: ".Alpha=+0.80"}]
+                          {-0.4: '.Alpha=-0.40', -0.2: '.Alpha=-0.20',
+                           0.0: '', 0.2: '.Alpha=+0.20', 0.4: '.Alpha=+0.40',
+                           0.6: '.Alpha=+0.60', 0.8: '.Alpha=+0.80'}]
 
         # if air is true, convert the normally vacuum file to air wls.
         try:
             wl_filename = os.path.join(
-                self.path, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+                self.path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
             w_full = fits.getdata(wl_filename)
         except:
-            raise ValueError("Wavelength file improperly specified.")
+            raise ValueError('Wavelength file improperly specified.')
 
         if self.air:
             self.wl_full = vacuum_to_air(w_full)
@@ -66,8 +66,8 @@ class PHOENIXGridInterface(GridInterface):
         self.ind = (self.wl_full >= self.wl_range[0]) & (
             self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = os.path.join(self.path, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}"
-                                             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+        self.rname = os.path.join(self.path, 'Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}'
+                                             '.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
 
     def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)  # Check to make sure that the keys are
@@ -88,7 +88,7 @@ class PHOENIXGridInterface(GridInterface):
         # Still need to check that file is in the grid, otherwise raise a C.GridError
         # Read all metadata in from the FITS header, and append to spectrum
         if not os.path.exists(fname):
-            raise ValueError("{} is not on disk.".format(fname))
+            raise ValueError('{} is not on disk.'.format(fname))
 
         hdu_list = fits.open(fname)
         flux = hdu_list[0].data
@@ -103,8 +103,8 @@ class PHOENIXGridInterface(GridInterface):
             flux *= (C.F_sun / F_bol)
 
         # Add temp, logg, Z, alpha, norm to the metadata
-        hdr["norm"] = norm
-        hdr["air"] = self.air
+        hdr['norm'] = norm
+        hdr['air'] = self.air
 
         if header:
             return (flux[self.ind], hdr)
@@ -118,12 +118,12 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     """
 
     def __init__(self, air=True, wl_range=(3000, 54000),
-                 base=config.grid["raw_path"]):
+                 path=config.grid['raw_path']):
         # Initialize according to the regular PHOENIX values
-        super().__init__(air=air, wl_range=wl_range, base=base)
+        super().__init__(air=air, wl_range=wl_range, path=base)
 
         # Now override parameters to exclude alpha
-        self.param_names = ["T", "logg", "Z"]
+        self.param_names = ['T', 'logg', 'Z']
         self.points = [
             np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
                       3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
@@ -137,11 +137,11 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 
         self.par_dicts = [None,
                           None,
-                          {-2: "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
+                          {-2: '-2.0', -1.5: '-1.5', -1: '-1.0', -0.5: '-0.5',
                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
 
-        self.rname = os.path.join(self.path, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}"
-                                             ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
+        self.rname = os.path.join(self.path, 'Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}'
+                                             '.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
 
 
 class KuruczGridInterface(GridInterface):
@@ -154,22 +154,22 @@ class KuruczGridInterface(GridInterface):
     These particular values are roughly the ones appropriate for the Sun.
     """
 
-    def __init__(self, air=True, wl_range=(5000, 5400), base=config.grid["raw_path"]):
-        super().__init__(name="Kurucz",
-                         param_names=["T", "logg", "Z"],
+    def __init__(self, air=True, wl_range=(5000, 5400), path=config.grid['raw_path']):
+        super().__init__(name='Kurucz',
+                         param_names=['T', 'logg', 'Z'],
                          points=[np.arange(3500, 9751, 250),
                                  np.arange(0.0, 5.1, 0.5),
                                  np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5])],
                          wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, base=base)
+                         air=air, wl_range=wl_range, path=base)
 
         self.par_dicts = [None, None,
-                          {-2.5: "m25", -2.0: "m20", -1.5: "m15", -1.0: "m10", -0.5: "m05", 0.0: "p00", 0.5: "p05"}]
+                          {-2.5: 'm25', -2.0: 'm20', -1.5: 'm15', -1.0: 'm10', -0.5: 'm05', 0.0: 'p00', 0.5: 'p05'}]
 
         # Convert to f_lam and average to 1, or leave in f_nu?
         self.rname = os.path.join(
-            base, "t{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits")
-        self.wl_full = np.load(os.path.join(base, "kurucz_raw_wl.npy"))
+            base, 't{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits')
+        self.wl_full = np.load(os.path.join(base, 'kurucz_raw_wl.npy'))
         self.ind = (self.wl_full >= self.wl_range[0]) & (
             self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
@@ -197,7 +197,7 @@ class KuruczGridInterface(GridInterface):
             hdr = dict(flux_file[0].header)
             flux_file.close()
         except:
-            raise ValueError("{} is not on disk.".format(fname))
+            raise ValueError('{} is not on disk.'.format(fname))
 
         # We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
         # flux to be 1
@@ -208,8 +208,8 @@ class KuruczGridInterface(GridInterface):
             f /= np.average(f)  # divide by the mean flux, so avg(f) = 1
 
         # Add temp, logg, Z, norm to the metadata
-        hdr["norm"] = norm
-        hdr["air"] = self.air
+        hdr['norm'] = norm
+        hdr['air'] = self.air
 
         if header:
             return (f[self.ind], hdr)
@@ -240,19 +240,19 @@ class BTSettlGridInterface(GridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     """
 
-    def __init__(self, air=True, wl_range=(2999, 13000), base="libraries/raw/BTSettl/"):
-        super().__init__(name="BTSettl",
-                         points={"T": np.arange(3000, 7001, 100),
-                                 "logg": np.arange(2.5, 5.6, 0.5),
-                                 "Z": np.arange(-0.5, 0.6, 0.5),
-                                 "alpha": np.array([0.0])},
+    def __init__(self, air=True, wl_range=(2999, 13000), path='libraries/raw/BTSettl/'):
+        super().__init__(name='BTSettl',
+                         points={'T': np.arange(3000, 7001, 100),
+                                 'logg': np.arange(2.5, 5.6, 0.5),
+                                 'Z': np.arange(-0.5, 0.6, 0.5),
+                                 'alpha': np.array([0.0])},
                          wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, base=base)
+                         air=air, wl_range=wl_range, path=base)
 
         # Normalize to 1 solar luminosity?
         self.rname = os.path.join(
-            self.path, "CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2")
-        # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
+            self.path, 'CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2')
+        # self.Z_dict = {-2:'-2.0', -1.5:'-1.5', -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
 
         wl_dict = create_log_lam_grid(
@@ -275,11 +275,11 @@ class BTSettlGridInterface(GridInterface):
         str_parameters = parameters.copy()
 
         # Rewrite Z
-        Z = parameters["Z"]
-        str_parameters["Z"] = self.Z_dict[Z]
+        Z = parameters['Z']
+        str_parameters['Z'] = self.Z_dict[Z]
 
         # Multiply temp by 0.01
-        str_parameters["T"] = 0.01 * parameters['T']
+        str_parameters['T'] = 0.01 * parameters['T']
 
         fname = self.rname.format(**str_parameters)
         file = bz2.BZ2File(fname, 'r')
@@ -293,11 +293,11 @@ class BTSettlGridInterface(GridInterface):
         wl = data['col1']
         fl_str = data['col2']
 
-        # convert because of "D" exponent, unreadable in Python
+        # convert because of 'D' exponent, unreadable in Python
         fl = idl_float(fl_str)
         fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
 
-        # "Clean" the wl and flux points. Remove duplicates, sort in increasing wl
+        # 'Clean' the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
         fl = fl[ind]
 
@@ -337,17 +337,17 @@ class CIFISTGridInterface(GridInterface):
     If you have a choice, it's probably easier to use the Husser PHOENIX grid.
     """
 
-    def __init__(self, air=True, wl_range=(3000, 13000), base=config.grid["raw_path"]):
-        super().__init__(name="CIFIST",
+    def __init__(self, air=True, wl_range=(3000, 13000), path=config.grid['raw_path']):
+        super().__init__(name='CIFIST',
                          points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
                                  np.arange(2.5, 5.6, 0.5)],
-                         param_names=["T", "logg"],
+                         param_names=['T', 'logg'],
                          wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, base=base)
+                         air=air, wl_range=wl_range, path=base)
 
         self.par_dicts = [None, None]
         self.rname = os.path.join(
-            self.path, "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz")
+            self.path, 'lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz')
 
         wl_dict = create_log_lam_grid(
             dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
@@ -375,12 +375,12 @@ class CIFISTGridInterface(GridInterface):
             data = flux_file[1].data
             hdr = dict(flux_file[1].header)
 
-            wl = data["Wavelength"] * 1e4  # [Convert to angstroms]
-            fl = data["Flux"]
+            wl = data['Wavelength'] * 1e4  # [Convert to angstroms]
+            fl = data['Flux']
 
             flux_file.close()
         except OSError:
-            raise C.GridError("{} is not on disk.".format(fname))
+            raise C.GridError('{} is not on disk.'.format(fname))
 
         # "Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
@@ -409,8 +409,8 @@ class CIFISTGridInterface(GridInterface):
 
         # Add temp, logg, Z, norm to the metadata
 
-        hdr["norm"] = norm
-        hdr["air"] = self.air
+        hdr['norm'] = norm
+        hdr['air'] = self.air
 
         if header:
             return (fl_interp, hdr)
@@ -419,7 +419,7 @@ class CIFISTGridInterface(GridInterface):
 
 
 def load_BTSettl(T, logg, Z, norm=False, trunc=False, air=False):
-    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(T=0.01 * T,
+    rname = 'BT-Settl/CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2'.format(T=0.01 * T,
                                                                                                 logg=logg, Z=Z)
     file = bz2.BZ2File(rname, 'r')
 
