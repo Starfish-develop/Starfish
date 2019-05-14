@@ -100,7 +100,7 @@ For the most current release of *Starfish*, use the releases from PyPI
 
 If you want to be on the most up-to-date version (or a development version), install from source via
 
-    $ pip install git+https://github.com/iancze/Starfiish.git#egg=astrostarfish
+    $ pip install git+https://github.com/iancze/Starfish.git#egg=astrostarfish
 
 
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
