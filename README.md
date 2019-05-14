@@ -4,21 +4,20 @@
 [![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg)](https://starfish.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/iancze/Starfish/badge.svg?branch=master)](https://coveralls.io/github/iancze/Starfish?branch=master)
 [![PyPi](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
 ## Beta Version 0.3
 
-**Documentation**
+### Documentation
 
 [![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
-
 [![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=develop)](https://starfish.readthedocs.io/en/develop/?badge=develop)
 
-**Citation**
+### Citations
 
-If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](#)
+If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). 
 
 <details>
 <summary>BibTex citation</summary>
@@ -43,6 +42,24 @@ archivePrefix = {arXiv},
        adsurl = {https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C},
       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
+
+@misc{ian_czekala_2018_2221006,
+  author       = {Ian Czekala and
+                  gully and
+                  Kevin Gullikson and
+                  Sean Andrews and
+                  Jason Neal and
+                  Miles Lucas and
+                  Kevin Hardegree-Ullman and
+                  Meredith Rawls and
+                  Edward Betts},
+  title        = {{iancze/Starfish: ca. Czekala et al. 2015 release 
+                   w/ Zenodo}},
+  month        = dec,
+  year         = 2018,
+  doi          = {10.5281/zenodo.2221006},
+  url          = {https://doi.org/10.5281/zenodo.2221006}
+}
 ```
 
 </details>
@@ -51,7 +68,7 @@ archivePrefix = {arXiv},
 
 There have been major updates since version `0.2`, please see the section of the documentation that regards these changes if you are used to the old version!
 
-**Papers**
+### Papers
 * Czekala et al. 2015 [ADS](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract) [arXiv](https://arxiv.org/abs/1412.5177)
 * Gully-Santiago et al. 2017 [ADS](https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract) [arXiv](https://arxiv.org/abs/1701.06703)
 
@@ -127,4 +144,4 @@ We use `py.test` for testing; within the virtual environment
 
 ## Contributors
 
-See `CONTRIBUTORS.md` for a full list of contributors.
+See [`CONTRIBUTORS.md`](CONTRIBUTORS.md) for a full list of contributors.
