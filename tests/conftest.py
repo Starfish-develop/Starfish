@@ -47,7 +47,7 @@ def mock_instrument():
 
 @pytest.fixture(scope='session')
 def mock_no_alpha_grid(PHOENIXModels):
-    yield PHOENIXGridInterfaceNoAlpha(base=PHOENIXModels)
+    yield PHOENIXGridInterfaceNoAlpha(path=PHOENIXModels)
 
 
 @pytest.fixture(scope='session')

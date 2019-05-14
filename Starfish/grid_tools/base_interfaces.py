@@ -144,7 +144,7 @@ class HDF5Interface:
 
         with h5py.File(self.filename, 'r') as base:
             self.wl = base['wl'][:]
-            self.key_name = base.attrs['key_name']
+            self.key_name = base['flux'].attrs['key_name']
             self.wl_header = dict(base['wl'].attrs.items())
             self.dv = self.wl_header['dv']
             self.grid_points = base['grid_points'][:]
@@ -252,8 +252,7 @@ class HDF5Creator:
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
         if key_name is None:
-            key_name = '_'.join(
-                [name + '{}' for name in GridInterface.param_names])
+            key_name = self.GridInterface.rname.replace('/', '__').replace('.fits', '').replace('.FITS', '')
 
         self.key_name = key_name
 
@@ -277,8 +276,9 @@ class HDF5Creator:
 
         self.hdf5 = h5py.File(self.filename, 'w')
         self.hdf5.attrs['grid_name'] = GridInterface.name
-        self.hdf5.flux_group = self.hdf5.create_group('flux')
-        self.hdf5.flux_group.attrs['units'] = GridInterface.flux_units
+        self.flux_group = self.hdf5.create_group('flux')
+        self.flux_group.attrs['units'] = GridInterface.flux_units
+        self.flux_group.attrs['key_name'] = self.key_name
 
         # We'll need a few wavelength grids
         # 1. The original synthetic grid: ``self.wl_native``
@@ -301,7 +301,7 @@ class HDF5Creator:
             wl_min, wl_max = 0, np.inf
         else:
             wl_min, wl_max = wl_range
-        buffer = config.grid['buffer']  # [AA]
+        buffer = 50  # [AA]
         wl_min -= buffer
         wl_max += buffer
 
@@ -341,9 +341,11 @@ class HDF5Creator:
             mask = (self.wl_native > wl_min) & (self.wl_native < wl_max)
             self.wl_final = self.wl_native[mask]
             self.dv_final = self.dv_native
-            def inst_broaden(w, f): return (w, f)
+            def inst_broaden(w, f): 
+                return (w, f)
         else:
-            def inst_broaden(w, f): return (
+            def inst_broaden(w, f): 
+                return (
                 w, instrumental_broaden(w, f, self.instrument.FWHM))
             # The final wavelength grid, onto which we will interpolate the
             # Fourier filtered wavelengths, is part of the instrument object
@@ -401,7 +403,7 @@ class HDF5Creator:
 
             _, fl_final = self.transform(flux)
 
-            flux = self.hdf5['flux'].create_dataset(self.key_name.format(*param),
+            flux = self.flux_group.create_dataset(self.key_name.format(*param),
                                                     data=fl_final, compression=9)
             # Store header keywords as attributes in HDF5 file
             for key, value in header.items():
@@ -410,7 +412,7 @@ class HDF5Creator:
 
         # Remove parameters that do no exist
         all_params = np.delete(all_params, invalid_params, axis=0)
-
+        
         gp = self.hdf5.create_dataset(
             'grid_points', data=all_params, compression=9)
         gp.attrs['names'] = self.GridInterface.param_names

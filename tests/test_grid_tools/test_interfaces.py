@@ -15,7 +15,7 @@ class TestRawGridInterface:
     @pytest.fixture(scope='class')
     def rawgrid(self):
         params = {
-            "temp": (6000, 6100, 6200),
+            "T": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
             "Z": (-0.5, 0.0)
         }
@@ -29,7 +29,7 @@ class TestRawGridInterface:
                       "it's tough to be able to check all params for sensible keys")
     def test_initialize(self):
         params = {
-            "temp": (6000, 6100, 6200),
+            "T": (6000, 6100, 6200),
             "logg": (4.0, 4.5, 5.0),
             "Z": (-0.5, 0.0),
             "bunnies": ("furry", "happy"),
@@ -61,7 +61,7 @@ class TestPHOENIXGridInterface:
 
     @pytest.fixture(scope='class')
     def grid(self, PHOENIXModels, AlphaPHOENIXModels):
-        yield PHOENIXGridInterface(base=PHOENIXModels)
+        yield PHOENIXGridInterface(path=PHOENIXModels)
 
     def test_check_params_alpha(self, grid):
         assert grid.check_params((6100, 4.5, 0.0, -0.2))
@@ -87,10 +87,10 @@ class TestPHOENIXGridInterface:
     def test_bad_base(self):
         # Set a different base location, should raise an error because on this machine there is not file.
         with pytest.raises(ValueError):
-            PHOENIXGridInterface(base="wrong_base/")
+            PHOENIXGridInterface(path="wrong_base/")
 
     def test_no_air(self, PHOENIXModels):
-        grid = PHOENIXGridInterface(air=False, base=PHOENIXModels)
+        grid = PHOENIXGridInterface(air=False, path=PHOENIXModels)
         _, hdr = grid.load_flux((6100, 4.5, 0.0, 0.0), header=True)
         assert hdr['air'] == False
 
@@ -107,7 +107,7 @@ class TestPHOENIXGridInterfaceNoAlpha:
 
     @pytest.fixture(scope='class')
     def grid(self, PHOENIXModels):
-        yield PHOENIXGridInterfaceNoAlpha(base=PHOENIXModels)
+        yield PHOENIXGridInterfaceNoAlpha(path=PHOENIXModels)
 
     def test_overload_params_failure(self, grid):
         with pytest.raises(ValueError):
@@ -126,7 +126,7 @@ class TestPHOENIXGridInterfaceNoAlpha:
         assert isinstance(hdr, dict)
 
     def test_no_air(self, PHOENIXModels):
-        grid = PHOENIXGridInterfaceNoAlpha(air=False, base=PHOENIXModels)
+        grid = PHOENIXGridInterfaceNoAlpha(air=False, path=PHOENIXModels)
         _, hdr = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert hdr['air'] == False
 
