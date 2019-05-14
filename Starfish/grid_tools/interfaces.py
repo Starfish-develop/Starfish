@@ -53,7 +53,7 @@ class PHOENIXGridInterface(GridInterface):
         # if air is true, convert the normally vacuum file to air wls.
         try:
             wl_filename = os.path.join(
-                self.base, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+                self.path, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
             w_full = fits.getdata(wl_filename)
         except:
             raise ValueError("Wavelength file improperly specified.")
@@ -66,7 +66,7 @@ class PHOENIXGridInterface(GridInterface):
         self.ind = (self.wl_full >= self.wl_range[0]) & (
             self.wl_full <= self.wl_range[1])
         self.wl = self.wl_full[self.ind]
-        self.rname = os.path.join(self.base, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}"
+        self.rname = os.path.join(self.path, "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}"
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
     def load_flux(self, parameters, header=False, norm=True):
@@ -140,7 +140,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
                           {-2: "-2.0", -1.5: "-1.5", -1: '-1.0', -0.5: '-0.5',
                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
 
-        self.rname = os.path.join(self.base, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}"
+        self.rname = os.path.join(self.path, "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}"
                                              ".PHOENIX-ACES-AGSS-COND-2011-HiRes.fits")
 
 
@@ -251,7 +251,7 @@ class BTSettlGridInterface(GridInterface):
 
         # Normalize to 1 solar luminosity?
         self.rname = os.path.join(
-            self.base, "CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2")
+            self.path, "CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2")
         # self.Z_dict = {-2:"-2.0", -1.5:"-1.5", -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
         self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
 
@@ -347,7 +347,7 @@ class CIFISTGridInterface(GridInterface):
 
         self.par_dicts = [None, None]
         self.rname = os.path.join(
-            self.base, "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz")
+            self.path, "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz")
 
         wl_dict = create_log_lam_grid(
             dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])

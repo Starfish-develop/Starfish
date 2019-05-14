@@ -21,32 +21,40 @@ class GridInterface:
     """
     A base class to handle interfacing with synthetic spectral libraries.
 
-    :param name: name of the spectral library
-    :type name: str
-    :param param_names: the names of the parameters (dimensions) of the grid
-    :type param_names: list
-    :param points: the grid points at which
+    Parameters
+    ----------
+    base : str or path-like
+        path to the root of the files on disk.
+    param_names : list of str
+        The names of the parameters (dimensions) of the grid
+    points :  array_like
+        the grid points at which
         spectra exist (assumes grid is square, not ragged, meaning that every combination
         of parameters specified exists in the grid).
-    :type points: list of numpy arrays
-    :param wl_range: the starting and ending wavelength ranges of the grid to
+    wave_units : str
+        The units of the wavelengths. Preferably equivalent to an astropy unit string.
+    flux_units : str
+        The units of the model fluxes. Preferable equivalent to an astropy unit string.
+    wl_range :  list [min, max], optional
+        the starting and ending wavelength ranges of the grid to
         truncate to. If None, will use whole available grid. Default is None.
-    :type wl_range: list of len 2 [min, max]
-    :param air: Are the wavelengths measured in air?
-    :type air: bool
-    :param base: path to the root of the files on disk.
-    :type base: str
+    air :  bool, optional
+        Are the wavelengths measured in air? Default is True
+    name : str, optional
+        name of the spectral library, Default is None
     """
 
-    def __init__(self, name, param_names, points, wave_units, flux_units, wl_range=None, air=True, base=None):
-        self.name = name
+    def __init__(self, path, param_names, points, wave_units, flux_units, wl_range=None, air=True, name=None):
+        self.path = path
         self.param_names = param_names
         self.points = points
         self.air = air
         self.wl_range = wl_range
-        self.base = base
         self.wave_units = wave_units
         self.flux_units = flux_units
+        if name is None:
+            name = 'Grid Interface'
+        self.name = name
 
     def check_params(self, parameters):
         """
@@ -71,37 +79,44 @@ class GridInterface:
             parameters = np.array(parameters)
 
         if len(parameters) != len(self.param_names):
-            raise ValueError("Length of given parameters ({}) does not match length of grid parameters ({})".format(
+            raise ValueError('Length of given parameters ({}) does not match length of grid parameters ({})'.format(
                 len(parameters), len(self.param_names)))
 
         for param, params in zip(parameters, self.points):
             if param not in params:
                 raise ValueError(
-                    "{} not in the grid points {}".format(param, params))
+                    '{} not in the grid points {}'.format(param, params))
         return True
 
     def load_flux(self, parameters, header=False, norm=True):
         """
         Load the flux and header information.
 
-       :param parameters: stellar parameters
-       :type parameters: numpy.ndarray or list
-       :param header: If True, will return the header alongside the flux. Default is False.
-       :type header: bool
-       :param norm: If True, will normalize the flux to solar luminosity. Default is True.
-       :type norm: bool
+        Parameters
+        ----------
+        parameters : array_like
+            stellar parameters
+        header : bool, optional
+            If True, will return the header alongside the flux. Default is False.
+        norm : bool, optional
+            If True, will normalize the flux to solar luminosity. Default is True.
 
-       :raises ValueError: if the file cannot be found on disk.
+        Raises
+        ------
+        ValueError
+            if the file cannot be found on disk.
 
-       :returns: numpy.ndarray if header is False, tuple of (numpy.ndarray, dict) if header is True
-       """
+        Returns
+        -------
+        numpy.ndarray if header is False, tuple of (numpy.ndarray, dict) if header is True
+        """
         raise NotImplementedError(
-            "`load_flux` is abstract and must be implemented by subclasses")
+            '`load_flux` is abstract and must be implemented by subclasses')
 
     def __repr__(self):
         output = '{}\n'.format(self.name)
         output += '-' * len(self.name) + '\n'
-        output += 'Base: {}\n'.format(self.base)
+        output += 'Base: {}\n'.format(self.path)
         for par, point in zip(self.param_names, self.points):
             output += '{}: {}\n'.format(par, point)
         return output
@@ -111,15 +126,14 @@ class HDF5Interface:
     """
     Connect to an HDF5 file that stores spectra.
 
-    :param filename: the name of the HDF5 file
-    :type param: string
-    :param ranges: optionally select a smaller part of the grid to use.
-    :type ranges: dict
+    Parameters
+    ----------
+    filename : str or path-like
+        The path of the saved HDF5 file
     """
 
-    def __init__(self, filename=config.grid["hdf5_path"], key_name=config.grid["key_name"]):
+    def __init__(self, filename):
         self.filename = os.path.expandvars(filename)
-        self.key_name = key_name
 
         # In order to properly interface with the HDF5 file, we need to learn
         # a few things about it
@@ -128,11 +142,12 @@ class HDF5Interface:
         # 2.) What are the minimum and maximum values for each parameter (self.bounds)
         # 3.) Which values exist for each parameter (self.points)
 
-        with h5py.File(self.filename, "r") as base:
-            self.wl = base["wl"][:]
-            self.wl_header = dict(base["wl"].attrs.items())
-            self.dv = self.wl_header["dv"]
-            self.grid_points = base["grid_points"][:]
+        with h5py.File(self.filename, 'r') as base:
+            self.wl = base['wl'][:]
+            self.key_name = base.attrs['key_name']
+            self.wl_header = dict(base['wl'].attrs.items())
+            self.dv = self.wl_header['dv']
+            self.grid_points = base['grid_points'][:]
             self.param_names = base['grid_points'].attrs['names']
             self.wave_units = base['wl'].attrs['units']
             self.flux_units = base['flux'].attrs['units']
@@ -150,26 +165,27 @@ class HDF5Interface:
         try:
             self.load_flux(self.grid_points[0])
         except (IndexError, KeyError):
-            raise ValueError("key_name is ill-specified.")
+            raise ValueError('key_name is ill-specified.')
 
     def load_flux(self, parameters, header=False):
         """
         Load just the flux from the grid, with possibly an index truncation.
 
-        :param parameters: the stellar parameters
-        :type parameters: iterable
-        :param header: If True, will return the header as well as the flux. Default is False
-        :type header: bool
+        parameters : array_like
+            the stellar parameters
+        header : bool, optional
+            If True, will return the header as well as the flux. Default is False
 
-        :raises GridError: if spectrum is not found in the HDF5 file.
 
-        :returns: numpy.ndarray if header is False, otherwise (numpy.ndarray, dict)
+        Returns
+        -------
+        numpy.ndarray if header is False, otherwise (numpy.ndarray, dict)
         """
         if not isinstance(parameters, np.ndarray):
             parameters = np.array(parameters)
 
         key = self.key_name.format(*parameters)
-        with h5py.File(self.filename, "r") as hdf5:
+        with h5py.File(self.filename, 'r') as hdf5:
             hdr = dict(hdf5['flux'][key].attrs)
             if self.ind is not None:
                 fl = hdf5['flux'][key][self.ind[0]:self.ind[1]]
@@ -188,7 +204,9 @@ class HDF5Interface:
         Iterator to loop over all of the spectra stored in the grid, for PCA.
         Loops over parameters in the order specified by grid_points.
 
-        :returns: generator of either numpy.ndarray
+        Returns
+        -------
+        Generator of numpy.ndarrays
         """
 
         for grid_point in self.grid_points:
@@ -200,33 +218,30 @@ class HDF5Creator:
     Create a HDF5 grid to store all of the spectra from a RawGridInterface,
     along with metadata.
 
-    :param GridInterface:  The raw grid interface to process while creating the HDF5 file
-    :type GridInterface: :obj:`RawGridInterface`
-    :param instrument: If provided, the instrument to convolve/truncate the grid. If None, will
+    Parameters
+    ----------
+    GridInterface : :class:`GridInterface`
+        The raw grid interface to process while creating the HDF5 file
+    filename : str or path-like
+        Where to save the HDF5 file
+    instrument : :class:`Instrument`, optional
+        If provided, the instrument to convolve/truncate the grid. If None, will
         maintain the grid's original wavelengths and resolution. Default is None
-    :type instrument: :obj:`instrument`
-    :param filename: where to create the HDF5 file. Suffix ``*.hdf5`` recommended. Default is
-        ``Starfish.config.grid['hdf5_path']``
-    :type filename: str or path-like
-    :param wl_range: The wavelength range to truncate the grid to. Will be truncated to match grid wavelengths
-         and instrument wavelengths if over or under specified. Default is ``Starfish.config.grid['wl_range']``. If set
-         to None, will not truncate grid.
-    :type wl_range: length 2 iterable of (min, max)
-    :param ranges: lower and upper limits for each stellar parameter,
-        in order to truncate the number of spectra in the grid. If None, will not restrict the
-        range of the parameters. Default is ``Starfish.config.grid['parrange']``.
-    :type ranges: iterable of length-2 iterables (min, max)
-    :param key_name: formatting string that has keys for each of the parameter
-        names to translate into a hash-able string. Default is ``Starfish.config.grid['key_name']``
-    :type key_name: str
+    wl_range : list [min, max], optional
+        The wavelength range to truncate the grid to. Will be truncated to match grid wavelengths and instrument wavelengths if over or under specified. If set to None, will not truncate grid. Default is NOne
+    ranges : array_like, optional
+        lower and upper limits for each stellar parameter,
+        in order to truncate the number of spectra in the grid. If None, will not restrict the range of the parameters. Default is None.
+    key_name : format str
+        formatting string that has keys for each of the parameter names to translate into a hash-able string. If set to None, will create a name by taking each parameter name followed by value with underscores delimiting parameters. Default is None.
 
-    :raises: ValueError if the wl_range is ill-specified or if the parameter range are completely disjoint from the
-        grid points.
+    Raises
+    ------ 
+    ValueError 
+        if the wl_range is ill-specified or if the parameter range are completely disjoint from the grid points.
     """
 
-    def __init__(self, GridInterface, instrument=None, filename=config.grid['hdf5_path'],
-                 wl_range=config.grid['wl_range'], ranges=config.grid['parrange'],
-                 key_name=config.grid['key_name']):
+    def __init__(self, GridInterface, filename, instrument=None, wl_range=None, ranges=None, key_name=None):
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -236,6 +251,10 @@ class HDF5Creator:
 
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
+        if key_name is None:
+            key_name = '_'.join(
+                [name + '{}' for name in GridInterface.param_names])
+
         self.key_name = key_name
 
         if ranges is None:
@@ -256,10 +275,10 @@ class HDF5Creator:
         self.wl_native = self.GridInterface.wl  # raw grid
         self.dv_native = calculate_dv(self.wl_native)
 
-        self.hdf5 = h5py.File(self.filename, "w")
-        self.hdf5.attrs["grid_name"] = GridInterface.name
-        self.hdf5.flux_group = self.hdf5.create_group("flux")
-        self.hdf5.flux_group.attrs["units"] = GridInterface.flux_units
+        self.hdf5 = h5py.File(self.filename, 'w')
+        self.hdf5.attrs['grid_name'] = GridInterface.name
+        self.hdf5.flux_group = self.hdf5.create_group('flux')
+        self.hdf5.flux_group.attrs['units'] = GridInterface.flux_units
 
         # We'll need a few wavelength grids
         # 1. The original synthetic grid: ``self.wl_native``
@@ -282,7 +301,7 @@ class HDF5Creator:
             wl_min, wl_max = 0, np.inf
         else:
             wl_min, wl_max = wl_range
-        buffer = config.grid["buffer"]  # [AA]
+        buffer = config.grid['buffer']  # [AA]
         wl_min -= buffer
         wl_max += buffer
 
@@ -292,7 +311,7 @@ class HDF5Creator:
         if self.instrument is not None:
             inst_min, inst_max = self.instrument.wl_range
         else:
-            inst_min, inst_max = -np.inf, np.inf
+            inst_min, inst_max = 0, np.inf
         imposed_min = np.max([self.wl_native[0], inst_min])
         imposed_max = np.min([self.wl_native[-1], inst_max])
         if wl_min < imposed_min:
@@ -311,12 +330,12 @@ class HDF5Creator:
         # Calculate wl_loglam
         # use the dv that preserves the native quality of the raw PHOENIX grid
         wl_dict = create_log_lam_grid(self.dv_native, wl_min, wl_max)
-        wl_loglam = wl_dict["wl"]
+        wl_loglam = wl_dict['wl']
         dv_loglam = calculate_dv_dict(wl_dict)
 
-        self.log.info("FFT grid stretches from {} to {}".format(
+        self.log.info('FFT grid stretches from {} to {}'.format(
             wl_loglam[0], wl_loglam[-1]))
-        self.log.info("wl_loglam dv is {} km/s".format(dv_loglam))
+        self.log.info('wl_loglam dv is {} km/s'.format(dv_loglam))
 
         if self.instrument is None:
             mask = (self.wl_native > wl_min) & (self.wl_native < wl_max)
@@ -330,7 +349,7 @@ class HDF5Creator:
             # Fourier filtered wavelengths, is part of the instrument object
             dv_temp = self.instrument.FWHM / self.instrument.oversampling
             wl_dict = create_log_lam_grid(dv_temp, wl_min, wl_max)
-            self.wl_final = wl_dict["wl"]
+            self.wl_final = wl_dict['wl']
             self.dv_final = calculate_dv_dict(wl_dict)
 
         def resample_loglam(w, f): return (
@@ -341,9 +360,10 @@ class HDF5Creator:
             *inst_broaden(*resample_loglam(self.wl_native, flux)))
 
         # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
-        wl_dset = self.hdf5.create_dataset("wl", data=self.wl_final, compression=9)
-        wl_dset.attrs["air"] = self.GridInterface.air
-        wl_dset.attrs["dv"] = self.dv_final
+        wl_dset = self.hdf5.create_dataset(
+            'wl', data=self.wl_final, compression=9)
+        wl_dset.attrs['air'] = self.GridInterface.air
+        wl_dset.attrs['dv'] = self.dv_final
         wl_dset.attrs['units'] = self.GridInterface.wave_units
 
     def process_grid(self):
@@ -365,33 +385,34 @@ class HDF5Creator:
 
         invalid_params = []
 
-        self.log.debug("Total of {} files to process.".format(len(param_list)))
+        self.log.debug('Total of {} files to process.'.format(len(param_list)))
 
         pbar = tqdm(all_params)
         for i, param in enumerate(pbar):
-            pbar.set_description("Processing {}".format(param))
+            pbar.set_description('Processing {}'.format(param))
             # Load and process the flux
             try:
                 flux, header = self.GridInterface.load_flux(param, header=True)
             except ValueError:
                 self.log.warning(
-                    "Deleting {} from all params, does not exist.".format(param))
+                    'Deleting {} from all params, does not exist.'.format(param))
                 invalid_params.append(i)
                 continue
 
             _, fl_final = self.transform(flux)
 
-            flux = self.hdf5["flux"].create_dataset(self.key_name.format(*param),
+            flux = self.hdf5['flux'].create_dataset(self.key_name.format(*param),
                                                     data=fl_final, compression=9)
             # Store header keywords as attributes in HDF5 file
             for key, value in header.items():
-                if key != "" and value != "":  # check for empty FITS kws
+                if key != '' and value != '':  # check for empty FITS kws
                     flux.attrs[key] = value
 
         # Remove parameters that do no exist
         all_params = np.delete(all_params, invalid_params, axis=0)
 
-        gp = self.hdf5.create_dataset("grid_points", data=all_params, compression=9)
+        gp = self.hdf5.create_dataset(
+            'grid_points', data=all_params, compression=9)
         gp.attrs['names'] = self.GridInterface.param_names
 
         self.hdf5.close()
