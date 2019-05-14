@@ -28,7 +28,7 @@ It is also possible to optimize our parameters using the interfaces provided in 
     >>> P0 = model.get_param_vector()
     >>> soln = minimize(nll, P0, method='Nelder-Mead')
 
-For a more thorough example, see the `examples`_. 
+For a more thorough example, see the :doc:`../examples/index`. 
 
 Parameterization
 ................
