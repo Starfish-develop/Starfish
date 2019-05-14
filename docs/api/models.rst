@@ -35,28 +35,28 @@ Parameterization
 
 This model uses a method of specifying parameters very similar to Dan Foreman-Mackey's George library. There exists an underlying dictionary of the model parameters, which define what transformations will be made. For example, if ``vz`` exists in a model's parameter dictionary, then doppler shifting will occur when calling the model. 
 
-It is possible to have a parameter that transforms the spectrum, but is not fittable. We call these `frozen` parameters. For instance, if my 3 model library parameters are $T_{eff}$, $\log g$, and $[Fe/H]$, but I don't want to fit $\log g$, I can freeze it:
+It is possible to have a parameter that transforms the spectrum, but is not fittable. We call these `frozen` parameters. For instance, if my 3 model library parameters are :math:`T_{eff}`, :math:`\log g`, and :math:`[Fe/H]` (or ``T``, ``logg``, ``Z`` in the code), but I don't want to fit $\log g$, I can freeze it:
 
 .. code-block:: python
 
     >>> from Starfish.models import SpectrumModel
     >>> model = SpectrumModel(...)
-    >>> model.freeze('grid_param:1')
+    >>> model.freeze('logg')
 
 When using this framework, you can see what transformations will occur by looking at :attr:`SpectrumModel.params` and what values are fittable by :meth:`SpectrumModel.get_param_dict` (or the other getters for the parameters). 
 
 .. code-block:: python
 
     >>> model.params
-    {'grid_param:0': 6020, 'grid_param:1': 4.2, 'grid_param:2': 0.0, 'vsini': 84.0, 'log_scale': -10.23}
+    {'T': 6020, 'logg': 4.2, 'Z': 0.0, 'vsini': 84.0, 'log_scale': -10.23}
     >>> model.get_param_dict()
-    {'grid_param:0': 6020, 'grid_param:2': 0.0, 'vsini': 84.0, 'log_scale': -10.23}
+    {'T': 6020, 'Z': 0.0, 'vsini': 84.0, 'log_scale': -10.23}
 
 To undo this, simply thaw the frozen parameters
 
 .. code-block:: python
 
-    >>> model.thaw('grid_param:1')
+    >>> model.thaw('logg')
     >>> model.params == model.get_param_dict()
     True
 
