@@ -10,31 +10,41 @@ matrix:
       sudo: true
     - os: osx
       osx_image: xcode10.2
-      python: 3.6
+      env: TRAVIS_PYTHON_VERSION=3.6
       language: generic
     - os: osx
       osx_image: xcode10.2
-      python: 3.7
+      env: TRAVIS_PYTHON_VERSION=3.7
       language: generic     
     - os: windows
       python: 3.6
       language: shell
       before_install: 
         - choco install python --version 3.6.1
-      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH       
+        - python -m pip install -U pipenv
+      env: 
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH  
+        - TRAVIS_PYTHON_VERSION=3.6     
     - os: windows 
       python: 3.7
       language: shell
-      before_install: choco install python --version 3.7.1
-      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH  
+      before_install: 
+        - choco install python --version 3.7.1
+        - python -m pip install -U pipenv
+      env: 
+        - PATH=/c/Python37:/c/Python37/Scripts:$PATH  
+        - TRAVIS_PYTHON_VERSION=3.7
 
 cache:
   pip: true
   directories:
     - tests/data
 
-install:
+# This will only run for the linux and macOS versions
+before_install:
   - pip install -U pipenv
+
+install:
   - pipenv install --deploy -d --python $TRAVIS_PYTHON_VERSION
 
 script:
