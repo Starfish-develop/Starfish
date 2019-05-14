@@ -81,7 +81,7 @@ Once we have our pre-processed grid, we can make our spectral emulator and train
 
 .. warning::
 
-    Training the emulator will take on the order of minutes to complete. The more eigenspectra that are used as well as the resolution of our spectrograph will mainly dominate this runtime. 
+    Training the emulator will take on the order of minutes to complete. The more eigenspectra that are used as well as the resolution of the spectrograph will mainly dominate this runtime. 
 
 
 Once we have our trained emulator, we can move on to the modeling steps for our data.
