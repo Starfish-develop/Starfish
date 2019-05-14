@@ -1,11 +1,31 @@
 language: python
 
-python:
-  - 3.6
-  - 3.7
-
-dist: xenial
-sudo: true
+matrix:
+  include:
+    - os: linux
+      python: 3.6
+    - os: linux
+      python: 3.7
+      dist: xenial
+      sudo: true
+    - os: osx
+      osx_image: xcode10.2
+      python: 3.6
+      language: generic
+    - os: osx
+      osx_image: xcode10.2
+      python: 3.7
+      language: generic       
+    - os: windows 
+      python: 3.7
+      language: shell
+      before_install: choco install python==3.7.1
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH       
+    - os: windows
+      python: 3.6
+      language: shell
+      before_install: choco install python==3.6.1
+      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
 
 cache:
   pip: true
@@ -17,9 +37,6 @@ before_install:
 
 install:
   - pipenv install --deploy -d --python $TRAVIS_PYTHON_VERSION
-
-before_script:
-  - pipenv run python setup.py build_ext --inplace
 
 script:
   - pipenv run pytest
