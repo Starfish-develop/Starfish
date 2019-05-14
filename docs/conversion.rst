@@ -8,7 +8,7 @@ There have been some significant changes to *Starfish* in the upgrades to versio
     The current, updated code base does not have the framework for fitting multi-order Echelle spectra. We are working diligently to update the original functionality to match the updated API. For now, you will have to revert to Starfish ``0.2``.
 
 API-ification
-============
+=============
 
 One of the new goals for *Starfish* was to provide a more Pythonistic approach to its framework. This means instead of using configuration files and scripts the internals for *Starfish* are laid out and leave a lot more flexibility to the end-user without  losing the functionality.
 
