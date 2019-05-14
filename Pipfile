@@ -25,6 +25,7 @@ rope = "*"
 pytest-cov = "*"
 doc8 = "*"
 sphinx = "*"
+coveralls = "*"
 
 [pipenv]
 allow_prereleases = true
