@@ -55,7 +55,7 @@ There have been major updates since version `0.2`, please see the section of the
 * Czekala et al. 2015 [ADS](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract) [arXiv](https://arxiv.org/abs/1412.5177)
 * Gully-Santiago et al. 2017 [ADS](https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract) [arXiv](https://arxiv.org/abs/1701.06703)
 
-Copyright Ian Czekala and collaborators 2013 - 2018 (see `CONTRIBUTORS.md`)
+Copyright Ian Czekala and collaborators 2013 - 2019 (see `CONTRIBUTORS.md`)
 
 Please bear in mind that this package is under heavy development and features may evolve rapidly. If something doesn't work, please fill an [issue](https://github.com/iancze/Starfish/issues) on this repository. If you would like to contribute to this project (either with bugfixes, documentation, or new features) please feel free to fork the repository and submit a pull request!
 
@@ -96,7 +96,7 @@ To test that you've properly installed *Starfish*, try doing the following insid
 
 If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 
-Now that you've successfully installed the code, please see the [documentation](https://starfish.readthedocs.io/en/latest/) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](https://starfish.readthedocs.io/en/latest/cookbook.html) for a taste of a typical workflow.
+Now that you've successfully installed the code, please see the [documentation](https://starfish.readthedocs.io/en/latest/) on how to begin using *Starfish* to solve your spectroscopic inference problem.
 
 # Contributing
 If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into
