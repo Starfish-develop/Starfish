@@ -10,7 +10,7 @@ Grid Tools
 .. contents::
    :depth: 2
 
-It defines many useful functions and objects that may be used in the modeling package :mod:`model`, such as :obj:`Interpolator`.
+It defines many useful functions and objects that may be used in the modeling package :mod:`model`, such as :class:`Interpolator`.
 
 Downloading model spectra
 =========================
@@ -52,7 +52,7 @@ directory, a ``raw`` directory within ``libraries``, and unpack the spectra in t
 Raw Grid Interfaces
 ===================
 
-*Grid interfaces* are classes designed to abstract the interaction with the raw synthetic stellar libraries under a common interface. The :obj:`RawGridInterface` class is designed to be extended by the user to provide access to any new grids. Currently there are extensions for three main grids:
+*Grid interfaces* are classes designed to abstract the interaction with the raw synthetic stellar libraries under a common interface. The :class:`GridInterface` class is designed to be extended by the user to provide access to any new grids. Currently there are extensions for three main grids:
 
  1. `PHOENIX spectra <http://phoenix.astro.physik.uni-goettingen.de/>`_ by T.O. Husser et al 2013 :class:`PHOENIXGridInterface`
  2. Kurucz spectra by Laird and Morse (available to CfA internal only) :class:`KuruczGridInterface`
@@ -60,7 +60,7 @@ Raw Grid Interfaces
 
 There are two interfaces provided to the PHOENIX/Husser grid: one that includes alpha enhancement and another which restricts access to 0 alpha enhancement.
 
-.. inheritance-diagram:: RawGridInterface PHOENIXGridInterface PHOENIXGridInterfaceNoAlpha PHOENIXGridInterfaceNoAlphaNoFE KuruczGridInterface BTSettlGridInterface
+.. inheritance-diagram:: GridInterface PHOENIXGridInterface PHOENIXGridInterfaceNoAlpha  KuruczGridInterface BTSettlGridInterface
    :parts: 1
 
 Here and throughout the code, stellar spectra are referenced by a numpy array of parameter values, which corresponds to the parameters listed in the config file.
@@ -69,9 +69,9 @@ Here and throughout the code, stellar spectra are referenced by a numpy array of
 
     my_params = np.array([6000, 3.5, 0.0, 0.0])
 
-Here we introduce the classes and their methods. Below is an example of how you might use the :obj:`PHOENIXGridInterface`.
+Here we introduce the classes and their methods. Below is an example of how you might use the :class:`PHOENIXGridInterface`.
 
-.. autoclass:: RawGridInterface
+.. autoclass:: GridInterface
    :members:
 
 PHOENIX Interfaces
@@ -148,7 +148,7 @@ Other Library Interfaces
 Creating your own interface
 ---------------------------
 
-The :obj:`RawGridInterface` and subclasses exist solely to interface with the raw files on disk. At minimum, they should each define a :meth:`load_flux` , which takes in a dictionary of parameters and returns a flux array and a dictionary of whatever information may be contained in the file header.
+The :class:`GridInterface` and subclasses exist solely to interface with the raw files on disk. At minimum, they should each define a :meth:`load_flux` , which takes in a dictionary of parameters and returns a flux array and a dictionary of whatever information may be contained in the file header.
 
 Under the hood, each of these is implemented differently depending on how the synthetic grid is created. In the case of the BTSettl grid, each file in the grid may actually have a flux array that has been sampled at separate wavelengths. Therefore, it is necessary to actually interpolate each spectrum to a new, common grid, since the wavelength axis of each spectrum is not always the same. Depending on your spectral library, you may need to do something similar.
 
@@ -164,7 +164,7 @@ If we will be fitting a star, there are generally three types of optimizations w
 2. Use only the part of the spectrum that overlaps your instrument's wavelength coverage. For example, if the range of our spectrograph is 4000 - 9000 angstroms, it makes sense to discard the UV and IR portions of the synthetic spectrum.
 3. Resample the high resolution spectra to a lower resolution more suitably matched to the resolution of your spectrograph. For example, PHOENIX spectra are provided at :math:`R \sim 500,000`, while the TRES spectrograph has a resolution of :math:`R \sim 44,000`.
 
-All of these reductions can be achieved using the :obj:`HDF5Creator` object.
+All of these reductions can be achieved using the :class:`HDF5Creator` object.
 
 HDF5Creator
 -----------
@@ -172,7 +172,7 @@ HDF5Creator
 .. autoclass:: HDF5Creator
    :members:
 
-Here is an example using the :obj:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument. This process is also located in the ``scripts/grid.py`` if you are using the cookbook.
+Here is an example using the :class:`HDF5Creator` to transform the raw spectral library into an HDF5 file with spectra that have the resolution of the *TRES* instrument. This process is also located in the ``scripts/grid.py`` if you are using the cookbook.
 
 
 .. code-block:: python
@@ -191,7 +191,7 @@ Here is an example using the :obj:`HDF5Creator` to transform the raw spectral li
 HDF5Interface
 -------------
 
-Once you've made a grid, then you'll want to interface with it via :obj:`HDF5Interface`. The :obj:`HDF5Interface`
+Once you've made a grid, then you'll want to interface with it via :class:`HDF5Interface`. The :class:`HDF5Interface`
 provides :meth:`load_flux`  similar to that of the raw grid interfaces. It does not make any assumptions about how
 what resolution the spectra are stored, other than that the all spectra within the same HDF5 file share the same wavelength
 grid, which is stored in the HDF5 file as 'wl'. The flux files are stored within the HDF5 file, in a subfile called 'flux'.
