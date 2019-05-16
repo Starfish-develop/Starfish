@@ -38,17 +38,35 @@ class SpectrumModel:
 
     Here is a table describing the avialable parameters and their related functions
 
-    =========== ======================================= =============
-     Parameter                 Function                  Description       
-    =========== ======================================= =============
+    =========== =======================================
+     Parameter                 Function                
+    =========== =======================================
     vsini        :func:`transforms.rotational_broaden`
     vz           :func:`transforms.doppler_shift`
     Av           :func:`transforms.extinct`
-    Rv           :func:`transforms.extinct`              Not required. If not specified, will default to 3.1
+    Rv           :func:`transforms.extinct`              
     log_scale    :func:`transforms.rescale`
-    log_ag       :func:`kernels.k_global_matrix`
-    log_lg       :func:`kernels.k_global_matrix`
-    =========== ======================================= =============
+    =========== =======================================
+
+    The ``glob`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel
+
+    ================ =============
+    Global Parameter  Description
+    ================ =============
+    log_amp          The natural logarithm of the amplitude of the Matern kernel
+    log_ls           The natural logarithm of the lengthscale of the Matern kernel
+    ================ =============
+
+    The ``local`` keryword argument must be a list of dictionaries defining hyperparameters for many Gaussian kernels
+
+    ================ =============
+    Local Parameter  Description
+    ================ =============
+    log_amp          The natural logarithm of the amplitude of the kernel
+    mu               The location of the local kernel
+    log_sigma        The natural logarithm of the standard deviation of the kernel
+    ================ =============
+
 
     Attributes
     ----------
@@ -73,14 +91,6 @@ class SpectrumModel:
     ------
     ValueError
         If any of the keyword argument params do not exist in ``self._PARAMS``
-
-
-    An example of adding a previously uninitialized parameter is 
-
-    .. code-block:: python
-
-        >>> model['<new_param>'] = new_value
-
     """
 
     _PARAMS = ['vz', 'vsini', 'Av', 'Rv', 'log_scale']
