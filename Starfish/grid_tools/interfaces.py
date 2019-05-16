@@ -22,6 +22,15 @@ class PHOENIXGridInterface(GridInterface):
 
     Note that the wavelengths in the spectra are in Angstrom and the flux are in :math:`F_\\lambda` as
     :math:`erg/s/cm^2/cm`
+
+    Parameters
+    ----------
+    path : str or path-like
+        The path of the base of the PHOENIX library
+    air : bool, optional
+        Whether the wavelengths are measured in air or not. Default is True
+    wl_range : tuple, optional
+        The (min, max) of the wavelengths, in :math:`\\AA`. Default is (3000, 54000), which is the full wavelength grid for PHOENIX.
     """
 
     def __init__(self, path, air=True, wl_range=(3000, 54000)):
@@ -114,11 +123,25 @@ class PHOENIXGridInterface(GridInterface):
 class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
     """
     An Interface to the PHOENIX/Husser synthetic library without any Alpha concentration doping.
+
+    Parameters
+    ----------
+    path : str or path-like
+        The path of the base of the PHOENIX library
+
+    Keyword Arguments
+    -----------------
+    kwargs : dict
+        Any additional arguments will be passed to :class:`PHOENIXGridInterface`'s constructor
+
+    See Also
+    --------
+    :class:`PHOENIXGridInterface`
     """
 
-    def __init__(self, path, air=True, wl_range=(3000, 54000)):
+    def __init__(self, path, **kwargs):
         # Initialize according to the regular PHOENIX values
-        super().__init__(air=air, wl_range=wl_range, path=path)
+        super().__init__(path=path, **kwargs)
 
         # Now override parameters to exclude alpha
         self.param_names = ['T', 'logg', 'Z']

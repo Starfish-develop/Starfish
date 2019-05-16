@@ -5,7 +5,7 @@ try:
 except NameError:
     __STARFISH_SETUP__ = False
 
-__version__ = '0.3.0'
+__version__ = '0.3.0-dev'
 
 if not __STARFISH_SETUP__:
 

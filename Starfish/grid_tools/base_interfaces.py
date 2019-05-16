@@ -22,7 +22,7 @@ class GridInterface:
 
     Parameters
     ----------
-    base : str or path-like
+    path : str or path-like
         path to the root of the files on disk.
     param_names : list of str
         The names of the parameters (dimensions) of the grid

@@ -28,7 +28,7 @@ We now want to set up a grid interface to work with these downloaded files!
 
     from Starfish.grid_tools import PHOENIXGridInterfaceNoAlpha
 
-    grid = PHOENIXGridInterfaceNoAlpha(base='PHOENIX')
+    grid = PHOENIXGridInterfaceNoAlpha(path='PHOENIX')
 
 From here, we will want to set up our HDF5 interface that will allow us to go on to using the spectral emulator, but first we need to determine our model subset and instrument.
 
