@@ -3,23 +3,25 @@ import logging
 import tqdm.auto as tqdm
 from urllib.request import urlretrieve, URLError
 import multiprocessing as mp
+import itertools
 
 import numpy as np
 
 log = logging.getLogger(__name__)
 
-def download_PHOENIX_models(parameters, base):
+
+def download_PHOENIX_models(path, parameters=None):
     """
     Download the PHOENIX grid models from the Goettingen servers. This will skip over any ill-defined files or any
     files that already exist on disk in the given folder.
 
     Parameters
     ----------
-    parameters : iterable of iterables of length 3 or length 4
-        The parameters to download. Should be a list of parameters where parameters can either be
-        [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be floats or integers and not string.
-    base : str or path-like
+    path : str or path-like
         The base directory to save the files in.
+    parameters : iterable of iterables of length 3 or length 4, optional
+        The parameters to download. Should be a list of parameters where parameters can either be
+        [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be floats or integers and not string. If no value provided, will download all models. Default is None
 
     Warning
     -------
@@ -45,16 +47,25 @@ def download_PHOENIX_models(parameters, base):
 
     """
     wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
-    wave_file = os.path.join(base, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+    wave_file = os.path.join(path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
     flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
                           '/Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
     output_formatter = 'Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
 
-    os.makedirs(base, exist_ok=True)
+    os.makedirs(path, exist_ok=True)
     # Download step
-    log.info('Starting Download of PHOENIX ACES models to {}'.format(base))
+    log.info('Starting Download of PHOENIX ACES models to {}'.format(path))
     if not os.path.exists(wave_file):
         urlretrieve(wave_url, wave_file)
+
+    if parameters is None:
+        T = np.hstack([np.arange(2300, 7000, 100),
+                       np.arange(7000, 12001, 200)])
+        logg = np.arange(0.0, 6.1, 0.5),
+        Z = np.arange(-2., 1.1, 0.5),
+        alpha = np.arange(-0.2, 0.81, 0.2),
+        parameters = itertools.product([T, logg, Z, alpha])
+
     pbar = tqdm.tqdm(parameters)
     for p in pbar:
         tmp_p = [p[0], p[1]]
@@ -69,7 +80,7 @@ def download_PHOENIX_models(parameters, base):
         tmp_p.append(Astr)
         url = flux_file_formatter.format(*tmp_p)
         pbar.set_description(url.split('/')[-1])
-        output_file = os.path.join(base, output_formatter.format(*tmp_p))
+        output_file = os.path.join(path, output_formatter.format(*tmp_p))
         if not os.path.exists(output_file):
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             try:
