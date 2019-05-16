@@ -34,5 +34,4 @@ Indices and tables
 
 
 .. centered::
-    Copyright Ian Czekala and collaborators 2013, 2014, 2015
-
+    Copyright Ian Czekala and collaborators 2013-2019

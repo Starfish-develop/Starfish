@@ -312,4 +312,3 @@ Wavelength conversions
 .. autofunction:: air_to_vacuum
 
 .. autofunction:: calculate_n
-
