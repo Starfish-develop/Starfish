@@ -37,28 +37,24 @@ class PHOENIXGridInterface(GridInterface):
         super().__init__(name='PHOENIX',
                          param_names=['T', 'logg', 'Z', 'alpha'],
                          points=[
-                             np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
-                                       3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
-                                       4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
-                                       5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
-                                       6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-                                       9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
-                                       11400, 11600, 11800, 12000]),
+                             np.hstack([np.arange(2300, 7000, 100),
+                                        np.arange(7000, 12001, 200)]),
                              np.arange(0.0, 6.1, 0.5),
                              np.arange(-2., 1.1, 0.5),
-                             np.array([-0.2, 0.0, 0.2, 0.4, 0.6, 0.8])],
+                             np.arange(-0.2, 0.81, 0.2),
+                         ],
                          wave_units='AA', flux_units='erg/s/cm^2/cm',
                          air=air, wl_range=wl_range, path=path)  # wl_range used to be (2999, 13001)
 
-        self.par_dicts = [None,
-                          None,
+        # These dictionaries provide the link between numerical representation and the
+        # string representation for Z and alpha
+        self.par_dicts = [None, None,
                           {-2: '-2.0', -1.5: '-1.5', -1: '-1.0', -0.5: '-0.5',
                            0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
                           {-0.4: '.Alpha=-0.40', -0.2: '.Alpha=-0.20',
                            0.0: '', 0.2: '.Alpha=+0.20', 0.4: '.Alpha=+0.40',
                            0.6: '.Alpha=+0.60', 0.8: '.Alpha=+0.80'}]
 
-        # if air is true, convert the normally vacuum file to air wls.
         try:
             wl_filename = os.path.join(
                 self.path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
@@ -66,6 +62,7 @@ class PHOENIXGridInterface(GridInterface):
         except:
             raise ValueError('Wavelength file improperly specified.')
 
+        # if air is true, convert the normally vacuum file to air wls.
         if self.air:
             self.wl_full = vacuum_to_air(w_full)
         else:
@@ -145,21 +142,9 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 
         # Now override parameters to exclude alpha
         self.param_names = ['T', 'logg', 'Z']
-        self.points = [
-            np.array([2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200,
-                      3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400,
-                      4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600,
-                      5700, 5800, 5900, 6000, 6100, 6200, 6300, 6400, 6500, 6600, 6700, 6800,
-                      6900, 7000, 7200, 7400, 7600, 7800, 8000, 8200, 8400, 8600, 8800, 9000,
-                      9200, 9400, 9600, 9800, 10000, 10200, 10400, 10600, 10800, 11000, 11200,
-                      11400, 11600, 11800, 12000]),
-            np.arange(0.0, 6.1, 0.5),
-            np.arange(-2., 1.1, 0.5)]
+        del self.points[3]
+        del self.par_dicts[3]
 
-        self.par_dicts = [None,
-                          None,
-                          {-2: '-2.0', -1.5: '-1.5', -1: '-1.0', -0.5: '-0.5',
-                           0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}]
         self.rname = 'Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
         self.full_rname = os.path.join(self.path, self.rname)
 
@@ -179,7 +164,7 @@ class KuruczGridInterface(GridInterface):
                          param_names=['T', 'logg', 'Z'],
                          points=[np.arange(3500, 9751, 250),
                                  np.arange(0.0, 5.1, 0.5),
-                                 np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5])],
+                                 np.arange(-2.5, 0.51, 0.5)],
                          wave_units='AA', flux_units='',
                          air=air, wl_range=wl_range, path=path)
 
@@ -448,7 +433,7 @@ def load_BTSettl(T, logg, Z, norm=False, trunc=False, air=False):
     file.close()
 
     data = ascii.read(strlines, col_starts=[0, 13], col_ends=[
-                      12, 25], Reader=ascii.FixedWidthNoHeader)
+        12, 25], Reader=ascii.FixedWidthNoHeader)
     wl = data['col1']
     fl_str = data['col2']
 
