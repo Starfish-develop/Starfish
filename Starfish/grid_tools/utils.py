@@ -29,9 +29,10 @@ def download_PHOENIX_models(path, parameters=None):
 
     Warning
     -------
-    Please use this responsibly to avoid over-saturating the connection to the Gottinghen servers.
+    Please use this responsibly to avoid over-saturating the connection to the Gottingen servers.
 
-    Example usage
+    Examples
+    --------
 
     .. code-block:: python
 
@@ -61,9 +62,9 @@ def download_PHOENIX_models(path, parameters=None):
     if parameters is None:
         T = np.hstack([np.arange(2300, 7000, 100),
                        np.arange(7000, 12001, 200)])
-        logg = np.arange(0.0, 6.1, 0.5),
-        Z = np.arange(-2., 1.1, 0.5),
-        alpha = np.arange(-0.2, 0.81, 0.2),
+        logg = np.arange(0.0, 6.1, 0.5)
+        Z = np.arange(-2., 1.1, 0.5)
+        alpha = np.arange(-0.2, 0.81, 0.2)
         parameters = itertools.product(T, logg, Z, alpha)
 
     pbar = tqdm.tqdm(parameters)
