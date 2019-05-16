@@ -38,8 +38,9 @@ class PHOENIXGridInterface(GridInterface):
                              np.hstack([np.arange(2300, 7000, 100),
                                         np.arange(7000, 12001, 200)]),
                              np.arange(0.0, 6.1, 0.5),
-                             np.arange(-2., 1.1, 0.5),
-                             np.arange(-0.2, 0.81, 0.2),
+                             np.hstack([np.arange(-4., -2, 1),
+                                        np.arange(-2, 1.1, 0.5)]),
+                             np.arange(-0.2, 0.81, 0.2)
                          ],
                          wave_units='AA', flux_units='erg/s/cm^2/cm',
                          air=air, wl_range=wl_range, path=path)  # wl_range used to be (2999, 13001)
