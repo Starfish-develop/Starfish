@@ -20,7 +20,7 @@ As a convenience, we provide a helper to download PHOENIX models from the Goetti
     logg = [4.0, 4.5, 5.0]
     Z = [0]
     params = itertools.product(T, logg, Z)
-    download_PHOENIX_models(params, base='PHOENIX')
+    download_PHOENIX_models(path='PHOENIX', parameters=params)
 
 We now want to set up a grid interface to work with these downloaded files!
 

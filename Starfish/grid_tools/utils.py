@@ -44,7 +44,7 @@ def download_PHOENIX_models(path, parameters=None):
         Z = [0]
         Alpha = [0, -0.2]
         params = product(T, logg, Z, Alpha)
-        download_PHOENIX_models(params, base='models')
+        download_PHOENIX_models(path='models', parameters=params)
 
     """
     wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
