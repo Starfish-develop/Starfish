@@ -64,7 +64,7 @@ def download_PHOENIX_models(path, parameters=None):
         logg = np.arange(0.0, 6.1, 0.5),
         Z = np.arange(-2., 1.1, 0.5),
         alpha = np.arange(-0.2, 0.81, 0.2),
-        parameters = itertools.product([T, logg, Z, alpha])
+        parameters = itertools.product(T, logg, Z, alpha)
 
     pbar = tqdm.tqdm(parameters)
     for p in pbar:
