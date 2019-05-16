@@ -10,7 +10,7 @@ infer stellar properties such as effective temperature :math:`T_{\rm eff}`, surf
 :math:`[{\rm Fe}/{\rm H}]` from high resolution spectra, the framework could easily be adapted to any type of model spectra: g
 alaxy spectra, supernovae spectra, or spectra of unresolved stellar clusters.
 
-For more technical information, please see `our paper <http://arxiv.org/abs/1412.5177>`_.
+For more technical information, please see `our paper <https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract>`_. Also, please cite both the paper and `the code <https://zenodo.org/record/2221006>`_ if *Starfish* or any derivative of its work was used for yours!
 
 Contents
 ========

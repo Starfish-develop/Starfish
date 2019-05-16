@@ -4,6 +4,12 @@ Overview
 
 Spectroscopic inference is typically a complicated process, requiring customization based upon the type of spectrum used. Therefore, *Starfish* is not a one-click solution but rather a framework of code that provides the building blocks for any spectroscopic inference code one may write. We provide a few example scripts that show how the *Starfish* code objects may be combined to solve a typical spectroscopic inference problem. This page summarizes the various components available for use and seeks to orient the user. More detailed information is provided at the end of each section.
 
+
+Citation
+========
+
+If *Starfish* or any derivative of it was used for your work, please cite both `the paper <https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract>`_ and `the code <https://zenodo.org/record/2221006>`_. Thanks!
+
 Installation
 ============
 
