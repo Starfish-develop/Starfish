@@ -6,7 +6,7 @@ import os
 import h5py
 import numpy as np
 from astropy.io import fits
-from tqdm import tqdm
+import tqdm.auto as tqdm
 
 import Starfish.constants as C
 from Starfish.models.transforms import instrumental_broaden, resample
@@ -388,7 +388,7 @@ class HDF5Creator:
 
         self.log.debug('Total of {} files to process.'.format(len(param_list)))
 
-        pbar = tqdm(all_params)
+        pbar = tqdm.tqdm(all_params)
         for i, param in enumerate(pbar):
             pbar.set_description('Processing {}'.format(param))
             # Load and process the flux

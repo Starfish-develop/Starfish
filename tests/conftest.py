@@ -28,7 +28,7 @@ def grid_points():
 @pytest.fixture(scope='session')
 def PHOENIXModels(grid_points):
     outdir = os.path.join(test_base, 'data', 'phoenix')
-    download_PHOENIX_models(grid_points, outdir)
+    download_PHOENIX_models(outdir, grid_points)
     yield outdir
 
 
@@ -36,7 +36,7 @@ def PHOENIXModels(grid_points):
 def AlphaPHOENIXModels():
     params = [(6100, 4.5, 0.0, -0.2,)]
     outdir = os.path.join(test_base, 'data', 'phoenix')
-    download_PHOENIX_models(params, outdir)
+    download_PHOENIX_models(outdir, params)
     yield outdir
 
 

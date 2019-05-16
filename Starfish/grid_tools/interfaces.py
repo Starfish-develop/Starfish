@@ -4,9 +4,7 @@ import os
 
 import numpy as np
 from astropy.io import fits, ascii
-from scipy.integrate import trapz
 from scipy.interpolate import InterpolatedUnivariateSpline
-from tqdm import tqdm
 
 import Starfish.constants as C
 from Starfish.utils import create_log_lam_grid
@@ -103,7 +101,7 @@ class PHOENIXGridInterface(GridInterface):
         # If we want to normalize the spectra, we must do it now since later we won't have the full EM range
         if norm:
             flux *= 1e-8  # convert from erg/cm^2/s/cm to erg/cm^2/s/A
-            F_bol = trapz(flux, self.wl_full)
+            F_bol = np.trapz(flux, self.wl_full)
             # bolometric luminosity is always 1 L_sun
             flux *= (C.F_sun / F_bol)
 
@@ -307,7 +305,7 @@ class BTSettlGridInterface(GridInterface):
         fl = fl[ind]
 
         if norm:
-            F_bol = trapz(fl, wl)
+            F_bol = np.trapz(fl, wl)
             fl = fl * (C.F_sun / F_bol)
             # the bolometric luminosity is always 1 L_sun
 
@@ -392,7 +390,7 @@ class CIFISTGridInterface(GridInterface):
         fl = fl[ind]
 
         if norm:
-            F_bol = trapz(fl, wl)
+            F_bol = np.trapz(fl, wl)
             fl = fl * (C.F_sun / F_bol)
             # the bolometric luminosity is always 1 L_sun
 
@@ -442,7 +440,7 @@ def load_BTSettl(T, logg, Z, norm=False, trunc=False, air=False):
     fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
 
     if norm:
-        F_bol = trapz(fl, wl)
+        F_bol = np.trapz(fl, wl)
         fl = fl * (C.F_sun / F_bol)
         # this also means that the bolometric luminosity is always 1 L_sun
 
