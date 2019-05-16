@@ -1,7 +1,9 @@
 import logging
+from copy import deepcopy
 import warnings
 from collections import OrderedDict, deque
 import json
+from typing import List, Union
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
@@ -53,21 +55,19 @@ class SpectrumModel:
     params : dict
         The dictionary of parameters that are used for doing the modeling.
     grid_params : numpy.ndarray
-        A direct interface to the grid parameters rather than indexing like self['grid_param:i']
+        A direct interface to the grid parameters rather than indexing like self['T']
+    glob : dict
+        The parameters for the global covariance kernel
+    local : list of dicts
+        The parameters for the local covariance kernels
     frozen : list
         A list of strings corresponding to frozen parameters
     labels : list
         A list of strings corresponding to the active (thawed) parameters
     residuals : deque
-        A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood()`
+        A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
     lnprob : float
         The most recently evaluated log-likelihood. Initialized to None
-    amps : numpy.ndarray
-        The amplitudes for any Gaussians in the local kernel
-    mus : numpy.ndarray
-        The means for any Gaussians in the local kernel
-    stds : numpy.ndarray
-        The standard deviations for any Gaussians in the local kernel
 
     Raises
     ------
@@ -83,8 +83,9 @@ class SpectrumModel:
 
     """
 
-    _PARAMS = ['vz', 'vsini', 'Av', 'Rv',
-               'global:log_amp', 'global:log_l', 'log_scale']
+    _PARAMS = ['vz', 'vsini', 'Av', 'Rv', 'log_scale']
+    _GLOBAL_PARAMS = ['log_amp', 'log_ls']
+    _LOCAL_PARAMS = ['mu', 'log_amp', 'log_sigma']
 
     def __init__(self, emulator, data, grid_params, max_deque_len=100, **params):
         self.emulator = emulator
@@ -107,17 +108,9 @@ class SpectrumModel:
         self.grid_params = grid_params
 
         # Unpack the keyword arguments
-        for param, value in params.items():
-            if param == 'log_amp' or param == 'log_l':
-                param = 'global:' + param
-            if param == 'amps':
-                self.amps = value
-            elif param == 'mus':
-                self.mus = value
-            elif param == 'stds':
-                self.stds = value
-            else:
-                self.params[param] = value
+        if 'glob' in params:
+            params['global'] = params.pop('glob')
+        self.params.update(params)
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -133,37 +126,35 @@ class SpectrumModel:
             self.params[key] = value
 
     @property
-    def amps(self):
-        items = [vals for key, vals in self.params.items()
-                 if key.startswith('local:log_amp:')]
-        return np.exp(items)
+    def glob(self):
+        return self.params['global']
 
-    @amps.setter
-    def amps(self, values):
-        for i, value in enumerate(values):
-            self.params['local:log_amp:{}'.format(i)] = np.log(value)
+    @glob.setter
+    def glob(self, params):
+        if not isinstance(params, dict):
+            raise ValueError('Must set global parameters with a dictionary')
 
-    @property
-    def mus(self):
-        items = [vals for key, vals in self.params.items()
-                 if key.startswith('local:mu:')]
-        return np.array(items)
-
-    @mus.setter
-    def mus(self, values):
-        for i, value in enumerate(values):
-            self.params['local:mu:{}'.format(i)] = value
+        for key, value in params.items():
+            if key not in self._GLOBAL_PARAMS:
+                raise ValueError(
+                    '{} not a recognized global parameter'.format(key))
+            self.params['global'][key] = value
 
     @property
-    def stds(self):
-        items = [vals for key, vals in self.params.items()
-                 if key.startswith('local:std:')]
-        return np.array(items)
+    def local(self):
+        return self.params['local']
 
-    @stds.setter
-    def stds(self, values):
-        for i, value in enumerate(values):
-            self.params['local:std:{}'.format(i)] = value
+    @local.setter
+    def local(self, params: List[dict]):
+        self.params['local'] = []
+        for i, kernel in enumerate(params):
+            if not all([k in self._LOCAL_PARAMS for k in kernel.keys()]):
+                raise ValueError('Unrecognized key in kernel {}'.format(i))
+            self.params['local'].append(kernel)
+
+    @property
+    def labels(self):
+        return list(self.get_param_dict(flat=True).keys())
 
     def __call__(self):
         """
@@ -197,8 +188,7 @@ class SpectrumModel:
         L, flag = cho_factor(weights_cov)
 
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)
-        eigenspectra = fluxes[:-2]
-        flux_mean, flux_std = fluxes[-2:]
+        *eigenspectra, flux_mean, flux_std = fluxes
 
         # Complete the reconstruction
         X = eigenspectra * flux_std
@@ -210,15 +200,18 @@ class SpectrumModel:
         np.fill_diagonal(cov, cov.diagonal() + self.data.sigmas ** 2)
 
         # Global covariance
-        if 'global:log_ag' in self.params and 'global:log_lg' in self.params:
-            ag = np.exp(self.params['global:log_amp'])
-            lg = np.exp(self.params['global:log_l'])
+        if 'global' in self.params:
+            ag = np.exp(self.glob['log_amp'])
+            lg = np.exp(self.glob['log_ls'])
             cov += k_global_matrix(self.data.waves, ag, lg)
 
         # Local covariance
-        if len(self.mus) and len(self.stds) and len(self.amps):
-            cov += k_local_matrix(self.data.waves,
-                                  self.amps, self.mus, self.stds)
+        if 'local' in self.params:
+            for kernel in self.local:
+                mu = kernel['mu']
+                amplitude = np.exp(kernel['log_amp'])
+                sigma = np.exp(kernel['log_sigma'])
+                cov += k_local_matrix(self.data.waves, amplitude, mu, sigma)
 
         return flux, cov
 
@@ -226,9 +219,22 @@ class SpectrumModel:
         return self.params[key]
 
     def __setitem__(self, key, value):
-        if not key in self.emulator.param_names and key not in self._PARAMS:
-            raise ValueError('{} is not a valid parameter.'.format(key))
-        self.params[key] = value
+        if key.startswith('global'):
+            global_key = key.split(':')[-1]
+            if global_key not in self._GLOBAL_PARAMS:
+                raise ValueError(
+                    '{} is not a valid global parameter.'.format(global_key))
+            self.params['global'][global_key] = value
+        elif key.startswith('local'):
+            idx, local_key = key.split(':')[-2:]
+            if local_key not in self._LOCAL_PARAMS:
+                raise ValueError(
+                    '{} is not a valid local parameter.'.format(local_key))
+            self.params['local'][idx][local_key] = value
+        else:
+            if key not in self._PARAMS:
+                raise ValueError('{} is not a valid parameter.'.format(key))
+            self.params[key] = value
 
     def freeze(self, name):
         """
@@ -248,8 +254,6 @@ class SpectrumModel:
         --------
         :meth:`thaw`
         """
-        if not name in self.params:
-            raise ValueError('Parameter not found')
         if name not in self.frozen:
             self.frozen.append(name)
 
@@ -271,41 +275,104 @@ class SpectrumModel:
         --------
         :meth:`freeze`
         """
-        if not name in self.params:
-            raise ValueError('Parameter not found')
         if name in self.frozen:
             self.frozen.remove(name)
 
-    def get_param_dict(self):
+    def get_param_dict(self, flat=False):
         """
         Gets the dictionary of thawed parameters.
+
+        flat : bool, optional
+            If True, returns the parameters completely flat. For example, ['local'][0]['mu'] would have the key 'local:0:mu'. Default is False
 
         Returns
         -------
         dict
+
+        See Also
+        --------
+        :meth:`set_param_dict`
         """
         params = {}
         for par in self.params:
-            if par not in self.frozen:
+
+            # Handle global nest
+            if par == 'global':
+                if not flat:
+                    params['global'] = {}
+                for key, val in self.params['global'].items():
+                    flat_key = 'global:{}'.format(key)
+                    if flat_key not in self.frozen:
+                        if flat:
+                            params[flat_key] = val
+                        else:
+                            params['global'][key] = val
+
+            # Handle local nest
+            elif par == 'local':
+                # Set up list if we need to
+                if not flat:
+                    params['local'] = []
+                for i, kernel in enumerate(self.params['local']):
+                    kernel_copy = deepcopy(kernel)
+                    for key, val in kernel.items():
+                        flat_key = 'local:{}:{}'.format(i, key)
+                        if flat_key in self.frozen:
+                            del kernel_copy[key]
+                        if flat and flat_key not in self.frozen:
+                            params[flat_key] = val
+                    if not flat:
+                        params['local'].append(kernel_copy)
+
+            # Handle base nest
+            elif par not in self.frozen:
                 params[par] = self.params[par]
+
         return params
 
-    def set_param_dict(self, params):
+    def set_param_dict(self, params, flat):
         """
-        Sets the parameters with a dictionary
+        Sets the parameters with a dictionary. Note that this should not be used to add new parametersl
 
         Parameters
         ----------
         params : dict
             The new parameters. If a key is present in ``self.frozen`` it will not be changed
+        flat : bool
+            Whether or not the incoming dictionary is flattened
+
+        See Also
+        --------
+        :meth:`get_param_dict`
         """
         for key, val in params.items():
-            if key in self.params and key not in self.frozen:
-                self.params[key] = val
-
-    @property
-    def labels(self):
-        return list(self.get_param_dict())
+            # Handle flat case
+            if flat:
+                if key not in self.frozen:
+                    if key.startswith('global'):
+                        global_key = key.split(':')[-1]
+                        self.params['global'][global_key] = val
+                    elif key.startswith('local'):
+                        idx, local_key = key.split(':')[-2:]
+                        self.params['local'][int(idx)][local_key] = val
+                    else:
+                        self.params[key] = val
+            # Handle nested case
+            else:
+                if key == 'global':
+                    for global_key, global_val in val.items():
+                        flat_key = 'global:{}'.format(global_key)
+                        if flat_key not in self.frozen:
+                            self.params['global'][global_key] = global_val
+                elif key == 'local':
+                    for idx, kernel in enumerate(val):
+                        for local_key, local_val in kernel.items():
+                            flat_key = 'local:{}:{}'.format(idx, local_key)
+                            if flat_key not in self.frozen:
+                                self.params['local'][idx][local_key] = local_val
+                else:
+                    if key not in self.frozen:
+                        self.params[key] = val
 
     def get_param_vector(self):
         """
@@ -314,8 +381,12 @@ class SpectrumModel:
         Returns
         -------
         numpy.ndarray
+
+        See Also
+        --------
+        :meth:`set_param_vector`
         """
-        return np.array(list(self.get_param_dict().values()))
+        return np.array(list(self.get_param_dict(flat=True).values()))
 
     def set_param_vector(self, params):
         """
@@ -331,13 +402,17 @@ class SpectrumModel:
         ValueError
             If the `params` do not match the length of the current thawed parameters.
 
+        See Also
+        --------
+        :meth:`get_param_vector`
+
         """
-        thawed_parameters = self.get_param_dict()
+        thawed_parameters = self.labels
         if len(params) != len(thawed_parameters):
             raise ValueError(
                 'params must match length of thawed parameters (get_param_vector())')
-        for i, key in enumerate(thawed_parameters):
-            self.params[key] = params[i]
+        param_dict = dict(zip(thawed_parameters, params))
+        self.set_param_dict(param_dict, flat=True)
 
     def save(self, filename):
         """

@@ -18,15 +18,15 @@ def test_global_matrix():
 
 def test_local_matrix():
     wave = np.linspace(1e4, 2e4, 1000)
-    amps = [100, 100]
-    mus = [1.5e4, 1.75e4]
-    stds = [1e3, 1e3]
-    cov = k_local_matrix(wave, amps, mus, stds)
+    amp = 100
+    mu = 1.5e4
+    sigma = 1e3
+    cov = k_local_matrix(wave, amp, mu, sigma)
     assert cov.shape == (1000, 1000)
-    assert np.all(np.diag(cov, k=-1) < amps[0])
-    assert np.all(np.diag(cov, k=1) < amps[0])
+    assert np.all(np.diag(cov, k=-1) < amp)
+    assert np.all(np.diag(cov, k=1) < amp)
     assert cov.min() == 0
     assert np.all(cov >= 0)
-    assert np.abs(cov.max() - amps[0]) < 1
+    assert cov.max() <= amp
     ## Need to figure this out
     # assert np.all(np.linalg.eigvals(cov) >= 0)

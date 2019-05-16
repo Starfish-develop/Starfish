@@ -17,15 +17,41 @@ class TestSpectrumModel:
         assert mock_model['Z'] == self.GP[2]
         assert mock_model['vz'] == 0
         assert mock_model['Av'] == 0
-        assert mock_model['scale'] == -10
+        assert mock_model['log_scale'] == -10
         assert mock_model['vsini'] == 30
+
+    def test_global_cov_param_dict(self, mock_model):
+        assert mock_model.glob == mock_model['global']
+        assert 'log_amp' in mock_model.glob
+        assert 'log_ls' in mock_model.glob
+        assert 'global:log_amp' in mock_model.get_param_dict(flat=True)
+
+    def test_local_cov_param_dict(self, mock_model):
+        assert mock_model.local == mock_model['local']
+        assert len(mock_model.local) == 2
+        assert mock_model.local[0]['mu'] == 1e4
+        assert 'log_sigma' in mock_model.local[1]
+        assert 'local:0:log_amp' in mock_model.get_param_dict(flat=True)
+        assert 'local:1:mu' in mock_model.get_param_dict(flat=True)
+
+    @pytest.mark.parametrize('param', [
+        'global:log_amp',
+        'local:0:log_amp'
+    ])
+    def test_cov_freeze(self, mock_model, param):
+        assert param in mock_model.labels
+        mock_model.freeze(param)
+        assert param not in mock_model.labels
+        mock_model.thaw(param)
+        assert param in mock_model.labels
+
 
     def test_add_bad_param(self, mock_model):
         with pytest.raises(ValueError):
             mock_model['garbage_key'] = -4
 
     def test_labels(self, mock_model):
-        assert mock_model.labels == list(mock_model.get_param_dict())
+        assert mock_model.labels == list(mock_model.get_param_dict(flat=True))
 
     def test_grid_params(self, mock_model):
         assert np.all(mock_model.grid_params == self.GP)
@@ -55,17 +81,21 @@ class TestSpectrumModel:
         assert 'logg' in mock_model.get_param_dict()
         assert mock_model.grid_params[1] == pre
 
-    def test_get_set_param_dict(self, mock_model):
-        P0 = mock_model.get_param_dict()
-        mock_model.set_param_dict(P0)
-        P1 = mock_model.get_param_dict()
+    @pytest.mark.parametrize('flat', [
+        False,
+        True
+    ])
+    def test_get_set_param_dict(self, mock_model, flat):
+        P0 = mock_model.get_param_dict(flat=flat)
+        mock_model.set_param_dict(P0, flat=flat)
+        P1 = mock_model.get_param_dict(flat=flat)
         assert P0 == P1
 
     def test_set_param_dict_frozen_params(self, mock_model):
         P0 = mock_model.get_param_dict()
         mock_model.freeze('Z')
         P0['Z'] = 7
-        mock_model.set_param_dict(P0)
+        mock_model.set_param_dict(P0, flat=False)
         assert mock_model['Z'] == 0
 
     def test_get_set_parameters(self, mock_model):
@@ -102,7 +132,7 @@ class TestSpectrumModel:
     def test_grad_log_likelihood_doesnt_exist(self, mock_model):
         with pytest.raises(NotImplementedError):
             mock_model.grad_log_likelihood()
-    
+
     def test_str(self, mock_model):
         assert str(mock_model).startswith('SpectrumModel')
 
