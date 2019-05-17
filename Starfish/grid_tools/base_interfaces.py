@@ -6,7 +6,7 @@ import os
 import h5py
 import numpy as np
 from astropy.io import fits
-import tqdm.auto as tqdm
+import tqdm
 
 import Starfish.constants as C
 from Starfish.models.transforms import instrumental_broaden, resample

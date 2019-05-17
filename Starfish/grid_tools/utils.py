@@ -1,6 +1,6 @@
 import os
 import logging
-import tqdm.auto as tqdm
+import tqdm
 from urllib.request import urlretrieve, URLError
 import multiprocessing as mp
 import itertools
