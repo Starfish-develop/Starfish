@@ -161,7 +161,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
         self.full_rname = os.path.join(self.path, self.rname)
 
     def check_params(self, parameters):
-        return super(GridInterface, self).check_params(parameters)
+        return GridInterface.check_params(self, parameters)
 
 class KuruczGridInterface(GridInterface):
     """
