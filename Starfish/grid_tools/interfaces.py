@@ -161,7 +161,19 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
         self.full_rname = os.path.join(self.path, self.rname)
 
     def check_params(self, parameters):
-        return GridInterface.check_params(self, parameters)
+        # Bypass the alpha irregularities in the full grid
+        if not isinstance(parameters, np.ndarray):
+            parameters = np.array(parameters)
+
+        if len(parameters) != len(self.param_names):
+            raise ValueError('Length of given parameters ({}) does not match length of grid parameters ({})'.format(
+                len(parameters), len(self.param_names)))
+
+        for param, params in zip(parameters, self.points):
+            if param not in params:
+                raise ValueError(
+                    '{} not in the grid points {}'.format(param, params))
+        return True
 
 class KuruczGridInterface(GridInterface):
     """

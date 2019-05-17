@@ -219,7 +219,7 @@ class HDF5Creator:
 
     Parameters
     ----------
-    GridInterface : :class:`GridInterface`
+    grid_interface : :class:`GridInterface`
         The raw grid interface to process while creating the HDF5 file
     filename : str or path-like
         Where to save the HDF5 file
@@ -240,29 +240,29 @@ class HDF5Creator:
         if the wl_range is ill-specified or if the parameter range are completely disjoint from the grid points.
     """
 
-    def __init__(self, GridInterface, filename, instrument=None, wl_range=None, ranges=None, key_name=None):
+    def __init__(self, grid_interface, filename, instrument=None, wl_range=None, ranges=None, key_name=None):
 
         self.log = logging.getLogger(self.__class__.__name__)
 
-        self.GridInterface = GridInterface
+        self.grid_interface = grid_interface
         self.filename = os.path.expandvars(filename)
         self.instrument = instrument
 
         # The flux formatting key will always have alpha in the name, regardless
         # of whether or not the library uses it as a parameter.
         if key_name is None:
-            key_name = self.GridInterface.rname.replace('/', '__').replace('.fits', '').replace('.FITS', '')
+            key_name = self.grid_interface.rname.replace('/', '__').replace('.fits', '').replace('.FITS', '')
 
         self.key_name = key_name
 
         if ranges is None:
-            self.points = self.GridInterface.points
+            self.points = self.grid_interface.points
         else:
             # Take only those points of the GridInterface that fall within the ranges specified
             self.points = []
             # We know which subset we want, so use these.
             for i, (low, high) in enumerate(ranges):
-                valid_points = self.GridInterface.points[i]
+                valid_points = self.grid_interface.points[i]
                 ind = (valid_points >= low) & (valid_points <= high)
                 self.points.append(valid_points[ind])
                 # Note that at this point, this is just the grid points that fall within the rectangular
@@ -270,13 +270,13 @@ class HDF5Creator:
                 # then self.points will contain points that don't actually exist in the raw library.
 
         # the raw wl from the spectral library
-        self.wl_native = self.GridInterface.wl  # raw grid
+        self.wl_native = self.grid_interface.wl  # raw grid
         self.dv_native = calculate_dv(self.wl_native)
 
         self.hdf5 = h5py.File(self.filename, 'w')
-        self.hdf5.attrs['grid_name'] = GridInterface.name
+        self.hdf5.attrs['grid_name'] = grid_interface.name
         self.flux_group = self.hdf5.create_group('flux')
-        self.flux_group.attrs['units'] = GridInterface.flux_units
+        self.flux_group.attrs['units'] = grid_interface.flux_units
         self.flux_group.attrs['key_name'] = self.key_name
 
         # We'll need a few wavelength grids
@@ -363,9 +363,9 @@ class HDF5Creator:
         # Create the wl dataset separately using float64 due to rounding errors w/ interpolation.
         wl_dset = self.hdf5.create_dataset(
             'wl', data=self.wl_final, compression=9)
-        wl_dset.attrs['air'] = self.GridInterface.air
+        wl_dset.attrs['air'] = self.grid_interface.air
         wl_dset.attrs['dv'] = self.dv_final
-        wl_dset.attrs['units'] = self.GridInterface.wave_units
+        wl_dset.attrs['units'] = self.grid_interface.wave_units
 
     def process_grid(self):
         """
@@ -393,7 +393,7 @@ class HDF5Creator:
             pbar.set_description('Processing {}'.format(param))
             # Load and process the flux
             try:
-                flux, header = self.GridInterface.load_flux(param, header=True)
+                flux, header = self.grid_interface.load_flux(param, header=True)
             except ValueError:
                 self.log.warning(
                     'Deleting {} from all params, does not exist.'.format(param))
@@ -414,6 +414,6 @@ class HDF5Creator:
 
         gp = self.hdf5.create_dataset(
             'grid_points', data=all_params, compression=9)
-        gp.attrs['names'] = self.GridInterface.param_names
+        gp.attrs['names'] = self.grid_interface.param_names
 
         self.hdf5.close()

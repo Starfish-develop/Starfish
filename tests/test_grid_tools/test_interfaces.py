@@ -113,6 +113,14 @@ class TestPHOENIXGridInterfaceNoAlpha:
         with pytest.raises(ValueError):
             grid.load_flux((6100, 4.5, 0.0, 0.2))
 
+    def test_check_params(self, grid):
+        assert grid.check_params((6100, 4.5, 0.0))
+        # True even if not downloaded
+        assert grid.check_params((2400, 0.5, -3.0))
+        # Error if non-existent
+        with pytest.raises(ValueError):
+            grid.check_params((6150, 0.2, -1.3))
+
     def test_load_flux(self, grid):
         fl, header = grid.load_flux((6100, 4.5, 0.0), header=True)
         assert len(fl) == 1540041
