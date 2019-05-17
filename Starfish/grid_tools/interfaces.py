@@ -160,6 +160,8 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
         self.rname = 'Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
         self.full_rname = os.path.join(self.path, self.rname)
 
+    def check_params(self, parameters):
+        return super(GridInterface).check_params(parameters)
 
 class KuruczGridInterface(GridInterface):
     """
