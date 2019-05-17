@@ -7,6 +7,7 @@ import itertools
 
 import numpy as np
 
+
 log = logging.getLogger(__name__)
 
 
@@ -47,6 +48,7 @@ def download_PHOENIX_models(path, parameters=None):
         download_PHOENIX_models(path='models', parameters=params)
 
     """
+    from .interfaces import PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha
     wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
     wave_file = os.path.join(path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
     flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
@@ -60,15 +62,21 @@ def download_PHOENIX_models(path, parameters=None):
         urlretrieve(wave_url, wave_file)
 
     if parameters is None:
-        T = np.hstack([np.arange(2300, 7000, 100),
-                       np.arange(7000, 12001, 200)])
-        logg = np.arange(0.0, 6.1, 0.5)
-        Z = np.hstack([np.arange(-4., -2, 1), np.arange(-2, 1.1, 0.5)])
-        alpha = np.arange(-0.2, 0.81, 0.2)
-        parameters = itertools.product(T, logg, Z, alpha)
+        grid = PHOENIXGridInterface(path)
+        parameters = list(itertools.product(*grid.points))
+    elif len(parameters[0]) == 3:
+        grid = PHOENIXGridInterfaceNoAlpha(path)
+    elif len(parameters[0]) == 4:
+        grid = PHOENIXGridInterface(path)
 
     pbar = tqdm.tqdm(parameters)
     for p in pbar:
+        # Skip irregularities from grid
+        try:
+            grid.check_params(p)
+        except ValueError:
+            continue
+
         tmp_p = [p[0], p[1]]
         # Create the Z string. Have to do this because PHOENIX models use - sign for 0.0
         Zstr = '-0.0' if p[2] == 0 else '{:+.1f}'.format(p[2])

@@ -37,10 +37,10 @@ class PHOENIXGridInterface(GridInterface):
                          points=[
                              np.hstack([np.arange(2300, 7000, 100),
                                         np.arange(7000, 12001, 200)]),
-                             np.arange(0.0, 6.1, 0.5),
+                             np.arange(0.5, 6.1, 0.5),
                              np.hstack([np.arange(-4., -2, 1),
                                         np.arange(-2, 1.1, 0.5)]),
-                             np.arange(-0.2, 0.81, 0.2)
+                             np.arange(-0.2, 1.21, 0.2)
                          ],
                          wave_units='AA', flux_units='erg/s/cm^2/cm',
                          air=air, wl_range=wl_range, path=path)  # wl_range used to be (2999, 13001)
@@ -72,6 +72,19 @@ class PHOENIXGridInterface(GridInterface):
         self.wl = self.wl_full[self.ind]
         self.rname = 'Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
         self.full_rname = os.path.join(self.path, self.rname)
+
+    def check_params(self, parameters):
+        super().check_params(parameters)
+
+        if parameters[3] != 0:
+            if (parameters[0] < 3500) or (parameters[0] > 8000):
+                raise ValueError(
+                    'Alpha concentration does not run for T={}'.format(parameters[0]))
+            if (parameters[2] < -3.0) or (parameters[2] > 0):
+                raise ValueError(
+                    'Alpha concentration does not run for Z={}'.format(parameters[2]))
+
+        return True
 
     def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)  # Check to make sure that the keys are
