@@ -406,7 +406,7 @@ class HDF5Creator:
                                                     data=fl_final, compression=9)
             # Store header keywords as attributes in HDF5 file
             for key, value in header.items():
-                if key != '' and value != '':  # check for empty FITS kws
+                if key != '' and key != 'COMMENT' and value != '':  # check for empty FITS kws
                     flux.attrs[key] = value
 
         # Remove parameters that do no exist
