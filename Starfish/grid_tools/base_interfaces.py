@@ -414,6 +414,7 @@ class HDF5Creator:
 
         gp = self.hdf5.create_dataset(
             'grid_points', data=all_params, compression=9)
-        gp.attrs['names'] = self.grid_interface.param_names
+        names = list(map(lambda s: s.encode('utf-8'), self.grid_interface.param_names))
+        gp.attrs['names'] = names
 
         self.hdf5.close()
