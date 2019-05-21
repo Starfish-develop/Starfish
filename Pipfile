@@ -13,7 +13,6 @@ tqdm = "*"
 extinction = "*"
 
 [dev-packages]
-sphinx-rtd-theme = "*"
 pytest = "*"
 pydot = "*"
 pylint = "*"
@@ -23,6 +22,7 @@ pytest-cov = "*"
 doc8 = "*"
 sphinx = "*"
 coveralls = "*"
+sphinx-bootstrap-theme = "*"
 
 [pipenv]
 allow_prereleases = true

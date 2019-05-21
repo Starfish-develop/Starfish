@@ -76,7 +76,37 @@ Once we have our pre-processed grid, we can make our spectral emulator and train
 
     grid = HDF5Interface('F_TRES_grid.hdf5')
     emu = Emulator.from_grid(grid)
+    emu
+
+    Emulator
+    --------
+    Trained: False
+    lambda_xi: 2.718
+    Variances:
+        10000.00
+        10000.00
+        10000.00
+        10000.00
+        10000.00
+        10000.00
+        10000.00
+    Lengthscales:
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+        [ 600.00  1.50  1.50 ]
+    Log Likelihood: -35385.04
+
     emu.train()
+
+
+
+    emu
+
+
     emu.save('F_TRES_emu.hdf5')
 
 .. warning::

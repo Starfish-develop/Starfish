@@ -32,6 +32,3 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-
-.. centered::
-    Copyright Ian Czekala and collaborators 2013-2019
