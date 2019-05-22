@@ -7,6 +7,6 @@ Here are where the cookbook and examples live.
 .. toctree::
    :maxdepth: 1
 
-   example_setup
+   setup
    example_single
    example_multi

@@ -43,8 +43,8 @@ extensions = [
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.napoleon',
-    # 'nbsphinx',
-    # 'IPython.sphinxext.ipython_console_highlighting',
+    'nbsphinx',
+    'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 # Autodocs parameters
@@ -64,7 +64,7 @@ copyright = '2013-19, Ian Czekala'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
