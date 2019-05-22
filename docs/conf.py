@@ -127,7 +127,7 @@ def setup(app):
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    '**': ['sidebartoc.html']
+    '**': ['searchbox.html', 'sidebartoc.html']
 }
 
 # Additional templates that should be rendered to pages, maps page names to
