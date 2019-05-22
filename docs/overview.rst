@@ -13,8 +13,7 @@ If *Starfish* or any derivative of it was used for your work, please cite both `
 Installation
 ============
 
-The source code and installation instructions can be found at the Github repository for Starfish at
-https://github.com/iancze/Starfish but it should be easy enough to run
+The source code and installation instructions can be found at the `GitHub repository <https://github.com/iancze/Starfish>`_ for Starfish, but it should be easy enough to run
 
 .. code-block:: console
 

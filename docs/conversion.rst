@@ -1,5 +1,5 @@
 ###################
-Conversion from 0.2
+Conversion to 0.3.0
 ###################
 
 There have been some significant changes to *Starfish* in the upgrades to version 0.3. Below are some of the main changes, and we also recommend viewing some of the :doc:`examples/index` to get a hang for the new workflow.

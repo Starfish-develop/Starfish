@@ -12,7 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-from sphinx_bootstrap_theme import get_html_theme_path
+import sphinx_bootstrap_theme
 import os
 import sys
 
@@ -72,7 +72,7 @@ pygments_style = 'sphinx'
 
 # Activate the theme.
 html_theme = 'bootstrap'
-html_theme_path = get_html_theme_path()
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -86,7 +86,8 @@ html_theme_options = {
         ('API', 'api/index'),
         ('Examples', 'examples/index')
     ],
-    'navbar_class': 'navbar navbar-dark bg-dark',
+    'navbar_class': 'navbar bg-dark',
+    'globaltoc_depth': 2
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -125,7 +126,9 @@ def setup(app):
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+html_sidebars = {
+    '**': ['sidebartoc.html']
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

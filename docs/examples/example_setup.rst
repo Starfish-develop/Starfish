@@ -78,6 +78,8 @@ Once we have our pre-processed grid, we can make our spectral emulator and train
     emu = Emulator.from_grid(grid)
     emu
 
+.. code-block:: python
+
     Emulator
     --------
     Trained: False
@@ -100,12 +102,16 @@ Once we have our pre-processed grid, we can make our spectral emulator and train
         [ 600.00  1.50  1.50 ]
     Log Likelihood: -35385.04
 
+.. code-block:: python
+
     emu.train()
-
-
-
     emu
 
+.. code-block:: python
+
+    :)
+
+.. code-block:: python
 
     emu.save('F_TRES_emu.hdf5')
 
