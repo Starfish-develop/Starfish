@@ -73,6 +73,11 @@ pygments_style = 'sphinx'
 html_theme = 'bootstrap'
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
+nbsphinx_prolog = """
+This page was generated from `{{ env.doc2path(env.docname, base=None) }} <https://github.com/iancze/starfish/blob/master/{{ env.doc2path(env.docname, base=None) }}>`_. 
+"""
+
+
 # -- Options for HTML output ---------------------------------------------------
 
 # Theme options are theme-specific and customize the look and feel of a theme
