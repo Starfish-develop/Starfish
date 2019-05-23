@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
+from scipy.special import loggamma
 from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log
@@ -88,8 +89,9 @@ class Emulator:
         if lengthscales is None:
             unique = [sorted(np.unique(param_set))
                       for param_set in self.grid_points.T]
-            sep = [3 * np.diff(param).max() for param in unique]
-            lengthscales = np.tile(sep, (self.ncomps, 1))
+            self._grid_sep = np.array([np.diff(param).max()
+                                       for param in unique])
+            lengthscales = np.tile(3 * self._grid_sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
 
@@ -401,15 +403,31 @@ class Emulator:
         scipy.optimize.minimize
 
         """
-        P0 = self.get_param_vector()
+        # Set up the gamma priors
+        def log_gamma_prior(x, a, b):
+            return a * np.log(b) + (a - 1) * np.log(x) - loggamma(a) - b * x
 
+        means = 4.5 * self._grid_sep
+        var = 200 * self._grid_sep
+
+        def priors(x): return log_gamma_prior(x, means ** 2 / var, means / var)
+
+        # Define our loss function
         def nll(P):
             if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
-            loss = -self.log_likelihood()
+            ll = self.log_likelihood()
+            print(f'\rmodel ll: {ll}', end=' ')
+            pr_ll = np.sum([priors(ls) for ls in self.lengthscales])
+            print(f'prior ll: {pr_ll}', end='')
+            ll += pr_ll
+            loss = -ll
             self.log.debug(f'loss: {loss}')
             return loss
+
+        # Do the optimization
+        P0 = self.get_param_vector()
 
         default_kwargs = {
             'method': 'Nelder-Mead',
@@ -509,6 +527,11 @@ class Emulator:
         Returns
         -------
         float
+
+        Raises
+        ------
+        scipy.linalg.LinAlgError
+            If the Cholesky factorization fails
         """
         L, flag = cho_factor(self.v11)
         logdet = 2 * np.sum(np.log(np.diag(L)))
