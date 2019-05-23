@@ -19,8 +19,8 @@ Contents
    :maxdepth: 1
 
    intro
-   conversion
    overview
+   conversion
    api/index
    examples/index
 
