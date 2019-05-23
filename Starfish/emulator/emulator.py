@@ -22,7 +22,7 @@ class Emulator:
     """
     A Bayesian spectral emulator.
 
-    This emulator offers an interface to spectral libraries that offers interpolation while providing a variance-covariance matrix that can be forward-propagated in likelihood calculations. For more details, see the appendix from Czekala et al. (2015). 
+    This emulator offers an interface to spectral libraries that offers interpolation while providing a variance-covariance matrix that can be forward-propagated in likelihood calculations. For more details, see the appendix from Czekala et al. (2015).
 
     Parameters
     ----------
@@ -55,7 +55,7 @@ class Emulator:
     Attributes
     ----------
     bulk_fluxes : numpy.ndarray
-        A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator. 
+        A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator.
     variances : numpy.ndarray
         The variances of each Gaussian process
     lengthscales : numpy.ndarray
@@ -123,7 +123,7 @@ class Emulator:
     @variances.setter
     def variances(self, values):
         for i, value in enumerate(values):
-            self.hyperparams['log_variance:{}'.format(i)] = np.log(value)
+            self.hyperparams[f'log_variance:{i}'] = np.log(value)
 
     @property
     def lengthscales(self):
@@ -135,7 +135,7 @@ class Emulator:
     def lengthscales(self, values):
         for i, value in enumerate(values):
             for j, ls in enumerate(value):
-                self.hyperparams['log_lengthscale:{}:{}'.format(i, j)] = np.log(ls)
+                self.hyperparams[f'log_lengthscale:{i}:{j}'] = np.log(ls)
 
     def __getitem__(self, key):
         return self.hyperparams[key]
@@ -256,8 +256,7 @@ class Emulator:
         exp_var = pca.explained_variance_ratio_.sum()
         # This is basically the mean square error of the reconstruction
         log.info(
-            'PCA fit {:.2f}% of the variance with {:d} components.'.format(
-                exp_var, pca.n_components_))
+            f'PCA fit {exp_var:.2f}% of the variance with {pca.n_components_:d} components.')
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
 
         emulator = cls(
@@ -382,10 +381,8 @@ class Emulator:
         trunc_wavelength = self.wl[ind]
 
         assert (trunc_wavelength.min() <= wl_min) and (trunc_wavelength.max() >= wl_max), \
-            "Emulator chunking ({:.2f}, {:.2f}) didn't encapsulate " \
-            "full wl range ({:.2f}, {:.2f}).".format(trunc_wavelength.min(),
-                                                     trunc_wavelength.max(),
-                                                     wl_min, wl_max)
+            f"Emulator chunking ({trunc_wavelength.min():.2f}, {trunc_wavelength.max():.2f}) didn't encapsulate " \
+            f"full wl range ({wl_min:.2f}, {wl_max:.2f})."
 
         self.wl = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
@@ -397,7 +394,7 @@ class Emulator:
         Parameters
         ----------
         **opt_kwargs
-            Any arguments to pass to the optimizer. By default, `method='Nelder-Mead'` and `maxiter=10000`. 
+            Any arguments to pass to the optimizer. By default, `method='Nelder-Mead'` and `maxiter=10000`.
 
         See Also
         --------
@@ -411,7 +408,7 @@ class Emulator:
                 return np.inf
             self.set_param_vector(P)
             loss = -self.log_likelihood()
-            self.log.debug('loss: {}'.format(loss))
+            self.log.debug(f'loss: {loss}')
             return loss
 
         default_kwargs = {
@@ -424,7 +421,6 @@ class Emulator:
         if not soln.success:
             self.log.warning('Optimization did not succeed.')
             self.log.info(soln.message)
-            # self.set_param_vector(P0)
         else:
             self.set_param_vector(soln.x)
             self._trained = True
@@ -502,12 +498,9 @@ class Emulator:
         if len(params) != len(parameters):
             raise ValueError(
                 'params must match length of parameters (get_param_vector())')
-        for i, key in enumerate(parameters):
-            self.hyperparams[key] = params[i]
 
-        self.v11 = self.iPhiPhi / self.lambda_xi + \
-            batch_kernel(self.grid_points, self.grid_points,
-                         self.variances, self.lengthscales)
+        param_dict = dict(zip(self.get_param_dict().keys(), params))
+        self.set_param_dict(param_dict)
 
     def log_likelihood(self):
         """
@@ -529,17 +522,16 @@ class Emulator:
         output = 'Emulator\n'
         output += '-' * 8 + '\n'
         if self.name is not None:
-            output += 'Name: {}\n'.format(self.name)
-        output += 'Trained: {}\n'.format(self._trained)
-        output += 'lambda_xi: {:.3f}\n'.format(
-            np.exp(self.lambda_xi))
+            output += f'Name: {self.name}\n'
+        output += f'Trained: {self._trained}\n'
+        output += f'lambda_xi: {self.lambda_xi:.3f}\n'
         output += 'Variances:\n'
-        output += '\n'.join(['\t{:.2f}'.format(v) for v in self.variances])
+        output += '\n'.join([f'\t{v:.2f}' for v in self.variances])
         output += '\nLengthscales:\n'
         output += '\n'.join(
             ['\t[ ' + ' '.join(
-                ['{:.2f} '.format(l) for l in ls]
+                [f'{l:.2f} ' for l in ls]
             ) + ']' for ls in self.lengthscales]
         )
-        output += '\nLog Likelihood: {:.2f}\n'.format(self.log_likelihood())
+        output += f'\nLog Likelihood: {self.log_likelihood():.2f}\n'
         return output

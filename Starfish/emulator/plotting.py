@@ -48,7 +48,8 @@ def plot_reconstructed(emulator, grid, folder):
         fig, ax = plt.subplots(nrows=2, figsize=(8, 8))
         ax[0].plot(emulator.wl, real, lw=1, label='Original')
         ax[0].plot(emulator.wl, recon, lw=1, label='Reconstructed')
-        ax[0].fill_between(emulator.wl, recon - 2 * err, recon + 2 * err, color='C1', alpha=0.4)
+        ax[0].fill_between(emulator.wl, recon - 2 * err,
+                           recon + 2 * err, color='C1', alpha=0.4)
         ax[0].set_ylabel(r"$f_\lambda$ [erg/cm^2/s/A]")
         ax[0].legend()
 
@@ -87,7 +88,8 @@ def plot_eigenspectra(emulator, params, filename=None):
 
     height = int(emulator.ncomps) * 1.25
     fig = plt.figure(figsize=(8, height))
-    gs = gridspec.GridSpec(int(emulator.ncomps) + 1, 1, height_ratios=[3] + list(np.ones(int(emulator.ncomps))))
+    gs = gridspec.GridSpec(int(emulator.ncomps) + 1, 1,
+                           height_ratios=[3] + list(np.ones(int(emulator.ncomps))))
     ax = plt.subplot(gs[0])
     ax.plot(emulator.wl, reconstructed, lw=1)
     ax.set_ylabel('$f_\lambda$ [erg/cm^2/s/A]')
@@ -95,10 +97,10 @@ def plot_eigenspectra(emulator, params, filename=None):
     for i in range(emulator.ncomps):
         ax = plt.subplot(gs[i + 1], sharex=ax)
         ax.plot(emulator.wl, emulator.eigenspectra[i], c='0.4', lw=1)
-        ax.set_ylabel(r'$\xi_{}$'.format(i))
+        ax.set_ylabel(rf'$\xi_{i}$')
         if i < emulator.ncomps - 1:
             plt.setp(ax.get_xticklabels(), visible=False)
-        ax.legend([r'$w_{}$ = {:.2e}'.format(i, weights[i])])
+        ax.legend([rf'$w_{i}$ = {weights[i]:.2e}'])
     plt.xlabel('Wavelength (A)')
     plt.tight_layout(h_pad=0.2)
 
@@ -117,12 +119,13 @@ def plot_emulator(emulator):
     idxs = np.array([emulator.get_index(p) for p in params])
     weights = emulator.weights[idxs.astype('int')].T
     if emulator.ncomps < 4:
-        fix, axes = plt.subplots(emulator.ncomps, 1, sharex=True, figsize=(8, (emulator.ncomps - 1) * 2))
+        fix, axes = plt.subplots(
+            emulator.ncomps, 1, sharex=True, figsize=(8, (emulator.ncomps - 1) * 2))
     else:
         fix, axes = plt.subplots(int(np.ceil(emulator.ncomps / 2)), 2, sharex=True,
                                  figsize=(13, (emulator.ncomps - 1) * 2))
     axes = np.ravel(np.array(axes).T)
-    [ax.set_ylabel('$w_{}$'.format(i)) for i, ax in enumerate(axes)]
+    [ax.set_ylabel(f'$w_{i}$') for i, ax in enumerate(axes)]
     for i, w in enumerate(weights):
         axes[i].plot(T, w, 'o')
 
@@ -139,7 +142,9 @@ def plot_emulator(emulator):
     sigs = np.sqrt(np.diagonal(covs, axis1=-2, axis2=-1))
     for i, (m, s), in enumerate(zip(mus.T, sigs.T)):
         axes[i].plot(Ttest, m, 'C1')
-        axes[i].fill_between(Ttest, m - 2 * s, m + 2 * s, color='C1', alpha=0.4)
+        axes[i].fill_between(Ttest, m - 2 * s, m + 2 *
+                             s, color='C1', alpha=0.4)
     axes[-1].set_xlabel('T (K)')
-    plt.suptitle('Weights for fixed $\log g={:.2f}$, $[Fe/H]={:.2f}$'.format(logg[0], Z[0]), fontsize=20)
+    plt.suptitle(
+        f'Weights for fixed $\log g={logg[0]:.2f}$, $[Fe/H]={Z[0]:.2f}$', fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
