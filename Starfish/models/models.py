@@ -481,40 +481,6 @@ class SpectrumModel:
     def grad_log_likelihood(self):
         raise NotImplementedError('Not Implemented yet')
 
-    def find_residual_peaks(self, num_residuals=100, threshold=4.0, buffer=2):
-        """
-        Find the peaks of the most recent residual and return their properties to aid in setting up local kernels
-
-        Parameters
-        ----------
-        num_residuals : int, optional
-            The number of residuals to average together for determining peaks. By default 100.
-        threshold : float, optional
-            The sigma clipping threshold, by default 4.0
-        buffer : float, optional
-            The minimum distance between peaks, in Angstrom, by default 2.0
-
-        Returns
-        -------
-        means : list
-            The means of the found peaks, with the same units as self.data.waves
-        """
-        residual = np.mean(list(self.residuals)[-num_residuals:], axis=0)
-        mask = np.abs(residual - residual.mean()) > threshold * residual.std()
-        peak_waves = self.data.waves[1:-1][mask[1:-1]]
-        mus = []
-        covered = np.zeros_like(peak_waves, dtype=bool)
-        # Sort from largest residual to smallest
-        abs_resid = np.abs(residual[1:-1][mask[1:-1]])
-        for wl, resid in sorted(zip(peak_waves, abs_resid), key=lambda t: t[1], reverse=True):
-            if wl in peak_waves[covered]:
-                continue
-            mus.append(wl)
-            ind = (peak_waves >= (wl - buffer)) & (peak_waves <= (wl + buffer))
-            covered |= ind
-
-        return mus
-
     def __repr__(self):
         output = 'SpectrumModel\n'
         output += '-' * 13 + '\n'
