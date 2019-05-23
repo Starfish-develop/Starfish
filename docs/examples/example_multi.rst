@@ -1,5 +1,5 @@
 ##############################
-Example: Multi-Order Spectrum
+Multi-Order Spectrum
 ##############################
 
 .. warning::

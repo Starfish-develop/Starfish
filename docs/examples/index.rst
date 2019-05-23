@@ -8,5 +8,5 @@ Here are where the cookbook and examples live.
    :maxdepth: 1
 
    setup
-   example_single
+   single
    example_multi
