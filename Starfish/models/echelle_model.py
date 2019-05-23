@@ -1,0 +1,2 @@
+class EchelleModel:
+    pass

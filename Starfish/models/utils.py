@@ -3,7 +3,6 @@ from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 
 import Starfish.constants as C
-from .models import SpectrumModel
 from .kernels import k_global_matrix
 
 

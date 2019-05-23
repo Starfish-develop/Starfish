@@ -1,0 +1,2 @@
+class ChunkedModel:
+    pass

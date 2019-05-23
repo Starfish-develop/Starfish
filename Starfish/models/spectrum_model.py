@@ -491,7 +491,3 @@ class SpectrumModel:
         lnprob = self.lnprob if self.lnprob is not None else self.log_likelihood()
         output += 'Log Likelihood: {:.2f}'.format(lnprob)
         return output
-
-
-class EchelleModel:
-    pass
