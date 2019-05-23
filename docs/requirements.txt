@@ -1,4 +1,4 @@
 sphinx
 sphinx-bootstrap-theme
-npshinx
+nbshinx
 IPython
