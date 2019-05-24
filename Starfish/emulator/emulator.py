@@ -403,26 +403,14 @@ class Emulator:
         scipy.optimize.minimize
 
         """
-        # Set up the gamma priors
-        def log_gamma_prior(x, a, b):
-            return a * np.log(b) + (a - 1) * np.log(x) - loggamma(a) - b * x
-
-        means = 4.5 * self._grid_sep
-        var = 200 * self._grid_sep
-
-        def priors(x): return log_gamma_prior(x, means ** 2 / var, means / var)
-
         # Define our loss function
         def nll(P):
             if np.any(P < 0):
                 return np.inf
             self.set_param_vector(P)
-            ll = self.log_likelihood()
-            print(f'\rmodel ll: {ll}', end=' ')
-            pr_ll = np.sum([priors(ls) for ls in self.lengthscales])
-            print(f'prior ll: {pr_ll}', end='')
-            ll += pr_ll
-            loss = -ll
+            if np.any(self.lengthscales < 2 * self._grid_sep):
+                return np.inf
+            loss = -self.log_likelihood()
             self.log.debug(f'loss: {loss}')
             return loss
 
