@@ -117,7 +117,7 @@ class TestSpectrumModel:
         assert mock_model['Z'] == 7
 
     def test_save_load(self, mock_model, tmpdir):
-        path = os.path.join(tmpdir, 'model.json')
+        path = os.path.join(tmpdir, 'model.toml')
         P0 = mock_model.params
         P0_f = mock_model.get_param_dict()
         mock_model.save(path)

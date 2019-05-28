@@ -2,7 +2,7 @@ import logging
 from copy import deepcopy
 import warnings
 from collections import OrderedDict, deque
-import json
+import toml
 from typing import List, Union
 
 import numpy as np
@@ -426,24 +426,24 @@ class SpectrumModel:
 
     def save(self, filename):
         """
-        Saves the model as a set of parameters into a JSON file
+        Saves the model as a set of parameters into a TOML file
 
         Parameters
         ----------
         filename : str or path-like
-            The JSON filename to save to.
+            The TOML filename to save to.
         """
         output = {
             **self.params,
             'frozen': self.frozen
         }
         with open(filename, 'w') as handler:
-            json.dump(output, handler)
+            toml.dump(output, handler)
         self.log.info('Saved current state at {}'.format(filename))
 
     def load(self, filename):
         """
-        Load a saved model state from a JSON file
+        Load a saved model state from a TOML file
 
         Parameters
         ----------
@@ -451,7 +451,7 @@ class SpectrumModel:
             The saved state to load
         """
         with open(filename, 'r') as handler:
-            data = json.load(handler)
+            data = toml.load(handler)
 
         frozen = data.pop('frozen')
         self.params = data

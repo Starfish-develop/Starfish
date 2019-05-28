@@ -1,5 +1,4 @@
 import Starfish
-import sys
 from setuptools import setup, find_packages
 import builtins
 
@@ -16,9 +15,9 @@ builtins.__STARFISH_SETUP__ = True
 setup(
     name='astrostarfish',
     version=Starfish.__version__,
-    python_requires='>3.6.0',
+    python_requires='>=3.6.0',
     author='Ian Czekala',
-    author_email='iczekala@berkeley.edu',
+    author_email='iczekala@gmail.com',
     packages=find_packages(),
     url='https://github.com/iancze/Starfish',
     download_url='https://github.com/iancze/Starfish/archive/master.zip',
@@ -39,7 +38,8 @@ setup(
                       'emcee==3.0rc2',
                       'h5py',
                       'astropy',
-                      'tqdm'],
+                      'tqdm',
+                      'toml'],
     maintainer='Ian Czekala',
     maintainer_email='iancze@gmail.com',
     include_package_data=True,

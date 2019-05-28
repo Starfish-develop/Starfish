@@ -11,6 +11,7 @@ astropy = "*"
 h5py = "*"
 tqdm = "*"
 extinction = "*"
+toml = "*"
 
 [dev-packages]
 pytest = "*"
