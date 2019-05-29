@@ -439,8 +439,15 @@ class SpectrumModel:
             'parameters': self.params,
             'frozen': self.frozen
         }
+        meta = {}
+        if self.data.name is not None:
+            meta['data'] = self.data.name
+        if self.emulator.name is not None:
+            meta['emulator'] = self.emulator.name
         if metadata is not None:
-            output['metadata'] = metadata
+            meta.update(metadata)
+        output['metadata'] = meta
+
         with open(filename, 'w') as handler:
             toml.dump(output, handler)
         self.log.info('Saved current state at {}'.format(filename))
@@ -455,7 +462,7 @@ class SpectrumModel:
             The saved state to load
         """
         with open(filename, 'r') as handler:
-            data = toml.load(handler)
+            data = toml.load(handler, OrderedDict)
 
         frozen = data['frozen']
         self.params = data['parameters']
@@ -488,10 +495,22 @@ class SpectrumModel:
     def __repr__(self):
         output = 'SpectrumModel\n'
         output += '-' * 13 + '\n'
-        output += 'Data: {}\n'.format(self.data.name)
+        output += f'Data: {self.data.name}\n'
         output += 'Parameters:\n'
-        for key, value in self.params.items():
-            output += '\t{}: {}\n'.format(key, value)
+        params = deepcopy(self.params)
+        glob = params.pop('global')
+        local = params.pop('local')
+        for key, value in params.items():
+            output += f'\t{key}: {value}\n'
+        output += 'Global Parameters:\n'
+        for key, value in glob.items():
+            output += f'\t{key}: {value}\n'
+        output += 'Local Parameters:\n'
+        for i, kernel in enumerate(local):
+            output += f'\t{i}: '
+            for key, value in kernel.items():
+                output += f'{key}: {value}\n\t   '
+            output = output[:-4]
         lnprob = self.lnprob if self.lnprob is not None else self.log_likelihood()
-        output += 'Log Likelihood: {:.2f}'.format(lnprob)
+        output += f'\nLog Likelihood: {lnprob:.2f}'
         return output
