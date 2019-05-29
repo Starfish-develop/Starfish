@@ -246,13 +246,13 @@ class SpectrumModel:
                 raise ValueError('{} is not a valid parameter.'.format(key))
             self.params[key] = value
 
-    def freeze(self, name):
+    def freeze(self, names):
         """
         Freeze the given parameter such that :meth:`get_param_dict` and :meth:`get_param_vector` no longer include this parameter, however it will still be used when calling the model.
 
         Parameters
         ----------
-        name : str
+        name : str or array-like
             The parameter to freeze
 
         Raises
@@ -264,16 +264,18 @@ class SpectrumModel:
         --------
         :meth:`thaw`
         """
-        if name not in self.frozen:
-            self.frozen.append(name)
+        names = np.atleast_1d(names)
+        for name in names:
+            if name not in self.frozen:
+                self.frozen.append(name)
 
-    def thaw(self, name):
+    def thaw(self, names):
         """
         Thaws the given parameter. Opposite of freezing
 
         Parameters
         ----------
-        name : str
+        name : str or array-like
             The parameter to thaw
 
         Raises
@@ -285,8 +287,10 @@ class SpectrumModel:
         --------
         :meth:`freeze`
         """
-        if name in self.frozen:
-            self.frozen.remove(name)
+        names = np.atleast_1d(names)
+        for name in names:
+            if name in self.frozen:
+                self.frozen.remove(name)
 
     def get_param_dict(self, flat=False):
         """
@@ -484,7 +488,7 @@ class SpectrumModel:
 
         lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
         self.residuals.append(R)
-        self.log.debug("Evaluating lnprob={}".format(lnprob))
+        self.log.debug(f"Evaluating lnprob={lnprob}")
         self.lnprob = lnprob
 
         return lnprob
@@ -498,19 +502,21 @@ class SpectrumModel:
         output += f'Data: {self.data.name}\n'
         output += 'Parameters:\n'
         params = deepcopy(self.params)
-        glob = params.pop('global')
-        local = params.pop('local')
+        glob = params.pop('global', None)
+        local = params.pop('local', None)
         for key, value in params.items():
             output += f'\t{key}: {value}\n'
-        output += 'Global Parameters:\n'
-        for key, value in glob.items():
-            output += f'\t{key}: {value}\n'
-        output += 'Local Parameters:\n'
-        for i, kernel in enumerate(local):
-            output += f'\t{i}: '
-            for key, value in kernel.items():
-                output += f'{key}: {value}\n\t   '
-            output = output[:-4]
+        if glob is not None:
+            output += 'Global Parameters:\n'
+            for key, value in glob.items():
+                output += f'\t{key}: {value}\n'
+        if local is not None:
+            output += 'Local Parameters:\n'
+            for i, kernel in enumerate(local):
+                output += f'\t{i}: '
+                for key, value in kernel.items():
+                    output += f'{key}: {value}\n\t   '
+                output = output[:-4]
         lnprob = self.lnprob if self.lnprob is not None else self.log_likelihood()
         output += f'\nLog Likelihood: {lnprob:.2f}'
         return output

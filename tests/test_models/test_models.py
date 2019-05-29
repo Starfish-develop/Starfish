@@ -82,6 +82,13 @@ class TestSpectrumModel:
         assert 'logg' in mock_model.get_param_dict()
         assert mock_model.grid_params[1] == pre
 
+    def test_freeze_thaw_many(self, mock_model):
+        labels = ['global:log_amp', 'global:log_ls']
+        mock_model.freeze(labels)
+        assert all([x not in mock_model.labels for x in labels])
+        mock_model.thaw(labels)
+        assert all([x in mock_model.labels for x in labels])
+
     @pytest.mark.parametrize('flat', [
         False,
         True
