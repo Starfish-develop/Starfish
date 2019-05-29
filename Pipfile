@@ -26,6 +26,3 @@ coveralls = "*"
 sphinx-bootstrap-theme = "*"
 nbsphinx = "*"
 ipython = "*"
-
-[pipenv]
-allow_prereleases = true

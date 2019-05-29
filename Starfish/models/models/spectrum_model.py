@@ -9,9 +9,9 @@ import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
 from Starfish.utils import calculate_dv, create_log_lam_grid
-from .transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
-from .likelihoods import mvn_likelihood, normal_likelihood
-from .kernels import k_global_matrix, k_local_matrix
+from ..transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
+from ..likelihoods import mvn_likelihood, normal_likelihood
+from ..kernels import k_global_matrix, k_local_matrix
 
 
 class SpectrumModel:
@@ -424,7 +424,7 @@ class SpectrumModel:
         param_dict = dict(zip(thawed_parameters, params))
         self.set_param_dict(param_dict, flat=True)
 
-    def save(self, filename):
+    def save(self, filename, metadata=None):
         """
         Saves the model as a set of parameters into a TOML file
 
@@ -432,11 +432,15 @@ class SpectrumModel:
         ----------
         filename : str or path-like
             The TOML filename to save to.
+        metadata : dict, optional
+            If provided, will save the provided dictionary under a 'metadata' key. This will not be read in when loading models but provides a way of providing information in the actual TOML files. Default is None.
         """
         output = {
-            **self.params,
+            'parameters': self.params,
             'frozen': self.frozen
         }
+        if metadata is not None:
+            output['metadata'] = metadata
         with open(filename, 'w') as handler:
             toml.dump(output, handler)
         self.log.info('Saved current state at {}'.format(filename))
@@ -453,8 +457,8 @@ class SpectrumModel:
         with open(filename, 'r') as handler:
             data = toml.load(handler)
 
-        frozen = data.pop('frozen')
-        self.params = data
+        frozen = data['frozen']
+        self.params = data['parameters']
         self.frozen = frozen
 
     def log_likelihood(self):

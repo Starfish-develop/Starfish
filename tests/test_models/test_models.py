@@ -1,5 +1,6 @@
 import os
 from collections import deque
+from datetime import datetime
 
 import pytest
 import numpy as np
@@ -121,6 +122,24 @@ class TestSpectrumModel:
         P0 = mock_model.params
         P0_f = mock_model.get_param_dict()
         mock_model.save(path)
+        mock_model.load(path)
+        assert P0 == mock_model.params
+        assert P0_f == mock_model.get_param_dict()
+
+    def test_save_load_meta(self, mock_model, tmpdir):
+        path = os.path.join(tmpdir, 'model.toml')
+        P0 = mock_model.params
+        P0_f = mock_model.get_param_dict()
+        metadata = {
+            'name': 'Test Model',
+            'date': datetime.today()
+        }
+        mock_model.save(path, metadata=metadata)
+        # Check metadata was written
+        with open(path, 'r') as fh:
+            lines = fh.readlines()
+        assert '[metadata]\n' in lines
+        assert 'name = "Test Model"\n' in lines
         mock_model.load(path)
         assert P0 == mock_model.params
         assert P0_f == mock_model.get_param_dict()
