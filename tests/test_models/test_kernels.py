@@ -15,6 +15,7 @@ def test_global_matrix():
     assert np.all(cov >= 0)
     assert cov.max() == a
     assert np.all(np.linalg.eigvals(cov) >= 0)
+    assert np.allclose(cov, cov.T)
 
 def test_local_matrix():
     wave = np.linspace(1e4, 2e4, 1000)
@@ -28,5 +29,6 @@ def test_local_matrix():
     assert cov.min() == 0
     assert np.all(cov >= 0)
     assert cov.max() <= amp
+    assert np.allclose(cov, cov.T)
     ## Need to figure this out
     # assert np.all(np.linalg.eigvals(cov) >= 0)
