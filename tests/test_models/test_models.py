@@ -154,6 +154,7 @@ class TestSpectrumModel:
     def test_log_likelihood(self, mock_model):
         lnprob = mock_model.log_likelihood()
         assert np.isfinite(lnprob)
+        assert lnprob == mock_model.last_lnprob
 
     def test_grad_log_likelihood_doesnt_exist(self, mock_model):
         with pytest.raises(NotImplementedError):

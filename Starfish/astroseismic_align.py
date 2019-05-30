@@ -18,14 +18,14 @@ import Starfish.constants as C
 import Starfish.grid_tools
 from Starfish import config
 from Starfish.emulator import Emulator
-from Starfish.spectrum import DataSpectrum, ChebyshevSpectrum
+from Starfish.spectrum import Spectrum, ChebyshevSpectrum
 
 orders = config.data["orders"]
 assert len(orders) == 1, "Can only use 1 order for now."
 order = orders[0]
 
 # Load just this order for now.
-dataSpec = DataSpectrum.open(config.data["files"][0], orders=config.data["orders"])
+dataSpec = Spectrum.open(config.data["files"][0], orders=config.data["orders"])
 instrument = eval("Starfish.grid_tools." + config.data["instruments"][0])()
 
 # full_mask = create_mask(dataSpec.wls, config.data["masks"][0])

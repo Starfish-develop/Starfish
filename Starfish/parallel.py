@@ -28,7 +28,7 @@ import numpy as np
 from Starfish import config
 import Starfish.grid_tools
 from Starfish.samplers import StateSampler
-from Starfish.spectrum import DataSpectrum, Mask, ChebyshevSpectrum
+from Starfish.spectrum import Spectrum, Mask, ChebyshevSpectrum
 from Starfish.emulator import Emulator
 import Starfish.constants as C
 from Starfish.covariance import get_dense_C, make_k_func, make_k_func_region
@@ -94,7 +94,7 @@ else:
 
 # list of keys from 0 to (norders - 1)
 order_keys = np.arange(len(config.data["orders"]))
-DataSpectra = [DataSpectrum.open(os.path.expandvars(file), orders=config.data["orders"]) for file in config.data["files"]]
+DataSpectra = [Spectrum.open(os.path.expandvars(file), orders=config.data["orders"]) for file in config.data["files"]]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 

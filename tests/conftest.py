@@ -10,7 +10,7 @@ from Starfish.grid_tools import download_PHOENIX_models, Instrument, PHOENIXGrid
     HDF5Creator, HDF5Interface
 from Starfish.models import SpectrumModel
 from Starfish.models.transforms import resample
-from Starfish.spectrum import DataSpectrum
+from Starfish.spectrum import Spectrum
 from Starfish.utils import create_log_lam_grid
 
 test_base = os.path.dirname(__file__)
@@ -83,7 +83,7 @@ def mock_data(mock_hdf5_interface):
 def mock_data_spectrum(mock_data):
     wave, flux = mock_data
     sigs = np.random.randn(len(flux))
-    yield DataSpectrum(waves=wave, fluxes=flux, sigmas=sigs)
+    yield Spectrum(waves=wave, fluxes=flux, sigmas=sigs)
 
 
 @pytest.fixture

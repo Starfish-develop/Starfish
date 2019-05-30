@@ -11,7 +11,7 @@ from scipy.linalg import cho_factor, cho_solve
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from ..transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
 from ..likelihoods import mvn_likelihood, normal_likelihood
-from ..kernels import k_global_matrix, k_local_matrix
+from ..kernels import global_covariance_matrix, local_covariance_matrix
 
 
 class SpectrumModel:
@@ -93,7 +93,7 @@ class SpectrumModel:
         If any of the keyword argument params do not exist in ``self._PARAMS``
     """
 
-    _PARAMS = ['vz', 'vsini', 'Av', 'Rv', 'log_scale']
+    _PARAMS = ['vz', 'vsini', 'Av', 'Rv', 'log_scale', 'log_sigma_amp']
     _GLOBAL_PARAMS = ['log_amp', 'log_ls']
     _LOCAL_PARAMS = ['mu', 'log_amp', 'log_sigma']
 
@@ -111,7 +111,7 @@ class SpectrumModel:
 
         self.params = OrderedDict()
         self.frozen = []
-        self.lnprob = None
+        self.last_lnprob = None
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
@@ -213,7 +213,7 @@ class SpectrumModel:
         if 'global' in self.params:
             ag = np.exp(self.glob['log_amp'])
             lg = np.exp(self.glob['log_ls'])
-            cov += k_global_matrix(self.data.waves, ag, lg)
+            cov += global_covariance_matrix(self.data.waves, ag, lg)
 
         # Local covariance
         if 'local' in self.params:
@@ -221,7 +221,7 @@ class SpectrumModel:
                 mu = kernel['mu']
                 amplitude = np.exp(kernel['log_amp'])
                 sigma = np.exp(kernel['log_sigma'])
-                cov += k_local_matrix(self.data.waves, amplitude, mu, sigma)
+                cov += local_covariance_matrix(self.data.waves, amplitude, mu, sigma)
 
         return flux, cov
 
@@ -454,6 +454,7 @@ class SpectrumModel:
 
         with open(filename, 'w') as handler:
             toml.dump(output, handler)
+            
         self.log.info('Saved current state at {}'.format(filename))
 
     def load(self, filename):
@@ -481,15 +482,11 @@ class SpectrumModel:
         float
             The current log-likelihood
         """
-        try:
-            flux, cov = self()
-        except ValueError:
-            return -np.inf
-
+        flux, cov = self()
         lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
         self.residuals.append(R)
         self.log.debug(f"Evaluating lnprob={lnprob}")
-        self.lnprob = lnprob
+        self.last_lnprob = lnprob
 
         return lnprob
 
@@ -504,12 +501,15 @@ class SpectrumModel:
         params = deepcopy(self.params)
         glob = params.pop('global', None)
         local = params.pop('local', None)
+
         for key, value in params.items():
             output += f'\t{key}: {value}\n'
+
         if glob is not None:
             output += 'Global Parameters:\n'
             for key, value in glob.items():
                 output += f'\t{key}: {value}\n'
+
         if local is not None:
             output += 'Local Parameters:\n'
             for i, kernel in enumerate(local):
@@ -517,6 +517,7 @@ class SpectrumModel:
                 for key, value in kernel.items():
                     output += f'{key}: {value}\n\t   '
                 output = output[:-4]
-        lnprob = self.lnprob if self.lnprob is not None else self.log_likelihood()
+                
+        lnprob = self.last_lnprob if self.last_lnprob is not None else self.log_likelihood()
         output += f'\nLog Likelihood: {lnprob:.2f}'
         return output

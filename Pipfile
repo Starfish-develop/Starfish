@@ -12,7 +12,6 @@ h5py = "*"
 tqdm = "*"
 extinction = "*"
 toml = "*"
-dataclasses = "*"
 
 [dev-packages]
 pytest = "*"

@@ -1,8 +1,7 @@
 import h5py
 import numpy as np
 
-
-class DataSpectrum:
+class Spectrum:
     """
     Object to store astronomical spectra.
 
@@ -37,9 +36,10 @@ class DataSpectrum:
 
     """
 
-    def __init__(self, waves, fluxes, sigmas=None, masks=None, orders='all', name=None):
+    def __init__(self, waves, fluxes, sigmas=None, masks=None, name='Spectrum'):
         self._waves = np.atleast_2d(waves)
         self._fluxes = np.atleast_2d(fluxes)
+
         if sigmas is not None:
             self._sigmas = np.atleast_2d(sigmas)
         else:
@@ -55,34 +55,19 @@ class DataSpectrum:
         assert self._sigmas.shape == self.shape, 'sigma array incompatible shape.'
         assert self.masks.shape == self.shape, 'mask array incompatible shape.'
 
-        if orders != 'all':
-            # can either be a numpy array or a list
-            orders = np.array(orders)  # just to make sure
-            self._waves = self._waves[orders]
-            self._fluxes = self._fluxes[orders]
-            self._sigmas = self._sigmas[orders]
-            self.masks = self.masks[orders]
-            self.shape = self._waves.shape
-            self.orders = orders
-        else:
-            self.orders = np.arange(self.shape[0])
-
         self.name = name
 
     @property
     def waves(self):
-        waves = self._waves[self.masks]
-        return waves
+        return self._waves[self.masks]
 
     @property
     def fluxes(self):
-        fluxes = self._fluxes[self.masks]
-        return fluxes
+        return self._fluxes[self.masks]
 
     @property
     def sigmas(self):
-        sigmas = self._sigmas[self.masks]
-        return sigmas
+        return self._sigmas[self.masks]
 
     @classmethod
     def load(cls, filename):
@@ -122,5 +107,5 @@ class DataSpectrum:
             if self.name is not None:
                 base.attrs['name'] = self.name
 
-    def __str__(self):
-        return self.name
+    def __repr__(self):
+        return f'{self.name} ({self._waves.shape[0]} orders)'

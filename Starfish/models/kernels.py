@@ -4,7 +4,7 @@ from typing import List
 from Starfish import constants as C
 
 
-def k_global_matrix(wave: np.ndarray, amplitude: float, lengthscale: float) -> np.ndarray:
+def global_covariance_matrix(wave: np.ndarray, amplitude: float, lengthscale: float) -> np.ndarray:
     """
     A matern-3/2 kernel where the metric is defined as the velocity separation of the wavelengths.
 
@@ -33,7 +33,7 @@ def k_global_matrix(wave: np.ndarray, amplitude: float, lengthscale: float) -> n
     return kernel
 
 
-def k_local_matrix(wave: np.ndarray, amplitude: float, mu: float, sigma: float) -> np.ndarray:
+def local_covariance_matrix(wave: np.ndarray, amplitude: float, mu: float, sigma: float) -> np.ndarray:
     """
     A local Gaussian kernel. In general, the kernel has density like
 

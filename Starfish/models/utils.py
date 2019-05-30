@@ -3,7 +3,7 @@ from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 
 import Starfish.constants as C
-from .kernels import k_global_matrix
+from .kernels import global_covariance_matrix
 
 
 def find_residual_peaks(model, num_residuals=100, threshold=4.0, buffer=2, wl_range=(0, np.inf)):

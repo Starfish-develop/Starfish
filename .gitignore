@@ -171,5 +171,5 @@ Starfish/emulator/_covariance.c
 Starfish/models/_kernels.c
 .python-version
 
-examples/F_TRES_emu.hdf5
-examples/F_TRES_grid.hdf5
+examples/*
+!examples/*.ipynb

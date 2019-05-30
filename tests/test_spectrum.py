@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from Starfish.spectrum import DataSpectrum
+from Starfish.spectrum import Spectrum
 
 
 class TestDataSpectrum:
@@ -19,7 +19,7 @@ class TestDataSpectrum:
     def test_save_load(self, mock_data_spectrum, tmpdir):
         filename = os.path.join(tmpdir, 'data.hdf5')
         mock_data_spectrum.save(filename)
-        new_spectrum = DataSpectrum.load(filename)
+        new_spectrum = Spectrum.load(filename)
         assert np.all(new_spectrum.waves == mock_data_spectrum.waves)
         assert np.all(new_spectrum.fluxes == mock_data_spectrum.fluxes)
         assert np.all(new_spectrum.sigmas == mock_data_spectrum.sigmas)

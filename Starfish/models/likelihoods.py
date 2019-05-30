@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Tuple
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
@@ -7,9 +8,10 @@ from scipy.linalg import cho_factor, cho_solve
 log = logging.getLogger(__name__)
 
 
-def mvn_likelihood(fluxes, y, C):
+def mvn_likelihood(fluxes: np.ndarray, y: np.ndarray, C: np.ndarray) -> Tuple(float, np.ndarray):
     cov = C.copy()
     np.fill_diagonal(cov, cov.diagonal() + 1e-8)
+
     try:
         factor, flag = cho_factor(cov)
     except np.linalg.LinAlgError:
@@ -20,9 +22,9 @@ def mvn_likelihood(fluxes, y, C):
 
     R = y - fluxes
 
-    logdet = 2 * np.log(factor.diagonal()).sum()
-    central = R.T @ cho_solve((factor, flag), R)
-    lnprob = -0.5 * (logdet + central)
+    logdet = 2 * np.sum(np.log(factor.diagonal()))
+    central = R @ cho_solve((factor, flag), R)
+    lnprob = -(logdet + central)/2
     return lnprob, R
 
 

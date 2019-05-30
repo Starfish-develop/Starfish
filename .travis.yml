@@ -36,7 +36,7 @@ before_install:
   - pip install -U pipenv
 
 install:
-  - pipenv install --deploy -d --python $TRAVIS_PYTHON_VERSION
+  - pipenv install -d --python $TRAVIS_PYTHON_VERSION
 
 script:
   - pipenv run pytest
