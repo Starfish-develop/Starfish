@@ -111,7 +111,6 @@ class SpectrumModel:
 
         self.params = OrderedDict()
         self.frozen = []
-        self.last_lnprob = None
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
@@ -221,7 +220,8 @@ class SpectrumModel:
                 mu = kernel['mu']
                 amplitude = np.exp(kernel['log_amp'])
                 sigma = np.exp(kernel['log_sigma'])
-                cov += local_covariance_matrix(self.data.waves, amplitude, mu, sigma)
+                cov += local_covariance_matrix(self.data.waves,
+                                               amplitude, mu, sigma)
 
         return flux, cov
 
@@ -242,7 +242,7 @@ class SpectrumModel:
                     '{} is not a valid local parameter.'.format(local_key))
             self.params['local'][idx][local_key] = value
         else:
-            if key not in self._PARAMS:
+            if key not in [*self._PARAMS, *self.emulator.param_names]:
                 raise ValueError('{} is not a valid parameter.'.format(key))
             self.params[key] = value
 
@@ -253,7 +253,7 @@ class SpectrumModel:
         Parameters
         ----------
         name : str or array-like
-            The parameter to freeze
+            The parameter to freeze. If 'all', will freeze all parameters.
 
         Raises
         ------
@@ -265,9 +265,12 @@ class SpectrumModel:
         :meth:`thaw`
         """
         names = np.atleast_1d(names)
-        for name in names:
-            if name not in self.frozen:
-                self.frozen.append(name)
+        if names[0] == 'all':
+            self.frozen.append(self.labels)
+        else:
+            for name in names:
+                if name not in self.frozen:
+                    self.frozen.append(name)
 
     def thaw(self, names):
         """
@@ -276,7 +279,7 @@ class SpectrumModel:
         Parameters
         ----------
         name : str or array-like
-            The parameter to thaw
+            The parameter to thaw. If 'all', will thaw all parameters
 
         Raises
         ------
@@ -288,9 +291,12 @@ class SpectrumModel:
         :meth:`freeze`
         """
         names = np.atleast_1d(names)
-        for name in names:
-            if name in self.frozen:
-                self.frozen.remove(name)
+        if names[0] == 'all':
+            self.frozen = []
+        else:
+            for name in names:
+                if name in self.frozen:
+                    self.frozen.remove(name)
 
     def get_param_dict(self, flat=False):
         """
@@ -454,7 +460,7 @@ class SpectrumModel:
 
         with open(filename, 'w') as handler:
             toml.dump(output, handler)
-            
+
         self.log.info('Saved current state at {}'.format(filename))
 
     def load(self, filename):
@@ -486,7 +492,6 @@ class SpectrumModel:
         lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
         self.residuals.append(R)
         self.log.debug(f"Evaluating lnprob={lnprob}")
-        self.last_lnprob = lnprob
 
         return lnprob
 
@@ -517,7 +522,6 @@ class SpectrumModel:
                 for key, value in kernel.items():
                     output += f'{key}: {value}\n\t   '
                 output = output[:-4]
-                
-        lnprob = self.last_lnprob if self.last_lnprob is not None else self.log_likelihood()
-        output += f'\nLog Likelihood: {lnprob:.2f}'
+
+        output += f'\nLog Likelihood: {self.log_likelihood():.2f}'
         return output

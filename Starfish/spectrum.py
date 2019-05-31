@@ -51,6 +51,7 @@ class Spectrum:
             self.masks = np.ones_like(self._waves, dtype=bool)
 
         self.shape = self._waves.shape
+        self.norders = self.shape[0]
         assert self._fluxes.shape == self.shape, 'flux array incompatible shape.'
         assert self._sigmas.shape == self.shape, 'sigma array incompatible shape.'
         assert self.masks.shape == self.shape, 'mask array incompatible shape.'
@@ -59,15 +60,15 @@ class Spectrum:
 
     @property
     def waves(self):
-        return self._waves[self.masks]
+        return np.squeeze(self._waves[self.masks].reshape(self.norders, -1))
 
     @property
     def fluxes(self):
-        return self._fluxes[self.masks]
+        return np.squeeze(self._fluxes[self.masks].reshape(self.norders, -1))
 
     @property
     def sigmas(self):
-        return self._sigmas[self.masks]
+        return np.squeeze(self._sigmas[self.masks].reshape(self.norders, -1))
 
     @classmethod
     def load(cls, filename):
