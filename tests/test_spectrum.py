@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from Starfish import Spectrum
+from Starfish.spectrum import Order
 
 
 class TestSpectrum:
@@ -23,6 +24,12 @@ class TestSpectrum:
 
         assert np.allclose(reshaped.waves, data.waves)
         assert np.allclose(reshaped.fluxes, data.fluxes)
+
+    def test_dunders(self, mock_spectrum):
+        assert len(mock_spectrum) == 1
+        assert isinstance(mock_spectrum[0], Order)
+        mock_spectrum.name = "special"
+        assert str(mock_spectrum).startswith("special")
 
     def test_masking(self, mock_spectrum):
         mask = np.random.randn(*mock_spectrum.shape) > 0

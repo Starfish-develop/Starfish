@@ -110,7 +110,7 @@ def mock_trained_emulator(mock_emulator):
 
 
 @pytest.fixture
-def mock_model(mock_data_spectrum, mock_trained_emulator):
+def mock_model(mock_spectrum, mock_trained_emulator):
     global_params = {"log_amp": 1, "log_ls": 1}
     local_params = [
         {"mu": 1e4, "log_amp": 2, "log_sigma": 2},
@@ -119,7 +119,7 @@ def mock_model(mock_data_spectrum, mock_trained_emulator):
     yield SpectrumModel(
         mock_trained_emulator,
         grid_params=[6000, 4.0, 0.0],
-        data=mock_data_spectrum,
+        data=mock_spectrum,
         vz=0,
         Av=0,
         log_scale=-10,

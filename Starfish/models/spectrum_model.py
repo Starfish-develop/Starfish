@@ -1,6 +1,7 @@
 import copy
 import multiprocessing as mp
 from typing import List, Union, Sequence, Callable, Optional
+import logging
 
 from flatdict import FlatterDict
 import numpy as np
@@ -48,15 +49,15 @@ class SpectrumModel:
         self.data = data.reshape((n_chunks, -1))
         self.map_fn = map_fn
 
-        self.orders = []
+        self.chunks = []
         for i in range(n_chunks):
-            self.orders.append(
+            self.chunks.append(
                 OrderModel(
                     emulator,
                     self.data[i],
                     grid_params,
                     max_deque_len,
-                    name=f"Order: {i}",
+                    name=f"Chunk: {i}",
                     **params,
                 )
             )
@@ -66,7 +67,7 @@ class SpectrumModel:
         params.pop("local_cov", None)
         params.pop("cheb", None)
         self.params.update(
-            {**params, "orders": [o.independent_params for o in self.orders]}
+            {**params, "chunks": [o.independent_params for o in self.chunks]}
         )
 
     @property
@@ -85,7 +86,7 @@ class SpectrumModel:
 
     @property
     def residuals(self):
-        return np.asarray([o.residuals for o in self.orders])
+        return np.asarray([o.residuals for o in self.chunks])
 
     @property
     def labels(self):
@@ -95,7 +96,7 @@ class SpectrumModel:
     def __call__(self):
         fluxes = []
         covs = []
-        for order in self.orders:
+        for order in self.chunks:
             fl, cov = order()
             fluxes.append(fl)
             covs.append(cov)
@@ -103,7 +104,7 @@ class SpectrumModel:
         return np.asarray(fluxes), np.asarray(covs)
 
     def log_likelihood(self):
-        lnps = self.map_fn(order_likelihood, self.orders)
+        lnps = self.map_fn(order_likelihood, self.chunks)
         return sum(lnps)
 
     def get_param_dict(self, flat=False):
@@ -121,8 +122,8 @@ class SpectrumModel:
             del params[key]
 
         self.params.update(params)
-        order_params = params.pop("orders")
-        for order, order_param in zip(self.orders, order_params):
+        order_params = params.pop("chunks")
+        for order, order_param in zip(self.chunks, order_params):
             order.params.update({**params, **order_param})
 
     def get_param_vector(self):

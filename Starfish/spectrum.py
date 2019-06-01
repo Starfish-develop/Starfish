@@ -120,7 +120,7 @@ class Spectrum:
         fluxes = self.fluxes.reshape(shape)
         sigmas = self.sigmas.reshape(shape)
         masks = self.masks.reshape(shape)
-        return Spectrum(waves, fluxes, sigmas, masks, name=self.name)
+        return self.__class__(waves, fluxes, sigmas, masks, name=self.name)
 
     @property
     def masks(self):

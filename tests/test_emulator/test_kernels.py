@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from Starfish.emulator.covariance import rbf_kernel, batch_kernel
+from Starfish.emulator.kernels import rbf_kernel, batch_kernel
 
 
 @pytest.fixture
@@ -24,6 +24,8 @@ class TestKernel:
         variances, lengthscales = mock_kern_params
         cov = rbf_kernel(mock_params, mock_params, variances[0], lengthscales[0])
         assert cov.shape == (len(mock_params), len(mock_params))
+        assert np.allclose(cov, cov.T)
+        assert np.all(cov.diagonal() >= 0.0)
 
     def test_rbf_kernel_diff(self, mock_params, mock_kern_params):
         variances, lengthscales = mock_kern_params
@@ -40,6 +42,8 @@ class TestBatchKernel:
             len(variances) * len(mock_params),
             len(variances) * len(mock_params),
         )
+        assert np.allclose(cov, cov.T)
+        assert np.all(cov.diagonal() >= 0.0)
 
     def test_batch_kernel_diff(self, mock_params, mock_kern_params):
         variances, lengthscales = mock_kern_params

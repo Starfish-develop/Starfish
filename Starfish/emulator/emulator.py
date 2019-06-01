@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
-from .covariance import batch_kernel
+from .kernels import batch_kernel
 from ._utils import get_phi_squared, get_w_hat
 
 log = logging.getLogger(__name__)
