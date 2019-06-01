@@ -5,9 +5,22 @@ try:
 except NameError:
     __STARFISH_SETUP__ = False
 
-__version__ = '0.3.0-dev'
+__version__ = "0.3.1-dev"
 
 if not __STARFISH_SETUP__:
 
-    __all__ = ['constants', 'emulator', 'grid_tools', 'models', 'samplers', 'spectrum', 'utils']
+    from .spectrum import Spectrum
+    from .emulator import Emulator
+
+    __all__ = [
+        "constants",
+        "emulator",
+        "Emulator",
+        "grid_tools",
+        "models",
+        "samplers",
+        "spectrum",
+        "Spectrum",
+        "utils",
+    ]
 

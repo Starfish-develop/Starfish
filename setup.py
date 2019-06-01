@@ -32,18 +32,25 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
     install_requires=[
-        "numpy",
-        "scipy",
-        "extinction",
-        "scikit-learn",
+        "astropy",
         "emcee==3.0rc2",
+        "extinction",
+        "flatdict",
         "h5py",
         "nptyping",
-        "astropy",
-        "tqdm",
+        "numpy",
+        "scikit-learn",
+        "scipy",
         "toml",
+        "tqdm",
     ],
     maintainer="Ian Czekala",
     maintainer_email="iancze@gmail.com",
     include_package_data=True,
+    test_requires = [
+        "pytest",
+        "pytest-cov",
+        "pytest-black",
+        "mypy"
+    ]
 )

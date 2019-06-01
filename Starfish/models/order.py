@@ -9,9 +9,8 @@ from nptyping import Array
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
-from Starfish.emulator import Emulator
+from Starfish import Emulator
 from Starfish.utils import calculate_dv, create_log_lam_grid
-from .model import Model
 from .transforms import (
     rotational_broaden,
     resample,
@@ -30,9 +29,9 @@ class OrderModel:
 
     Parameters
     ----------
-    emulator : :class:`Starfish.emulators.Emulator`
+    emulator : :class:`Starfish.Emulator`
         The emulator to use for this model.
-    data : :class:`Starfish.spectrum.Spectrum`
+    data : :class:`Starfish.Spectrum`
         The data to use for this model
     grid_params : array-like
         The parameters that are used with the associated emulator

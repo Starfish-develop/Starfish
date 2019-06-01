@@ -3,7 +3,7 @@ import pytest
 from scipy.linalg import block_diag
 
 from Starfish.emulator._utils import inverse_block_diag
-from Starfish.emulator import Emulator
+from Starfish import Emulator
 
 
 class TestEmulator:

@@ -2,10 +2,10 @@ import os
 
 import numpy as np
 
-from Starfish.spectrum import Spectrum
+from Starfish import Spectrum
 
 
-class TestDataSpectrum:
+class TestSpectrum:
 
     def test_masking(self, mock_data_spectrum):
         mask = np.random.randn(*mock_data_spectrum.shape) > 0
