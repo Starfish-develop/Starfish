@@ -30,6 +30,7 @@ sphinx-bootstrap-theme = "*"
 nbsphinx = "*"
 ipython = "*"
 mypy = "*"
+pytest-black = "*"
 
 [pipenv]
 allow_prereleases = true

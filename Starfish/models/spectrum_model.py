@@ -5,7 +5,7 @@ from typing import List, Union, Sequence, Callable, Optional
 from flatdict import FlatterDict
 import numpy as np
 
-from Starfish.spectrum import Spectrum
+from Starfish import Spectrum
 from .likelihoods import order_likelihood
 from .order import OrderModel
 
@@ -13,7 +13,7 @@ from .order import OrderModel
 class SpectrumModel:
     def __init__(
         self,
-        emulator: Union[str, "Starfish.emulator.Emulator"],
+        emulator: Union[str, "Starfish.Emulator"],
         data: Union[str, Spectrum],
         grid_params: Sequence[float],
         max_deque_len: int = 100,
