@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Tuple, Union
+from nptyping import Array
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
@@ -8,65 +8,21 @@ from scipy.linalg import cho_factor, cho_solve
 log = logging.getLogger(__name__)
 
 
-def mvn_likelihood(fluxes: np.ndarray, y: np.ndarray, C: np.ndarray) -> Tuple[float, np.ndarray]:
-    cov = C.copy()
-    np.fill_diagonal(cov, cov.diagonal() + 1e-8)
+def order_likelihood(model: "Starfish.models.SpectrumModel") -> float:
+    flux, cov = model()
+    np.fill_diagonal(cov, cov.diagonal() + np.finfo(cov.dtype).eps)
 
     try:
-        factor, flag = cho_factor(cov)
+        factor, flag = cho_factor(cov, overwrite_a=True)
     except np.linalg.LinAlgError:
-        log.warning(
-            'Failed to decompose covariance. Entering covariance debugger')
+        model.log.warning(
+            "failed to decompose covariance. Entering covariance debugger"
+        )
         covariance_debugger(cov)
         sys.exit()
 
-    R = y - fluxes
-
+    R = flux - model.data.fluxes
+    model.residuals.append(R)
     logdet = 2 * np.sum(np.log(factor.diagonal()))
-    central = R @ cho_solve((factor, flag), R)
-    lnprob = -(logdet + central)/2
-    return lnprob, R
-
-
-def normal_likelihood(fluxes: np.ndarray, y: np.ndarray, var: Union[np.ndarray, float]) -> Tuple[float, np.ndarray]:
-    R = y - fluxes
-    l2 = R ** 2 / var
-    lnprob = - 0.5 * np.sum(np.log(var) + l2)
-
-    return lnprob, R
-
-
-def covariance_debugger(cov):
-    """
-    Special debugging information for the covariance matrix decomposition.
-    """
-    log.info('{:-^60}'.format('Covariance Debugger'))
-    log.info("See https://github.com/iancze/Starfish/issues/26")
-    log.info("Covariance matrix at a glance:")
-    if (cov.diagonal().min() < 0.0):
-        log.warning("- Negative entries on the diagonal:")
-        log.info("\t- Check sigAmp: should be positive")
-        log.info("\t- Check uncertainty estimates: should all be positive")
-    elif np.any(np.isnan(cov.diagonal())):
-        log.warning("- Covariance matrix has a NaN value on the diagonal")
-    else:
-        if not np.allclose(cov, cov.T):
-            log.warning("- The covariance matrix is highly asymmetric")
-
-        # Still might have an asymmetric matrix below `allclose` threshold
-        eigenvalues, eigenvectors = np.linalg.eigh(cov)
-        n_neg = (eigenvalues < 0).sum()
-        n_tot = len(eigenvalues)
-        log.info(
-            "- There are {} negative eigenvalues out of {}.".format(n_neg, n_tot))
-
-        def mark(val): return '>' if val < 0 else '.'
-
-        log.info("Covariance matrix eigenvalues:")
-        [log.info("{: >6} {:{fill}>20.3e}".format(i, eigenvalues[i],
-                                                  fill=mark(eigenvalues[i]))) for i in range(10)]
-        log.info('{: >15}'.format('...'))
-        [log.info("{: >6} {:{fill}>20.3e}".format(n_tot - 10 + i, eigenvalues[-10 + i],
-                                                  fill=mark(eigenvalues[-10 + i]))) for i in range(10)]
-
-    log.info('{:-^60}'.format('-'))
+    sqmah = R @ cho_solve((factor, flag), R)
+    return -(logdet + sqmah) / 2

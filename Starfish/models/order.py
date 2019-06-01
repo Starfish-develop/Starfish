@@ -1,20 +1,6 @@
-import logging
-from copy import deepcopy
-import warnings
-from collections import OrderedDict, deque
-import toml
-from typing import List, Union
+from .model import Model
 
-import numpy as np
-from scipy.linalg import cho_factor, cho_solve
-
-from Starfish.utils import calculate_dv, create_log_lam_grid
-from ..transforms import rotational_broaden, resample, doppler_shift, extinct, rescale, chebyshev_correct
-from ..likelihoods import mvn_likelihood, normal_likelihood
-from ..kernels import global_covariance_matrix, local_covariance_matrix
-
-
-class SpectrumModel:
+class Order(Model):
     """
     A single-order spectrum model.
 
@@ -246,57 +232,6 @@ class SpectrumModel:
                 raise ValueError('{} is not a valid parameter.'.format(key))
             self.params[key] = value
 
-    def freeze(self, names):
-        """
-        Freeze the given parameter such that :meth:`get_param_dict` and :meth:`get_param_vector` no longer include this parameter, however it will still be used when calling the model.
-
-        Parameters
-        ----------
-        name : str or array-like
-            The parameter to freeze. If 'all', will freeze all parameters.
-
-        Raises
-        ------
-        ValueError
-            If the given parameter does not exist
-
-        See Also
-        --------
-        :meth:`thaw`
-        """
-        names = np.atleast_1d(names)
-        if names[0] == 'all':
-            self.frozen.append(self.labels)
-        else:
-            for name in names:
-                if name not in self.frozen:
-                    self.frozen.append(name)
-
-    def thaw(self, names):
-        """
-        Thaws the given parameter. Opposite of freezing
-
-        Parameters
-        ----------
-        name : str or array-like
-            The parameter to thaw. If 'all', will thaw all parameters
-
-        Raises
-        ------
-        ValueError
-            If the given parameter does not exist.
-
-        See Also
-        --------
-        :meth:`freeze`
-        """
-        names = np.atleast_1d(names)
-        if names[0] == 'all':
-            self.frozen = []
-        else:
-            for name in names:
-                if name in self.frozen:
-                    self.frozen.remove(name)
 
     def get_param_dict(self, flat=False):
         """
@@ -488,12 +423,10 @@ class SpectrumModel:
         float
             The current log-likelihood
         """
-        flux, cov = self()
-        lnprob, R = mvn_likelihood(flux, self.data.fluxes, cov)
-        self.residuals.append(R)
-        self.log.debug(f"Evaluating lnprob={lnprob}")
+        log_like = order_likelihood(self)
+        self.log.debug(f"Evaluating log_like={log_like}")
 
-        return lnprob
+        return log_like
 
     def grad_log_likelihood(self):
         raise NotImplementedError('Not Implemented yet')

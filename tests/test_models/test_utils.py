@@ -3,7 +3,7 @@ from collections import deque
 import numpy as np
 import pytest
 
-from Starfish.models import find_residual_peaks, optimize_residual_peaks
+from Starfish.models import find_residual_peaks, optimize_residual_peaks, covariance_debugger
 
 class TestUtils:
 
@@ -25,3 +25,8 @@ class TestUtils:
         assert len(params) == len(peaks)
         model.local = params
         assert model.params['local'] == params
+
+    def test_covariance_debugger(self):
+        # Just test if it runs
+        cov = np.eye(100)
+        covariance_debugger(cov)
