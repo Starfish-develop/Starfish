@@ -27,6 +27,7 @@ class SpectrumModel:
             data = Spectrum.load(data)
 
         self.emulator = emulator
+        self.data = data
 
         self.params = FlatterDict()
         self.frozen = []
@@ -46,7 +47,7 @@ class SpectrumModel:
         if n_chunks is None:
             n_chunks = mp.cpu_count()
 
-        self.data = data.reshape((n_chunks, -1))
+        self.data.reshape((n_chunks, -1))
         self.map_fn = map_fn
 
         self.chunks = []

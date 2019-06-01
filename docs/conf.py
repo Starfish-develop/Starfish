@@ -16,7 +16,7 @@ import sphinx_bootstrap_theme
 import os
 import sys
 
-base_dir = os.path.abspath("..")
+base_dir = os.path.abspath('..')
 sys.path.insert(0, base_dir)
 
 import Starfish
@@ -32,18 +32,18 @@ release = version
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.coverage",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.graphviz",
-    "sphinx.ext.inheritance_diagram",
-    "sphinx.ext.autosectionlabel",
-    "sphinx.ext.napoleon",
-    "nbsphinx",
-    "IPython.sphinxext.ipython_console_highlighting",
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.coverage',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.graphviz',
+    'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.autosectionlabel',
+    'sphinx.ext.napoleon',
+    'nbsphinx',
+    'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 # Autodocs parameters
@@ -51,26 +51,26 @@ extensions = [
 autodoc_docstring_signature = True  # useful for @np.vectorize methods
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = ['_templates']
 
 
 # The master toctree document.
-master_doc = "index"
+master_doc = 'index'
 
 # General information about the project.
-project = "Starfish"
-copyright = "2013-19, Ian Czekala"
+project = 'Starfish'
+copyright = '2013-19, Ian Czekala'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = "sphinx"
+pygments_style = 'sphinx'
 
 
 # Activate the theme.
-html_theme = "bootstrap"
+html_theme = 'bootstrap'
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 nbsphinx_prolog = """
@@ -84,11 +84,14 @@ This page was generated from `{{ env.doc2path(env.docname, base=None) }} <https:
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "bootswatch_theme": "simplex",
-    "navbar_sidebarrel": False,
-    "navbar_links": [("API", "api/index"), ("Examples", "examples/index")],
-    "navbar_class": "navbar bg-dark",
-    "globaltoc_depth": 2,
+    'bootswatch_theme': 'simplex',
+    'navbar_sidebarrel': False,
+    'navbar_links': [
+        ('API', 'api/index'),
+        ('Examples', 'examples/index')
+    ],
+    'navbar_class': 'navbar bg-dark',
+    'globaltoc_depth': 2
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -108,17 +111,15 @@ html_theme_options = {
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "assets/starfish.ico"
+html_favicon = 'assets/starfish.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
+html_static_path = ['_static']
 
 def setup(app):
-    app.add_stylesheet("overrides.css")
-
+    app.add_stylesheet('overrides.css')
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -129,7 +130,9 @@ def setup(app):
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {"**": ["searchbox.html", "sidebartoc.html"]}
+html_sidebars = {
+    '**': ['searchbox.html', 'sidebartoc.html']
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -162,15 +165,17 @@ html_sidebars = {"**": ["searchbox.html", "sidebartoc.html"]}
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "Starfishdoc"
+htmlhelp_basename = 'Starfishdoc'
 
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     # 'papersize': 'letterpaper',
+
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
+
     # Additional stuff for the LaTeX preamble.
     # 'preamble': '',
 }
@@ -178,7 +183,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "Starfish.tex", "Starfish Documentation", "Ian Czekala", "manual")
+    ('index', 'Starfish.tex', 'Starfish Documentation',
+     'Ian Czekala', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -206,7 +212,10 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "starfish", "Starfish Documentation", ["Ian Czekala"], 1)]
+man_pages = [
+    ('index', 'starfish', 'Starfish Documentation',
+     ['Ian Czekala'], 1)
+]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -218,15 +227,9 @@ man_pages = [("index", "starfish", "Starfish Documentation", ["Ian Czekala"], 1)
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (
-        "index",
-        "Starfish",
-        "Starfish Documentation",
-        "Ian Czekala",
-        "Starfish",
-        "One line description of project.",
-        "Miscellaneous",
-    )
+    ('index', 'Starfish', 'Starfish Documentation',
+     'Ian Czekala', 'Starfish', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

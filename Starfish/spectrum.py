@@ -76,9 +76,9 @@ class Spectrum:
             self.sigmas = np.ones_like(self.fluxes)
 
         if masks is not None:
-            self._masks = np.atleast_2d(masks)
+            self.masks = np.atleast_2d(masks)
         else:
-            self._masks = np.ones_like(self.waves, dtype=bool)
+            self.masks = np.ones_like(self.waves, dtype=bool)
 
         self._shape = self.waves.shape
         self.norders = self._shape[0]
@@ -88,7 +88,7 @@ class Spectrum:
         self.orders = []
         for i in range(self.norders):
             self.orders.append(
-                Order(self.waves[i], self.fluxes[i], self.sigmas[i], self._masks[i])
+                Order(self.waves[i], self.fluxes[i], self.sigmas[i], self.masks[i])
             )
         self.name = name
 
@@ -104,13 +104,15 @@ class Spectrum:
 
     @shape.setter
     def shape(self, shape):
+        if np.product(shape) != np.product(self._shape):
+            raise ValueError(f"{shape} incompatible with shape {self.shape}")
         self.waves = self.waves.reshape(shape)
         self.fluxes = self.fluxes.reshape(shape)
         self.sigmas = self.sigmas.reshape(shape)
         self.masks = self.masks.reshape(shape)
-        self._shape = self.waves.shape
+        self._shape = shape
         self.orders = []
-        for i in range(self._shape[0]):
+        for i in range(shape[0]):
             self.orders.append(
                 Order(self.waves[i], self.fluxes[i], self.sigmas[i], self.masks[i])
             )

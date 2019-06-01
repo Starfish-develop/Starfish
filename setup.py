@@ -35,7 +35,6 @@ setup(
         "astropy",
         "emcee==3.0rc2",
         "extinction",
-        "flatdict",
         "h5py",
         "nptyping",
         "numpy",
@@ -47,5 +46,10 @@ setup(
     maintainer="Ian Czekala",
     maintainer_email="iancze@gmail.com",
     include_package_data=True,
-    test_requires=["pytest", "pytest-cov", "pytest-black", "mypy"],
+    test_requires = [
+        "pytest",
+        "pytest-cov",
+        "pytest-black",
+        "mypy"
+    ]
 )
