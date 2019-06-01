@@ -1,15 +1,38 @@
+from collections import deque
+import copy
+import logging
+import toml
+from typing import Sequence, Union, List
+
+from flatdict import FlatterDict
+from nptyping import Array
+import numpy as np
+from scipy.linalg import cho_factor, cho_solve
+
+from Starfish.emulator import Emulator
+from Starfish.utils import calculate_dv, create_log_lam_grid
 from .model import Model
+from .transforms import (
+    rotational_broaden,
+    resample,
+    doppler_shift,
+    extinct,
+    rescale,
+    chebyshev_correct,
+)
+from .likelihoods import order_likelihood
+from .kernels import global_covariance_matrix, local_covariance_matrix
 
-class Order(Model):
+
+class OrderModel:
     """
-    A single-order spectrum model.
-
+    A model for a single order of data
 
     Parameters
     ----------
     emulator : :class:`Starfish.emulators.Emulator`
         The emulator to use for this model.
-    data : :class:`Starfish.spectrum.DataSpectrum`
+    data : :class:`Starfish.spectrum.Spectrum`
         The data to use for this model
     grid_params : array-like
         The parameters that are used with the associated emulator
@@ -32,6 +55,7 @@ class Order(Model):
     Av           :func:`transforms.extinct`
     Rv           :func:`transforms.extinct`              
     log_scale    :func:`transforms.rescale`
+    cheb         :func:`transforms.chebyshev_correct`
     =========== =======================================
 
     The ``glob`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel
@@ -60,18 +84,14 @@ class Order(Model):
         The dictionary of parameters that are used for doing the modeling.
     grid_params : numpy.ndarray
         A direct interface to the grid parameters rather than indexing like self['T']
-    glob : dict
-        The parameters for the global covariance kernel
-    local : list of dicts
-        The parameters for the local covariance kernels
+    cheb_params : numpy.ndarray
+        A direct interface to the chebyshev parameters
     frozen : list
         A list of strings corresponding to frozen parameters
     labels : list
         A list of strings corresponding to the active (thawed) parameters
     residuals : deque
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
-    lnprob : float
-        The most recently evaluated log-likelihood. Initialized to None
 
     Raises
     ------
@@ -79,40 +99,65 @@ class Order(Model):
         If any of the keyword argument params do not exist in ``self._PARAMS``
     """
 
-    _PARAMS = ['vz', 'vsini', 'Av', 'Rv', 'log_scale', 'log_sigma_amp']
-    _GLOBAL_PARAMS = ['log_amp', 'log_ls']
-    _LOCAL_PARAMS = ['mu', 'log_amp', 'log_sigma']
+    _PARAMS = [
+        "vz",
+        "vsini",
+        "Av",
+        "Rv",
+        "log_scale",
+        "log_sigma_amp",
+        "cheb",
+        "log_amp",
+        "log_ls",
+        "mu",
+        "log_sigma",
+    ]
 
-    def __init__(self, emulator, data, grid_params, max_deque_len=100, **params):
+    def __init__(
+        self,
+        emulator: Union[str, Emulator],
+        order: "Starfish.models.OrderModel",
+        grid_params: Sequence[float],
+        max_deque_len: int = 100,
+        name: str = "OrderModel",
+        **params,
+    ):
+
+        if isinstance(emulator, str):
+            emulator = Emulator.load(emulator)
+
         self.emulator = emulator
+        self.data = order
 
-        self.data = data
-        dv = calculate_dv(self.data.waves)
-        self.min_dv_wave = create_log_lam_grid(
-            dv, self.emulator.wl.min(), self.emulator.wl.max())['wl']
-        self.bulk_fluxes = resample(
-            self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wave)
-
-        self.residuals = deque(maxlen=max_deque_len)
-
-        self.params = OrderedDict()
+        self.params = FlatterDict()
         self.frozen = []
+        self.name = name
+        self.residuals = deque(maxlen=max_deque_len)
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
         self.grid_params = grid_params
 
-        # Unpack the keyword arguments
-        if 'glob' in params:
-            params['global'] = params.pop('glob')
-        self.params.update(params)
-
         self.log = logging.getLogger(self.__class__.__name__)
+
+        dv = calculate_dv(self.data.wave)
+
+        self.min_dv_wave = create_log_lam_grid(
+            dv, self.emulator.wl.min(), self.emulator.wl.max()
+        )["wl"]
+        self.bulk_fluxes = resample(
+            self.emulator.wl, self.emulator.bulk_fluxes, self.min_dv_wave
+        )
+        # Unpack the keyword arguments
+        self.params.update(params)
 
     @property
     def grid_params(self):
-        items = [vals for key, vals in self.params.items()
-                 if key in self.emulator.param_names]
+        items = [
+            vals
+            for key, vals in self.params.items()
+            if key in self.emulator.param_names
+        ]
         return np.array(items)
 
     @grid_params.setter
@@ -121,31 +166,14 @@ class Order(Model):
             self.params[key] = value
 
     @property
-    def glob(self):
-        return self.params['global']
-
-    @glob.setter
-    def glob(self, params):
-        if not isinstance(params, dict):
-            raise ValueError('Must set global parameters with a dictionary')
-
-        for key, value in params.items():
-            if key not in self._GLOBAL_PARAMS:
-                raise ValueError(
-                    '{} not a recognized global parameter'.format(key))
-            self.params['global'][key] = value
-
-    @property
-    def local(self):
-        return self.params['local']
-
-    @local.setter
-    def local(self, params: List[dict]):
-        self.params['local'] = []
-        for i, kernel in enumerate(params):
-            if not all([k in self._LOCAL_PARAMS for k in kernel.keys()]):
-                raise ValueError('Unrecognized key in kernel {}'.format(i))
-            self.params['local'].append(kernel)
+    def independent_params(self):
+        return FlatterDict(
+            {
+                **self.params["cheb"],
+                **self.params["global_cov"],
+                **self.params["local_cov"],
+            }
+        )
 
     @property
     def labels(self):
@@ -163,20 +191,23 @@ class Order(Model):
         wave = self.min_dv_wave
         fluxes = self.bulk_fluxes
 
-        if 'vsini' in self.params:
-            fluxes = rotational_broaden(wave, fluxes, self.params['vsini'])
+        if "vsini" in self.params:
+            fluxes = rotational_broaden(wave, fluxes, self.params["vsini"])
 
-        if 'vz' in self.params:
-            wave = doppler_shift(wave, self.params['vz'])
+        if "vz" in self.params:
+            wave = doppler_shift(wave, self.params["vz"])
 
-        fluxes = resample(wave, fluxes, self.data.waves)
+        fluxes = resample(wave, fluxes, self.data.wave)
 
-        if 'Av' in self.params:
-            fluxes = extinct(self.data.waves, fluxes, self.params['Av'])
+        if "Av" in self.params:
+            fluxes = extinct(self.data.wave, fluxes, self.params["Av"])
+
+        if "cheb" in self.params:
+            fluxes = chebyshev_correct(self.data.wave, fluxes, self.params["cheb"])
 
         # Only rescale flux_mean and flux_std
-        if 'log_scale' in self.params:
-            fluxes[-2:] = rescale(fluxes[-2:], self.params['log_scale'])
+        if "log_scale" in self.params:
+            fluxes[-2:] = rescale(fluxes[-2:], self.params["log_scale"])
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -192,48 +223,36 @@ class Order(Model):
         cov = X.T @ cho_solve((L, flag), X)
 
         # Trivial covariance
-        np.fill_diagonal(cov, cov.diagonal() + self.data.sigmas ** 2)
+        np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)
 
         # Global covariance
-        if 'global' in self.params:
-            ag = np.exp(self.glob['log_amp'])
-            lg = np.exp(self.glob['log_ls'])
-            cov += global_covariance_matrix(self.data.waves, ag, lg)
+        if "global_cov" in self.params:
+            ag = np.exp(self.params["global_cov"]["log_amp"])
+            lg = np.exp(self.params["global_cov"]["log_ls"])
+            cov += global_covariance_matrix(self.data.wave, ag, lg)
 
         # Local covariance
-        if 'local' in self.params:
-            for kernel in self.local:
-                mu = kernel['mu']
-                amplitude = np.exp(kernel['log_amp'])
-                sigma = np.exp(kernel['log_sigma'])
-                cov += local_covariance_matrix(self.data.waves,
-                                               amplitude, mu, sigma)
+        if "local_cov" in self.params:
+            for kernel in self.params["local_cov"]:
+                mu = kernel["mu"]
+                amplitude = np.exp(kernel["log_amp"])
+                sigma = np.exp(kernel["log_sigma"])
+                cov += local_covariance_matrix(self.data.wave, amplitude, mu, sigma)
 
         return flux, cov
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self.params[key]
 
-    def __setitem__(self, key, value):
-        if key.startswith('global'):
-            global_key = key.split(':')[-1]
-            if global_key not in self._GLOBAL_PARAMS:
-                raise ValueError(
-                    '{} is not a valid global parameter.'.format(global_key))
-            self.params['global'][global_key] = value
-        elif key.startswith('local'):
-            idx, local_key = key.split(':')[-2:]
-            if local_key not in self._LOCAL_PARAMS:
-                raise ValueError(
-                    '{} is not a valid local parameter.'.format(local_key))
-            self.params['local'][idx][local_key] = value
-        else:
-            if key not in [*self._PARAMS, *self.emulator.param_names]:
-                raise ValueError('{} is not a valid parameter.'.format(key))
-            self.params[key] = value
+    def __setitem__(self, key: str, value):
+        if not key.split(":")[-1] in self._PARAMS:
+            raise ValueError(f"{key} not a recognized parameter.")
+        self.params[key] = value
 
+    def log_likelihood(self):
+        return order_likelihood(self)
 
-    def get_param_dict(self, flat=False):
+    def get_param_dict(self, flat: bool = False) -> Union[FlatterDict, dict]:
         """
         Gets the dictionary of thawed parameters.
 
@@ -248,44 +267,13 @@ class Order(Model):
         --------
         :meth:`set_param_dict`
         """
-        params = {}
-        for par in self.params:
+        params = copy.deepcopy(self.params)
+        for key in self.frozen:
+            del params[key]
 
-            # Handle global nest
-            if par == 'global':
-                if not flat:
-                    params['global'] = {}
-                for key, val in self.params['global'].items():
-                    flat_key = 'global:{}'.format(key)
-                    if flat_key not in self.frozen:
-                        if flat:
-                            params[flat_key] = val
-                        else:
-                            params['global'][key] = val
+        return params if flat else params.as_dict()
 
-            # Handle local nest
-            elif par == 'local':
-                # Set up list if we need to
-                if not flat:
-                    params['local'] = []
-                for i, kernel in enumerate(self.params['local']):
-                    kernel_copy = deepcopy(kernel)
-                    for key, val in kernel.items():
-                        flat_key = 'local:{}:{}'.format(i, key)
-                        if flat_key in self.frozen:
-                            del kernel_copy[key]
-                        if flat and flat_key not in self.frozen:
-                            params[flat_key] = val
-                    if not flat:
-                        params['local'].append(kernel_copy)
-
-            # Handle base nest
-            elif par not in self.frozen:
-                params[par] = self.params[par]
-
-        return params
-
-    def set_param_dict(self, params, flat):
+    def set_param_dict(self, params: dict):
         """
         Sets the parameters with a dictionary. Note that this should not be used to add new parametersl
 
@@ -293,41 +281,16 @@ class Order(Model):
         ----------
         params : dict
             The new parameters. If a key is present in ``self.frozen`` it will not be changed
-        flat : bool
-            Whether or not the incoming dictionary is flattened
 
         See Also
         --------
         :meth:`get_param_dict`
         """
-        for key, val in params.items():
-            # Handle flat case
-            if flat:
-                if key not in self.frozen:
-                    if key.startswith('global'):
-                        global_key = key.split(':')[-1]
-                        self.params['global'][global_key] = val
-                    elif key.startswith('local'):
-                        idx, local_key = key.split(':')[-2:]
-                        self.params['local'][int(idx)][local_key] = val
-                    else:
-                        self.params[key] = val
-            # Handle nested case
-            else:
-                if key == 'global':
-                    for global_key, global_val in val.items():
-                        flat_key = 'global:{}'.format(global_key)
-                        if flat_key not in self.frozen:
-                            self.params['global'][global_key] = global_val
-                elif key == 'local':
-                    for idx, kernel in enumerate(val):
-                        for local_key, local_val in kernel.items():
-                            flat_key = 'local:{}:{}'.format(idx, local_key)
-                            if flat_key not in self.frozen:
-                                self.params['local'][idx][local_key] = local_val
-                else:
-                    if key not in self.frozen:
-                        self.params[key] = val
+        if not isinstance(params, FlatterDict):
+            params = FlatterDict(params)
+        for key in self.frozen:
+            del params[key]
+        self.params.update(params)
 
     def get_param_vector(self):
         """
@@ -365,96 +328,33 @@ class Order(Model):
         thawed_parameters = self.labels
         if len(params) != len(thawed_parameters):
             raise ValueError(
-                'params must match length of thawed parameters (get_param_vector())')
+                "params must match length of thawed parameters (get_param_vector())"
+            )
         param_dict = dict(zip(thawed_parameters, params))
-        self.set_param_dict(param_dict, flat=True)
-
-    def save(self, filename, metadata=None):
-        """
-        Saves the model as a set of parameters into a TOML file
-
-        Parameters
-        ----------
-        filename : str or path-like
-            The TOML filename to save to.
-        metadata : dict, optional
-            If provided, will save the provided dictionary under a 'metadata' key. This will not be read in when loading models but provides a way of providing information in the actual TOML files. Default is None.
-        """
-        output = {
-            'parameters': self.params,
-            'frozen': self.frozen
-        }
-        meta = {}
-        if self.data.name is not None:
-            meta['data'] = self.data.name
-        if self.emulator.name is not None:
-            meta['emulator'] = self.emulator.name
-        if metadata is not None:
-            meta.update(metadata)
-        output['metadata'] = meta
-
-        with open(filename, 'w') as handler:
-            toml.dump(output, handler)
-
-        self.log.info('Saved current state at {}'.format(filename))
-
-    def load(self, filename):
-        """
-        Load a saved model state from a TOML file
-
-        Parameters
-        ----------
-        filename : str or path-like
-            The saved state to load
-        """
-        with open(filename, 'r') as handler:
-            data = toml.load(handler, OrderedDict)
-
-        frozen = data['frozen']
-        self.params = data['parameters']
-        self.frozen = frozen
-
-    def log_likelihood(self):
-        """
-        Returns a multivariate normal log-likelihood
-
-        Returns
-        -------
-        float
-            The current log-likelihood
-        """
-        log_like = order_likelihood(self)
-        self.log.debug(f"Evaluating log_like={log_like}")
-
-        return log_like
-
-    def grad_log_likelihood(self):
-        raise NotImplementedError('Not Implemented yet')
+        self.set_param_dict(param_dict)
 
     def __repr__(self):
-        output = 'SpectrumModel\n'
-        output += '-' * 13 + '\n'
-        output += f'Data: {self.data.name}\n'
-        output += 'Parameters:\n'
-        params = deepcopy(self.params)
-        glob = params.pop('global', None)
-        local = params.pop('local', None)
-
+        output = f"{self.name}\n"
+        output += "-" * len(self.name) + "\n"
+        output += f"Data: {self.data.name}\n"
+        output += "Parameters:\n"
+        params = self.params.as_dict()
         for key, value in params.items():
-            output += f'\t{key}: {value}\n'
+            if key != "global_cov" and key != "local_cov":
+                output += f"\t{key}: {value}\n"
 
-        if glob is not None:
-            output += 'Global Parameters:\n'
-            for key, value in glob.items():
-                output += f'\t{key}: {value}\n'
+        if "global_cov" in params:
+            output += "Global Parameters:\n"
+            for key, value in params["global_cov"].items():
+                output += f"\t{key}: {value}\n"
 
-        if local is not None:
-            output += 'Local Parameters:\n'
-            for i, kernel in enumerate(local):
-                output += f'\t{i}: '
+        if "local_cov" in params:
+            output += "Local Parameters:\n"
+            for i, kernel in enumerate(params["local_cov"]):
+                output += f"\t{i}: "
                 for key, value in kernel.items():
-                    output += f'{key}: {value}\n\t   '
+                    output += f"{key}: {value}\n\t   "
                 output = output[:-4]
 
-        output += f'\nLog Likelihood: {self.log_likelihood():.2f}'
+        output += f"\nLog Likelihood: {self.log_likelihood()}"
         return output

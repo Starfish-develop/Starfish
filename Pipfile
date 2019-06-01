@@ -13,6 +13,8 @@ tqdm = "*"
 extinction = "*"
 toml = "*"
 nptyping = "*"
+dataclasses = "*"
+flatdict = "*"
 
 [dev-packages]
 pytest = "*"

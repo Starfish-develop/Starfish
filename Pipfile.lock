@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "57ae51c3e00b96f6660d01d4c8b5b40289cf9633508a7399e58b67f5e1eb0ebc"
+            "sha256": "335441009f8832a66517b957252e7a9375d2abdbcaa1f919b052fad437c6b3b4"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -36,12 +36,28 @@
             "index": "pypi",
             "version": "==3.2rc2"
         },
+        "dataclasses": {
+            "hashes": [
+                "sha256:454a69d788c7fda44efd71e259be79577822f5e3f53f029a22d08004e951dc9f",
+                "sha256:6988bd2b895eef432d562370bb707d540f32f7360ab13da45340101bc2307d84"
+            ],
+            "index": "pypi",
+            "version": "==0.6"
+        },
         "extinction": {
             "hashes": [
                 "sha256:0ae3adb554771a7641b5d4a87183abeb1fb22189377e5ec691687dc0a627a966"
             ],
             "index": "pypi",
             "version": "==0.4.0"
+        },
+        "flatdict": {
+            "hashes": [
+                "sha256:a184385ee1e069caaf129c653545e752d85adc416fd2081a1ed1abf92dc3cc01",
+                "sha256:c4995d689fb275e6a29df7fba7a3732cb100f3b89e8f0e741f284f376c71908b"
+            ],
+            "index": "pypi",
+            "version": "==3.1.0"
         },
         "h5py": {
             "hashes": [

@@ -145,3 +145,12 @@ def covariance_debugger(cov: Array[float]):
             )
 
     log.info(f"{'-':-^60}")
+
+def chunk_spectrum(spectrum, n_chunks):
+    if len(spectrum) > 1:
+        raise ValueError("Multiple orders detected, cannot chunk")
+
+    waves = spectrum._waves.reshape(n_chunks, -1)
+    fluxes = spectrum._fluxes.reshape(n_chunks, -1)
+    sigmas = spectrum._sigmas.reshape(n_chunks, -1)
+    masks = spectrum.masks.reshape(n_chunks, -1)

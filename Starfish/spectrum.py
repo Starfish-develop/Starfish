@@ -1,5 +1,35 @@
 import h5py
 import numpy as np
+from dataclasses import dataclass
+from nptyping import Array
+from typing import Optional, Union
+
+
+@dataclass
+class Order:
+    _wave: Array[float]
+    _flux: Array[float]
+    _sigma: Optional[Array[float]] = None
+    mask: Optional[Array[bool]] = None
+
+    def __post_init__(self):
+        if self._sigma is None:
+            self._sigma = np.ones_like(self._flux)
+        if self.mask is None:
+            self.mask = np.ones_like(self._wave, dtype=bool)
+
+    @property
+    def wave(self):
+        return self._wave[self.mask]
+
+    @property
+    def flux(self):
+        return self._flux[self.mask]
+
+    @property
+    def sigma(self):
+        return self._sigma[self.mask]
+
 
 class Spectrum:
     """
@@ -32,43 +62,63 @@ class Spectrum:
 
     Warning
     -------
-    For now, the DataSpectrum waves, fluxes, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.
+    For now, the Spectrum waves, fluxes, sigmas, and masks must be a rectangular grid. No ragged Echelle orders allowed.
 
     """
 
-    def __init__(self, waves, fluxes, sigmas=None, masks=None, name='Spectrum'):
-        self._waves = np.atleast_2d(waves)
-        self._fluxes = np.atleast_2d(fluxes)
+    def __init__(self, waves, fluxes, sigmas=None, masks=None, name="Spectrum"):
+        self.waves = np.atleast_2d(waves)
+        self.fluxes = np.atleast_2d(fluxes)
 
         if sigmas is not None:
-            self._sigmas = np.atleast_2d(sigmas)
+            self.sigmas = np.atleast_2d(sigmas)
         else:
-            self._sigmas = np.ones_like(self._fluxes)
+            self.sigmas = np.ones_like(self.fluxes)
 
         if masks is not None:
             self.masks = np.atleast_2d(masks)
         else:
-            self.masks = np.ones_like(self._waves, dtype=bool)
+            self.masks = np.ones_like(self.waves, dtype=bool)
 
-        self.shape = self._waves.shape
-        self.norders = self.shape[0]
-        assert self._fluxes.shape == self.shape, 'flux array incompatible shape.'
-        assert self._sigmas.shape == self.shape, 'sigma array incompatible shape.'
-        assert self.masks.shape == self.shape, 'mask array incompatible shape.'
-
+        self._shape = self.waves.shape
+        self.norders = self._shape[0]
+        assert self.fluxes.shape == self._shape, "flux array incompatible shape."
+        assert self.sigmas.shape == self._shape, "sigma array incompatible shape."
+        assert self.masks.shape == self._shape, "mask array incompatible shape."
+        self.orders = []
+        for i in range(self.norders):
+            self.orders.append(
+                Order(self.waves[i], self.fluxes[i], self.sigmas[i], self.masks[i])
+            )
         self.name = name
 
-    @property
-    def waves(self):
-        return np.squeeze(self._waves[self.masks].reshape(self.norders, -1))
+    def __getitem__(self, key: int):
+        return self.orders[key]
+
+    def __len__(self):
+        return len(self.orders)
 
     @property
-    def fluxes(self):
-        return np.squeeze(self._fluxes[self.masks].reshape(self.norders, -1))
+    def shape(self):
+        return self._shape
 
-    @property
-    def sigmas(self):
-        return np.squeeze(self._sigmas[self.masks].reshape(self.norders, -1))
+    @shape.setter
+    def shape(self, shape):
+        if np.product(shape) != np.product(self._shape):
+            raise ValueError(f"{shape} incompatible with shape {self.shape}")
+        self.waves = self.waves.reshape(shape)
+        self.fluxes = self.fluxes.reshape(shape)
+        self.sigmas = self.sigmas.reshape(shape)
+        self.masks = self.masks.reshape(shape)
+        self._shape = shape
+        self.orders = []
+        for i in range(shape[0]):
+            self.orders.append(
+                Order(self.waves[i], self.fluxes[i], self.sigmas[i], self.masks[i])
+            )
+
+    def reshape(self, shape):
+        self.shape = shape
 
     @classmethod
     def load(cls, filename):
@@ -79,15 +129,15 @@ class Spectrum:
         ----------
         filename : str or path-like
         """
-        with h5py.File(filename, 'r') as base:
-            if 'name' in base.attrs:
-                name = base.attrs['name']
+        with h5py.File(filename, "r") as base:
+            if "name" in base.attrs:
+                name = base.attrs["name"]
             else:
                 name = None
-            waves = base['waves'][:]
-            fluxes = base['fluxes'][:]
-            sigmas = base['sigmas'][:]
-            masks = base['masks'][:]
+            waves = base["waves"][:]
+            fluxes = base["fluxes"][:]
+            sigmas = base["sigmas"][:]
+            masks = base["masks"][:]
         return cls(waves, fluxes, sigmas, masks, name=name)
 
     def save(self, filename):
@@ -100,13 +150,13 @@ class Spectrum:
             The filename to write to. Will not create any missing directories.
         """
 
-        with h5py.File(filename, 'w') as base:
-            base.create_dataset('waves', data=self._waves, compression=9)
-            base.create_dataset('fluxes', data=self._fluxes, compression=9)
-            base.create_dataset('sigmas', data=self._sigmas, compression=9)
-            base.create_dataset('masks', data=self.masks, compression=9)
+        with h5py.File(filename, "w") as base:
+            base.create_dataset("waves", data=self.waves, compression=9)
+            base.create_dataset("fluxes", data=self.fluxes, compression=9)
+            base.create_dataset("sigmas", data=self.sigmas, compression=9)
+            base.create_dataset("masks", data=self.masks, compression=9)
             if self.name is not None:
-                base.attrs['name'] = self.name
+                base.attrs["name"] = self.name
 
     def __repr__(self):
-        return f'{self.name} ({self._waves.shape[0]} orders)'
+        return f"{self.name} ({self.waves.shape[0]} orders)"
