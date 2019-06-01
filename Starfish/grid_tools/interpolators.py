@@ -8,6 +8,8 @@ from scipy.interpolate import interp1d
 from .utils import determine_chunk_log
 
 BUFFER = 50
+
+
 class IndexInterpolator:
     """
     Object to return fractional distance between grid points of a single grid variable.
@@ -21,7 +23,9 @@ class IndexInterpolator:
             parameter_list = np.array(parameter_list)
         self.npars = parameter_list.shape[-1]
         self.parameter_list = np.unique(parameter_list)
-        self.index_interpolator = interp1d(self.parameter_list, np.arange(len(self.parameter_list)), kind='linear')
+        self.index_interpolator = interp1d(
+            self.parameter_list, np.arange(len(self.parameter_list)), kind="linear"
+        )
 
     def __call__(self, param):
         """
@@ -35,7 +39,11 @@ class IndexInterpolator:
         and the fractional distance (0 - 1) between them and the value.
         """
         if len(param) != self.npars:
-            raise ValueError('Incorrect number of parameters. Expected {} but got {}'.format(self.npars, len(param)))
+            raise ValueError(
+                "Incorrect number of parameters. Expected {} but got {}".format(
+                    self.npars, len(param)
+                )
+            )
         try:
             index = self.index_interpolator(param)
         except ValueError:
@@ -43,7 +51,10 @@ class IndexInterpolator:
         high = np.ceil(index).astype(int)
         low = np.floor(index).astype(int)
         frac_index = index - low
-        return ((self.parameter_list[low], self.parameter_list[high]), ((1 - frac_index), frac_index))
+        return (
+            (self.parameter_list[low], self.parameter_list[high]),
+            ((1 - frac_index), frac_index),
+        )
 
 
 class Interpolator:
@@ -80,7 +91,9 @@ class Interpolator:
         self._setup_index_interpolators()
         self.cache = OrderedDict([])
         self.cache_max = cache_max
-        self.cache_dump = cache_dump  # how many to clear once the maximum cache has been reached
+        self.cache_dump = (
+            cache_dump
+        )  # how many to clear once the maximum cache has been reached
         self.log = logging.getLogger(self.__class__.__name__)
 
     def _determine_chunk_log(self):
@@ -158,8 +171,9 @@ class Interpolator:
         key_list = [self.interface.key_name.format(*param) for param in param_combos]
         weight_list = np.array([np.prod(weight) for weight in weight_combos])
 
-        assert np.allclose(np.sum(weight_list), np.array(1.0)), "Sum of weights must equal 1, {}".format(
-            np.sum(weight_list))
+        assert np.allclose(
+            np.sum(weight_list), np.array(1.0)
+        ), "Sum of weights must equal 1, {}".format(np.sum(weight_list))
 
         # Assemble flux vector from cache, or load into cache if not there
         for i, param in enumerate(param_combos):

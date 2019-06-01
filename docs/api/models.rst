@@ -6,7 +6,7 @@ Models
 SpectrumModel
 -------------
 
-The :class:`SpectrumModel` is the main implementation of the Starfish methods for a single-order spectrum. It works by interfacing with both :class:`Starfish.emulator.Emulator`, :class:`Starfish.spectrum.DataSpectrum`, and the methods in :mod:`Starfish.models.transforms`. The spectral emulator provides an interface to spectral model libraries with a covariance matrix for each interpolated spectrum. The transforms provide the physics behind alterations to the light. For a given set of parameters, a transformed spectrum and covariance matrix are provided by
+The :class:`SpectrumModel` is the main implementation of the Starfish methods for a single-order spectrum. It works by interfacing with both :class:`Starfish.emulator.Emulator`, :class:`Starfish.spectrum.DataSpectrum`, and the methods in :mod:`Starfish.transforms`. The spectral emulator provides an interface to spectral model libraries with a covariance matrix for each interpolated spectrum. The transforms provide the physics behind alterations to the light. For a given set of parameters, a transformed spectrum and covariance matrix are provided by
 
 .. code-block:: python
 

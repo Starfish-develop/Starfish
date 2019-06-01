@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import scipy.stats as st
 
-from Starfish import Emulator
+from Starfish.emulator import Emulator
 from Starfish.grid_tools import (
     download_PHOENIX_models,
     Instrument,
@@ -14,7 +14,7 @@ from Starfish.grid_tools import (
     HDF5Interface,
 )
 from Starfish.models import OrderModel, SpectrumModel
-from Starfish.models.transforms import resample
+from Starfish.transforms import resample
 from Starfish import Spectrum
 from Starfish.utils import create_log_lam_grid
 

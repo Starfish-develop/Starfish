@@ -9,9 +9,9 @@ from nptyping import Array
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
-from Starfish import Emulator
+from Starfish.emulator import Emulator
 from Starfish.utils import calculate_dv, create_log_lam_grid
-from .transforms import (
+from ..transforms import (
     rotational_broaden,
     resample,
     doppler_shift,

@@ -4,7 +4,9 @@ from typing import List
 from Starfish import constants as C
 
 
-def global_covariance_matrix(wave: np.ndarray, amplitude: float, lengthscale: float) -> np.ndarray:
+def global_covariance_matrix(
+    wave: np.ndarray, amplitude: float, lengthscale: float
+) -> np.ndarray:
     """
     A matern-3/2 kernel where the metric is defined as the velocity separation of the wavelengths.
 
@@ -27,13 +29,18 @@ def global_covariance_matrix(wave: np.ndarray, amplitude: float, lengthscale: fl
     r = C.c_kms / 2 * np.abs((wx - wy) / (wx + wy))
     taper = 0.5 + 0.5 * np.cos(np.pi * r / r0)
     taper[r > r0] = 0
-    kernel = amplitude * (1 + np.sqrt(3) * r/lengthscale) * \
-        np.exp(-np.sqrt(3) * r / lengthscale)
+    kernel = (
+        amplitude
+        * (1 + np.sqrt(3) * r / lengthscale)
+        * np.exp(-np.sqrt(3) * r / lengthscale)
+    )
 
     return kernel
 
 
-def local_covariance_matrix(wave: np.ndarray, amplitude: float, mu: float, sigma: float) -> np.ndarray:
+def local_covariance_matrix(
+    wave: np.ndarray, amplitude: float, mu: float, sigma: float
+) -> np.ndarray:
     """
     A local Gaussian kernel. In general, the kernel has density like
 
@@ -59,9 +66,9 @@ def local_covariance_matrix(wave: np.ndarray, amplitude: float, mu: float, sigma
     met = C.c_kms / mu * np.abs(wave - mu)
     x, y = np.meshgrid(met, met)
     r_tap = np.max([x, y], axis=0)
-    r2 = x**2 + y**2
+    r2 = x ** 2 + y ** 2
     r0 = 4 * sigma
     taper = 0.5 + 0.5 * np.cos(np.pi * r_tap / r0)
     taper[r_tap > r0] = 0
-    kernel = taper * amplitude * np.exp(-0.5 * r2 / sigma**2)
+    kernel = taper * amplitude * np.exp(-0.5 * r2 / sigma ** 2)
     return kernel

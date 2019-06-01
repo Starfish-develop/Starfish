@@ -32,34 +32,54 @@ class PHOENIXGridInterface(GridInterface):
     """
 
     def __init__(self, path, air=True, wl_range=(3000, 54000)):
-        super().__init__(name='PHOENIX',
-                         param_names=['T', 'logg', 'Z', 'alpha'],
-                         points=[
-                             np.hstack([np.arange(2300, 7000, 100),
-                                        np.arange(7000, 12001, 200)]),
-                             np.arange(0.5, 6.1, 0.5),
-                             np.hstack([np.arange(-4., -2, 1),
-                                        np.arange(-2, 1.1, 0.5)]),
-                             np.arange(-0.2, 1.21, 0.2)
-                         ],
-                         wave_units='AA', flux_units='erg/s/cm^2/cm',
-                         air=air, wl_range=wl_range, path=path)  # wl_range used to be (2999, 13001)
+        super().__init__(
+            name="PHOENIX",
+            param_names=["T", "logg", "Z", "alpha"],
+            points=[
+                np.hstack([np.arange(2300, 7000, 100), np.arange(7000, 12001, 200)]),
+                np.arange(0.5, 6.1, 0.5),
+                np.hstack([np.arange(-4.0, -2, 1), np.arange(-2, 1.1, 0.5)]),
+                np.arange(-0.2, 1.21, 0.2),
+            ],
+            wave_units="AA",
+            flux_units="erg/s/cm^2/cm",
+            air=air,
+            wl_range=wl_range,
+            path=path,
+        )  # wl_range used to be (2999, 13001)
 
         # These dictionaries provide the link between numerical representation and the
         # string representation for Z and alpha
-        self.par_dicts = [None, None,
-                          {-2: '-2.0', -1.5: '-1.5', -1: '-1.0', -0.5: '-0.5',
-                           0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'},
-                          {-0.4: '.Alpha=-0.40', -0.2: '.Alpha=-0.20',
-                           0.0: '', 0.2: '.Alpha=+0.20', 0.4: '.Alpha=+0.40',
-                           0.6: '.Alpha=+0.60', 0.8: '.Alpha=+0.80'}]
+        self.par_dicts = [
+            None,
+            None,
+            {
+                -2: "-2.0",
+                -1.5: "-1.5",
+                -1: "-1.0",
+                -0.5: "-0.5",
+                0.0: "-0.0",
+                0.5: "+0.5",
+                1: "+1.0",
+            },
+            {
+                -0.4: ".Alpha=-0.40",
+                -0.2: ".Alpha=-0.20",
+                0.0: "",
+                0.2: ".Alpha=+0.20",
+                0.4: ".Alpha=+0.40",
+                0.6: ".Alpha=+0.60",
+                0.8: ".Alpha=+0.80",
+            },
+        ]
 
         try:
             wl_filename = os.path.join(
-                self.path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+                self.path, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits"
+            )
             w_full = fits.getdata(wl_filename)
         except:
-            raise ValueError('Wavelength file improperly specified.')
+            raise ValueError("Wavelength file improperly specified.")
 
         # if air is true, convert the normally vacuum file to air wls.
         if self.air:
@@ -68,9 +88,10 @@ class PHOENIXGridInterface(GridInterface):
             self.wl_full = w_full
 
         self.ind = (self.wl_full >= self.wl_range[0]) & (
-            self.wl_full <= self.wl_range[1])
+            self.wl_full <= self.wl_range[1]
+        )
         self.wl = self.wl_full[self.ind]
-        self.rname = 'Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+        self.rname = "Z{2:}{3:}/lte{0:0>5.0f}-{1:.2f}{2:}{3:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
         self.full_rname = os.path.join(self.path, self.rname)
 
     def check_params(self, parameters):
@@ -79,10 +100,12 @@ class PHOENIXGridInterface(GridInterface):
         if parameters[3] != 0:
             if (parameters[0] < 3500) or (parameters[0] > 8000):
                 raise ValueError(
-                    'Alpha concentration does not run for T={}'.format(parameters[0]))
+                    "Alpha concentration does not run for T={}".format(parameters[0])
+                )
             if (parameters[2] < -3.0) or (parameters[2] > 0):
                 raise ValueError(
-                    'Alpha concentration does not run for Z={}'.format(parameters[2]))
+                    "Alpha concentration does not run for Z={}".format(parameters[2])
+                )
 
         return True
 
@@ -105,7 +128,7 @@ class PHOENIXGridInterface(GridInterface):
         # Still need to check that file is in the grid, otherwise raise a C.GridError
         # Read all metadata in from the FITS header, and append to spectrum
         if not os.path.exists(fname):
-            raise ValueError('{} is not on disk.'.format(fname))
+            raise ValueError("{} is not on disk.".format(fname))
 
         hdu_list = fits.open(fname)
         flux = hdu_list[0].data
@@ -117,11 +140,11 @@ class PHOENIXGridInterface(GridInterface):
             flux *= 1e-8  # convert from erg/cm^2/s/cm to erg/cm^2/s/A
             F_bol = np.trapz(flux, self.wl_full)
             # bolometric luminosity is always 1 L_sun
-            flux *= (C.F_sun / F_bol)
+            flux *= C.F_sun / F_bol
 
         # Add temp, logg, Z, alpha, norm to the metadata
-        hdr['norm'] = norm
-        hdr['air'] = self.air
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
             return (flux[self.ind], hdr)
@@ -153,11 +176,13 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
         super().__init__(path=path, **kwargs)
 
         # Now override parameters to exclude alpha
-        self.param_names = ['T', 'logg', 'Z']
+        self.param_names = ["T", "logg", "Z"]
         del self.points[3]
         del self.par_dicts[3]
 
-        self.rname = 'Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+        self.rname = (
+            "Z{2:}/lte{0:0>5.0f}-{1:.2f}{2:}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+        )
         self.full_rname = os.path.join(self.path, self.rname)
 
     def check_params(self, parameters):
@@ -166,14 +191,17 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
             parameters = np.array(parameters)
 
         if len(parameters) != len(self.param_names):
-            raise ValueError('Length of given parameters ({}) does not match length of grid parameters ({})'.format(
-                len(parameters), len(self.param_names)))
+            raise ValueError(
+                "Length of given parameters ({}) does not match length of grid parameters ({})".format(
+                    len(parameters), len(self.param_names)
+                )
+            )
 
         for param, params in zip(parameters, self.points):
             if param not in params:
-                raise ValueError(
-                    '{} not in the grid points {}'.format(param, params))
+                raise ValueError("{} not in the grid points {}".format(param, params))
         return True
+
 
 class KuruczGridInterface(GridInterface):
     """
@@ -186,23 +214,44 @@ class KuruczGridInterface(GridInterface):
     """
 
     def __init__(self, path, air=True, wl_range=(5000, 5400)):
-        super().__init__(name='Kurucz',
-                         param_names=['T', 'logg', 'Z'],
-                         points=[np.arange(3500, 9751, 250),
-                                 np.arange(0.0, 5.1, 0.5),
-                                 np.arange(-2.5, 0.51, 0.5)],
-                         wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, path=path)
+        super().__init__(
+            name="Kurucz",
+            param_names=["T", "logg", "Z"],
+            points=[
+                np.arange(3500, 9751, 250),
+                np.arange(0.0, 5.1, 0.5),
+                np.arange(-2.5, 0.51, 0.5),
+            ],
+            wave_units="AA",
+            flux_units="",
+            air=air,
+            wl_range=wl_range,
+            path=path,
+        )
 
-        self.par_dicts = [None, None,
-                          {-2.5: 'm25', -2.0: 'm20', -1.5: 'm15', -1.0: 'm10', -0.5: 'm05', 0.0: 'p00', 0.5: 'p05'}]
+        self.par_dicts = [
+            None,
+            None,
+            {
+                -2.5: "m25",
+                -2.0: "m20",
+                -1.5: "m15",
+                -1.0: "m10",
+                -0.5: "m05",
+                0.0: "p00",
+                0.5: "p05",
+            },
+        ]
 
         # Convert to f_lam and average to 1, or leave in f_nu?
-        self.rname = 't{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits'
+        self.rname = (
+            "t{0:0>5.0f}/g{1:0>2.0f}/t{0:0>5.0f}g{1:0>2.0f}{2}ap00k2v000z1i00.fits"
+        )
         self.full_rname = os.path.join(self.path, self.rname)
-        self.wl_full = np.load(os.path.join(path, 'kurucz_raw_wl.npy'))
+        self.wl_full = np.load(os.path.join(path, "kurucz_raw_wl.npy"))
         self.ind = (self.wl_full >= self.wl_range[0]) & (
-            self.wl_full <= self.wl_range[1])
+            self.wl_full <= self.wl_range[1]
+        )
         self.wl = self.wl_full[self.ind]
 
     def load_flux(self, parameters, header=False, norm=True):
@@ -228,7 +277,7 @@ class KuruczGridInterface(GridInterface):
             hdr = dict(flux_file[0].header)
             flux_file.close()
         except:
-            raise ValueError('{} is not on disk.'.format(fname))
+            raise ValueError("{} is not on disk.".format(fname))
 
         # We cannot normalize the spectra, since we don't have a full wl range, so instead we set the average
         # flux to be 1
@@ -239,8 +288,8 @@ class KuruczGridInterface(GridInterface):
             f /= np.average(f)  # divide by the mean flux, so avg(f) = 1
 
         # Add temp, logg, Z, norm to the metadata
-        hdr['norm'] = norm
-        hdr['air'] = self.air
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
             return (f[self.ind], hdr)
@@ -254,8 +303,8 @@ class KuruczGridInterface(GridInterface):
         hdr = flux_file[0].header
         num = len(flux_file[0].data)
         p = np.arange(num)
-        w1 = hdr['CRVAL1']
-        dw = hdr['CDELT1']
+        w1 = hdr["CRVAL1"]
+        dw = hdr["CDELT1"]
         wl = 10 ** (w1 + dw * p)
         return wl
 
@@ -272,23 +321,31 @@ class BTSettlGridInterface(GridInterface):
     """
 
     def __init__(self, path, air=True, wl_range=(2999, 13000)):
-        super().__init__(name='BTSettl',
-                         points={'T': np.arange(3000, 7001, 100),
-                                 'logg': np.arange(2.5, 5.6, 0.5),
-                                 'Z': np.arange(-0.5, 0.6, 0.5),
-                                 'alpha': np.array([0.0])},
-                         wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, path=path)
+        super().__init__(
+            name="BTSettl",
+            points={
+                "T": np.arange(3000, 7001, 100),
+                "logg": np.arange(2.5, 5.6, 0.5),
+                "Z": np.arange(-0.5, 0.6, 0.5),
+                "alpha": np.array([0.0]),
+            },
+            wave_units="AA",
+            flux_units="",
+            air=air,
+            wl_range=wl_range,
+            path=path,
+        )
 
         # Normalize to 1 solar luminosity?
-        self.rname = 'CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2'
+        self.rname = "CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2"
         self.full_rname = os.path.join(self.path, self.rname)
         # self.Z_dict = {-2:'-2.0', -1.5:'-1.5', -1:'-1.0', -0.5:'-0.5', 0.0: '-0.0', 0.5: '+0.5', 1: '+1.0'}
-        self.Z_dict = {-0.5: '-0.5a+0.2', 0.0: '-0.0a+0.0', 0.5: '+0.5a0.0'}
+        self.Z_dict = {-0.5: "-0.5a+0.2", 0.0: "-0.0a+0.0", 0.5: "+0.5a0.0"}
 
         wl_dict = create_log_lam_grid(
-            0.08 / C.c_kms, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
-        self.wl = wl_dict['wl']
+            0.08 / C.c_kms, wl_start=self.wl_range[0], wl_end=self.wl_range[1]
+        )
+        self.wl = wl_dict["wl"]
 
     def load_flux(self, parameters, norm=True):
         """
@@ -306,27 +363,31 @@ class BTSettlGridInterface(GridInterface):
         str_parameters = parameters.copy()
 
         # Rewrite Z
-        Z = parameters['Z']
-        str_parameters['Z'] = self.Z_dict[Z]
+        Z = parameters["Z"]
+        str_parameters["Z"] = self.Z_dict[Z]
 
         # Multiply temp by 0.01
-        str_parameters['T'] = 0.01 * parameters['T']
+        str_parameters["T"] = 0.01 * parameters["T"]
 
         fname = self.full_rname.format(**str_parameters)
-        file = bz2.BZ2File(fname, 'r')
+        file = bz2.BZ2File(fname, "r")
 
         lines = file.readlines()
-        strlines = [line.decode('utf-8') for line in lines]
+        strlines = [line.decode("utf-8") for line in lines]
         file.close()
 
-        data = ascii.read(strlines, col_starts=(0, 13), col_ends=(
-            12, 25), Reader=ascii.FixedWidthNoHeader)
-        wl = data['col1']
-        fl_str = data['col2']
+        data = ascii.read(
+            strlines,
+            col_starts=(0, 13),
+            col_ends=(12, 25),
+            Reader=ascii.FixedWidthNoHeader,
+        )
+        wl = data["col1"]
+        fl_str = data["col2"]
 
         # convert because of 'D' exponent, unreadable in Python
         fl = idl_float(fl_str)
-        fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
+        fl = 10 ** (fl - 8.0)  # now in ergs/cm^2/s/A
 
         # 'Clean' the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
@@ -340,8 +401,7 @@ class BTSettlGridInterface(GridInterface):
         # truncate the spectrum to the wl range of interest
         # at this step, make the range a little more so that the next stage of
         # spline interpolation is properly in bounds
-        ind = (wl >= (self.wl_range[0] - 50.)
-               ) & (wl <= (self.wl_range[1] + 50.))
+        ind = (wl >= (self.wl_range[0] - 50.0)) & (wl <= (self.wl_range[1] + 50.0))
         wl = wl[ind]
         fl = fl[ind]
 
@@ -369,20 +429,30 @@ class CIFISTGridInterface(GridInterface):
     """
 
     def __init__(self, path, air=True, wl_range=(3000, 13000)):
-        super().__init__(name='CIFIST',
-                         points=[np.concatenate((np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0),
-                                 np.arange(2.5, 5.6, 0.5)],
-                         param_names=['T', 'logg'],
-                         wave_units='AA', flux_units='',
-                         air=air, wl_range=wl_range, path=path)
+        super().__init__(
+            name="CIFIST",
+            points=[
+                np.concatenate(
+                    (np.arange(1200, 2351, 50), np.arange(2400, 7001, 100)), axis=0
+                ),
+                np.arange(2.5, 5.6, 0.5),
+            ],
+            param_names=["T", "logg"],
+            wave_units="AA",
+            flux_units="",
+            air=air,
+            wl_range=wl_range,
+            path=path,
+        )
 
         self.par_dicts = [None, None]
-        self.rname = 'lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz'
+        self.rname = "lte{0:0>5.1f}-{1:.1f}-0.0a+0.0.BT-Settl.spec.fits.gz"
         self.full_rname = os.path.join(self.path, self.rname)
 
         wl_dict = create_log_lam_grid(
-            dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1])
-        self.wl = wl_dict['wl']
+            dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1]
+        )
+        self.wl = wl_dict["wl"]
 
     def load_flux(self, parameters, header=False, norm=True):
         self.check_params(parameters)
@@ -406,12 +476,12 @@ class CIFISTGridInterface(GridInterface):
             data = flux_file[1].data
             hdr = dict(flux_file[1].header)
 
-            wl = data['Wavelength'] * 1e4  # [Convert to angstroms]
-            fl = data['Flux']
+            wl = data["Wavelength"] * 1e4  # [Convert to angstroms]
+            fl = data["Flux"]
 
             flux_file.close()
         except OSError:
-            raise C.GridError('{} is not on disk.'.format(fname))
+            raise C.GridError("{} is not on disk.".format(fname))
 
         # "Clean" the wl and flux points. Remove duplicates, sort in increasing wl
         wl, ind = np.unique(wl, return_index=True)
@@ -425,8 +495,7 @@ class CIFISTGridInterface(GridInterface):
         # truncate the spectrum to the wl range of interest
         # at this step, make the range a little more so that the next stage of
         # spline interpolation is properly in bounds
-        ind = (wl >= (self.wl_range[0] - 50.)
-               ) & (wl <= (self.wl_range[1] + 50.))
+        ind = (wl >= (self.wl_range[0] - 50.0)) & (wl <= (self.wl_range[1] + 50.0))
         wl = wl[ind]
         fl = fl[ind]
 
@@ -440,8 +509,8 @@ class CIFISTGridInterface(GridInterface):
 
         # Add temp, logg, Z, norm to the metadata
 
-        hdr['norm'] = norm
-        hdr['air'] = self.air
+        hdr["norm"] = norm
+        hdr["air"] = self.air
 
         if header:
             return (fl_interp, hdr)
@@ -450,22 +519,24 @@ class CIFISTGridInterface(GridInterface):
 
 
 def load_BTSettl(T, logg, Z, norm=False, trunc=False, air=False):
-    rname = 'BT-Settl/CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2'.format(T=0.01 * T,
-                                                                                                logg=logg, Z=Z)
-    file = bz2.BZ2File(rname, 'r')
+    rname = "BT-Settl/CIFIST2011/M{Z:}/lte{T:0>3.0f}-{logg:.1f}{Z:}.BT-Settl.spec.7.bz2".format(
+        T=0.01 * T, logg=logg, Z=Z
+    )
+    file = bz2.BZ2File(rname, "r")
 
     lines = file.readlines()
-    strlines = [line.decode('utf-8') for line in lines]
+    strlines = [line.decode("utf-8") for line in lines]
     file.close()
 
-    data = ascii.read(strlines, col_starts=[0, 13], col_ends=[
-        12, 25], Reader=ascii.FixedWidthNoHeader)
-    wl = data['col1']
-    fl_str = data['col2']
+    data = ascii.read(
+        strlines, col_starts=[0, 13], col_ends=[12, 25], Reader=ascii.FixedWidthNoHeader
+    )
+    wl = data["col1"]
+    fl_str = data["col2"]
 
     # convert because of "D" exponent, unreadable in Python
     fl = idl_float(fl_str)
-    fl = 10 ** (fl - 8.)  # now in ergs/cm^2/s/A
+    fl = 10 ** (fl - 8.0)  # now in ergs/cm^2/s/A
 
     if norm:
         F_bol = np.trapz(fl, wl)

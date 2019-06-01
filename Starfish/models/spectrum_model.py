@@ -134,7 +134,6 @@ class SpectrumModel:
         params = dict(zip(self.labels, params))
         self.set_param_dict(params)
 
-    
     def __repr__(self):
         output = f"{self.name}\n"
         output += "-" * len(self.name) + "\n"
@@ -144,4 +143,3 @@ class SpectrumModel:
             output += f"{key}: {value}\n"
         output += f"\nLog Likelihood: {self.log_likelihood()}"
         return output
-

@@ -33,11 +33,10 @@ def resample(wave, flux, new_wave):
     """
 
     if np.any(new_wave <= 0):
-        raise ValueError('Wavelengths must be positive')
+        raise ValueError("Wavelengths must be positive")
 
     if flux.ndim > 1:
-        interpolators = [InterpolatedUnivariateSpline(
-            wave, fl, k=5) for fl in flux]
+        interpolators = [InterpolatedUnivariateSpline(wave, fl, k=5) for fl in flux]
         return np.array([interpolator(new_wave) for interpolator in interpolators])
     else:
         return InterpolatedUnivariateSpline(wave, flux, k=5)(new_wave)
@@ -76,7 +75,7 @@ def instrumental_broaden(wave, flux, fwhm):
     """
 
     if fwhm < 0:
-        raise ValueError('FWHM must be non-negative')
+        raise ValueError("FWHM must be non-negative")
     dv = calculate_dv(wave)
     freq = np.fft.rfftfreq(flux.shape[-1], d=dv)
     flux_ff = np.fft.rfft(flux)
@@ -116,18 +115,17 @@ def rotational_broaden(wave, flux, vsini):
     """
 
     if vsini <= 0:
-        raise ValueError('vsini must be positive')
+        raise ValueError("vsini must be positive")
 
     dv = calculate_dv(wave)
     freq = np.fft.rfftfreq(flux.shape[-1], dv)
     flux_ff = np.fft.rfft(flux)
     # Calculate the stellar broadening kernel (Gray 2008)
-    ub = 2. * np.pi * vsini * freq
+    ub = 2.0 * np.pi * vsini * freq
     # Remove 0th frequency
     ub = ub[1:]
-    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + \
-        3. * np.sin(ub) / (2 * ub ** 3)
-    flux_ff *= np.insert(sb, 0, 1.)
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3.0 * np.sin(ub) / (2 * ub ** 3)
+    flux_ff *= np.insert(sb, 0, 1.0)
     flux_final = np.fft.irfft(flux_ff, n=flux.shape[-1])
     return flux_final
 
@@ -153,7 +151,7 @@ def doppler_shift(wave, vz):
     return wave * dv
 
 
-def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
+def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     """
     Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package.
 
@@ -183,15 +181,15 @@ def extinct(wave, flux, Av, Rv=3.1, law='ccm89'):
         The extincted fluxes, with same shape as input fluxes.
     """
 
-    if law not in ['ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07']:
-        raise ValueError('Invalid extinction law given')
+    if law not in ["ccm89", "odonnell94", "calzetti00", "fitzpatrick99", "fm07"]:
+        raise ValueError("Invalid extinction law given")
     if Av < 0:
-        raise ValueError('Av must be positive')
+        raise ValueError("Av must be positive")
     if Rv <= 0:
-        raise ValueError('Rv must be positive')
+        raise ValueError("Rv must be positive")
 
-    law_fn = eval('extinction.{}'.format(law))
-    if law == 'fm07':
+    law_fn = eval("extinction.{}".format(law))
+    if law == "fm07":
         A_l = law_fn(wave, Av)
     else:
         A_l = law_fn(wave, Av, Rv)
@@ -228,7 +226,8 @@ def chebyshev_correct(wave, flux, coeffs):
         coeffs = np.array(coeffs)
     if coeffs.ndim == 1 and coeffs[0] != 1:
         raise ValueError(
-            'For single spectrum the linear Chebyshev coefficient (c[0]) must be 1')
+            "For single spectrum the linear Chebyshev coefficient (c[0]) must be 1"
+        )
 
     scale_wave = wave / wave.max()
     p = chebval(scale_wave, coeffs, tensor=False)

@@ -22,8 +22,7 @@ def rbf_kernel(X, Z, variance, lengthscale):
 
     """
 
-    sq_dist = sp.spatial.distance.cdist(
-        X / lengthscale, Z / lengthscale, 'sqeuclidean')
+    sq_dist = sp.spatial.distance.cdist(X / lengthscale, Z / lengthscale, "sqeuclidean")
     return variance * np.exp(-0.5 * sq_dist)
 
 
@@ -46,6 +45,5 @@ def batch_kernel(X, Z, variances, lengthscales):
     --------
     :function:`rbf_kernel`
     """
-    blocks = [rbf_kernel(X, Z, var, ls)
-              for var, ls in zip(variances, lengthscales)]
+    blocks = [rbf_kernel(X, Z, var, ls) for var, ls in zip(variances, lengthscales)]
     return sp.linalg.block_diag(*blocks)

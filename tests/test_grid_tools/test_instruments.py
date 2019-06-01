@@ -2,14 +2,9 @@ import pytest
 
 from Starfish.grid_tools.instruments import *
 
-class TestInstrumentBase:
 
-    @pytest.mark.parametrize('attr', [
-        'name',
-        'FWHM',
-        'oversampling',
-        'wl_range'
-    ])
+class TestInstrumentBase:
+    @pytest.mark.parametrize("attr", ["name", "FWHM", "oversampling", "wl_range"])
     def test_attributes(self, attr, mock_instrument):
         assert hasattr(mock_instrument, attr)
 
@@ -21,13 +16,24 @@ class TestInstrumentBase:
 class TestSpecificInstruments:
 
     base_instruments = [IGRINS]
-    instruments = [TRES, Reticon, KPNO, SPEX, SPEX_SXD , IGRINS_H, IGRINS_K, ESPaDOnS, DCT_DeVeny, WIYN_Hydra]
+    instruments = [
+        TRES,
+        Reticon,
+        KPNO,
+        SPEX,
+        SPEX_SXD,
+        IGRINS_H,
+        IGRINS_K,
+        ESPaDOnS,
+        DCT_DeVeny,
+        WIYN_Hydra,
+    ]
 
-    @pytest.mark.parametrize('instrument', instruments)
+    @pytest.mark.parametrize("instrument", instruments)
     def test_can_create(self, instrument):
         assert instrument()
 
-    @pytest.mark.parametrize('instrument', base_instruments)
+    @pytest.mark.parametrize("instrument", base_instruments)
     def test_base_cant_create(self, instrument):
         with pytest.raises(TypeError):
             assert instrument()

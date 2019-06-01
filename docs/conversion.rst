@@ -27,7 +27,7 @@ One of the BIGGEST products of this rewrite is the simplification of the core of
 .. code-block:: python
 
     from Starfish.models import SpectrumModel
-    from Starfish import Emulator
+    from Starfish.emulator import Emulator
     from astropy.modeling import blackbody
     
     emu = Emulator.load('emu.hdf5')

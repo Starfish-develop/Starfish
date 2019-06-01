@@ -18,7 +18,6 @@ flatdict = "*"
 
 [dev-packages]
 pytest = "*"
-pydot = "*"
 pylint = "*"
 black = "*"
 rope = "*"

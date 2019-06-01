@@ -12,6 +12,7 @@ import logging
 import h5py
 from Starfish import constants as C
 
+
 class StateSampler(Sampler):
     """
     The most basic possible Metropolis-Hastings style MCMC sampler, but with
@@ -49,8 +50,20 @@ class StateSampler(Sampler):
         will be called with the sequence ``lnpostfn(p, *args, **kwargs)``.
 
     """
-    def __init__(self, lnprob, p0, cov, query_lnprob=None, rejectfn=None,
-        acceptfn=None, debug=False, outdir="", *args, **kwargs):
+
+    def __init__(
+        self,
+        lnprob,
+        p0,
+        cov,
+        query_lnprob=None,
+        rejectfn=None,
+        acceptfn=None,
+        debug=False,
+        outdir="",
+        *args,
+        **kwargs
+    ):
         dim = len(p0)
         super().__init__(dim, lnprob, *args, **kwargs)
         self.cov = cov
@@ -71,8 +84,17 @@ class StateSampler(Sampler):
         self._chain = np.empty((0, self.dim))
         self._lnprob = np.empty(0)
 
-    def sample(self, p0, lnprob0=None, randomstate=None, thin=1,
-               storechain=True, iterations=1, incremental_save=0, **kwargs):
+    def sample(
+        self,
+        p0,
+        lnprob0=None,
+        randomstate=None,
+        thin=1,
+        storechain=True,
+        iterations=1,
+        incremental_save=0,
+        **kwargs
+    ):
         """
         Advances the chain ``iterations`` steps as an iterator
 
@@ -126,8 +148,7 @@ class StateSampler(Sampler):
         # Resize the chain in advance.
         if storechain:
             N = int(iterations / thin)
-            self._chain = np.concatenate((self._chain,
-                                          np.zeros((N, self.dim))), axis=0)
+            self._chain = np.concatenate((self._chain, np.zeros((N, self.dim))), axis=0)
             self._lnprob = np.append(self._lnprob, np.zeros(N))
 
         i0 = self.iterations
@@ -156,13 +177,13 @@ class StateSampler(Sampler):
             if diff < 0:
                 diff = np.exp(diff) - self._random.rand()
                 if diff < 0:
-                    #Reject the proposal and revert the state of the model
+                    # Reject the proposal and revert the state of the model
                     self.logger.debug("Proposal rejected")
                     if self.rejectfn is not None:
                         self.rejectfn()
 
             if diff > 0:
-                #Accept the new proposal
+                # Accept the new proposal
                 self.logger.debug("Proposal accepted")
                 p = q
                 lnprob0 = newlnprob
@@ -177,8 +198,8 @@ class StateSampler(Sampler):
 
             # The default of 0 evaluates to False
             if incremental_save:
-                if (((i+1) % incremental_save) == 0) & (i > 0): 
-                    np.save('chain_backup.npy', self._chain)
+                if (((i + 1) % incremental_save) == 0) & (i > 0):
+                    np.save("chain_backup.npy", self._chain)
 
             # Heavy duty iterator action going on right here...
             yield p, lnprob0, self.random_state
@@ -205,7 +226,7 @@ class StateSampler(Sampler):
         return autocorr.integrated_time(self.chain, axis=0, window=window)
 
     def write(self, fname="mc.hdf5"):
-        '''
+        """
         Write the samples to an HDF file.
 
         flatchain
@@ -213,14 +234,16 @@ class StateSampler(Sampler):
 
         Everything can be saved in the dataset self.fname
 
-        '''
+        """
 
         filename = self.outdir + fname
         self.logger.debug("Opening {} for writing HDF5 flatchains".format(filename))
         hdf5 = h5py.File(filename, "w")
         samples = self.flatchain
 
-        dset = hdf5.create_dataset("samples", samples.shape, compression='gzip', compression_opts=9)
+        dset = hdf5.create_dataset(
+            "samples", samples.shape, compression="gzip", compression_opts=9
+        )
         dset[:] = samples
         dset.attrs["acceptance"] = "{}".format(self.acceptance_fraction)
         dset.attrs["commit"] = "{}".format(C.get_git_commit())

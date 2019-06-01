@@ -2,10 +2,11 @@ import numpy as np
 
 from Starfish.models.kernels import global_covariance_matrix, local_covariance_matrix
 
+
 def test_global_matrix():
     wave = np.linspace(1e4, 2e4, 1000)
     a = 100
-    l=1
+    l = 1
     cov = global_covariance_matrix(wave, a, l)
     assert np.all(cov.diagonal() == a)
     assert cov.shape == (1000, 1000)
@@ -16,6 +17,7 @@ def test_global_matrix():
     assert cov.max() == a
     assert np.all(np.linalg.eigvals(cov) >= 0)
     assert np.allclose(cov, cov.T)
+
 
 def test_local_matrix():
     wave = np.linspace(1e4, 2e4, 1000)

@@ -146,6 +146,7 @@ def covariance_debugger(cov: Array[float]):
 
     log.info(f"{'-':-^60}")
 
+
 def chunk_spectrum(spectrum, n_chunks):
     if len(spectrum) > 1:
         raise ValueError("Multiple orders detected, cannot chunk")

@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import pytest
 
-from Starfish.models.transforms import instrumental_broaden, rotational_broaden, resample, \
+from Starfish.transforms import instrumental_broaden, rotational_broaden, resample, \
     doppler_shift, chebyshev_correct, extinct, rescale
 from Starfish.utils import calculate_dv, create_log_lam_grid
 

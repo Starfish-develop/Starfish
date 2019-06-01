@@ -37,8 +37,8 @@ wl = dataSpec.wls[0]
 # ind = (wl > 5165.) & (wl < 5185.)
 # wl = wl[ind]
 #
-fl = dataSpec.fls[0] #[ind]
-sigma = dataSpec.sigmas[0] #[ind]
+fl = dataSpec.fls[0]  # [ind]
+sigma = dataSpec.sigmas[0]  # [ind]
 # mask = dataSpec.masks[0][ind]
 ndata = len(wl)
 
@@ -57,12 +57,14 @@ print("FFT length", len(wl_FFT_orig))
 print(wl_FFT_orig[0], wl_FFT_orig[-1])
 
 # The raw eigenspectra and mean flux components
-EIGENSPECTRA = np.vstack((pca.flux_mean[np.newaxis,:], pca.flux_std[np.newaxis,:], pca.eigenspectra))
+EIGENSPECTRA = np.vstack(
+    (pca.flux_mean[np.newaxis, :], pca.flux_std[np.newaxis, :], pca.eigenspectra)
+)
 
 ss = np.fft.rfftfreq(pca.npix, d=emulator.dv)
-ss[0] = 0.01 # junk so we don't get a divide by zero error
+ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-sigma_mat = sigma**2 * np.eye(ndata)
+sigma_mat = sigma ** 2 * np.eye(ndata)
 mus, C_GP, data_mat = None, None, None
 
 # For each star
@@ -79,6 +81,7 @@ mus, C_GP = emulator.matrix
 npoly = config["cheb_degree"]
 chebyshevSpectrum = ChebyshevSpectrum(dataSpec, 0, npoly=npoly)
 chebyshevSpectrum.update(np.array(config["chebs"]))
+
 
 def lnprob(p):
     vz, vsini, logOmega = p[:3]
@@ -107,10 +110,14 @@ def lnprob(p):
         FF = np.fft.rfft(EIGENSPECTRA, axis=1)
 
         # Determine the stellar broadening kernel
-        ub = 2. * np.pi * vsini * ss
-        sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+        ub = 2.0 * np.pi * vsini * ss
+        sb = (
+            j1(ub) / ub
+            - 3 * np.cos(ub) / (2 * ub ** 2)
+            + 3.0 * np.sin(ub) / (2 * ub ** 3)
+        )
         # set zeroth frequency to 1 separately (DC term)
-        sb[0] = 1.
+        sb[0] = 1.0
 
         # institute vsini taper
         FF_tap = FF * sb
@@ -120,11 +127,17 @@ def lnprob(p):
 
     # Spectrum resample operations
     if min(wl) < min(wl_FFT) or max(wl) > max(wl_FFT):
-        raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(wl), max(wl), min(wl_FFT), max(wl_FFT)))
+        raise RuntimeError(
+            "Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(
+                min(wl), max(wl), min(wl_FFT), max(wl_FFT)
+            )
+        )
 
     # Take the output from the FFT operation (eigenspectra_full), and stuff them
     # into respective data products
-    for lres, hres in zip(chain([flux_mean, flux_std], eigenspectra), eigenspectra_full):
+    for lres, hres in zip(
+        chain([flux_mean, flux_std], eigenspectra), eigenspectra_full
+    ):
         interp = InterpolatedUnivariateSpline(wl_FFT, hres, k=5)
         lres[:] = interp(wl)
         del interp
@@ -132,7 +145,7 @@ def lnprob(p):
     gc.collect()
 
     # Adjust flux_mean and flux_std by Omega
-    Omega = 10**logOmega
+    Omega = 10 ** logOmega
     flux_mean *= Omega
     flux_std *= Omega
 
@@ -143,8 +156,9 @@ def lnprob(p):
     R = fl - mean_spec
 
     # Evaluate chi2
-    lnp = -0.5 * np.sum((R/sigma)**2)
+    lnp = -0.5 * np.sum((R / sigma) ** 2)
     return [lnp, mean_spec, R]
+
 
 def fprob(p):
     print(p)
@@ -157,16 +171,28 @@ def fprob(p):
 
 def optimize():
     start = config["Theta"]
-    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
+    p0 = np.concatenate(
+        (
+            np.array([start["vz"], start["vsini"], start["logOmega"]]),
+            np.zeros(npoly - 1),
+        )
+    )
     print("p0", p0)
 
     from scipy.optimize import fmin
+
     p = fmin(fprob, p0, maxiter=10000, maxfun=10000)
     print(p)
 
+
 def generate():
     start = config["Theta"]
-    p0 = np.concatenate((np.array([start["vz"], start["vsini"], start["logOmega"]]), np.zeros(npoly-1)))
+    p0 = np.concatenate(
+        (
+            np.array([start["vz"], start["vsini"], start["logOmega"]]),
+            np.zeros(npoly - 1),
+        )
+    )
 
     lnp, mean_spec, R = lnprob(p0)
 
@@ -174,13 +200,20 @@ def generate():
     wl_shift = wl * np.sqrt((C.c_kms - start["vz"]) / (C.c_kms + start["vz"]))
 
     # Write these to JSON
-    my_dict = {"wl":wl_shift.tolist(), "data":fl.tolist(), "model":mean_spec.tolist(), "resid":R.tolist(), "sigma":sigma.tolist(), "spectrum_id":0, "order":order}
+    my_dict = {
+        "wl": wl_shift.tolist(),
+        "data": fl.tolist(),
+        "model": mean_spec.tolist(),
+        "resid": R.tolist(),
+        "sigma": sigma.tolist(),
+        "spectrum_id": 0,
+        "order": order,
+    }
 
     fname = config.specfmt.format(0, order)
-    f = open(config.name + fname + "spec.json", 'w')
+    f = open(config.name + fname + "spec.json", "w")
     json.dump(my_dict, f, indent=2, sort_keys=True)
     f.close()
-
 
 
 # Later on, use the value of RV to shift the residuals back to restframe, and if necessary do some interpolation to resample it.

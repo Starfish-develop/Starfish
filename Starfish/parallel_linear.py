@@ -9,13 +9,36 @@
 # parameters into one place, but I'm open to new suggestions.
 
 import argparse
-parser = argparse.ArgumentParser(prog="parallel.py", description="Run Starfish fitting model in parallel.")
-parser.add_argument("-r", "--run_index", help="All data will be written into this directory, overwriting any that exists. Default is current working directory.")
+
+parser = argparse.ArgumentParser(
+    prog="parallel.py", description="Run Starfish fitting model in parallel."
+)
+parser.add_argument(
+    "-r",
+    "--run_index",
+    help="All data will be written into this directory, overwriting any that exists. Default is current working directory.",
+)
 # Even though these arguments aren't being used, we need to add them.
-parser.add_argument("--generate", action="store_true", help="Write out the data, mean model, and residuals for each order.")
-parser.add_argument("--initPhi", action="store_true", help="Create *phi.json files for each order using values in config.yaml")
-parser.add_argument("--optimize", choices=["Theta", "Phi", "Cheb"], help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.")
-parser.add_argument("--sample", choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"], help="Sample the parameters, keeping the alternate set of parameters fixed.")
+parser.add_argument(
+    "--generate",
+    action="store_true",
+    help="Write out the data, mean model, and residuals for each order.",
+)
+parser.add_argument(
+    "--initPhi",
+    action="store_true",
+    help="Create *phi.json files for each order using values in config.yaml",
+)
+parser.add_argument(
+    "--optimize",
+    choices=["Theta", "Phi", "Cheb"],
+    help="Optimize the Theta or Phi parameters, keeping the alternate set of parameters fixed.",
+)
+parser.add_argument(
+    "--sample",
+    choices=["ThetaCheb", "ThetaPhi", "ThetaPhiLines"],
+    help="Sample the parameters, keeping the alternate set of parameters fixed.",
+)
 parser.add_argument("--samples", type=int, default=5, help="How many samples to run?")
 args = parser.parse_args()
 
@@ -49,15 +72,16 @@ import yaml
 import shutil
 import json
 
+
 def init_directories(run_index=None):
-    '''
+    """
     If we are sampling, then we need to setup output directories to store the
     samples and other output products. If we're sampling, we probably want to be
     running multiple chains at once, and so we have to set things up so that they
     don't conflict.
 
     :returns: routdir, the outdir for this current run.
-    '''
+    """
 
     base = config.outdir + config.name + "/run{:0>2}/"
 
@@ -70,7 +94,7 @@ def init_directories(run_index=None):
 
     else:
         routdir = base.format(run_index)
-        #Delete this routdir, if it exists
+        # Delete this routdir, if it exists
         if os.path.exists(routdir):
             print("Deleting", routdir)
             shutil.rmtree(routdir)
@@ -90,6 +114,7 @@ def init_directories(run_index=None):
 
     return routdir
 
+
 if args.run_index:
     config.routdir = init_directories(args.run_index)
 else:
@@ -97,12 +122,16 @@ else:
 
 # list of keys from 0 to (norders - 1)
 order_keys = np.arange(len(config.data["orders"]))
-DataSpectra = [Spectrum.open(file, orders=config.data["orders"]) for file in config.data["files"]]
+DataSpectra = [
+    Spectrum.open(file, orders=config.data["orders"]) for file in config.data["files"]
+]
 # list of keys from 0 to (nspectra - 1) Used for indexing purposes.
 spectra_keys = np.arange(len(DataSpectra))
 
-#Instruments are provided as one per dataset
-Instruments = [eval("Starfish.grid_tools." + inst)() for inst in config.data["instruments"]]
+# Instruments are provided as one per dataset
+Instruments = [
+    eval("Starfish.grid_tools." + inst)() for inst in config.data["instruments"]
+]
 
 masks = config.get("mask", None)
 if masks is not None:
@@ -111,8 +140,13 @@ if masks is not None:
         dataSpec.add_mask(myMask.masks)
 
 # Set up the logger
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s", filename="{}log.log".format(
-    config.routdir), level=logging.DEBUG, filemode="w", datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s",
+    filename="{}log.log".format(config.routdir),
+    level=logging.DEBUG,
+    filemode="w",
+    datefmt="%m/%d/%Y %I:%M:%S %p",
+)
 #
 # def perturb(startingDict, jumpDict, factor=3.):
 #     '''
@@ -133,52 +167,54 @@ if config.get("use_cov", None):
     # Use an emprically determined covariance matrix to for the jumps.
     pass
 
+
 def info(title):
-    '''
+    """
     Print process information useful for debugging.
-    '''
+    """
     print(title)
-    print('module name:', __name__)
-    if hasattr(os, 'getppid'):  # only available on Unix
-        print('parent process:', os.getppid())
-    print('process id:', os.getpid())
+    print("module name:", __name__)
+    if hasattr(os, "getppid"):  # only available on Unix
+        print("parent process:", os.getppid())
+    print("process id:", os.getpid())
 
 
 class Order:
     def __init__(self, debug=False):
-        '''
+        """
         This object contains all of the variables necessary for the partial
         lnprob calculation for one echelle order. It is designed to first be
         instantiated within the main processes and then forked to other
         subprocesses. Once operating in the subprocess, the variables specific
         to the order are loaded with an `INIT` message call, which tells which key
         to initialize on in the `self.initialize()`.
-        '''
+        """
         self.lnprob = -np.inf
         self.lnprob_last = -np.inf
 
-        self.func_dict = {"INIT": self.initialize,
-                          "DECIDE": self.decide_Theta,
-                          "INST": self.instantiate,
-                          "LNPROB": self.lnprob_Theta,
-                          "GET_LNPROB": self.get_lnprob,
-                          "FINISH": self.finish,
-                          "SAVE": self.save,
-                          "OPTIMIZE_CHEB": self.optimize_Cheb
-                          }
+        self.func_dict = {
+            "INIT": self.initialize,
+            "DECIDE": self.decide_Theta,
+            "INST": self.instantiate,
+            "LNPROB": self.lnprob_Theta,
+            "GET_LNPROB": self.get_lnprob,
+            "FINISH": self.finish,
+            "SAVE": self.save,
+            "OPTIMIZE_CHEB": self.optimize_Cheb,
+        }
 
         self.debug = debug
         self.logger = logging.getLogger("{}".format(self.__class__.__name__))
 
     def initialize(self, key):
-        '''
+        """
         Initialize to the correct chunk of data (echelle order).
 
         :param key: (spectrum_id, order_key)
         :param type: (int, int)
 
         This method should only be called after all subprocess have been forked.
-        '''
+        """
 
         self.id = key
         spectrum_id, self.order_key = self.id
@@ -194,16 +230,24 @@ class Order:
         self.mask = self.dataSpectrum.masks[self.order_key]
         self.order = int(self.dataSpectrum.orders[self.order_key])
 
-        self.logger = logging.getLogger("{} {}".format(self.__class__.__name__, self.order))
+        self.logger = logging.getLogger(
+            "{} {}".format(self.__class__.__name__, self.order)
+        )
         if self.debug:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
 
-        self.logger.info("Initializing model on Spectrum {}, order {}.".format(self.spectrum_id, self.order_key))
+        self.logger.info(
+            "Initializing model on Spectrum {}, order {}.".format(
+                self.spectrum_id, self.order_key
+            )
+        )
 
         self.npoly = config["cheb_degree"]
-        self.chebyshevSpectrum = ChebyshevSpectrum(self.dataSpectrum, self.order_key, npoly=self.npoly)
+        self.chebyshevSpectrum = ChebyshevSpectrum(
+            self.dataSpectrum, self.order_key, npoly=self.npoly
+        )
 
         # If the file exists, optionally initiliaze to the chebyshev values
         fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
@@ -212,22 +256,24 @@ class Order:
             phi = PhiParam.load(fname)
             self.chebyshevSpectrum.update(phi.cheb)
 
-        self.resid_deque = deque(maxlen=500) #Deque that stores the last residual spectra, for averaging
+        self.resid_deque = deque(
+            maxlen=500
+        )  # Deque that stores the last residual spectra, for averaging
         self.counter = 0
 
         self.interpolator = Interpolator(self.wl, HDF5Interface())
-        self.flux = None # Where the interpolator will store the flux
+        self.flux = None  # Where the interpolator will store the flux
 
         self.wl_FFT = self.interpolator.wl
 
         # The raw eigenspectra and mean flux components
 
         self.ss = np.fft.rfftfreq(len(self.wl_FFT), d=self.interpolator.interface.dv)
-        self.ss[0] = 0.01 # junk so we don't get a divide by zero error
+        self.ss[0] = 0.01  # junk so we don't get a divide by zero error
 
-        self.sigma_mat = self.sigma**2 * np.eye(self.ndata)
+        self.sigma_mat = self.sigma ** 2 * np.eye(self.ndata)
 
-        self.lnprior = 0.0 # Modified and set by NuisanceSampler.lnprob
+        self.lnprior = 0.0  # Modified and set by NuisanceSampler.lnprob
 
         # self.nregions = 0
         # self.exceptions = []
@@ -236,42 +282,44 @@ class Order:
         self.noutdir = config.routdir + "{}/{}/".format(self.spectrum_id, self.order)
 
     def instantiate(self, *args):
-        '''
+        """
         If mixing Theta and Phi optimization/sampling, perform the sigma clipping
         operation to instantiate covariant regions to cover outliers.
 
         May involve creating a new NuisanceSampler.
-        '''
+        """
         raise NotImplementedError
 
     def get_lnprob(self, *args):
-        '''
+        """
         Return the *current* value of lnprob.
 
         Intended to be called from the master process to
         query the child processes for their current value of lnprob.
-        '''
+        """
         return self.lnprob
 
     def lnprob_Theta(self, p):
-        '''
+        """
         Update the model to the Theta parameters and then evaluate the lnprob.
 
         Intended to be called from the master process via the command "LNPROB".
-        '''
+        """
         try:
             self.update_Theta(p)
-            lnp = self.evaluate() # Also sets self.lnprob to new value
+            lnp = self.evaluate()  # Also sets self.lnprob to new value
             return lnp
         except (C.ModelError, C.InterpolationError):
-            self.logger.debug("ModelError in stellar parameters, sending back -np.inf {}".format(p))
+            self.logger.debug(
+                "ModelError in stellar parameters, sending back -np.inf {}".format(p)
+            )
             return -np.inf
 
     def evaluate(self):
-        '''
+        """
         Return the lnprob using the current version of the C_GP matrix, data matrix,
         and other intermediate products.
-        '''
+        """
 
         self.lnprob_last = self.lnprob
 
@@ -297,12 +345,12 @@ class Order:
             raise
 
     def update_Theta(self, p):
-        '''
+        """
         Update the model to the current Theta parameters.
 
         :param p: parameters to update model to
         :type p: model.ThetaParam
-        '''
+        """
 
         # Dirty hack
         fix_logg = config.get("fix_logg", None)
@@ -333,10 +381,14 @@ class Order:
             FF = np.fft.rfft(flux_raw)
 
             # Determine the stellar broadening kernel
-            ub = 2. * np.pi * p.vsini * self.ss
-            sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3. * np.sin(ub) / (2 * ub ** 3)
+            ub = 2.0 * np.pi * p.vsini * self.ss
+            sb = (
+                j1(ub) / ub
+                - 3 * np.cos(ub) / (2 * ub ** 2)
+                + 3.0 * np.sin(ub) / (2 * ub ** 3)
+            )
             # set zeroth frequency to 1 separately (DC term)
-            sb[0] = 1.
+            sb[0] = 1.0
 
             # institute vsini taper
             FF_tap = FF * sb
@@ -346,7 +398,11 @@ class Order:
 
         # Spectrum resample operations
         if min(self.wl) < min(wl_FFT) or max(self.wl) > max(wl_FFT):
-            raise RuntimeError("Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(min(self.wl), max(self.wl), min(wl_FFT), max(wl_FFT)))
+            raise RuntimeError(
+                "Data wl grid ({:.2f},{:.2f}) must fit within the range of wl_FFT ({:.2f},{:.2f})".format(
+                    min(self.wl), max(self.wl), min(wl_FFT), max(wl_FFT)
+                )
+            )
 
         # Take the output from the FFT operation and stuff it into the respective data products
         interp = InterpolatedUnivariateSpline(wl_FFT, flux_taper, k=5)
@@ -356,13 +412,13 @@ class Order:
         gc.collect()
 
         # Adjust flux_mean and flux_std by Omega
-        Omega = 10**p.logOmega
+        Omega = 10 ** p.logOmega
         self.flux *= Omega
 
     def revert_Theta(self):
-        '''
+        """
         Revert the status of the model from a rejected Theta proposal.
-        '''
+        """
 
         self.logger.debug("Reverting Theta parameters")
 
@@ -371,13 +427,13 @@ class Order:
         self.flux = self.flux_last
 
     def decide_Theta(self, yes):
-        '''
+        """
         Interpret the decision from the master process to either revert the
         Theta model (rejected parameters) or move on (accepted parameters).
 
         :param yes: if True, accept stellar parameters.
         :type yes: boolean
-        '''
+        """
         if yes:
             # accept and move on
             self.logger.debug("Deciding to accept Theta parameters")
@@ -390,10 +446,10 @@ class Order:
         self.independent_sample(1)
 
     def optimize_Cheb(self, *args):
-        '''
+        """
         Keeping the current Theta parameters fixed and assuming white noise,
         optimize the Chebyshev parameters
-        '''
+        """
 
         # self.fix_c0 = True if index == (len(DataSpectrum.wls) - 1) else False #Fix the last c0
         # This is necessary if we want to update just a single order.
@@ -414,29 +470,35 @@ class Order:
                 return -lnp
 
         from scipy.optimize import fmin
+
         result = fmin(fprob, p0, maxiter=10000, maxfun=10000)
         print(self.order, result)
 
         # Due to a JSON bug, np.int64 type objects will get read twice,
         # and cause this routine to fail. Therefore we have to be careful
         # to convert these to ints.
-        phi = PhiParam(spectrum_id=int(self.spectrum_id), order=int(self.order), fix_c0=self.chebyshevSpectrum.fix_c0, cheb=result)
+        phi = PhiParam(
+            spectrum_id=int(self.spectrum_id),
+            order=int(self.order),
+            fix_c0=self.chebyshevSpectrum.fix_c0,
+            cheb=result,
+        )
         phi.save()
 
     def update_Phi(self, p):
-        '''
+        """
         Update the Phi parameters and data covariance matrix.
 
         :param params: large dictionary containing cheb, cov, and regions
-        '''
+        """
 
         raise NotImplementedError
 
     def revert_Phi(self, *args):
-        '''
+        """
         Revert all products from the nuisance parameters, including the data
         covariance matrix.
-        '''
+        """
 
         self.logger.debug("Reverting Phi parameters")
 
@@ -446,25 +508,27 @@ class Order:
         self.data_mat = self.data_mat_last
 
     def clear_resid_deque(self):
-        '''
+        """
         Clear the accumulated residual spectra.
-        '''
+        """
         self.resid_deque.clear()
 
     def independent_sample(self, niter):
-        '''
+        """
         Do the independent sampling specific to this echelle order, using the
         attached self.sampler (NuisanceSampler).
 
         :param niter: number of iterations to complete before returning to master process.
 
-        '''
+        """
 
         self.logger.debug("Beginning independent sampling on Phi parameters")
 
         if self.lnprob:
             # If we have a current value, pass it to the sampler
-            self.p0, self.lnprob, state = self.sampler.run_mcmc(pos0=self.p0, N=niter, lnprob0=self.lnprob)
+            self.p0, self.lnprob, state = self.sampler.run_mcmc(
+                pos0=self.p0, N=niter, lnprob0=self.lnprob
+            )
         else:
             # Otherwise, start from the beginning
             self.p0, self.lnprob, state = self.sampler.run_mcmc(pos0=self.p0, N=niter)
@@ -473,41 +537,43 @@ class Order:
         # Don't return anything to the master process.
 
     def finish(self, *args):
-        '''
+        """
         Wrap up the sampling and write the samples to disk.
-        '''
+        """
         self.logger.debug("Finishing")
 
     def brain(self, conn):
-        '''
+        """
         The infinite loop of the subprocess, which continues to listen for
         messages on the pipe.
-        '''
+        """
         self.conn = conn
         alive = True
         while alive:
-            #Keep listening for messages put on the Pipe
+            # Keep listening for messages put on the Pipe
             alive = self.interpret()
-            #Once self.interpret() returns `False`, this loop will die.
+            # Once self.interpret() returns `False`, this loop will die.
         self.conn.send("DEAD")
 
     def interpret(self):
-        '''
+        """
         Interpret the messages being put into the Pipe, and do something with
         them. Messages are always sent in a 2-arg tuple (fname, arg)
         Right now we only expect one function and one argument but this could
         be generalized to **args.
-        '''
-        #info("brain")
+        """
+        # info("brain")
 
-        fname, arg = self.conn.recv() # Waits here to receive a new message
+        fname, arg = self.conn.recv()  # Waits here to receive a new message
         self.logger.debug("{} received message {}".format(os.getpid(), (fname, arg)))
 
         func = self.func_dict.get(fname, False)
         if func:
             response = func(arg)
         else:
-            self.logger.info("Given an unknown function {}, assuming kill signal.".format(fname))
+            self.logger.info(
+                "Given an unknown function {}, assuming kill signal.".format(fname)
+            )
             return False
 
         # Functions only return a response other than None when they want them
@@ -520,23 +586,30 @@ class Order:
         return True
 
     def save(self, *args):
-        '''
+        """
         Using the current values for flux, write out the data, mean model, and mean
         residuals into a JSON.
-        '''
+        """
 
         resid = self.fl - self.flux
 
-        my_dict = {"wl":self.wl.tolist(), "data":self.fl.tolist(), "model":self.flux.tolist(), "resid":resid.tolist(), "sigma":self.sigma.tolist(), "spectrum_id":self.spectrum_id, "order":self.order}
+        my_dict = {
+            "wl": self.wl.tolist(),
+            "data": self.fl.tolist(),
+            "model": self.flux.tolist(),
+            "resid": resid.tolist(),
+            "sigma": self.sigma.tolist(),
+            "spectrum_id": self.spectrum_id,
+            "order": self.order,
+        }
 
         fname = config.specfmt.format(self.spectrum_id, self.order)
-        f = open(fname + "spec.json", 'w')
+        f = open(fname + "spec.json", "w")
         json.dump(my_dict, f, indent=2, sort_keys=True)
         f.close()
 
 
 class OptimizeTheta(Order):
-
     def initialize(self, key):
         super().initialize(key)
         # Any additional setup here
@@ -558,6 +631,7 @@ class OptimizePhi(Order):
     def __init__(self):
         pass
 
+
 class SampleThetaCheb(Order):
     def initialize(self, key):
         super().initialize(key)
@@ -566,11 +640,11 @@ class SampleThetaCheb(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
+        # Set up p0 and the independent sampler
         fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
         self.p0 = phi.cheb
-        cov = np.diag(config["cheb_jump"]**2 * np.ones(len(self.p0)))
+        cov = np.diag(config["cheb_jump"] ** 2 * np.ones(len(self.p0)))
 
         def lnfunc(p):
             # turn this into pars
@@ -583,21 +657,32 @@ class SampleThetaCheb(Order):
             self.logger.debug("Calling Phi revertfn.")
             self.revert_Phi()
 
-        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
+        self.sampler = StateSampler(
+            lnfunc,
+            self.p0,
+            cov,
+            query_lnprob=self.get_lnprob,
+            rejectfn=rejectfn,
+            debug=True,
+        )
 
     def update_Phi(self, p):
-        '''
+        """
         Update the Chebyshev coefficients only.
-        '''
+        """
         self.chebyshevSpectrum.update(p)
 
     def finish(self, *args):
         super().finish(*args)
-        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = (
+            config.routdir
+            + config.specfmt.format(self.spectrum_id, self.order)
+            + "/mc.hdf5"
+        )
         self.sampler.write(fname=fname)
 
-class SampleThetaPhi(Order):
 
+class SampleThetaPhi(Order):
     def initialize(self, key):
         # Run through the standard initialization
         super().initialize(key)
@@ -606,7 +691,7 @@ class SampleThetaPhi(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
+        # Set up p0 and the independent sampler
         fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
@@ -614,13 +699,18 @@ class SampleThetaPhi(Order):
         # are there
         phi.regions = None
 
-        #Loading file that was previously output
+        # Loading file that was previously output
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
         jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate(
+            (
+                config["cheb_jump"] ** 2 * np.ones((cheb_len,)),
+                np.array([jump["sigAmp"], jump["logAmp"], jump["l"]]) ** 2,
+            )
+        )
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -631,12 +721,20 @@ class SampleThetaPhi(Order):
 
             cheb = p[0:ind]
             sigAmp = p[ind]
-            ind+=1
+            ind += 1
             logAmp = p[ind]
-            ind+=1
+            ind += 1
             l = p[ind]
 
-            par = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
+            par = PhiParam(
+                self.spectrum_id,
+                self.order,
+                self.chebyshevSpectrum.fix_c0,
+                cheb,
+                sigAmp,
+                logAmp,
+                l,
+            )
 
             self.update_Phi(par)
             lnp = self.evaluate()
@@ -647,7 +745,14 @@ class SampleThetaPhi(Order):
             self.logger.debug("Calling Phi revertfn.")
             self.revert_Phi()
 
-        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
+        self.sampler = StateSampler(
+            lnfunc,
+            self.p0,
+            cov,
+            query_lnprob=self.get_lnprob,
+            rejectfn=rejectfn,
+            debug=True,
+        )
 
     def update_Phi(self, p):
         self.logger.debug("Updating nuisance parameters to {}".format(p))
@@ -657,24 +762,32 @@ class SampleThetaPhi(Order):
 
         # Check to make sure the global covariance parameters make sense
         if p.sigAmp < 0.1:
-            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+            raise C.ModelError(
+                "sigAmp shouldn't be lower than 0.1, something is wrong."
+            )
 
-        max_r = 6.0 * p.l # [km/s]
+        max_r = 6.0 * p.l  # [km/s]
 
         # Create a partial function which returns the proper element.
         k_func = make_k_func(p)
 
         # Store the previous data matrix in case we want to revert later
         self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + p.sigAmp*self.sigma_mat
+        self.data_mat = (
+            get_dense_C(self.wl, k_func=k_func, max_r=max_r) + p.sigAmp * self.sigma_mat
+        )
 
     def finish(self, *args):
         super().finish(*args)
-        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = (
+            config.routdir
+            + config.specfmt.format(self.spectrum_id, self.order)
+            + "/mc.hdf5"
+        )
         self.sampler.write(fname=fname)
 
-class SampleThetaPhiLines(Order):
 
+class SampleThetaPhiLines(Order):
     def initialize(self, key):
         # Run through the standard initialization
         super().initialize(key)
@@ -683,7 +796,7 @@ class SampleThetaPhiLines(Order):
         self.data_mat = self.sigma_mat.copy()
         self.data_mat_last = self.data_mat.copy()
 
-        #Set up p0 and the independent sampler
+        # Set up p0 and the independent sampler
         fname = config.specfmt.format(self.spectrum_id, self.order) + "phi.json"
         phi = PhiParam.load(fname)
 
@@ -702,13 +815,18 @@ class SampleThetaPhiLines(Order):
         # Then set phi to None
         phi.regions = None
 
-        #Loading file that was previously output
+        # Loading file that was previously output
         # Convert PhiParam object to an array
         self.p0 = phi.toarray()
 
         jump = config["Phi_jump"]
         cheb_len = (self.npoly - 1) if self.chebyshevSpectrum.fix_c0 else self.npoly
-        cov_arr = np.concatenate((config["cheb_jump"]**2 * np.ones((cheb_len,)), np.array([jump["sigAmp"], jump["logAmp"], jump["l"]])**2 ))
+        cov_arr = np.concatenate(
+            (
+                config["cheb_jump"] ** 2 * np.ones((cheb_len,)),
+                np.array([jump["sigAmp"], jump["logAmp"], jump["l"]]) ** 2,
+            )
+        )
         cov = np.diag(cov_arr)
 
         def lnfunc(p):
@@ -719,12 +837,20 @@ class SampleThetaPhiLines(Order):
 
             cheb = p[0:ind]
             sigAmp = p[ind]
-            ind+=1
+            ind += 1
             logAmp = p[ind]
-            ind+=1
+            ind += 1
             l = p[ind]
 
-            phi = PhiParam(self.spectrum_id, self.order, self.chebyshevSpectrum.fix_c0, cheb, sigAmp, logAmp, l)
+            phi = PhiParam(
+                self.spectrum_id,
+                self.order,
+                self.chebyshevSpectrum.fix_c0,
+                cheb,
+                sigAmp,
+                logAmp,
+                l,
+            )
 
             self.update_Phi(phi)
             lnp = self.evaluate()
@@ -735,7 +861,14 @@ class SampleThetaPhiLines(Order):
             self.logger.debug("Calling Phi revertfn.")
             self.revert_Phi()
 
-        self.sampler = StateSampler(lnfunc, self.p0, cov, query_lnprob=self.get_lnprob, rejectfn=rejectfn, debug=True)
+        self.sampler = StateSampler(
+            lnfunc,
+            self.p0,
+            cov,
+            query_lnprob=self.get_lnprob,
+            rejectfn=rejectfn,
+            debug=True,
+        )
 
     def update_Phi(self, phi):
         self.logger.debug("Updating nuisance parameters to {}".format(phi))
@@ -745,20 +878,30 @@ class SampleThetaPhiLines(Order):
 
         # Check to make sure the global covariance parameters make sense
         if phi.sigAmp < 0.1:
-            raise C.ModelError("sigAmp shouldn't be lower than 0.1, something is wrong.")
+            raise C.ModelError(
+                "sigAmp shouldn't be lower than 0.1, something is wrong."
+            )
 
-        max_r = 6.0 * phi.l # [km/s]
+        max_r = 6.0 * phi.l  # [km/s]
 
         # Create a partial function which returns the proper element.
         k_func = make_k_func(phi)
 
         # Store the previous data matrix in case we want to revert later
         self.data_mat_last = self.data_mat
-        self.data_mat = get_dense_C(self.wl, k_func=k_func, max_r=max_r) + phi.sigAmp*self.sigma_mat + self.region_mat
+        self.data_mat = (
+            get_dense_C(self.wl, k_func=k_func, max_r=max_r)
+            + phi.sigAmp * self.sigma_mat
+            + self.region_mat
+        )
 
     def finish(self, *args):
         super().finish(*args)
-        fname = config.routdir + config.specfmt.format(self.spectrum_id, self.order) + "/mc.hdf5"
+        fname = (
+            config.routdir
+            + config.specfmt.format(self.spectrum_id, self.order)
+            + "/mc.hdf5"
+        )
         self.sampler.write(fname=fname)
 
 
@@ -854,11 +997,12 @@ class SampleThetaPhiLines(Order):
 # Then, each forked model will be customized using an INIT command passed
 # through the PIPE.
 
+
 def initialize(model):
     # Fork a subprocess for each key: (spectra, order)
-    pconns = {} # Parent connections
-    cconns = {} # Child connections
-    ps = {} # Process objects
+    pconns = {}  # Parent connections
+    cconns = {}  # Child connections
+    ps = {}  # Process objects
     # Create all of the pipes
     for spectrum_key in spectra_keys:
         for order_key in order_keys:
@@ -877,21 +1021,21 @@ def initialize(model):
 
 
 def profile_code():
-    '''
+    """
     Test hook designed to be used by cprofile or kernprof. Does not include any
     network latency from communicating or synchronizing between processes
     because we run on just one process.
-    '''
+    """
 
-    #Evaluate one complete iteration from delivery of stellar parameters from master process
+    # Evaluate one complete iteration from delivery of stellar parameters from master process
 
-    #Master proposal
-    stellar_Starting.update({"logg":4.29})
+    # Master proposal
+    stellar_Starting.update({"logg": 4.29})
     model.stellar_lnprob(stellar_Starting)
-    #Assume we accepted
+    # Assume we accepted
     model.decide_stellar(True)
 
-    #Right now, assumes Kurucz order 23
+    # Right now, assumes Kurucz order 23
 
 
 def main():
@@ -913,9 +1057,12 @@ def main():
         p.join()
         p.terminate()
 
-    import sys;sys.exit()
+    import sys
 
-if __name__=="__main__":
+    sys.exit()
+
+
+if __name__ == "__main__":
     main()
 
 # All subprocesses will inherit pipe file descriptors created in the master process.

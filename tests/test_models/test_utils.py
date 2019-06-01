@@ -3,10 +3,14 @@ from collections import deque
 import numpy as np
 import pytest
 
-from Starfish.models import find_residual_peaks, optimize_residual_peaks, covariance_debugger
+from Starfish.models import (
+    find_residual_peaks,
+    optimize_residual_peaks,
+    covariance_debugger,
+)
+
 
 class TestUtils:
-
     @pytest.fixture
     def model(self, mock_model):
         fake_residual = np.random.randn(100, *mock_model.data.waves.shape)
@@ -24,7 +28,7 @@ class TestUtils:
         params = optimize_residual_peaks(model, mus=peaks, num_residuals=50)
         assert len(params) == len(peaks)
         model.local = params
-        assert model.params['local'] == params
+        assert model.params["local"] == params
 
     def test_covariance_debugger(self):
         # Just test if it runs

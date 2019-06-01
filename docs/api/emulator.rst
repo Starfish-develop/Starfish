@@ -20,7 +20,7 @@ The eigenspectra decomposition is performed via Principal Component Analysis (PC
 .. code-block:: python
 
     >>> from Starfish.grid_tools import HDF5Interface
-    >>> from Starfish import Emulator
+    >>> from Starfish.emulator import Emulator
     >>> emulator = Emulator.from_grid(HDF5Interface('grid.hdf5'))
 
 
@@ -38,7 +38,7 @@ Example optimizing using minimization optimizer
 .. code-block:: python
 
     >>> from Starfish.grid_tools import HDF5Interface
-    >>> from Starfish import Emulator
+    >>> from Starfish.emulator import Emulator
     >>> emulator = Emulator.from_grid(HDF5Interface('grid.hdf5'))
     >>> emulator
     Emulator
@@ -88,7 +88,7 @@ Once the emulator has been optimized, we can finally use it as a means of interp
 
 .. code-block:: python
 
-    >>> from Starfish import Emulator
+    >>> from Starfish.emulator import Emulator
     >>> emulator = Emulator.load('trained_emulator.hdf5')
     >>> flux = emulator.load_flux([7054, 4.0324, 0.01])
     >>> wl = emu.wl
@@ -97,7 +97,7 @@ If you want to take advantage of the emulator covariance matrix, you must use th
 
 .. code-block:: python
 
-    >>> from Starfish import Emulator
+    >>> from Starfish.emulator import Emulator
     >>> emulator = Emulator.load('trained_emulator.hdf5')
     >>> weights, cov = emulator([7054, 4.0324, 0.01])
     >>> X = emulator.eigenspectra * emulator.flux_std
@@ -108,8 +108,8 @@ Lastly, if you want to process the model, it is useful to process the eigenspect
 
 .. code-block:: python
 
-    >>> from Starfish import Emulator
-    >>> from Starfish.models.transforms import instrumental_broaden
+    >>> from Starfish.emulator import Emulator
+    >>> from Starfish.transforms import instrumental_broaden
     >>> emulator = Emulator.load('trained_emulator.hdf5')
     >>> fluxes = emulator.bulk_fluxes
     >>> fluxes = instrumental_broaden(emulator.wl, fluxes, 10)

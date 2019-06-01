@@ -10,17 +10,15 @@ __version__ = "0.3.1-dev"
 if not __STARFISH_SETUP__:
 
     from .spectrum import Spectrum
-    from .emulator import Emulator
 
     __all__ = [
         "constants",
         "emulator",
-        "Emulator",
         "grid_tools",
         "models",
         "samplers",
         "spectrum",
         "Spectrum",
+        "transforms",
         "utils",
     ]
-

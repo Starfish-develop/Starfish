@@ -49,15 +49,18 @@ def download_PHOENIX_models(path, parameters=None):
 
     """
     from .interfaces import PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha
-    wave_url = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
-    wave_file = os.path.join(path, 'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
-    flux_file_formatter = 'http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011' \
-                          '/Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
-    output_formatter = 'Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'
+
+    wave_url = "http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits"
+    wave_file = os.path.join(path, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
+    flux_file_formatter = (
+        "http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/PHOENIX-ACES-AGSS-COND-2011"
+        "/Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
+    )
+    output_formatter = "Z{2:s}{3:s}/lte{0:05.0f}-{1:03.2f}{2:s}{3:s}.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits"
 
     os.makedirs(path, exist_ok=True)
     # Download step
-    log.info('Starting Download of PHOENIX ACES models to {}'.format(path))
+    log.info("Starting Download of PHOENIX ACES models to {}".format(path))
     if not os.path.exists(wave_file):
         urlretrieve(wave_url, wave_file)
 
@@ -79,16 +82,16 @@ def download_PHOENIX_models(path, parameters=None):
 
         tmp_p = [p[0], p[1]]
         # Create the Z string. Have to do this because PHOENIX models use - sign for 0.0
-        Zstr = '-0.0' if p[2] == 0 else '{:+.1f}'.format(p[2])
+        Zstr = "-0.0" if p[2] == 0 else "{:+.1f}".format(p[2])
         tmp_p.append(Zstr)
         # Create the Alpha string, which is nothing if alpha is 0 or unspecified
         if len(p) == 4:
-            Astr = '' if p[3] == 0 else '.Alpha={:+.2f}'.format(p[3])
+            Astr = "" if p[3] == 0 else ".Alpha={:+.2f}".format(p[3])
         else:
-            Astr = ''
+            Astr = ""
         tmp_p.append(Astr)
         url = flux_file_formatter.format(*tmp_p)
-        pbar.set_description(url.split('/')[-1])
+        pbar.set_description(url.split("/")[-1])
         output_file = os.path.join(path, output_formatter.format(*tmp_p))
         if not os.path.exists(output_file):
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
@@ -96,7 +99,10 @@ def download_PHOENIX_models(path, parameters=None):
                 urlretrieve(url, output_file)
             except URLError:
                 log.warning(
-                    'Parameters {} not found. Double check they are on PHOENIX grid'.format(p))
+                    "Parameters {} not found. Double check they are on PHOENIX grid".format(
+                        p
+                    )
+                )
 
 
 def chunk_list(mylist, n=mp.cpu_count()):
@@ -117,7 +123,7 @@ def chunk_list(mylist, n=mp.cpu_count()):
     length = len(mylist)
     size = int(length / n)
     # fill with evenly divisible
-    chunks = [mylist[0 + size * i: size * (i + 1)] for i in range(n)]
+    chunks = [mylist[0 + size * i : size * (i + 1)] for i in range(n)]
     leftover = length - size * n
     edge = size * n
     for i in range(leftover):  # backfill each with the last item
@@ -144,8 +150,10 @@ def determine_chunk_log(wl, wl_min, wl_max):
 
     # wl_min and wl_max must of course be within the bounds of wl
     assert wl_min >= np.min(wl) and wl_max <= np.max(
-        wl), "determine_chunk_log: wl_min {:.2f} and wl_max {:.2f} are not within the bounds of the grid {:.2f} to {:.2f}.".format(
-        wl_min, wl_max, np.min(wl), np.max(wl))
+        wl
+    ), "determine_chunk_log: wl_min {:.2f} and wl_max {:.2f} are not within the bounds of the grid {:.2f} to {:.2f}.".format(
+        wl_min, wl_max, np.min(wl), np.max(wl)
+    )
 
     # Find the smallest length synthetic spectrum that is a power of 2 in length
     # and longer than the number of points contained between wl_min and wl_max
@@ -162,15 +170,14 @@ def determine_chunk_log(wl, wl_min, wl_max):
         else:
             break
 
-    assert type(
-        chunk) == np.int, "Chunk is not an integer!. Chunk is {}".format(chunk)
+    assert type(chunk) == np.int, "Chunk is not an integer!. Chunk is {}".format(chunk)
 
     if chunk < len_wl:
         # Now that we have determined the length of the chunk of the synthetic
         # spectrum, determine indices that straddle the data spectrum.
 
         # Find the index that corresponds to the wl at the center of the data spectrum
-        center_wl = (wl_min + wl_max) / 2.
+        center_wl = (wl_min + wl_max) / 2.0
         center_ind = (np.abs(wl - center_wl)).argmin()
 
         # Take a chunk that straddles either side.
@@ -179,14 +186,13 @@ def determine_chunk_log(wl, wl_min, wl_max):
         ind = (np.arange(len_wl) >= inds[0]) & (np.arange(len_wl) < inds[1])
     else:
         print("keeping grid as is")
-        ind = np.ones_like(wl, dtype='bool')
+        ind = np.ones_like(wl, dtype="bool")
 
-    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), "Model" \
-                                                                  "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full" \
-                                                                  " wl range ({:.2f}, {:.2f}).".format(min(wl[ind]),
-                                                                                                       max(
-                                                                                                           wl[ind]),
-                                                                                                       wl_min, wl_max)
+    assert (min(wl[ind]) <= wl_min) and (max(wl[ind]) >= wl_max), (
+        "Model"
+        "Interpolator chunking ({:.2f}, {:.2f}) didn't encapsulate full"
+        " wl range ({:.2f}, {:.2f}).".format(min(wl[ind]), max(wl[ind]), wl_min, wl_max)
+    )
 
     return ind
 
@@ -246,7 +252,7 @@ def vacuum_to_air_SLOAN(wl):
     """
     if not isinstance(wl, np.ndarray):
         wl = np.array(wl)
-    air = wl / (1.0 + 2.735182E-4 + 131.4182 / wl ** 2 + 2.76249E8 / wl ** 4)
+    air = wl / (1.0 + 2.735182e-4 + 131.4182 / wl ** 2 + 2.76249e8 / wl ** 4)
     return air
 
 
@@ -267,8 +273,9 @@ def air_to_vacuum(wl):
         wl = np.array(wl)
 
     sigma = 1e4 / wl
-    vac = wl + wl * (6.4328e-5 + 2.94981e-2 / (146 - sigma **
-                                               2) + 2.5540e-4 / (41 - sigma ** 2))
+    vac = wl + wl * (
+        6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2)
+    )
     return vac
 
 

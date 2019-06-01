@@ -1,4 +1,5 @@
-from .spectrum_model import SpectrumModel, ChunkedModel
+from .spectrum_model import SpectrumModel
+from .order import OrderModel
 from .echelle_model import EchelleModel
 from .utils import *
 
