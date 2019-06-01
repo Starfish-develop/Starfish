@@ -12,12 +12,13 @@ h5py = "*"
 tqdm = "*"
 extinction = "*"
 toml = "*"
+nptyping = "*"
 
 [dev-packages]
 pytest = "*"
 pydot = "*"
 pylint = "*"
-autopep8 = "*"
+black = "*"
 rope = "*"
 pytest-cov = "*"
 doc8 = "*"
@@ -26,3 +27,7 @@ coveralls = "*"
 sphinx-bootstrap-theme = "*"
 nbsphinx = "*"
 ipython = "*"
+mypy = "*"
+
+[pipenv]
+allow_prereleases = true

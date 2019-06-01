@@ -3,9 +3,11 @@ import math
 import os
 import warnings
 from collections import OrderedDict
+from typing import Sequence, Optional, Union, Tuple
 
 import h5py
 import numpy as np
+from nptyping import Array
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 from scipy.special import loggamma
@@ -29,7 +31,7 @@ class Emulator:
     ----------
     grid_points : numpy.ndarray
         The parameter space from the library.
-    param_names : array_like of str
+    param_names : array-like of str
         The names of each parameter from the grid
     wavelength : numpy.ndarray
         The wavelength of the library models
@@ -65,7 +67,21 @@ class Emulator:
         The underlying hyperparameter dictionary
     """
 
-    def __init__(self, grid_points, param_names, wavelength, weights, eigenspectra, w_hat, flux_mean, flux_std, lambda_xi=1, variances=None, lengthscales=None, name=None):
+    def __init__(
+        self,
+        grid_points: Array[float],
+        param_names: Sequence[str],
+        wavelength: Array[float],
+        weights: Array[float],
+        eigenspectra: Array[float],
+        w_hat: Array[float],
+        flux_mean: Array[float],
+        flux_std: Array[float],
+        lambda_xi: float = 1.0,
+        variances: Optional[Array["float"]] = None,
+        lengthscales: Optional[Array["float"]] = None,
+        name: Optional["str"] = None,
+    ):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
         self.param_names = param_names
@@ -83,14 +99,13 @@ class Emulator:
 
         self.lambda_xi = lambda_xi
 
-        self.variances = variances if variances is not None else 1e4 * \
-            np.ones(self.ncomps)
+        self.variances = (
+            variances if variances is not None else 1e4 * np.ones(self.ncomps)
+        )
 
         if lengthscales is None:
-            unique = [sorted(np.unique(param_set))
-                      for param_set in self.grid_points.T]
-            self._grid_sep = np.array([np.diff(param).max()
-                                       for param in unique])
+            unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
+            self._grid_sep = np.array([np.diff(param).max() for param in unique])
             lengthscales = np.tile(3 * self._grid_sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -100,50 +115,58 @@ class Emulator:
         self.max_params = grid_points.max(axis=0)
 
         # TODO find better variable names for the following
-        self.iPhiPhi = np.linalg.inv(get_phi_squared(
-            self.eigenspectra, self.grid_points.shape[0]))
+        self.iPhiPhi = np.linalg.inv(
+            get_phi_squared(self.eigenspectra, self.grid_points.shape[0])
+        )
         self.v11 = self.iPhiPhi / self.lambda_xi + batch_kernel(
-            self.grid_points, self.grid_points, self.variances, self.lengthscales)
+            self.grid_points, self.grid_points, self.variances, self.lengthscales
+        )
         self.w_hat = w_hat
 
         self._trained = False
 
     @property
-    def lambda_xi(self):
-        return np.exp(self.hyperparams['log_lambda_xi'])
+    def lambda_xi(self) -> float:
+        return np.exp(self.hyperparams["log_lambda_xi"])
 
     @lambda_xi.setter
-    def lambda_xi(self, value):
-        self.hyperparams['log_lambda_xi'] = np.log(value)
+    def lambda_xi(self, value: float):
+        self.hyperparams["log_lambda_xi"] = np.log(value)
 
     @property
-    def variances(self):
-        values = [val for key, val in self.hyperparams.items(
-        ) if key.startswith('log_variance:')]
+    def variances(self) -> Array[float]:
+        values = [
+            val
+            for key, val in self.hyperparams.items()
+            if key.startswith("log_variance:")
+        ]
         return np.exp(values)
 
     @variances.setter
-    def variances(self, values):
+    def variances(self, values: Array[float]):
         for i, value in enumerate(values):
-            self.hyperparams[f'log_variance:{i}'] = np.log(value)
+            self.hyperparams[f"log_variance:{i}"] = np.log(value)
 
     @property
-    def lengthscales(self):
-        values = [val for key, val in self.hyperparams.items(
-        ) if key.startswith('log_lengthscale:')]
+    def lengthscales(self) -> Array[float]:
+        values = [
+            val
+            for key, val in self.hyperparams.items()
+            if key.startswith("log_lengthscale:")
+        ]
         return np.exp(values).reshape(self.ncomps, -1)
 
     @lengthscales.setter
-    def lengthscales(self, values):
+    def lengthscales(self, values: Array[float]):
         for i, value in enumerate(values):
             for j, ls in enumerate(value):
-                self.hyperparams[f'log_lengthscale:{i}:{j}'] = np.log(ls)
+                self.hyperparams[f"log_lengthscale:{i}:{j}"] = np.log(ls)
 
     def __getitem__(self, key):
         return self.hyperparams[key]
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename: Union[str, os.PathLike]):
         """
         Load an emulator from and HDF5 file
 
@@ -153,22 +176,22 @@ class Emulator:
         """
         filename = os.path.expandvars(filename)
         with h5py.File(filename) as base:
-            grid_points = base['grid_points'][:]
-            param_names = base['grid_points'].attrs['names']
-            wavelength = base['wavelength'][:]
-            weights = base['weights'][:]
-            eigenspectra = base['eigenspectra'][:]
-            flux_mean = base['flux_mean'][:]
-            flux_std = base['flux_std'][:]
-            w_hat = base['w_hat'][:]
-            lambda_xi = base['hyperparameters']['lambda_xi'][()]
-            variances = base['hyperparameters']['variances'][:]
-            lengthscales = base['hyperparameters']['lengthscales'][:]
-            trained = base.attrs['trained']
-            if 'name' in base.attrs:
-                name = base.attrs['name']
+            grid_points = base["grid_points"][:]
+            param_names = base["grid_points"].attrs["names"]
+            wavelength = base["wavelength"][:]
+            weights = base["weights"][:]
+            eigenspectra = base["eigenspectra"][:]
+            flux_mean = base["flux_mean"][:]
+            flux_std = base["flux_std"][:]
+            w_hat = base["w_hat"][:]
+            lambda_xi = base["hyperparameters"]["lambda_xi"][()]
+            variances = base["hyperparameters"]["variances"][:]
+            lengthscales = base["hyperparameters"]["lengthscales"][:]
+            trained = base.attrs["trained"]
+            if "name" in base.attrs:
+                name = base.attrs["name"]
             else:
-                name = '.'.join(filename.split('.')[:-1])
+                name = ".".join(filename.split(".")[:-1])
 
         emulator = cls(
             grid_points=grid_points,
@@ -182,12 +205,12 @@ class Emulator:
             lambda_xi=lambda_xi,
             variances=variances,
             lengthscales=lengthscales,
-            name=name
+            name=name,
         )
         emulator._trained = trained
         return emulator
 
-    def save(self, filename):
+    def save(self, filename: Union[str, os.PathLike]):
         """
         Save the emulator to an HDF5 file
 
@@ -196,35 +219,35 @@ class Emulator:
         filename : str or path-like
         """
         filename = os.path.expandvars(filename)
-        with h5py.File(filename, 'w') as base:
+        with h5py.File(filename, "w") as base:
             grid_points = base.create_dataset(
-                'grid_points', data=self.grid_points, compression=9)
-            grid_points.attrs['names'] = self.param_names
-            waves = base.create_dataset(
-                'wavelength', data=self.wl, compression=9)
-            waves.attrs['units'] = 'Angstrom'
-            base.create_dataset('weights', data=self.weights, compression=9)
+                "grid_points", data=self.grid_points, compression=9
+            )
+            grid_points.attrs["names"] = self.param_names
+            waves = base.create_dataset("wavelength", data=self.wl, compression=9)
+            waves.attrs["units"] = "Angstrom"
+            base.create_dataset("weights", data=self.weights, compression=9)
             eigens = base.create_dataset(
-                'eigenspectra', data=self.eigenspectra, compression=9)
-            base.create_dataset(
-                'flux_mean', data=self.flux_mean, compression=9)
-            base.create_dataset('flux_std', data=self.flux_std, compression=9)
-            eigens.attrs['units'] = 'erg/cm^2/s/Angstrom'
-            base.create_dataset('w_hat', data=self.w_hat, compression=9)
-            base.attrs['trained'] = self._trained
+                "eigenspectra", data=self.eigenspectra, compression=9
+            )
+            base.create_dataset("flux_mean", data=self.flux_mean, compression=9)
+            base.create_dataset("flux_std", data=self.flux_std, compression=9)
+            eigens.attrs["units"] = "erg/cm^2/s/Angstrom"
+            base.create_dataset("w_hat", data=self.w_hat, compression=9)
+            base.attrs["trained"] = self._trained
             if self.name is not None:
-                base.attrs['name'] = self.name
-            hp_group = base.create_group('hyperparameters')
-            hp_group.create_dataset('lambda_xi', data=self.lambda_xi)
+                base.attrs["name"] = self.name
+            hp_group = base.create_group("hyperparameters")
+            hp_group.create_dataset("lambda_xi", data=self.lambda_xi)
+            hp_group.create_dataset("variances", data=self.variances, compression=9)
             hp_group.create_dataset(
-                'variances', data=self.variances, compression=9)
-            hp_group.create_dataset(
-                'lengthscales', data=self.lengthscales, compression=9)
+                "lengthscales", data=self.lengthscales, compression=9
+            )
 
-        self.log.info('Saved file at {}'.format(filename))
+        self.log.info("Saved file at {}".format(filename))
 
     @classmethod
-    def from_grid(cls, grid, **pca_kwargs):
+    def from_grid(cls, grid: "Starfish.grid_tools.GridInterface", **pca_kwargs):
         """
         Create an Emulator using PCA decomposition from a GridInterface.
 
@@ -249,7 +272,7 @@ class Emulator:
         fluxes /= flux_std
 
         # Perform PCA using sklearn
-        default_pca_kwargs = dict(n_components=0.99, svd_solver='full')
+        default_pca_kwargs = dict(n_components=0.99, svd_solver="full")
         default_pca_kwargs.update(pca_kwargs)
         pca = PCA(**default_pca_kwargs)
         weights = pca.fit_transform(fluxes)
@@ -258,7 +281,8 @@ class Emulator:
         exp_var = pca.explained_variance_ratio_.sum()
         # This is basically the mean square error of the reconstruction
         log.info(
-            f'PCA fit {exp_var:.2f}% of the variance with {pca.n_components_:d} components.')
+            f"PCA fit {exp_var:.2f}% of the variance with {pca.n_components_:d} components."
+        )
         w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
 
         emulator = cls(
@@ -269,11 +293,16 @@ class Emulator:
             eigenspectra=eigenspectra,
             w_hat=w_hat,
             flux_mean=flux_mean,
-            flux_std=flux_std
+            flux_std=flux_std,
         )
         return emulator
 
-    def __call__(self, params, full_cov=True, reinterpret_batch=False):
+    def __call__(
+        self,
+        params: Sequence[float],
+        full_cov: bool = True,
+        reinterpret_batch: bool = False,
+    ) -> Tuple[Array[float], Array[float]]:
         """
         Gets the mu and cov matrix for a given set of params
 
@@ -302,21 +331,21 @@ class Emulator:
 
         if full_cov and reinterpret_batch:
             raise ValueError(
-                'Cannot reshape the full_covariance matrix for many parameters.')
+                "Cannot reshape the full_covariance matrix for many parameters."
+            )
 
         if not self._trained:
             warnings.warn(
-                'This emulator has not been trained and therefore is not reliable. call emulator.train() to train.')
+                "This emulator has not been trained and therefore is not reliable. call emulator.train() to train."
+            )
 
         # If the pars is outside of the range of emulator values, raise a ModelError
         if np.any(params < self.min_params) or np.any(params > self.max_params):
-            raise ValueError(
-                'Querying emulator outside of original parameter range.')
+            raise ValueError("Querying emulator outside of original parameter range.")
 
         # Do this according to R&W eqn 2.18, 2.19
         # Recalculate V12, V21, and V22.
-        v12 = batch_kernel(self.grid_points, params,
-                           self.variances, self.lengthscales)
+        v12 = batch_kernel(self.grid_points, params, self.variances, self.lengthscales)
         v22 = batch_kernel(params, params, self.variances, self.lengthscales)
         v21 = v12.T
 
@@ -326,15 +355,15 @@ class Emulator:
         if not full_cov:
             cov = np.diag(cov)
         if reinterpret_batch:
-            mu = mu.reshape(-1, self.ncomps, order='F').squeeze()
-            cov = cov.reshape(-1, self.ncomps, order='F').squeeze()
+            mu = mu.reshape(-1, self.ncomps, order="F").squeeze()
+            cov = cov.reshape(-1, self.ncomps, order="F").squeeze()
         return mu, cov
 
     @property
-    def bulk_fluxes(self):
+    def bulk_fluxes(self) -> Array[float]:
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
-    def load_flux(self, params):
+    def load_flux(self, params: Union[Sequence[float], Array[float]]) -> Array[float]:
         """
         Interpolate a model given any parameters within the grid's parameter range using eigenspectrum reconstruction
         by sampling from the weight distributions.
@@ -349,12 +378,11 @@ class Emulator:
         flux : numpy.ndarray
         """
         mu, cov = self(params, reinterpret_batch=False)
-        weights = np.random.multivariate_normal(
-            mu, cov).reshape(-1, self.ncomps)
+        weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
         X = self.eigenspectra * self.flux_std
         return weights @ X + self.flux_mean
 
-    def determine_chunk_log(self, wavelength, buffer=50):
+    def determine_chunk_log(self, wavelength: Sequence[float], buffer: float = 50):
         """
         Possibly truncate the wavelength and eigenspectra in response to some new wavelengths
 
@@ -382,9 +410,12 @@ class Emulator:
         ind = determine_chunk_log(self.wl, wl_min, wl_max)
         trunc_wavelength = self.wl[ind]
 
-        assert (trunc_wavelength.min() <= wl_min) and (trunc_wavelength.max() >= wl_max), \
-            f"Emulator chunking ({trunc_wavelength.min():.2f}, {trunc_wavelength.max():.2f}) didn't encapsulate " \
+        assert (trunc_wavelength.min() <= wl_min) and (
+            trunc_wavelength.max() >= wl_max
+        ), (
+            f"Emulator chunking ({trunc_wavelength.min():.2f}, {trunc_wavelength.max():.2f}) didn't encapsulate "
             f"full wl range ({wl_min:.2f}, {wl_max:.2f})."
+        )
 
         self.wl = trunc_wavelength
         self.eigenspectra = self.eigenspectra[:, ind]
@@ -411,29 +442,26 @@ class Emulator:
             if np.any(self.lengthscales < 2 * self._grid_sep):
                 return np.inf
             loss = -self.log_likelihood()
-            self.log.debug(f'loss: {loss}')
+            self.log.debug(f"loss: {loss}")
             return loss
 
         # Do the optimization
         P0 = self.get_param_vector()
 
-        default_kwargs = {
-            'method': 'Nelder-Mead',
-            'options': {'maxiter': 10000}
-        }
+        default_kwargs = {"method": "Nelder-Mead", "options": {"maxiter": 10000}}
         default_kwargs.update(opt_kwargs)
         soln = minimize(nll, P0, **default_kwargs)
 
         if not soln.success:
-            self.log.warning('Optimization did not succeed.')
+            self.log.warning("Optimization did not succeed.")
             self.log.info(soln.message)
         else:
             self.set_param_vector(soln.x)
             self._trained = True
-            self.log.info('Finished optimizing emulator hyperparameters')
+            self.log.info("Finished optimizing emulator hyperparameters")
             self.log.info(self)
 
-    def get_index(self, params):
+    def get_index(self, params: Sequence[float]) -> int:
         """
         Given a list of stellar parameters (corresponding to a grid point),
         deliver the index that corresponds to the
@@ -450,11 +478,10 @@ class Emulator:
 
         """
         params = np.atleast_2d(params)
-        marks = np.abs(self.grid_points -
-                       np.expand_dims(params, 1)).sum(axis=-1)
+        marks = np.abs(self.grid_points - np.expand_dims(params, 1)).sum(axis=-1)
         return marks.argmin(axis=1).squeeze()
 
-    def get_param_dict(self):
+    def get_param_dict(self) -> dict:
         """
         Gets the dictionary of parameters. This is the same as `Emulator.params`
 
@@ -464,7 +491,7 @@ class Emulator:
         """
         return self.hyperparams
 
-    def set_param_dict(self, params):
+    def set_param_dict(self, params: dict):
         """
         Sets the parameters with a dictionary
 
@@ -477,11 +504,11 @@ class Emulator:
             if key in self.hyperparams:
                 self.hyperparams[key] = val
 
-        self.v11 = self.iPhiPhi / self.lambda_xi + \
-            batch_kernel(self.grid_points, self.grid_points,
-                         self.variances, self.lengthscales)
+        self.v11 = self.iPhiPhi / self.lambda_xi + batch_kernel(
+            self.grid_points, self.grid_points, self.variances, self.lengthscales
+        )
 
-    def get_param_vector(self):
+    def get_param_vector(self) -> Array[float]:
         """
         Get a vector of the current trainable parameters of the emulator
 
@@ -492,7 +519,7 @@ class Emulator:
         values = list(self.get_param_dict().values())
         return np.array(values)
 
-    def set_param_vector(self, params):
+    def set_param_vector(self, params: Array[float]):
         """
         Set the current trainable parameters given a vector. Must have the same form as :meth:`get_param_vector`
 
@@ -503,12 +530,13 @@ class Emulator:
         parameters = self.get_param_dict()
         if len(params) != len(parameters):
             raise ValueError(
-                'params must match length of parameters (get_param_vector())')
+                "params must match length of parameters (get_param_vector())"
+            )
 
         param_dict = dict(zip(self.get_param_dict().keys(), params))
         self.set_param_dict(param_dict)
 
-    def log_likelihood(self):
+    def log_likelihood(self) -> float:
         """
         Get the log likelihood of the emulator in its current state as calculated in the appendix of Czekala et al. (2015)
 
@@ -523,26 +551,27 @@ class Emulator:
         """
         L, flag = cho_factor(self.v11)
         logdet = 2 * np.sum(np.log(np.diag(L)))
-        central = self.w_hat.T @ cho_solve((L, flag), self.w_hat)
-        return -0.5 * (logdet + central)
+        sqmah = self.w_hat @ cho_solve((L, flag), self.w_hat)
+        return -(logdet + sqmah) / 2
 
-    def grad_log_likelihood(self):
-        raise NotImplementedError('Pull requests welcome!')
+    def grad_log_likelihood(self) -> float:
+        raise NotImplementedError("Pull requests welcome!")
 
     def __repr__(self):
-        output = 'Emulator\n'
-        output += '-' * 8 + '\n'
+        output = "Emulator\n"
+        output += "-" * 8 + "\n"
         if self.name is not None:
-            output += f'Name: {self.name}\n'
-        output += f'Trained: {self._trained}\n'
-        output += f'lambda_xi: {self.lambda_xi:.3f}\n'
-        output += 'Variances:\n'
-        output += '\n'.join([f'\t{v:.2f}' for v in self.variances])
-        output += '\nLengthscales:\n'
-        output += '\n'.join(
-            ['\t[ ' + ' '.join(
-                [f'{l:.2f} ' for l in ls]
-            ) + ']' for ls in self.lengthscales]
+            output += f"Name: {self.name}\n"
+        output += f"Trained: {self._trained}\n"
+        output += f"lambda_xi: {self.lambda_xi:.3f}\n"
+        output += "Variances:\n"
+        output += "\n".join([f"\t{v:.2f}" for v in self.variances])
+        output += "\nLengthscales:\n"
+        output += "\n".join(
+            [
+                "\t[ " + " ".join([f"{l:.2f} " for l in ls]) + "]"
+                for ls in self.lengthscales
+            ]
         )
-        output += f'\nLog Likelihood: {self.log_likelihood():.2f}\n'
+        output += f"\nLog Likelihood: {self.log_likelihood():.2f}\n"
         return output

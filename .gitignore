@@ -173,3 +173,5 @@ Starfish/models/_kernels.c
 
 examples/*
 !examples/*.ipynb
+
+.mypy_cache
