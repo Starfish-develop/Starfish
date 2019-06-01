@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a2f5d7e65c45de5ed0ff178bdbb49f63b178507c666c72c67e17e4d96eb30976"
+            "sha256": "ed1ae896e6d03b379caf194985a4b73927a66ff0ddb6993359c1f952cbbdcfc2"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -648,14 +648,6 @@
             ],
             "version": "==1.8.0"
         },
-        "pydot": {
-            "hashes": [
-                "sha256:67be714300c78fda5fd52f79ec994039e3f76f074948c67b5ff539b433ad354f",
-                "sha256:d49c9d4dd1913beec2a997f831543c8cbd53e535b1a739e921642fe416235f01"
-            ],
-            "index": "pypi",
-            "version": "==1.4.1"
-        },
         "pygments": {
             "hashes": [
                 "sha256:71e430bc85c88a430f000ac1d9b331d2407f681d6f6aec95e8bcfbc3df5b0127",
@@ -706,6 +698,14 @@
             ],
             "index": "pypi",
             "version": "==2.7.1"
+        },
+        "pytest-mypy": {
+            "hashes": [
+                "sha256:8f6436eed8118afd6c10a82b3b60fb537336736b0fd7a29262a656ac42ce01ac",
+                "sha256:acc653210e7d8d5c72845a5248f00fd33f4f3379ca13fe56cfc7b749b5655c3e"
+            ],
+            "index": "pypi",
+            "version": "==0.3.2"
         },
         "pytz": {
             "hashes": [

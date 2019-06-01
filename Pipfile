@@ -30,6 +30,7 @@ nbsphinx = "*"
 ipython = "*"
 mypy = "*"
 pytest-black = "*"
+pytest-mypy = "*"
 
 [pipenv]
 allow_prereleases = true
