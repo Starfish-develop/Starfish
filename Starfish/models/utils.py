@@ -31,12 +31,12 @@ def find_residual_peaks(
     Returns
     -------
     means : list
-        The means of the found peaks, with the same units as model.data.waves
+        The means of the found peaks, with the same units as model.data.wave
     """
     residual = np.mean(list(model.residuals)[-num_residuals:], axis=0)
     mask = np.abs(residual - residual.mean()) > threshold * residual.std()
-    mask &= (model.data.waves > wl_range[0]) & (model.data.waves < wl_range[1])
-    peak_waves = model.data.waves[1:-1][mask[1:-1]]
+    mask &= (model.data.wave > wl_range[0]) & (model.data.wave < wl_range[1])
+    peak_waves = model.data.wave[1:-1][mask[1:-1]]
     mus = []
     covered = np.zeros_like(peak_waves, dtype=bool)
     # Sort from largest residual to smallest
@@ -85,10 +85,10 @@ def optimize_residual_peaks(model, mus, sigma0=50, num_residuals=100):
     params = []
 
     for mu in mus:
-        mask = (model.data.waves > mu - sigma0) & (model.data.waves < mu + sigma0)
-        wave = model.data.waves[mask]
+        mask = (model.data.wave > mu - sigma0) & (model.data.wave < mu + sigma0)
+        wave = model.data.wave[mask]
         resid = residual[mask]
-        sigma = model.data.sigmas[mask]
+        sigma = model.data.sigma[mask]
 
         P0 = np.array([np.log(np.abs(resid).max()), mu, np.log(sigma0)])
 

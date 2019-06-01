@@ -13,7 +13,7 @@ from Starfish.grid_tools import (
     HDF5Creator,
     HDF5Interface,
 )
-from Starfish.models import OrderModel, SpectrumModel
+from Starfish.models import SpectrumModel
 from Starfish.transforms import resample
 from Starfish import Spectrum
 from Starfish.utils import create_log_lam_grid
@@ -124,7 +124,6 @@ def mock_model(mock_spectrum, mock_trained_emulator):
         Av=0,
         log_scale=-10,
         vsini=30,
-        cheb=[1, 0, 0, 0],
         global_cov=global_params,
         local_cov=local_params,
     )

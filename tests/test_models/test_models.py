@@ -13,6 +13,7 @@ class TestSpectrumModel:
     GP = [6000, 4.0, 0]
 
     def test_param_dict(self, mock_model):
+        print(mock_model.params.keys())
         assert mock_model["T"] == self.GP[0]
         assert mock_model["logg"] == self.GP[1]
         assert mock_model["Z"] == self.GP[2]
@@ -22,20 +23,18 @@ class TestSpectrumModel:
         assert mock_model["vsini"] == 30
 
     def test_global_cov_param_dict(self, mock_model):
-        assert mock_model.glob == mock_model["global"]
-        assert "log_amp" in mock_model.glob
-        assert "log_ls" in mock_model.glob
-        assert "global:log_amp" in mock_model.get_param_dict(flat=True)
+        assert "log_amp" in mock_model["global_cov"]
+        assert "log_ls" in mock_model["global_cov"]
+        assert "global_cov:log_amp" in mock_model.get_param_dict(flat=True)
 
     def test_local_cov_param_dict(self, mock_model):
-        assert mock_model.local == mock_model["local"]
-        assert len(mock_model.local) == 2
-        assert mock_model.local[0]["mu"] == 1e4
-        assert "log_sigma" in mock_model.local[1]
-        assert "local:0:log_amp" in mock_model.get_param_dict(flat=True)
-        assert "local:1:mu" in mock_model.get_param_dict(flat=True)
+        assert len(mock_model["local_cov"]) == 2
+        assert mock_model["local_cov"][0]["mu"] == 1e4
+        assert "log_sigma" in mock_model["local_cov"][1]
+        assert "local_cov:0:log_amp" in mock_model.get_param_dict(flat=True)
+        assert "local_cov:1:mu" in mock_model.get_param_dict(flat=True)
 
-    @pytest.mark.parametrize("param", ["global:log_amp", "local:0:log_amp"])
+    @pytest.mark.parametrize("param", ["global_cov:log_amp", "local_cov:0:log_amp"])
     def test_cov_freeze(self, mock_model, param):
         assert param in mock_model.labels
         mock_model.freeze(param)
@@ -48,7 +47,7 @@ class TestSpectrumModel:
             mock_model["garbage_key"] = -4
 
     def test_labels(self, mock_model):
-        assert mock_model.labels == list(mock_model.get_param_dict(flat=True))
+        assert mock_model.labels == tuple(mock_model.get_param_dict(flat=True))
 
     def test_grid_params(self, mock_model):
         assert np.all(mock_model.grid_params == self.GP)
@@ -56,7 +55,7 @@ class TestSpectrumModel:
     def test_transform(self, mock_model):
         flux, cov = mock_model()
         assert cov.shape == (len(flux), len(flux))
-        assert flux.shape == mock_model.data.waves.shape
+        assert flux.shape == mock_model.data.wave.shape
 
     def test_freeze_vsini(self, mock_model):
         mock_model.freeze("vsini")
@@ -79,7 +78,7 @@ class TestSpectrumModel:
         assert mock_model.grid_params[1] == pre
 
     def test_freeze_thaw_many(self, mock_model):
-        labels = ["global:log_amp", "global:log_ls"]
+        labels = ["global_cov:log_amp", "global_cov:log_ls"]
         mock_model.freeze(labels)
         assert all([x not in mock_model.labels for x in labels])
         mock_model.thaw(labels)
@@ -113,9 +112,10 @@ class TestSpectrumModel:
 
     def test_set_param_vector(self, mock_model):
         P0 = mock_model.get_param_vector()
+        labels = mock_model.labels
         P0[2] = 7
         mock_model.set_param_vector(P0)
-        assert mock_model["Z"] == 7
+        assert mock_model[labels[2]] == 7
 
     def test_save_load(self, mock_model, tmpdir):
         path = os.path.join(tmpdir, "model.toml")
@@ -144,10 +144,10 @@ class TestSpectrumModel:
     def test_log_likelihood(self, mock_model):
         lnprob = mock_model.log_likelihood()
         assert np.isfinite(lnprob)
-
-    def test_grad_log_likelihood_doesnt_exist(self, mock_model):
-        with pytest.raises(NotImplementedError):
-            mock_model.grad_log_likelihood()
+        flux, cov = mock_model()
+        mock_model.data._flux = flux
+        exact_lnprob = mock_model.log_likelihood()
+        assert lnprob < exact_lnprob
 
     def test_str(self, mock_model):
         assert str(mock_model).startswith("SpectrumModel")

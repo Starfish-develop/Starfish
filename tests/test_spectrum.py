@@ -15,6 +15,7 @@ class TestSpectrum:
         data = Spectrum(wave, flux, name="single")
         assert data.shape == (1, 200)
         reshaped = data.reshape((2, -1))
+        assert reshaped.shape == ((2, 100))
         assert reshaped.name == "single"
         assert np.allclose(reshaped.waves, waves)
         assert np.allclose(reshaped.fluxes, fluxes)
@@ -40,9 +41,9 @@ class TestSpectrum:
 
     def test_save_load(self, mock_spectrum, tmpdir):
         filename = os.path.join(tmpdir, "data.hdf5")
-        mock_data_spectrum.save(filename)
+        mock_spectrum.save(filename)
         new_spectrum = Spectrum.load(filename)
-        assert np.all(new_spectrum.waves == mock_data_spectrum.waves)
-        assert np.all(new_spectrum.fluxes == mock_data_spectrum.fluxes)
-        assert np.all(new_spectrum.sigmas == mock_data_spectrum.sigmas)
-        assert np.all(new_spectrum.masks == mock_data_spectrum.masks)
+        assert np.all(new_spectrum.waves == mock_spectrum.waves)
+        assert np.all(new_spectrum.fluxes == mock_spectrum.fluxes)
+        assert np.all(new_spectrum.sigmas == mock_spectrum.sigmas)
+        assert np.all(new_spectrum.masks == mock_spectrum.masks)
