@@ -24,17 +24,19 @@ def global_covariance_matrix(
     cov : numpy.ndarray
         The global covariance matrix
     """
-    r0 = 6 * lengthscale
     wx, wy = np.meshgrid(wave, wave)
     r = C.c_kms / 2 * np.abs((wx - wy) / (wx + wy))
-    taper = 0.5 + 0.5 * np.cos(np.pi * r / r0)
-    taper[r > r0] = 0
-    kernel = (
-        amplitude
-        * (1 + np.sqrt(3) * r / lengthscale)
-        * np.exp(-np.sqrt(3) * r / lengthscale)
+    r0 = 6 * lengthscale
+    
+    # Calculate the kernel, being careful to stay in mask
+    kernel = np.zeros((len(wx), len(wy)))
+    mask = r <= r0
+    taper = 0.5 + 0.5 * np.cos(np.pi * r[mask] / r0)
+    kernel[mask] = (
+        taper * amplitude
+        * (1 + np.sqrt(3) * r[mask] / lengthscale)
+        * np.exp(-np.sqrt(3) * r[mask] / lengthscale)
     )
-
     return kernel
 
 
@@ -63,12 +65,16 @@ def local_covariance_matrix(
     cov : numpy.ndarray
         The sum of each Gaussian kernel, or the local covariance kernel
     """
+    # Set up the metric and mesh grid
     met = C.c_kms / mu * np.abs(wave - mu)
     x, y = np.meshgrid(met, met)
     r_tap = np.max([x, y], axis=0)
     r2 = x ** 2 + y ** 2
     r0 = 4 * sigma
-    taper = 0.5 + 0.5 * np.cos(np.pi * r_tap / r0)
-    taper[r_tap > r0] = 0
-    kernel = taper * amplitude * np.exp(-0.5 * r2 / sigma ** 2)
+    
+    # Calculate the kernel. Use masking to keep sparse-ish calculations
+    kernel = np.zeros((len(x), len(y)))
+    mask = r_tap <= r0
+    taper = 0.5 + 0.5 * np.cos(np.pi * r_tap[mask] / r0)    
+    kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma ** 2)
     return kernel
