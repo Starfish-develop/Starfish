@@ -150,25 +150,45 @@ class SpectrumModel:
         return tuple(keys)
 
     def __getitem__(self, key):
-        return self.params[key]
+        if self._delimiter in key:
+            tokens = key.split(self._delimiter)
+            if tokens[0] == "global_cov":
+                global_key = tokens[1]
+                return self.params["global_cov"][global_key]
+            elif tokens[0] == "local_cov":
+                idx, local_key = tokens[1:]
+                return self.params["local_cov"][int(idx)][local_key]
+        else:
+            return self.params[key]
 
     def __setitem__(self, key, value):
-        if key.startswith("global_cov"):
-            global_key = key.split(self._delimiter)[-1]
-            if global_key not in self._GLOBAL_PARAMS:
-                raise ValueError(
-                    "{} is not a valid global parameter.".format(global_key)
-                )
-            self.params["global_cov"][global_key] = value
-        elif key.startswith("local_cov"):
-            idx, local_key = key.split(self._delimiter)[-2:]
-            if local_key not in self._LOCAL_PARAMS:
-                raise ValueError("{} is not a valid local parameter.".format(local_key))
-            self.params["local_cov"][int(idx)][local_key] = value
+        if self._delimiter in key:
+            tokens = key.split(self._delimiter)
+            if tokens[0] == "global_cov":
+                if "global_cov" not in self.params:
+                    self.params["global_cov"] = {}
+                global_key = tokens[1]
+                if global_key not in self._GLOBAL_PARAMS:
+                    raise ValueError(f"{global_key} is not a valid global parameter.")
+                self.params["global_cov"][global_key] = value
+            elif tokens[1] == "local_cov":
+                if "local_cov" not in self.params:
+                    self.params["local_cov"] = []
+                idx, local_key = tokens[1:]
+                if local_key not in self._LOCAL_PARAMS:
+                    raise ValueError(
+                        "{} is not a valid local parameter.".format(local_key)
+                    )
+                self.params["local_cov"][int(idx)][local_key] = value
         else:
-            if key not in [*self._PARAMS, *self.emulator.param_names]:
-                raise ValueError("{} is not a valid parameter.".format(key))
-            self.params[key] = value
+            if key == "global_cov":
+                self.params["global_cov"] = value
+            elif key == "local_cov":
+                self.params["local_cov"] = value
+            else:
+                if key not in [*self._PARAMS, *self.emulator.param_names]:
+                    raise ValueError("{} is not a valid parameter.".format(key))
+                self.params[key] = value
 
     def __call__(self):
         """
@@ -274,6 +294,8 @@ class SpectrumModel:
                             params[flat_key] = val
                         else:
                             params["global_cov"][key] = val
+                if "global_cov" in params and len(params["global_cov"]) == 0:
+                    del params["global_cov"]
 
             # Handle local nest
             elif par == "local_cov":
@@ -292,6 +314,10 @@ class SpectrumModel:
                             params[flat_key] = val
                     if not flat:
                         params["local_cov"].append(kernel_copy)
+                    if "local_cov" in params and len(params["local_cov"][-1]) == 0:
+                        del params["local_cov"][-1]
+                if "local_cov" in params and len(params["local_cov"]) == 0:
+                    del params["local_cov"]
 
             # Handle base nest
             elif par not in self.frozen:
@@ -392,10 +418,25 @@ class SpectrumModel:
         """
         names = np.atleast_1d(names)
         if names[0] == "all":
-            self.frozen.append(self.labels)
+            for key in self.labels:
+                if key not in self.frozen:
+                    self.frozen.append(key)
         else:
             for name in names:
-                if name not in self.frozen:
+                if name == "global_cov":
+                    for key in self.params["global_cov"].keys():
+                        flat_key = f"global_cov{self._delimiter}{key}"
+                        if flat_key not in self.frozen:
+                            self.frozen.append(flat_key)
+                elif name == "local_cov":
+                    for i, kern in enumerate(self.params["local_cov"]):
+                        for key in kern.keys():
+                            flat_key = (
+                                f"local_cov{self._delimiter}{i}{self._delimiter}{key}"
+                            )
+                            if flat_key not in self.frozen:
+                                self.frozen.append(flat_key)
+                elif name not in self.frozen:
                     self.frozen.append(name)
 
     def thaw(self, names):
@@ -418,7 +459,18 @@ class SpectrumModel:
             self.frozen = []
         else:
             for name in names:
-                if name in self.frozen:
+                if name == "global_cov":
+                    for key in self.params["global_cov"].keys():
+                        flat_key = f"global_cov{self._delimiter}{key}"
+                        self.frozen.remove(flat_key)
+                elif name == "local_cov":
+                    for i, kern in enumerate(self.params["local_cov"]):
+                        for key in kern.keys():
+                            flat_key = (
+                                f"local_cov{self._delimiter}{i}{self._delimiter}{key}"
+                            )
+                            self.frozen.remove(flat_key)
+                elif name in self.frozen:
                     self.frozen.remove(name)
 
     def save(self, filename, metadata=None):
@@ -469,10 +521,14 @@ class SpectrumModel:
         output += "-" * len(self.name) + "\n"
         output += f"Data: {self.data_name}\n"
         output += f"Emulator: {self.emulator.name}\n"
-        output += "Parameters:\n"
-        for key, value in self.params.items():
-            output += f"{key}: {value}\n"
         if self._lnprob is None:
             self.log_likelihood()  # sets the value
-        output += f"\nLog Likelihood: {self._lnprob}"
+        output += f"Log Likelihood: {self._lnprob}\n"
+        output += "\nParameters\n"
+        for key, value in self.get_param_dict().items():
+            output += f"  {key}: {value}\n"
+        if len(self.frozen) > 0:
+            output += "\nFrozen Parameters\n"
+            for key in self.frozen:
+                output += f"  {key}: {self[key]}\n"
         return output

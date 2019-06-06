@@ -74,6 +74,13 @@ def optimize_residual_peaks(model, mus, sigma0=50, num_residuals=100):
         A dictionary of optimized parameters ready to be plugged into model.local
     """
     residual = np.mean(list(model.residuals)[-num_residuals:], axis=0)
+    amp_cutoff = 0.1 * residual.std()
+    if "global_cov" in model.params:
+        ag = np.exp(model.params["global_cov"]["log_amp"])
+        lg = np.exp(model.params["global_cov"]["log_ls"])
+        global_cov = global_covariance_matrix(model.data.wave, ag, lg)
+    else:
+        global_cov = None
 
     def chi2(P, wave, resid, sigma):
         log_amp, mu, log_sigma = P
@@ -89,12 +96,16 @@ def optimize_residual_peaks(model, mus, sigma0=50, num_residuals=100):
         wave = model.data.wave[mask]
         resid = residual[mask]
         sigma = model.data.sigma[mask]
+        if global_cov is not None:
+            sigma += global_cov.diagonal()[mask]
 
         P0 = np.array([np.log(np.abs(resid).max()), mu, np.log(sigma0)])
 
         soln = minimize(chi2, P0, args=(wave, resid, sigma))
-
-        params.append({"log_amp": soln.x[0], "mu": soln.x[1], "log_sigma": soln.x[2]})
+        if soln.x[0] > np.log(amp_cutoff):
+            params.append(
+                {"log_amp": soln.x[0], "mu": soln.x[1], "log_sigma": soln.x[2]}
+            )
 
     return params
 
@@ -145,13 +156,3 @@ def covariance_debugger(cov: Array[float]):
             )
 
     log.info(f"{'-':-^60}")
-
-
-def chunk_spectrum(spectrum, n_chunks):
-    if len(spectrum) > 1:
-        raise ValueError("Multiple orders detected, cannot chunk")
-
-    waves = spectrum._waves.reshape(n_chunks, -1)
-    fluxes = spectrum._fluxes.reshape(n_chunks, -1)
-    sigmas = spectrum._sigmas.reshape(n_chunks, -1)
-    masks = spectrum.masks.reshape(n_chunks, -1)
