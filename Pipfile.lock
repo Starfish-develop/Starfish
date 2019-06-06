@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "437c83ec585399b3e388cc6b05a3c4b5e2b0871f6d8496eadbffd9a730451d3c"
+            "sha256": "c1a97ea366925df17331f9e7920893f6289d483a653c69495228a65cd13d9dca"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -181,12 +181,8 @@
             "version": "==1.12.0"
         },
         "toml": {
-            "hashes": [
-                "sha256:229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c",
-                "sha256:235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e"
-            ],
-            "index": "pypi",
-            "version": "==0.10.0"
+            "git": "https://github.com/uiri/toml",
+            "ref": "9977c15c5a06dfcbeb4f8f379ec7614960312290"
         },
         "tqdm": {
             "hashes": [
@@ -325,11 +321,11 @@
         },
         "coveralls": {
             "hashes": [
-                "sha256:baa26648430d5c2225ab12d7e2067f75597a4b967034bba7e3d5ab7501d207a1",
-                "sha256:ff9b7823b15070f26f654837bb02a201d006baaf2083e0514ffd3b34a3ffed81"
+                "sha256:a8de28a5f04e418c7142b8ce6588c3a64245b433c458a5871cb043383667e4f2",
+                "sha256:c5e50b73b980d89308816b597e3e7bdeb0adedf831585d5c4ac967d576f8925d"
             ],
             "index": "pypi",
-            "version": "==1.7.0"
+            "version": "==1.8.0"
         },
         "decorator": {
             "hashes": [
@@ -670,11 +666,11 @@
         },
         "pytest": {
             "hashes": [
-                "sha256:52fa94b4ac81d2f063ee05e303acedf5c605e15dc0f4eef468b5c137f77241c3",
-                "sha256:5467f37a0d6bb0b4e684b71af268e005996b9eaaefe54e3d64d86afd90da8d78"
+                "sha256:6032845e68a17a96e8da3088037f899b56357769a724122056265ca2ea1890ee",
+                "sha256:bea27a646a3d74cbbcf8d3d4a06b2dfc336baf3dc2cc85cf70ad0157e73e8322"
             ],
             "index": "pypi",
-            "version": "==4.6.0"
+            "version": "==4.6.2"
         },
         "pytest-black": {
             "hashes": [
@@ -744,11 +740,11 @@
         },
         "sphinx": {
             "hashes": [
-                "sha256:423280646fb37944dd3c85c58fb92a20d745793a9f6c511f59da82fa97cd404b",
-                "sha256:de930f42600a4fef993587633984cc5027dedba2464bcf00ddace26b40f8d9ce"
+                "sha256:2c5becc0fd6706dc0aeb4703f9f1f8a1d1eecacf02e9ac5943cbae48b11e5e42",
+                "sha256:7a359a91fb04054ec77d68ff97cb8728f8cc322e25f22dc94299d67e0e6a7123"
             ],
             "index": "pypi",
-            "version": "==2.0.1"
+            "version": "==2.1.0"
         },
         "sphinx-bootstrap-theme": {
             "hashes": [
@@ -814,12 +810,8 @@
             "version": "==0.4.2"
         },
         "toml": {
-            "hashes": [
-                "sha256:229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c",
-                "sha256:235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e"
-            ],
-            "index": "pypi",
-            "version": "==0.10.0"
+            "git": "https://github.com/uiri/toml",
+            "ref": "9977c15c5a06dfcbeb4f8f379ec7614960312290"
         },
         "traitlets": {
             "hashes": [

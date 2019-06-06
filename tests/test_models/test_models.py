@@ -99,10 +99,12 @@ class TestSpectrumModel:
         assert mock_model["Z"] == 0
 
     def test_get_set_parameters(self, mock_model):
+        params = mock_model.params
         P0 = mock_model.get_param_vector()
         mock_model.set_param_vector(P0)
         P1 = mock_model.get_param_vector()
         assert np.all(P1 == P0)
+        assert params == mock_model.params
 
     def test_set_wrong_length_param_vector(self, mock_model):
         P0 = mock_model.get_param_vector()
@@ -125,6 +127,20 @@ class TestSpectrumModel:
         mock_model.load(path)
         assert P0 == mock_model.params
         assert P0_f == mock_model.get_param_dict()
+
+    def test_save_load_numpy(self, mock_model, tmpdir):
+        """
+        In TOML library numpy.float64(32/16) do not get saved as floats but as strings. This checks that 
+        it is correctly handled.
+        """
+        path = os.path.join(tmpdir, "model.toml")
+        P0 = mock_model.params
+        f_0 = mock_model.frozen
+        mock_model.set_param_vector(mock_model.get_param_vector())
+        mock_model.save(path)
+        mock_model.load(path)
+        assert P0 == mock_model.params
+        assert np.allclose(f_0, mock_model.frozen)
 
     def test_save_load_meta(self, mock_model, tmpdir):
         path = os.path.join(tmpdir, "model.toml")

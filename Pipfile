@@ -11,7 +11,7 @@ astropy = "*"
 h5py = "*"
 tqdm = "*"
 extinction = "*"
-toml = "*"
+toml = {git = "https://github.com/uiri/toml",ref = "master"}
 nptyping = "*"
 dataclasses = "*"
 

@@ -239,7 +239,7 @@ class SpectrumModel:
             flux, cov = self()
         except np.linalg.LinAlgError:
             pass
-        np.fill_diagonal(cov, cov.diagonal() + np.finfo(cov.dtype).eps)
+        np.fill_diagonal(cov, cov.diagonal() + 1e-10)
         factor, flag = cho_factor(cov, overwrite_a=True)
         logdet = 2 * np.sum(np.log(factor.diagonal()))
         R = flux - self.data.flux
@@ -442,7 +442,8 @@ class SpectrumModel:
         output["metadata"] = meta
 
         with open(filename, "w") as handler:
-            toml.dump(output, handler)
+            out_str = toml.dumps(output, encoder=toml.TomlNumpyEncoder(output.__class__))
+            handler.write(out_str)
 
         self.log.info("Saved current state at {}".format(filename))
 
