@@ -39,7 +39,7 @@ install:
   - pipenv install -d --python $TRAVIS_PYTHON_VERSION
 
 script:
-  - pipenv run pytest --cov=Starfish
+  - pipenv run pytest --cov=Starfish --black
 
 after_success:
   - coveralls
