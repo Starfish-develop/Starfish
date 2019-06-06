@@ -27,13 +27,14 @@ def global_covariance_matrix(
     wx, wy = np.meshgrid(wave, wave)
     r = C.c_kms / 2 * np.abs((wx - wy) / (wx + wy))
     r0 = 6 * lengthscale
-    
+
     # Calculate the kernel, being careful to stay in mask
     kernel = np.zeros((len(wx), len(wy)))
     mask = r <= r0
     taper = 0.5 + 0.5 * np.cos(np.pi * r[mask] / r0)
     kernel[mask] = (
-        taper * amplitude
+        taper
+        * amplitude
         * (1 + np.sqrt(3) * r[mask] / lengthscale)
         * np.exp(-np.sqrt(3) * r[mask] / lengthscale)
     )
@@ -71,10 +72,10 @@ def local_covariance_matrix(
     r_tap = np.max([x, y], axis=0)
     r2 = x ** 2 + y ** 2
     r0 = 4 * sigma
-    
+
     # Calculate the kernel. Use masking to keep sparse-ish calculations
     kernel = np.zeros((len(x), len(y)))
     mask = r_tap <= r0
-    taper = 0.5 + 0.5 * np.cos(np.pi * r_tap[mask] / r0)    
+    taper = 0.5 + 0.5 * np.cos(np.pi * r_tap[mask] / r0)
     kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma ** 2)
     return kernel

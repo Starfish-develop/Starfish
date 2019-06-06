@@ -442,7 +442,9 @@ class SpectrumModel:
         output["metadata"] = meta
 
         with open(filename, "w") as handler:
-            out_str = toml.dumps(output, encoder=toml.TomlNumpyEncoder(output.__class__))
+            out_str = toml.dumps(
+                output, encoder=toml.TomlNumpyEncoder(output.__class__)
+            )
             handler.write(out_str)
 
         self.log.info("Saved current state at {}".format(filename))

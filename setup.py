@@ -43,13 +43,10 @@ setup(
         "toml",
         "tqdm",
     ],
+    # Need this link to get the most up-to-date toml version
+    dependency_links=["https://github.com/uiri/toml/tarball/master#egg=toml"],
     maintainer="Ian Czekala",
     maintainer_email="iancze@gmail.com",
     include_package_data=True,
-    test_requires = [
-        "pytest",
-        "pytest-cov",
-        "pytest-black",
-        "mypy"
-    ]
+    test_requires=["pytest", "pytest-cov", "pytest-black", "mypy"],
 )
