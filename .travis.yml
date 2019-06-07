@@ -19,7 +19,7 @@ matrix:
         - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.7.1
-        - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+        - python -m pip install -U poetry
   allow_failures:
     - os: windows
     - python: nightly
@@ -31,7 +31,7 @@ cache:
 
 # This will only run for the linux and macOS versions
 before_install:
-  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+  - pip install -U poetry
 
 install:
   - poetry install
