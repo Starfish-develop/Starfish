@@ -11,17 +11,15 @@ matrix:
   include:
     - os: osx
       osx_image: xcode10.2
-      env: TRAVIS_PYTHON_VERSION=3.7
       language: generic
     - os: windows 
       python: 3.7
       language: shell
       env: 
-        - PATH=/c/Python37:/c/Python37/Scripts:$PATH  
-        - TRAVIS_PYTHON_VERSION=3.7
+        - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.7.1
-        - python -m pip install -U pipenv
+        - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
   allow_failures:
     - os: windows
     - python: nightly
@@ -33,13 +31,13 @@ cache:
 
 # This will only run for the linux and macOS versions
 before_install:
-  - pip install -U pipenv
+  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
 
 install:
-  - pipenv install -d --python $TRAVIS_PYTHON_VERSION
+  - poetry install
 
 script:
-  - pipenv run pytest --cov=Starfish --black
+  - poetry run pytest --cov=Starfish --black
 
 after_success:
   - coveralls
