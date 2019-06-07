@@ -7,25 +7,28 @@ python:
   - 3.8-dev
   - nightly
 
-os:
-  - linux
-  - osx
-  - windows
-
 matrix:
-  # fast_finish: true
-  # include:
-  #   - os: osx
-  #     osx_image: xcode10.2
-  #     language: generic
-  #   - os: windows 
-  #     python: 3.7
-  #     language: shell
-  #     env: 
-  #       - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
-  #     before_install: 
-  #       - choco install python --version 3.7.1
-  #       - python -m pip install -U poetry
+  fast_finish: true
+  include:
+    - os: osx
+      osx_image: xcode10.2
+      language: generic
+    - os: windows
+      python: 3.6
+      language: shell
+      env: 
+        - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
+      before_install: 
+        - choco install python --version 3.6.0
+        - python -m pip install -U poetry
+    - os: windows 
+      python: 3.7
+      language: shell
+      env: 
+        - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
+      before_install: 
+        - choco install python --version 3.7.0
+        - python -m pip install -U poetry
   allow_failures:
     - os: windows
     - python: 
