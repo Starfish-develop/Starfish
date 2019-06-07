@@ -31,9 +31,8 @@ matrix:
         - python -m pip install -U poetry
   allow_failures:
     - os: windows
-    - python: 
-      - 3.8-dev
-      - nightly
+    - python: 3.8-dev
+    - python: nightly
 
 cache:
   pip: true
