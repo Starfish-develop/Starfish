@@ -128,6 +128,8 @@ class SpectrumModel:
         self.grid_params = grid_params
 
         self._lnprob = None
+        self._glob_cov = None
+        self._loc_cov = None
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -210,17 +212,27 @@ class SpectrumModel:
 
         # Global covariance
         if "global_cov" in self.params:
-            ag = np.exp(self.params["global_cov:log_amp"])
-            lg = np.exp(self.params["global_cov:log_ls"])
-            cov += global_covariance_matrix(self.data.wave, ag, lg)
+            if "global_cov" not in self.frozen or self._glob_cov is None:
+                ag = np.exp(self.params["global_cov:log_amp"])
+                lg = np.exp(self.params["global_cov:log_ls"])
+                self._glob_cov = global_covariance_matrix(self.data.wave, ag, lg)
+
+        if self._glob_cov is not None:
+            cov += self._glob_cov
 
         # Local covariance
         if "local_cov" in self.params:
-            for kernel in self.params.as_dict()["local_cov"]:
-                mu = kernel["mu"]
-                amplitude = np.exp(kernel["log_amp"])
-                sigma = np.exp(kernel["log_sigma"])
-                cov += local_covariance_matrix(self.data.wave, amplitude, mu, sigma)
+            if "local_cov" not in self.frozen or self._loc_cov is None:
+                for kernel in self.params.as_dict()["local_cov"]:
+                    mu = kernel["mu"]
+                    amplitude = np.exp(kernel["log_amp"])
+                    sigma = np.exp(kernel["log_sigma"])
+                    self._loc_cov = local_covariance_matrix(
+                        self.data.wave, amplitude, mu, sigma
+                    )
+
+        if self._loc_cov is not None:
+            cov += self._loc_cov
 
         return flux, cov
 
@@ -338,13 +350,15 @@ class SpectrumModel:
             for name in names:
                 if name == "global_cov":
                     self.frozen.append("global_cov")
-                    for key in self.params["global_cov"].keys():
+                    self._glob_cov = None
+                    for key in self.params.as_dict()["global_cov"].keys():
                         flat_key = f"global_cov:{key}"
                         if flat_key not in self.frozen:
                             self.frozen.append(flat_key)
                 elif name == "local_cov":
                     self.frozen.append("local_cov")
-                    for i, kern in enumerate(self.params["local_cov"]):
+                    self._loc_cov = None
+                    for i, kern in enumerate(self.params.as_dict()["local_cov"]):
                         for key in kern.keys():
                             flat_key = f"local_cov:{i}:{key}"
                             if flat_key not in self.frozen:
@@ -374,12 +388,12 @@ class SpectrumModel:
             for name in names:
                 if name == "global_cov":
                     self.frozen.remove("global_cov")
-                    for key in self.params["global_cov"].keys():
+                    for key in self.params.as_dict()["global_cov"].keys():
                         flat_key = f"global_cov:{key}"
                         self.frozen.remove(flat_key)
                 elif name == "local_cov":
                     self.frozen.remove("local_cov")
-                    for i, kern in enumerate(self.params["local_cov"]):
+                    for i, kern in enumerate(self.params.as_dict()["local_cov"]):
                         for key in kern.keys():
                             flat_key = f"local_cov:{i}:{key}"
                             self.frozen.remove(flat_key)
@@ -439,5 +453,7 @@ class SpectrumModel:
         if len(self.frozen) > 0:
             output += "\nFrozen Parameters\n"
             for key in self.frozen:
+                if key in ["global_cov", "local_cov"]:
+                    continue
                 output += f"  {key}: {self[key]}\n"
         return output
