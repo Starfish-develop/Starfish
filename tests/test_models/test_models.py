@@ -13,7 +13,6 @@ class TestSpectrumModel:
     GP = [6000, 4.0, 0]
 
     def test_param_dict(self, mock_model):
-        print(mock_model.params.keys())
         assert mock_model["T"] == self.GP[0]
         assert mock_model["logg"] == self.GP[1]
         assert mock_model["Z"] == self.GP[2]
@@ -28,9 +27,11 @@ class TestSpectrumModel:
         assert "global_cov:log_amp" in mock_model.get_param_dict(flat=True)
 
     def test_local_cov_param_dict(self, mock_model):
-        assert len(mock_model["local_cov"]) == 2
-        assert mock_model["local_cov"][0]["mu"] == 1e4
-        assert "log_sigma" in mock_model["local_cov"][1]
+        print(mock_model.params)
+        print(mock_model.params.as_dict())
+        assert len(mock_model.params.as_dict()["local_cov"]) == 2
+        assert mock_model["local_cov:0:mu"] == 1e4
+        assert "log_sigma" in mock_model["local_cov"]["1"]
         assert "local_cov:0:log_amp" in mock_model.get_param_dict(flat=True)
         assert "local_cov:1:mu" in mock_model.get_param_dict(flat=True)
 
@@ -47,7 +48,9 @@ class TestSpectrumModel:
             mock_model["garbage_key"] = -4
 
     def test_labels(self, mock_model):
-        assert mock_model.labels == tuple(mock_model.get_param_dict(flat=True))
+        assert sorted(mock_model.labels) == sorted(
+            tuple(mock_model.get_param_dict(flat=True))
+        )
 
     def test_grid_params(self, mock_model):
         assert np.all(mock_model.grid_params == self.GP)
@@ -87,7 +90,7 @@ class TestSpectrumModel:
     @pytest.mark.parametrize("flat", [False, True])
     def test_get_set_param_dict(self, mock_model, flat):
         P0 = mock_model.get_param_dict(flat=flat)
-        mock_model.set_param_dict(P0, flat=flat)
+        mock_model.set_param_dict(P0)
         P1 = mock_model.get_param_dict(flat=flat)
         assert P0 == P1
 
@@ -95,7 +98,7 @@ class TestSpectrumModel:
         P0 = mock_model.get_param_dict()
         mock_model.freeze("Z")
         P0["Z"] = 7
-        mock_model.set_param_dict(P0, flat=False)
+        mock_model.set_param_dict(P0)
         assert mock_model["Z"] == 0
 
     def test_get_set_parameters(self, mock_model):
@@ -103,7 +106,7 @@ class TestSpectrumModel:
         P0 = mock_model.get_param_vector()
         mock_model.set_param_vector(P0)
         P1 = mock_model.get_param_vector()
-        assert np.all(P1 == P0)
+        assert np.allclose(P1, P0)
         assert params == mock_model.params
 
     def test_set_wrong_length_param_vector(self, mock_model):

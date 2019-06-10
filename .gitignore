@@ -175,3 +175,5 @@ examples/*
 !examples/*.ipynb
 
 .mypy_cache
+
+.venv

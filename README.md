@@ -118,18 +118,18 @@ Now that you've successfully installed the code, please see the [documentation](
 # Contributing
 If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into
 making our project better. To get set up in a development environment, it is highly recommended to develop in a
-virtual environment. We use `pipenv` to manage our environments, to get started clone the repository (and we recommend forking us first)
+virtual environment. We use `poetry` to manage our environments, to get started clone the repository (and we recommend forking us first)
 
     $ git clone https://github.com/<your_fork>/Starfish.git starfish
     $ cd starfish
 
-and then create the virtual environment and install pacakges from the `Pipfile` with
+and then create the virtual environment and install pacakges from the `pyproject.toml` with
 
-    $ pipenv install -d
+    $ poetry install
 
 and to enter the virtual environment, simply issue
 
-    $ pipenv shell
+    $ poetry shell
 
 whenever you're in the `starfish` folder.
 
@@ -137,9 +137,11 @@ Take a look through the [issues](https://github.com/iancze/Starfish/issues) if y
 
 **Tests**
 
-We use `py.test` for testing; within the virtual environment
+We use `pytest` for testing; within the virtual environment
 
     $ pytest
+
+Note that we use the `black` code style and our CI testing will check that everything is formatted correctly.
 
 
 ## Contributors

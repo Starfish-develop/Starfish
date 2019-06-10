@@ -1,9 +1,10 @@
-from collections import deque
+from collections import deque, OrderedDict
 import copy
 import multiprocessing as mp
 from typing import List, Union, Sequence, Callable, Optional
 import logging
 
+from flatdict import FlatterDict
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 import toml
@@ -118,8 +119,7 @@ class SpectrumModel:
 
         self.residuals = deque(maxlen=max_deque_len)
 
-        self.params = params
-        self._delimiter = ":"
+        self.params = FlatterDict(params)
         self.frozen = []
         self.name = name
 
@@ -150,45 +150,22 @@ class SpectrumModel:
         return tuple(keys)
 
     def __getitem__(self, key):
-        if self._delimiter in key:
-            tokens = key.split(self._delimiter)
-            if tokens[0] == "global_cov":
-                global_key = tokens[1]
-                return self.params["global_cov"][global_key]
-            elif tokens[0] == "local_cov":
-                idx, local_key = tokens[1:]
-                return self.params["local_cov"][int(idx)][local_key]
-        else:
-            return self.params[key]
+        return self.params[key]
 
     def __setitem__(self, key, value):
-        if self._delimiter in key:
-            tokens = key.split(self._delimiter)
-            if tokens[0] == "global_cov":
-                if "global_cov" not in self.params:
-                    self.params["global_cov"] = {}
-                global_key = tokens[1]
-                if global_key not in self._GLOBAL_PARAMS:
-                    raise ValueError(f"{global_key} is not a valid global parameter.")
-                self.params["global_cov"][global_key] = value
-            elif tokens[1] == "local_cov":
-                if "local_cov" not in self.params:
-                    self.params["local_cov"] = []
-                idx, local_key = tokens[1:]
-                if local_key not in self._LOCAL_PARAMS:
-                    raise ValueError(
-                        "{} is not a valid local parameter.".format(local_key)
-                    )
-                self.params["local_cov"][int(idx)][local_key] = value
-        else:
-            if key == "global_cov":
-                self.params["global_cov"] = value
-            elif key == "local_cov":
-                self.params["local_cov"] = value
-            else:
-                if key not in [*self._PARAMS, *self.emulator.param_names]:
-                    raise ValueError("{} is not a valid parameter.".format(key))
+        if ":" in key:
+            cov, key = key.split(":")
+            if cov == "global_cov" and key in self._GLOBAL_PARAMS:
                 self.params[key] = value
+            elif cov == "local_cov" and key in self._LOCAL_PARAMS:
+                self.params[key] = value
+            else:
+                raise ValueError(f"{cov}{key} not recognized")
+        else:
+            if key in self._PARAMS:
+                self.params[key] = value
+            else:
+                raise ValueError(f"{key} not recognized")
 
     def __call__(self):
         """
@@ -233,13 +210,13 @@ class SpectrumModel:
 
         # Global covariance
         if "global_cov" in self.params:
-            ag = np.exp(self.params["global_cov"]["log_amp"])
-            lg = np.exp(self.params["global_cov"]["log_ls"])
+            ag = np.exp(self.params["global_cov:log_amp"])
+            lg = np.exp(self.params["global_cov:log_ls"])
             cov += global_covariance_matrix(self.data.wave, ag, lg)
 
         # Local covariance
         if "local_cov" in self.params:
-            for kernel in self.params["local_cov"]:
+            for kernel in self.params.as_dict()["local_cov"]:
                 mu = kernel["mu"]
                 amplitude = np.exp(kernel["log_amp"])
                 sigma = np.exp(kernel["log_sigma"])
@@ -280,52 +257,14 @@ class SpectrumModel:
         --------
         :meth:`set_param_dict`
         """
-        params = {}
-        for par in self.params:
+        params = FlatterDict()
+        for key, val in self.params.items():
+            if key not in self.frozen:
+                params[key] = val
 
-            # Handle global nest
-            if par == "global_cov":
-                if not flat:
-                    params["global_cov"] = {}
-                for key, val in self.params["global_cov"].items():
-                    flat_key = f"global_cov{self._delimiter}{key}"
-                    if flat_key not in self.frozen:
-                        if flat:
-                            params[flat_key] = val
-                        else:
-                            params["global_cov"][key] = val
-                if "global_cov" in params and len(params["global_cov"]) == 0:
-                    del params["global_cov"]
+        return params if flat else params.as_dict()
 
-            # Handle local nest
-            elif par == "local_cov":
-                # Set up list if we need to
-                if not flat:
-                    params["local_cov"] = []
-                for i, kernel in enumerate(self.params["local_cov"]):
-                    kernel_copy = copy.deepcopy(kernel)
-                    for key, val in kernel.items():
-                        flat_key = (
-                            f"local_cov{self._delimiter}{i}{self._delimiter}{key}"
-                        )
-                        if flat_key in self.frozen:
-                            del kernel_copy[key]
-                        if flat and flat_key not in self.frozen:
-                            params[flat_key] = val
-                    if not flat:
-                        params["local_cov"].append(kernel_copy)
-                    if "local_cov" in params and len(params["local_cov"][-1]) == 0:
-                        del params["local_cov"][-1]
-                if "local_cov" in params and len(params["local_cov"]) == 0:
-                    del params["local_cov"]
-
-            # Handle base nest
-            elif par not in self.frozen:
-                params[par] = self.params[par]
-
-        return params
-
-    def set_param_dict(self, params, flat):
+    def set_param_dict(self, params):
         """
         Sets the parameters with a dictionary. Note that this should not be used to add new parametersl
         Parameters
@@ -338,36 +277,10 @@ class SpectrumModel:
         --------
         :meth:`get_param_dict`
         """
+        params = FlatterDict(params)
         for key, val in params.items():
-            # Handle flat case
-            if flat:
-                if key not in self.frozen:
-                    if key.startswith("global_cov"):
-                        global_key = key.split(self._delimiter)[-1]
-                        self.params["global_cov"][global_key] = val
-                    elif key.startswith("local_cov"):
-                        idx, local_key = key.split(self._delimiter)[-2:]
-                        self.params["local_cov"][int(idx)][local_key] = val
-                    else:
-                        self.params[key] = val
-            # Handle nested case
-            else:
-                if key == "global_cov":
-                    for global_key, global_val in val.items():
-                        flat_key = f"global_cov{self._delimiter}{global_key}"
-                        if flat_key not in self.frozen:
-                            self.params["global_cov"][global_key] = global_val
-                elif key == "local_cov":
-                    for idx, kernel in enumerate(val):
-                        for local_key, local_val in kernel.items():
-                            flat_key = f"local_cov{self._delimiter}{idx}{self._delimiter}{local_key}"
-                            if flat_key not in self.frozen:
-                                self.params["local_cov"][int(idx)][
-                                    local_key
-                                ] = local_val
-                else:
-                    if key not in self.frozen:
-                        self.params[key] = val
+            if key not in self.frozen:
+                self.params[key] = val
 
     def get_param_vector(self):
         """
@@ -399,7 +312,7 @@ class SpectrumModel:
         if len(params) != len(self.labels):
             raise ValueError("Param Vector does not match length of thawed parameters")
         param_dict = dict(zip(self.labels, params))
-        self.set_param_dict(param_dict, flat=True)
+        self.set_param_dict(param_dict)
 
     def freeze(self, names):
         """
@@ -424,16 +337,16 @@ class SpectrumModel:
         else:
             for name in names:
                 if name == "global_cov":
+                    self.frozen.append("global_cov")
                     for key in self.params["global_cov"].keys():
-                        flat_key = f"global_cov{self._delimiter}{key}"
+                        flat_key = f"global_cov:{key}"
                         if flat_key not in self.frozen:
                             self.frozen.append(flat_key)
                 elif name == "local_cov":
+                    self.frozen.append("local_cov")
                     for i, kern in enumerate(self.params["local_cov"]):
                         for key in kern.keys():
-                            flat_key = (
-                                f"local_cov{self._delimiter}{i}{self._delimiter}{key}"
-                            )
+                            flat_key = f"local_cov:{i}:{key}"
                             if flat_key not in self.frozen:
                                 self.frozen.append(flat_key)
                 elif name not in self.frozen:
@@ -460,15 +373,15 @@ class SpectrumModel:
         else:
             for name in names:
                 if name == "global_cov":
+                    self.frozen.remove("global_cov")
                     for key in self.params["global_cov"].keys():
-                        flat_key = f"global_cov{self._delimiter}{key}"
+                        flat_key = f"global_cov:{key}"
                         self.frozen.remove(flat_key)
                 elif name == "local_cov":
+                    self.frozen.remove("local_cov")
                     for i, kern in enumerate(self.params["local_cov"]):
                         for key in kern.keys():
-                            flat_key = (
-                                f"local_cov{self._delimiter}{i}{self._delimiter}{key}"
-                            )
+                            flat_key = f"local_cov:{i}:{key}"
                             self.frozen.remove(flat_key)
                 elif name in self.frozen:
                     self.frozen.remove(name)
@@ -483,7 +396,7 @@ class SpectrumModel:
         metadata : dict, optional
             If provided, will save the provided dictionary under a 'metadata' key. This will not be read in when loading models but provides a way of providing information in the actual TOML files. Default is None.
         """
-        output = {"parameters": self.params, "frozen": self.frozen}
+        output = {"parameters": self.params.as_dict(), "frozen": self.frozen}
         meta = {}
         meta["name"] = self.name
         meta["data"] = self.data_name
@@ -494,12 +407,10 @@ class SpectrumModel:
         output["metadata"] = meta
 
         with open(filename, "w") as handler:
-            out_str = toml.dumps(
-                output, encoder=toml.TomlNumpyEncoder(output.__class__)
-            )
-            handler.write(out_str)
+            encoder = toml.TomlNumpyEncoder(output.__class__)
+            toml.dump(output, handler, encoder=encoder)
 
-        self.log.info("Saved current state at {}".format(filename))
+        self.log.info(f"Saved current state at {filename}")
 
     def load(self, filename):
         """
@@ -511,10 +422,8 @@ class SpectrumModel:
         """
         with open(filename, "r") as handler:
             data = toml.load(handler)
-
-        frozen = data["frozen"]
-        self.params = data["parameters"]
-        self.frozen = frozen
+        self.params = FlatterDict(data["parameters"])
+        self.frozen = data["frozen"]
 
     def __repr__(self):
         output = f"{self.name}\n"

@@ -28,7 +28,7 @@ class TestUtils:
         params = optimize_residual_peaks(model, mus=peaks, num_residuals=50)
         assert len(params) == len(peaks)
         model.params["local_cov"] = params
-        assert model.params["local_cov"] == params
+        assert model.params.as_dict()["local_cov"] == params
 
     def test_covariance_debugger(self):
         # Just test if it runs

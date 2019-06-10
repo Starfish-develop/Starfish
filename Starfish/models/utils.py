@@ -76,8 +76,8 @@ def optimize_residual_peaks(model, mus, sigma0=50, num_residuals=100):
     residual = np.mean(list(model.residuals)[-num_residuals:], axis=0)
     amp_cutoff = 0.1 * residual.std()
     if "global_cov" in model.params:
-        ag = np.exp(model.params["global_cov"]["log_amp"])
-        lg = np.exp(model.params["global_cov"]["log_ls"])
+        ag = np.exp(model.params["global_cov:log_amp"])
+        lg = np.exp(model.params["global_cov:log_ls"])
         global_cov = global_covariance_matrix(model.data.wave, ag, lg)
     else:
         global_cov = None

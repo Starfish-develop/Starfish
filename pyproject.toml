@@ -20,15 +20,13 @@ keywords = [
     "Physics",
     "Data Science"
 ]
-classifiers=[
+classifiers = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Astronomy",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-packages = [
-    { include = "Starfish" }
-]
+packages = [{include = "Starfish"}]
 
 [tool.poetry.dependencies]
 python = "^3.6"
@@ -42,7 +40,8 @@ tqdm = "^4.32"
 extinction = "^0.4.0"
 nptyping = "^0.2.0"
 dataclasses = "^0.6.0"
-toml = {git = "https://github.com/uiri/toml.git", branch="master"}
+flatdict = {git = "https://github.com/mileslucas/flatdict"}
+toml = {version = "==0.10.1", git = "https://github.com/uiri/toml"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^4.6"
