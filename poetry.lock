@@ -254,10 +254,10 @@ description = "Python module for interacting with nested dicts as a single level
 name = "flatdict"
 optional = false
 python-versions = "*"
-version = "3.2.0"
+version = "3.2.2"
 
 [package.source]
-reference = "436cd9e850dd8b89df121003e0b339d8d0011997"
+reference = "e1ce5c6ddbdd53d9f66f684261fc47d9d5f680f8"
 type = "git"
 url = "https://github.com/mileslucas/flatdict"
 [[package]]
@@ -684,22 +684,6 @@ version = ">=4.0.0"
 
 [[package]]
 category = "dev"
-description = "A pytest plugin to enable format checking with black"
-name = "pytest-black"
-optional = false
-python-versions = ">=2.7"
-version = "0.3.7"
-
-[package.dependencies]
-pytest = ">=3.5.0"
-toml = "*"
-
-[package.dependencies.black]
-python = ">=3.6"
-version = "19.3b0"
-
-[[package]]
-category = "dev"
 description = "Pytest plugin for measuring coverage."
 name = "pytest-cov"
 optional = false
@@ -709,18 +693,6 @@ version = "2.7.1"
 [package.dependencies]
 coverage = ">=4.4"
 pytest = ">=3.6"
-
-[[package]]
-category = "dev"
-description = "Mypy static type checker plugin for Pytest"
-name = "pytest-mypy"
-optional = false
-python-versions = "*"
-version = "0.3.2"
-
-[package.dependencies]
-mypy = ">=0.570,<1.0"
-pytest = ">=2.9.2"
 
 [[package]]
 category = "dev"
@@ -914,9 +886,13 @@ category = "main"
 description = "Python Library for Tom's Obvious, Minimal Language"
 name = "toml"
 optional = false
-python-versions = "*"
-version = "0.10.0"
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "0.10.1"
 
+[package.source]
+reference = "f0e9da7f2c3a23bef7af4e9b98a212ffc48f02e1"
+type = "git"
+url = "https://github.com/uiri/toml"
 [[package]]
 category = "main"
 description = "Fast, Extensible Progress Meter"
@@ -987,7 +963,7 @@ python-versions = ">=2.7"
 version = "0.5.1"
 
 [metadata]
-content-hash = "518dcf20e47895e4a779da07b38b5e49fbc78f219f4a332f2f08d53c265bac27"
+content-hash = "49a0130b0bc2a04f6d7bbf40c3c32964037936c5a907e467cfa72687675512d8"
 python-versions = "^3.6"
 
 [metadata.hashes]
@@ -1057,9 +1033,7 @@ pylint = ["5d77031694a5fb97ea95e828c8d10fc770a1df6eb3906067aaed42201a8a6a09", "7
 pyparsing = ["1873c03321fc118f4e9746baf201ff990ceb915f433f23b395f5580d1840cb2a", "9b6323ef4ab914af344ba97510e966d64ba91055d6b9afa6b30799340e89cc03"]
 pyrsistent = ["16692ee739d42cf5e39cef8d27649a8c1fdb7aa99887098f1460057c5eb75c3a"]
 pytest = ["6032845e68a17a96e8da3088037f899b56357769a724122056265ca2ea1890ee", "bea27a646a3d74cbbcf8d3d4a06b2dfc336baf3dc2cc85cf70ad0157e73e8322"]
-pytest-black = ["75bbeccfe23442a190164c0bf202d7498df25451fa4177b781cee20183e7fc0d"]
 pytest-cov = ["2b097cde81a302e1047331b48cadacf23577e431b61e9c6f49a1170bbe3d3da6", "e00ea4fdde970725482f1f35630d12f074e121a23801aabf2ae154ec6bdd343a"]
-pytest-mypy = ["8f6436eed8118afd6c10a82b3b60fb537336736b0fd7a29262a656ac42ce01ac", "acc653210e7d8d5c72845a5248f00fd33f4f3379ca13fe56cfc7b749b5655c3e"]
 pytz = ["303879e36b721603cc54604edcac9d20401bdbe31e1e4fdee5b9f98d5d31dfda", "d747dd3d23d77ef44c6a3526e274af6efeb0a6f1afd5a69ba4d5be4098c8e141"]
 requests = ["11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4", "9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31"]
 restructuredtext-lint = ["97b3da356d5b3a8514d8f1f9098febd8b41463bed6a1d9f126cf0a048b6fd908"]
@@ -1078,7 +1052,7 @@ sphinxcontrib-qthelp = ["513049b93031beb1f57d4daea74068a4feb77aa5630f856fcff2e50
 sphinxcontrib-serializinghtml = ["c0efb33f8052c04fd7a26c0a07f1678e8512e0faec19f4aa8f2473a8b81d5227", "db6615af393650bf1151a6cd39120c29abaf93cc60db8c48eb2dddbfdc3a9768"]
 stevedore = ["7be098ff53d87f23d798a7ce7ae5c31f094f3deb92ba18059b1aeb1ca9fec0a0", "7d1ce610a87d26f53c087da61f06f9b7f7e552efad2a7f6d2322632b5f932ea2"]
 testpath = ["46c89ebb683f473ffe2aab0ed9f12581d4d078308a3cb3765d79c6b2317b0109", "b694b3d9288dbd81685c5d2e7140b81365d46c29f5db4bc659de5aa6b98780f8"]
-toml = ["229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c", "235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e", "f1db651f9657708513243e61e6cc67d101a39bad662eaa9b5546f789338e07a3"]
+toml = []
 tqdm = ["0a860bf2683fdbb4812fe539a6c22ea3f1777843ea985cb8c3807db448a0f7ab", "e288416eecd4df19d12407d0c913cbf77aa8009d7fddb18f632aded3bdbdda6b"]
 traitlets = ["9c4bd2d267b7153df9152698efb1050a5d84982d3384a37b2c1f7723ba3e7835", "c6cb5e6f57c5a9bdaa40fa71ce7b4af30298fbab9ece9815b5d995ab6217c7d9"]
 typed-ast = ["132eae51d6ef3ff4a8c47c393a4ef5ebf0d1aecc96880eb5d6c8ceab7017cc9b", "18141c1484ab8784006c839be8b985cfc82a2e9725837b0ecfa0203f71c4e39d", "2baf617f5bbbfe73fd8846463f5aeafc912b5ee247f410700245d68525ec584a", "3d90063f2cbbe39177e9b4d888e45777012652d6110156845b828908c51ae462", "4304b2218b842d610aa1a1d87e1dc9559597969acc62ce717ee4dfeaa44d7eee", "4983ede548ffc3541bae49a82675996497348e55bafd1554dc4e4a5d6eda541a", "5315f4509c1476718a4825f45a203b82d7fdf2a6f5f0c8f166435975b1c9f7d4", "6cdfb1b49d5345f7c2b90d638822d16ba62dc82f7616e9b4caa10b72f3f16649", "7b325f12635598c604690efd7a0197d0b94b7d7778498e76e0710cd582fd1c7a", "8d3b0e3b8626615826f9a626548057c5275a9733512b137984a68ba1598d3d2f", "8f8631160c79f53081bd23446525db0bc4c5616f78d04021e6e434b286493fd7", "912de10965f3dc89da23936f1cc4ed60764f712e5fa603a09dd904f88c996760", "b010c07b975fe853c65d7bbe9d4ac62f1c69086750a574f6292597763781ba18", "c908c10505904c48081a5415a1e295d8403e353e0c14c42b6d67f8f97fae6616", "c94dd3807c0c0610f7c76f078119f4ea48235a953512752b9175f9f98f5ae2bd", "ce65dee7594a84c466e79d7fb7d3303e7295d16a83c22c7c4037071b059e2c21", "eaa9cfcb221a8a4c2889be6f93da141ac777eb8819f077e1d09fb12d00a09a93", "f3376bc31bad66d46d44b4e6522c5c21976bf9bca4ef5987bb2bf727f4506cbb", "f9202fa138544e13a4ec1a6792c35834250a85958fde1251b6a22e07d1260ae7"]

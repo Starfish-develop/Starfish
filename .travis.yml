@@ -52,6 +52,7 @@ install:
   - poetry install
 
 script:
+  - black --check .
   - pytest --cov=Starfish --black
 
 after_success:

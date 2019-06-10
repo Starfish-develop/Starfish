@@ -30,31 +30,29 @@ packages = [{include = "Starfish"}]
 
 [tool.poetry.dependencies]
 python = "^3.6"
-emcee = "==3.0rc2"
-numpy = "^1.16"
-scipy = "^1.3"
-scikit-learn = "^0.21.2"
 astropy = "^3.1"
-h5py = "^2.9"
-tqdm = "^4.32"
-extinction = "^0.4.0"
-nptyping = "^0.2.0"
 dataclasses = "^0.6.0"
-flatdict = {git = "https://github.com/mileslucas/flatdict"}
-toml = {version = "==0.10.1", git = "https://github.com/uiri/toml"}
+emcee = "^3.0rc2"
+extinction = "^0.4.0"
+flatdict = {version = "^3.2.2", git = "https://github.com/mileslucas/flatdict"}
+h5py = "^2.9"
+nptyping = "^0.2.0"
+numpy = "^1.16"
+scikit-learn = "^0.21.2"
+scipy = "^1.3"
+toml = {version = "^0.10.1", git = "https://github.com/uiri/toml"}
+tqdm = "^4.32"
 
 [tool.poetry.dev-dependencies]
-pytest = "^4.6"
-pylint = "^2.3"
-rope = "^0.14.0"
-pytest-cov = "^2.7"
-doc8 = "^0.8.0"
-sphinx = "^2.1"
+black = {version = "^19.3b0",allows-prereleases = true}
 coveralls = "^1.8"
-sphinx-bootstrap-theme = "^0.7.1"
-nbsphinx = "^0.4.2"
+doc8 = "^0.8.0"
 ipython = "^7.5"
 mypy = "^0.701.0"
-pytest-mypy = "^0.3.2"
-black = {version = "^19.3b0",allows-prereleases = true}
-pytest-black = "^0.3.7"
+nbsphinx = "^0.4.2"
+pylint = "^2.3"
+pytest = "^4.6"
+pytest-cov = "^2.7"
+rope = "^0.14.0"
+sphinx = "^2.1"
+sphinx-bootstrap-theme = "^0.7.1"
