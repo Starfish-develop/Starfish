@@ -5,6 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/iancze/Starfish/badge.svg?branch=master)](https://coveralls.io/github/iancze/Starfish?branch=master)
 [![PyPi](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
+[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
@@ -118,18 +119,18 @@ Now that you've successfully installed the code, please see the [documentation](
 # Contributing
 If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into
 making our project better. To get set up in a development environment, it is highly recommended to develop in a
-virtual environment. We use `poetry` to manage our environments, to get started clone the repository (and we recommend forking us first)
+virtual environment. We use `pipenv` (pending a better PEP 517/518 compliant tool) to manage our environments, to get started clone the repository (and we recommend forking us first)
 
     $ git clone https://github.com/<your_fork>/Starfish.git starfish
     $ cd starfish
 
-and then create the virtual environment and install pacakges from the `pyproject.toml` with
+and then create the virtual environment and install pacakges from the `Pipfile` with
 
-    $ poetry install
+    $ pipenv install
 
 and to enter the virtual environment, simply issue
 
-    $ poetry shell
+    $ pipenv shell
 
 whenever you're in the `starfish` folder.
 
@@ -141,7 +142,13 @@ We use `pytest` for testing; within the virtual environment
 
     $ pytest
 
-Note that we use the `black` code style and our CI testing will check that everything is formatted correctly.
+Note that we use the `black` code style and our CI testing will check that everything is formatted correctly. To check your code
+
+  $ black --check .
+
+or to format it automatically
+
+  $ black .
 
 
 ## Contributors

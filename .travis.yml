@@ -13,9 +13,6 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       language: generic
-      before_install:
-        - python -m pip install -U pip
-        - python -m pip install -U poetry
     - os: windows
       python: 3.6
       language: shell
@@ -23,7 +20,7 @@ matrix:
         - PATH=/c/Python36:/c/Python36/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.6.0
-        - python -m pip install -U poetry
+        - python -m pip install -U pipenv
     - os: windows 
       python: 3.7
       language: shell
@@ -31,7 +28,7 @@ matrix:
         - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.7.0
-        - python -m pip install -U poetry
+        - python -m pip install -U pipenv
   allow_failures:
     - os: windows
     - os: osx
@@ -46,10 +43,10 @@ cache:
 # This will only run for the linux and macOS versions
 before_install:
   - pip install -U pip
-  - pip install -U poetry
+  - pip install -U pipenv
 
 install:
-  - poetry install
+  - pipenv install --system
 
 script:
   - black --check .
@@ -57,3 +54,10 @@ script:
 
 after_success:
   - coveralls
+
+
+# Extra job to make sure installation works
+jobs:
+  include:
+    - stage: "test setup.py"
+      script: python setup.py install

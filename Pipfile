@@ -1,0 +1,32 @@
+[requires]
+python_version = "3.6"
+
+[packages]
+astropy = "*"
+dataclasses = "*"
+emcee = "==3.0rc2"
+flatdict = {version = "==3.2.2",git = "https://github.com/mileslucas/flatdict"}
+h5py = "*"
+nptyping = "*"
+numpy = "*"
+scikit-learn = "*"
+scipy = "*"
+toml = {version = "==0.10.1",git = "https://github.com/uiri/toml"}
+tqdm = "*"
+extinction = "*"
+
+[dev-packages]
+black = "==19.3b0"
+coveralls = "*"
+flake8 = "*"
+ipython = "*"
+mypy = "*"
+nbsphinx = "*"
+pytest = "*"
+pytest-cov = "*"
+rope = "*"
+sphinx = "*"
+sphinx-bootstrap-theme = "*"
+
+[pipenv]
+allow_prereleases = true
