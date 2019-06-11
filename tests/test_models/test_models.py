@@ -170,3 +170,50 @@ class TestSpectrumModel:
 
     def test_str(self, mock_model):
         assert str(mock_model).startswith("SpectrumModel")
+
+    def test_freeze_thaw_all(self, mock_model):
+        params = mock_model.labels
+        mock_model.freeze("all")
+        assert set(params) == set(mock_model.frozen)
+        mock_model.thaw("all")
+        assert set(params) == set(mock_model.labels)
+
+    def test_freeze_thaw_global(self, mock_model):
+        global_labels = [l for l in mock_model.labels if l.startswith("global_cov")]
+        mock_model.freeze("global_cov")
+        assert "global_cov" in mock_model.frozen
+        assert all([l in mock_model.frozen for l in global_labels])
+        mock_model.thaw("global_cov")
+        assert "global_cov" not in mock_model.frozen
+        assert all([l not in mock_model.frozen for l in global_labels])
+
+    def test_freeze_thaw_local(self, mock_model):
+        local_labels = [l for l in mock_model.labels if l.startswith("local_cov")]
+        mock_model.freeze("local_cov")
+        assert "local_cov" in mock_model.frozen
+        assert all([l in mock_model.frozen for l in local_labels])
+        mock_model.thaw("local_cov")
+        assert "local_cov" not in mock_model.frozen
+        assert all([l not in mock_model.frozen for l in local_labels])
+
+    def test_cov_caching(self, mock_model):
+        assert mock_model._glob_cov is None
+        assert mock_model._loc_cov is None
+        mock_model()
+        assert mock_model._glob_cov.shape == mock_model._loc_cov.shape
+
+    def test_cov_caching_frozen(self, mock_model):
+        mock_model()
+        glob = mock_model._glob_cov
+        loc = mock_model._loc_cov
+        mock_model.freeze("local_cov")
+        assert mock_model._loc_cov is None
+        mock_model()
+        assert np.allclose(mock_model._loc_cov, loc)
+        assert np.allclose(mock_model._glob_cov, glob)
+        mock_model.freeze("global_cov")
+        assert np.allclose(mock_model._loc_cov, loc)
+        assert mock_model._glob_cov is None
+        mock_model()
+        assert np.allclose(mock_model._loc_cov, loc)
+        assert np.allclose(mock_model._glob_cov, glob)
