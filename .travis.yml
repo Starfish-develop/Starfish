@@ -49,8 +49,8 @@ install:
   - pipenv install
 
 script:
-  - black --check .
-  - pytest --cov=Starfish
+  - pipenv run black --check .
+  - pipenv run pytest --cov=Starfish
 
 after_success:
   - coveralls
