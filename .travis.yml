@@ -46,15 +46,14 @@ before_install:
   - pip install -U pipenv
 
 install:
-  - pipenv install --system
+  - pipenv install
 
 script:
   - black --check .
-  - pytest --cov=Starfish --black
+  - pytest --cov=Starfish
 
 after_success:
   - coveralls
-
 
 # Extra job to make sure installation works
 jobs:
