@@ -46,11 +46,11 @@ before_install:
   - pip install -U pipenv
 
 install:
-  - pipenv install
+  - pipenv install -d
 
 script:
-  - pipenv run black --check .
-  - pipenv run pytest --cov=Starfish
+  - black --check .
+  - pytest --cov=Starfish
 
 after_success:
   - coveralls
