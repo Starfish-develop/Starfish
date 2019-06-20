@@ -27,6 +27,7 @@ pytest-cov = "*"
 rope = "*"
 sphinx = "*"
 sphinx-bootstrap-theme = "*"
+pytest-benchmark = "*"
 
 [pipenv]
 allow_prereleases = true
