@@ -46,12 +46,13 @@ cache:
 
 # This will only run for the linux and macOS versions
 before_install:
-  - pip install -U pip
-  - pip install -U pipenv
+  - pip3 install -U pip
+  - pip3 install -U pipenv
 
 install:
   # This will make sure we can install via pyproject.toml/setup.py
-  - pip install . 
+  - pip3 install . 
+  # But still use pipenv for the locked dependencies
   - pipenv install -d
 
 script:
