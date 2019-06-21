@@ -1,10 +1,11 @@
+======
 Models
 ======
 
-.. py:module:: Starfish.models
+.. module:: Starfish.models
 
 SpectrumModel
--------------
+=============
 
 The :class:`SpectrumModel` is the main implementation of the Starfish methods for a single-order spectrum. It works by interfacing with both :class:`Starfish.emulator.Emulator`, :class:`Starfish.spectrum.Spectrum`, and the methods in :mod:`Starfish.transforms`. The spectral emulator provides an interface to spectral model libraries with a covariance matrix for each interpolated spectrum. The transforms provide the physics behind alterations to the light. For a given set of parameters, a transformed spectrum and covariance matrix are provided by
 
@@ -30,8 +31,8 @@ It is also possible to optimize our parameters using the interfaces provided in 
 
 For a more thorough example, see the :doc:`../examples/index`. 
 
-Parameterization
-................
+Parametrization
+---------------
 
 This model uses a method of specifying parameters very similar to Dan Foreman-Mackey's George library. There exists an underlying dictionary of the model parameters, which define what transformations will be made. For example, if ``vz`` exists in a model's parameter dictionary, then doppler shifting will occur when calling the model. 
 
@@ -94,3 +95,13 @@ API/Reference
 .. autoclass:: SpectrumModel
     :members: 
     :special-members: __call__, __getitem__, __setitem__
+
+
+Utils
+=====
+
+There are some utilities that help with interfacing with the various Models
+
+.. autofunction:: find_residual_peaks
+.. autofunction:: optimize_residual_peaks
+.. autofunction:: covariance_debugger

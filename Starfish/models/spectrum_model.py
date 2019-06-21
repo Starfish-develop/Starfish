@@ -56,7 +56,8 @@ class SpectrumModel:
     Rv           :func:`~Starfish.transforms.extinct`              
     log_scale    :func:`~Starfish.transforms.rescale`
     =========== =======================================
-    The ``global_cov`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel
+
+    The ``global_cov`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel, :meth:`kernels.global_covariance_matrix`
     
     ================ =============
     Global Parameter  Description
@@ -65,7 +66,7 @@ class SpectrumModel:
     log_ls           The natural logarithm of the lengthscale of the Matern kernel
     ================ =============
     
-    The ``local_cov`` keryword argument must be a list of dictionaries defining hyperparameters for many Gaussian kernels
+    The ``local_cov`` keryword argument must be a list of dictionaries defining hyperparameters for many Gaussian kernels, , :meth:`kernels.local_covariance_matrix`
     
     ================ =============
     Local Parameter  Description
@@ -79,12 +80,8 @@ class SpectrumModel:
     ----------
     params : dict
         The dictionary of parameters that are used for doing the modeling.
-    grid_params : numpy.ndarray
-        A direct interface to the grid parameters rather than indexing like self['T']
     frozen : list
         A list of strings corresponding to frozen parameters
-    labels : list
-        A list of strings corresponding to the active (thawed) parameters
     residuals : deque
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
     """
@@ -142,6 +139,11 @@ class SpectrumModel:
 
     @property
     def grid_params(self):
+        """
+        numpy.ndarray : The parameters used for the spectral emulator.
+
+        :setter: Sets the values in the order of ``Emulator.param_names``
+        """
         values = []
         for key in self.emulator.param_names:
             values.append(self.params[key])
@@ -155,6 +157,9 @@ class SpectrumModel:
 
     @property
     def labels(self):
+        """
+        tuple of str : The thawed parameter names
+        """
         keys = self.get_param_dict(flat=True).keys()
         return tuple(keys)
 

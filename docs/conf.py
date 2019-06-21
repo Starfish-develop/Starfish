@@ -90,7 +90,7 @@ html_theme_options = {
     "navbar_sidebarrel": False,
     "navbar_links": [("API", "api/index"), ("Examples", "examples/index")],
     "navbar_class": "navbar bg-dark",
-    "globaltoc_depth": 2,
+    "globaltoc_depth": 3,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.

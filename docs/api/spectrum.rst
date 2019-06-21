@@ -55,33 +55,78 @@ When resampling wavelength grids that are not log-lambda spaced (e.g., the raw s
 
 .. autofunction:: Starfish.utils.calculate_dv_dict
 
+Order
+=====
 
-Data Spectrum
-=============
+We organize our data into orders which are the building blocks of Echelle spectra. Each order has its own wavelength, flux, optional flux error, and optional mask. 
 
-The :obj:`Spectrum` holds the data spectrum that you wish to fit. You may read your data into this object in a few ways. First let's introduce the object and then discuss the reading methods.
+.. note::
+  Typically, you will not be creating orders directly, but rather will be using them as part of a :class:`Spectrum` object.
 
-.. autoclass:: Spectrum
+The way you interact with orders is generally using the properties ``wave``, ``flux``, and ``sigma``, which will automatically apply the order's mask. If you want to reach the underlying arrays, say to create a new mask, use the appropriate ``_``-prepended properties.
+
+.. code-block:: python
+
+  >>> order = Order(...)
+  >>> len(order)
+  3450
+  >>> new_mask = order.mask & (order._wave > 0.9e4) & (order._wave < 4.4e4)
+  >>> order.mask = new_mask
+  >>> len(order)
+  2752
+
+API/Reference
+-------------
+
+.. autoclass:: Order
    :members:
 
-First, you can construct an instance using the traditional ``__init__`` method::
+Spectrum
+=============
 
-    # Read waves, fluxes, and sigmas from your dataset
-    # as numpy arrays using your own method.
-    waves, fluxes, sigmas = myownmethod()
+A :obj:`Spectrum` holds the many orders that make up your data. These orders, described by :class:`Order`, are treated as rows in a two-dimensional array. We like to store these spectra in HDF5 files so we recommend creating a pre-processing method that may require any additional dependencies (e.g., *IRAF*) for getting your data into 2-d wavelength arrays calibrated to the same flux units as your spectral library models.
 
-    myspec = Spectrum(waves, fluxes, sigmas)
+.. code-block:: python
 
-Since :meth:`myownmethod` may require a bunch of additional dependencies (e.g, *IRAF*), for convenience you may want to first read your data using your own custom method but then save it to a different format, like ``hdf5``. Since ``HDF5`` files are all the rage these days, you may want to use them to store your entire data set in a single binary file. If you store your spectra in an HDF5 file as ``(norders, npix)`` arrays::
+  >>> waves, fluxes, sigmas = process_data("data.fits")
+  >>> data = Spectrum(waves, fluxes, sigmas, name="Data")
+  >>> data.save("data.hdf5")
 
-    /
-    /waves
-    /fluxes
-    /sigmas
-    /masks
+Our HDF5 format is simple, with each dataset having shape (norders, npixels):
 
-Then can read your data in as::
+.. code-block::
 
-    myspec = Spectrum.load("myspec.HDF5")
+  /
+    waves
+    fluxes
+    sigmas
+    masks
+
+Whether you save your data to hdf5 or have an external process that saves into the same format above, you can then load the spectrum using
+
+.. code-block:: python
+
+  >>> data = Spectrum.load("data.hdf5")
 
 When using HDF5 files, we highly recommended using a GUI program like `HDF View <http://www.hdfgroup.org/products/java/hdfview/index.html>`_ to make it easer to see what's going on.
+
+To access the data, you can either access the full 2-d data arrays (which will have the appropriate mask applied) or iterate order-by-order
+
+.. code-block:: python
+
+  >>> data = Spectrum(...)
+  >>> len(data)
+  4
+  >>> data.waves.shape
+  (4, 2752)
+  >>> num_points = 0
+  >>> for order in data:
+  ...   num_points += len(order)
+  >>> num_points == np.prod(data.shape)
+  True
+
+API/Reference
+-------------
+
+.. autoclass:: Spectrum
+  :members:

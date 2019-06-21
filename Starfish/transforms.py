@@ -153,7 +153,9 @@ def doppler_shift(wave, vz):
 
 def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     """
-    Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package.
+    Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package. In general, it follows the form
+
+    .. math:: f \\times 10^{-0.4 A_V \\cdot A_\\lambda(R_V)}
 
     Parameters
     ----------
@@ -201,7 +203,7 @@ def rescale(flux, log_scale):
     """
     Rescale the given flux via the following equation
 
-    .. math:: f(\\log \\Omega) = f \\times 10^{\\log \\Omega}
+    .. math:: f \\times 10^{\\log \\Omega}
 
     Parameters
     ----------
