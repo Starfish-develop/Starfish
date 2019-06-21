@@ -144,11 +144,11 @@ We use `pytest` for testing; within the virtual environment
 
 Note that we use the `black` code style and our CI testing will check that everything is formatted correctly. To check your code
 
-  $ black --check .
+    $ black --check .
 
 or to format it automatically
 
-  $ black .
+    $ black .
 
 
 ## Contributors

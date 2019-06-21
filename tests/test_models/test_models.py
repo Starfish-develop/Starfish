@@ -2,6 +2,7 @@ import os
 from collections import deque
 from datetime import datetime
 
+from flatdict import FlatterDict
 import pytest
 import numpy as np
 
@@ -21,14 +22,24 @@ class TestSpectrumModel:
         assert mock_model["log_scale"] == -10
         assert mock_model["vsini"] == 30
 
+    def test_create_from_strings(self, mock_spectrum, mock_trained_emulator, tmpdir):
+        tmp_emu = os.path.join(tmpdir, "emu.hdf5")
+        mock_trained_emulator.save(tmp_emu)
+        tmp_data = os.path.join(tmpdir, "data.hdf5")
+        mock_spectrum.name = "test"
+        mock_spectrum.save(tmp_data)
+
+        model = SpectrumModel(tmp_emu, grid_params=[6000, 4.0, 0.0], data=tmp_data)
+
+        assert mock_trained_emulator.hyperparams == model.emulator.hyperparams
+        assert model.data_name == mock_spectrum.name
+
     def test_global_cov_param_dict(self, mock_model):
         assert "log_amp" in mock_model["global_cov"]
         assert "log_ls" in mock_model["global_cov"]
         assert "global_cov:log_amp" in mock_model.get_param_dict(flat=True)
 
     def test_local_cov_param_dict(self, mock_model):
-        print(mock_model.params)
-        print(mock_model.params.as_dict())
         assert len(mock_model.params.as_dict()["local_cov"]) == 2
         assert mock_model["local_cov:0:mu"] == 1e4
         assert "log_sigma" in mock_model["local_cov"]["1"]
@@ -87,6 +98,15 @@ class TestSpectrumModel:
         mock_model.thaw(labels)
         assert all([x in mock_model.labels for x in labels])
 
+    def test_setitem(self, mock_model):
+        # Clear params
+        original, mock_model.params = mock_model.params, FlatterDict()
+
+        for key, value in original.items():
+            mock_model[key] = value
+
+        assert mock_model.params == original
+
     @pytest.mark.parametrize("flat", [False, True])
     def test_get_set_param_dict(self, mock_model, flat):
         P0 = mock_model.get_param_dict(flat=flat)
@@ -130,6 +150,17 @@ class TestSpectrumModel:
         mock_model.load(path)
         assert P0 == mock_model.params
         assert P0_f == mock_model.get_param_dict()
+
+    def test_save_load_frozen(self, mock_model, tmpdir):
+        path = os.path.join(tmpdir, "model.toml")
+        to_freeze = ["logg", "vsini", "global_cov"]
+        mock_model.freeze(to_freeze)
+        P0 = mock_model.params
+        f_0 = mock_model.frozen
+        mock_model.save(path)
+        mock_model.load(path)
+        assert P0 == mock_model.params
+        assert all([a == b for a, b in zip(f_0, mock_model.frozen)])
 
     def test_save_load_numpy(self, mock_model, tmpdir):
         """

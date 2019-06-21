@@ -168,13 +168,14 @@ class SpectrumModel:
 
     def __setitem__(self, key, value):
         if ":" in key:
-            cov, key = key.split(":")
-            if cov == "global_cov" and key in self._GLOBAL_PARAMS:
+            cov, rest = key.split(":", 1)
+            k = rest.split(":")[-1] if ":" in rest else rest
+            if cov == "global_cov" and k in self._GLOBAL_PARAMS:
                 self.params[key] = value
-            elif cov == "local_cov" and key in self._LOCAL_PARAMS:
+            elif cov == "local_cov" and k in self._LOCAL_PARAMS:
                 self.params[key] = value
             else:
-                raise ValueError(f"{cov}{key} not recognized")
+                raise ValueError(f"{key} not recognized")
         else:
             if key in [*self._PARAMS, *self.emulator.param_names]:
                 self.params[key] = value
@@ -373,7 +374,9 @@ class SpectrumModel:
                 if key not in self.frozen:
                     self.frozen.append(key)
         else:
-            for name in names:
+            for _name in names:
+                # Avoid kookyness of numpy.str type
+                name = str(_name)
                 if name == "global_cov":
                     self.frozen.append("global_cov")
                     self._glob_cov = None
@@ -414,7 +417,9 @@ class SpectrumModel:
         if names[0] == "all":
             self.frozen = []
         else:
-            for name in names:
+            for _name in names:
+                # Avoid kookyness of numpy.str type
+                name = str(_name)
                 if name == "global_cov":
                     self.frozen.remove("global_cov")
                     for key in self.params.as_dict()["global_cov"].keys():
