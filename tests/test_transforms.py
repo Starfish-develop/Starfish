@@ -15,6 +15,13 @@ from Starfish.transforms import (
 from Starfish.utils import calculate_dv, create_log_lam_grid
 
 
+@pytest.fixture
+def benchmark_data(request):
+    wave = np.linspace(1e4, 5e4, request.param)
+    flux = np.random.randn(request.param) + 1e10
+    yield wave, flux
+
+
 class TestInstrumentalBroaden:
     @pytest.mark.parametrize("fwhm", [-20, -1.00, -np.finfo(np.float64).tiny])
     def test_bad_fwhm(self, mock_data, fwhm):
@@ -35,6 +42,12 @@ class TestInstrumentalBroaden:
         assert fluxes.shape == flux_stack.shape
         assert not np.allclose(fluxes, flux_stack)
 
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(instrumental_broaden, *benchmark_data, 400)
+
 
 class TestRotationalBroaden:
     @pytest.mark.parametrize("vsini", [-20, -1.00, -np.finfo(np.float64).eps, 0])
@@ -51,6 +64,12 @@ class TestRotationalBroaden:
         fluxes = rotational_broaden(mock_data[0], flux_stack, 400)
         assert fluxes.shape == flux_stack.shape
         assert not np.allclose(fluxes, flux_stack)
+
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(rotational_broaden, *benchmark_data, 84)
 
 
 class TestResample:
@@ -72,6 +91,15 @@ class TestResample:
         fluxes = resample(mock_data[0], flux_stack, new_wave)
         assert fluxes.shape == (4, len(new_wave))
 
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        wave, flux = benchmark_data
+        dv = calculate_dv(wave)
+        new_wave = create_log_lam_grid(dv, wave.min(), wave.max())["wl"]
+        benchmark(resample, wave, flux, new_wave)
+
 
 class TestDopplerShift:
     def test_no_change(self, mock_data):
@@ -90,6 +118,14 @@ class TestDopplerShift:
         wave = doppler_shift(doppler_shift(mock_data[0], 1e3), -1e3)
         assert np.allclose(wave, mock_data[0])
 
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(doppler_shift, benchmark_data[0], 1e3)
+
+    
+
 
 class TestChebyshevCorrection:
     @pytest.mark.parametrize(
@@ -106,6 +142,12 @@ class TestChebyshevCorrection:
     def test_single_fix_c0(self, mock_data):
         with pytest.raises(ValueError):
             chebyshev_correct(*mock_data, [0.9, 0, 0, 0])
+
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(chebyshev_correct, *benchmark_data, [1, 0, 0, 0])
 
 
 class TestExtinct:
@@ -140,6 +182,12 @@ class TestExtinct:
         assert fluxes.shape == flux_stack.shape
         assert not np.allclose(fluxes, flux_stack)
 
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(extinct, *benchmark_data, Av=0.3)
+
 
 class TestRescale:
     @pytest.mark.parametrize("logOmega", [1, 2, 3, -124, -42.2, 0.5])
@@ -160,3 +208,9 @@ class TestRescale:
         fluxes = rescale(flux_stack, 2)
         assert fluxes.shape == flux_stack.shape
         assert not np.allclose(fluxes, flux_stack)
+
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(rescale, benchmark_data[1], -10)
