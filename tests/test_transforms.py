@@ -124,8 +124,6 @@ class TestDopplerShift:
     def test_benchmark(self, benchmark, benchmark_data):
         benchmark(doppler_shift, benchmark_data[0], 1e3)
 
-    
-
 
 class TestChebyshevCorrection:
     @pytest.mark.parametrize(
