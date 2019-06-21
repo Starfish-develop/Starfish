@@ -1,4 +1,0 @@
-sphinx
-sphinx-bootstrap-theme
-nbsphinx
-IPython

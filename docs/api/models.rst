@@ -6,7 +6,7 @@ Models
 SpectrumModel
 -------------
 
-The :class:`SpectrumModel` is the main implementation of the Starfish methods for a single-order spectrum. It works by interfacing with both :class:`Starfish.emulator.Emulator`, :class:`Starfish.spectrum.DataSpectrum`, and the methods in :mod:`Starfish.transforms`. The spectral emulator provides an interface to spectral model libraries with a covariance matrix for each interpolated spectrum. The transforms provide the physics behind alterations to the light. For a given set of parameters, a transformed spectrum and covariance matrix are provided by
+The :class:`SpectrumModel` is the main implementation of the Starfish methods for a single-order spectrum. It works by interfacing with both :class:`Starfish.emulator.Emulator`, :class:`Starfish.spectrum.Spectrum`, and the methods in :mod:`Starfish.transforms`. The spectral emulator provides an interface to spectral model libraries with a covariance matrix for each interpolated spectrum. The transforms provide the physics behind alterations to the light. For a given set of parameters, a transformed spectrum and covariance matrix are provided by
 
 .. code-block:: python
 
@@ -59,6 +59,34 @@ To undo this, simply thaw the frozen parameters
     >>> model.thaw('logg')
     >>> model.params == model.get_param_dict()
     True
+
+The underlying parameter dictionary is a special flat dictionary. Consider the nested dictionary
+
+.. code-block:: python
+
+    >>> cov = {
+    ...     'log_amp': 0,
+    ...     'log_ls': 6,
+    ... }
+    >>> model['global_cov'] = cov
+    >>> model.params
+    {
+        'T': 6020, 
+        'logg': 4.2, 
+        'Z': 0.0, 
+        'vsini': 84.0, 
+        'log_scale': -10.23,
+        'global_cov:log_amp': 0,
+        'global_cov:log_ls': 6
+    }
+
+These values can be referenced normally or using its flat key
+
+.. code-block:: python
+
+    >>> model['global_cov:log_amp'] == model['global_cov']['log_amp']
+    True
+
 
 API/Reference
 -------------

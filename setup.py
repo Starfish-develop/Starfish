@@ -52,6 +52,8 @@ setup(
             "nbsphinx==0.*,>=0.4.2",
             "sphinx==2.*,>=2.1.0",
             "sphinx-bootstrap-theme==0.*,>=0.7.1",
+            "IPython",
+            "sphinx-autodoc-typehints",
         ],
         "test": [
             "coveralls==1.*,>=1.8.0",

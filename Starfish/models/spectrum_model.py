@@ -25,6 +25,7 @@ from .kernels import global_covariance_matrix, local_covariance_matrix
 class SpectrumModel:
     """
     A single-order spectrum model.
+    
     Parameters
     ----------
     emulator : :class:`Starfish.emulators.Emulator`
@@ -42,24 +43,30 @@ class SpectrumModel:
     -----------------
     params : dict
         Any remaining keyword arguments will be interpreted as parameters. 
+    
+
     Here is a table describing the avialable parameters and their related functions
+    
     =========== =======================================
      Parameter                 Function                
     =========== =======================================
-    vsini        :func:`transforms.rotational_broaden`
-    vz           :func:`transforms.doppler_shift`
-    Av           :func:`transforms.extinct`
-    Rv           :func:`transforms.extinct`              
-    log_scale    :func:`transforms.rescale`
+    vsini        :func:`~Starfish.transforms.rotational_broaden`
+    vz           :func:`~Starfish.transforms.doppler_shift`
+    Av           :func:`~Starfish.transforms.extinct`
+    Rv           :func:`~Starfish.transforms.extinct`              
+    log_scale    :func:`~Starfish.transforms.rescale`
     =========== =======================================
     The ``global_cov`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel
+    
     ================ =============
     Global Parameter  Description
     ================ =============
     log_amp          The natural logarithm of the amplitude of the Matern kernel
     log_ls           The natural logarithm of the lengthscale of the Matern kernel
     ================ =============
+    
     The ``local_cov`` keryword argument must be a list of dictionaries defining hyperparameters for many Gaussian kernels
+    
     ================ =============
     Local Parameter  Description
     ================ =============
@@ -67,6 +74,7 @@ class SpectrumModel:
     mu               The location of the local kernel
     log_sigma        The natural logarithm of the standard deviation of the kernel
     ================ =============
+
     Attributes
     ----------
     params : dict
@@ -171,6 +179,7 @@ class SpectrumModel:
     def __call__(self):
         """
         Performs the transformations according to the parameters available in ``self.params``
+
         Returns
         -------
         flux, cov : tuple
@@ -208,7 +217,7 @@ class SpectrumModel:
 
         # Trivial covariance
         np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)
-        
+
         # Global covariance
         if "global_cov" in self.params:
             if "global_cov" not in self.frozen or self._glob_cov is None:
@@ -259,11 +268,16 @@ class SpectrumModel:
     def get_param_dict(self, flat: bool = False) -> dict:
         """
         Gets the dictionary of thawed parameters.
+
+        Parameters
+        ----------
         flat : bool, optional
-            If True, returns the parameters completely flat. For example, ['local'][0]['mu'] would have the key 'local:0:mu'. Default is False
+            If True, returns the parameters completely flat. For example, ``['local']['0']['mu']`` would have the key ``'local:0:mu'``. Default is False
+
         Returns
         -------
         dict
+
         See Also
         --------
         :meth:`set_param_dict`
@@ -277,13 +291,13 @@ class SpectrumModel:
 
     def set_param_dict(self, params):
         """
-        Sets the parameters with a dictionary. Note that this should not be used to add new parametersl
+        Sets the parameters with a dictionary. Note that this should not be used to add new parameters
+
         Parameters
         ----------
         params : dict
             The new parameters. If a key is present in ``self.frozen`` it will not be changed
-        flat : bool
-            Whether or not the incoming dictionary is flattened
+
         See Also
         --------
         :meth:`get_param_dict`
@@ -296,9 +310,11 @@ class SpectrumModel:
     def get_param_vector(self):
         """
         Get a numpy array of the thawed parameters
+
         Returns
         -------
         numpy.ndarray
+
         See Also
         --------
         :meth:`set_param_vector`
@@ -308,14 +324,17 @@ class SpectrumModel:
     def set_param_vector(self, params):
         """
         Sets the parameters based on the current thawed state. The values will be inserted according to the order of :obj:`SpectrumModel.labels`.
+
         Parameters
         ----------
         params : array_like
             The parameters to set in the model
+
         Raises
         ------
         ValueError
             If the `params` do not match the length of the current thawed parameters.
+
         See Also
         --------
         :meth:`get_param_vector`
@@ -328,14 +347,17 @@ class SpectrumModel:
     def freeze(self, names):
         """
         Freeze the given parameter such that :meth:`get_param_dict` and :meth:`get_param_vector` no longer include this parameter, however it will still be used when calling the model.
+
         Parameters
         ----------
         name : str or array-like
-            The parameter to freeze. If 'all', will freeze all parameters.
+            The parameter to freeze. If ``'all'``, will freeze all parameters. If ``'global_cov'`` will freeze all global covariance parameters. If ``'local_cov'`` will freeze all local covariance parameters.
+
         Raises
         ------
         ValueError
             If the given parameter does not exist
+
         See Also
         --------
         :meth:`thaw`
@@ -368,14 +390,17 @@ class SpectrumModel:
     def thaw(self, names):
         """
         Thaws the given parameter. Opposite of freezing
+
         Parameters
         ----------
         name : str or array-like
-            The parameter to thaw. If 'all', will thaw all parameters
+            The parameter to thaw. If ``'all'``, will thaw all parameters. If ``'global_cov'`` will thaw all global covariance parameters. If ``'local_cov'`` will thaw all local covariance parameters.
+        
         Raises
         ------
         ValueError
             If the given parameter does not exist.
+        
         See Also
         --------
         :meth:`freeze`
@@ -402,6 +427,7 @@ class SpectrumModel:
     def save(self, filename, metadata=None):
         """
         Saves the model as a set of parameters into a TOML file
+        
         Parameters
         ----------
         filename : str or path-like
@@ -428,6 +454,7 @@ class SpectrumModel:
     def load(self, filename):
         """
         Load a saved model state from a TOML file
+        
         Parameters
         ----------
         filename : str or path-like

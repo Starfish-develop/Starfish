@@ -17,9 +17,6 @@ import os
 import sys
 import builtins
 
-# Hack starfish so it doesn't complain about dependencies
-builtins.__STARFISH_SETUP__ = True
-
 base_dir = os.path.abspath("..")
 sys.path.insert(0, base_dir)
 
@@ -48,6 +45,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_autodoc_typehints",
 ]
 
 # Autodocs parameters

@@ -59,9 +59,9 @@ When resampling wavelength grids that are not log-lambda spaced (e.g., the raw s
 Data Spectrum
 =============
 
-The :obj:`DataSpectrum` holds the data spectrum that you wish to fit. You may read your data into this object in a few ways. First let's introduce the object and then discuss the reading methods.
+The :obj:`Spectrum` holds the data spectrum that you wish to fit. You may read your data into this object in a few ways. First let's introduce the object and then discuss the reading methods.
 
-.. autoclass:: DataSpectrum
+.. autoclass:: Spectrum
    :members:
 
 First, you can construct an instance using the traditional ``__init__`` method::
@@ -70,7 +70,7 @@ First, you can construct an instance using the traditional ``__init__`` method::
     # as numpy arrays using your own method.
     waves, fluxes, sigmas = myownmethod()
 
-    myspec = DataSpectrum(waves, fluxes, sigmas)
+    myspec = Spectrum(waves, fluxes, sigmas)
 
 Since :meth:`myownmethod` may require a bunch of additional dependencies (e.g, *IRAF*), for convenience you may want to first read your data using your own custom method but then save it to a different format, like ``hdf5``. Since ``HDF5`` files are all the rage these days, you may want to use them to store your entire data set in a single binary file. If you store your spectra in an HDF5 file as ``(norders, npix)`` arrays::
 
@@ -82,6 +82,6 @@ Since :meth:`myownmethod` may require a bunch of additional dependencies (e.g, *
 
 Then can read your data in as::
 
-    myspec = DataSpectrum.load("myspec.HDF5")
+    myspec = Spectrum.load("myspec.HDF5")
 
 When using HDF5 files, we highly recommended using a GUI program like `HDF View <http://www.hdfgroup.org/products/java/hdfview/index.html>`_ to make it easer to see what's going on.

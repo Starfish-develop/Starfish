@@ -28,6 +28,7 @@ rope = "*"
 sphinx = "*"
 sphinx-bootstrap-theme = "*"
 pytest-benchmark = "*"
+sphinx-autodoc-typehints = "*"
 
 [pipenv]
 allow_prereleases = true
