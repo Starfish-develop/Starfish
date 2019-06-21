@@ -1,9 +1,38 @@
 import os
 
 import numpy as np
+import pytest
 
 from Starfish import Spectrum
 from Starfish.spectrum import Order
+
+
+class TestOrder:
+    def test_no_sigma(self, mock_data):
+        wave, flux = mock_data
+        order = Order(wave, flux)
+        assert np.all(order._sigma == 1.0)
+        assert np.all(order.mask)
+
+    def test_no_mask(self, mock_data):
+        wave, flux = mock_data
+        sigma = np.random.randn(len(wave))
+        order = Order(wave, flux, sigma)
+        assert np.all(order.mask)
+
+    def test_masking(self, mock_data):
+        wave, flux = mock_data
+        sigma = np.random.randn(len(wave))
+        mask = sigma > 0
+        order = Order(wave, flux, sigma, mask)
+        assert np.allclose(order.wave, wave[mask])
+        assert np.allclose(order.flux, flux[mask])
+        assert np.allclose(order.sigma, sigma[mask])
+
+    def test_len(self, mock_data):
+        wave, flux = mock_data
+        order = Order(wave, flux)
+        assert len(order) == len(wave)
 
 
 class TestSpectrum:
@@ -31,13 +60,8 @@ class TestSpectrum:
         assert isinstance(mock_spectrum[0], Order)
         mock_spectrum.name = "special"
         assert str(mock_spectrum).startswith("special")
-
-    def test_masking(self, mock_spectrum):
-        mask = np.random.randn(*mock_spectrum.shape) > 0
-        mock_spectrum.masks = mask
-        assert np.allclose(mock_spectrum[0].wave, mock_spectrum.waves[mask])
-        assert np.allclose(mock_spectrum[0].flux, mock_spectrum.fluxes[mask])
-        assert np.allclose(mock_spectrum[0].sigma, mock_spectrum.sigmas[mask])
+        for i, order in enumerate(mock_spectrum):
+            assert order == mock_spectrum[i]
 
     def test_save_load(self, mock_spectrum, tmpdir):
         filename = os.path.join(tmpdir, "data.hdf5")
