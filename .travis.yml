@@ -25,6 +25,7 @@ matrix:
         - PATH=/c/Python36:/c/Python36/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.6.0
+        - python -m pip install -U pip
         - python -m pip install -U pipenv
     - os: windows 
       python: 3.7
@@ -33,6 +34,7 @@ matrix:
         - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
       before_install: 
         - choco install python --version 3.7.0
+        - python -m pip install -U pip
         - python -m pip install -U pipenv
   allow_failures:
     - os: windows
