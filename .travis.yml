@@ -31,7 +31,6 @@ matrix:
         - python -m pip install -U pipenv
   allow_failures:
     - os: windows
-    - os: osx
     - python: 3.8-dev
     - python: nightly
 
