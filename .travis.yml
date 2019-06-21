@@ -11,7 +11,12 @@ matrix:
   fast_finish: true
   include:
     - os: osx
+      osx_image: xcode9.4
+      python: 3.6
+      language: generic
+    - os: osx
       osx_image: xcode10.2
+      python: 3.7
       language: generic
     - os: windows
       python: 3.6
@@ -45,17 +50,13 @@ before_install:
   - pip install -U pipenv
 
 install:
+  # This will make sure we can install via pyproject.toml/setup.py
+  - pip install . 
   - pipenv install -d
 
 script:
   - black --check .
-  - pytest --cov=Starfish
+  - pytest --cov=Starfish --benchmark-skip
 
 after_success:
   - coveralls
-
-# Extra job to make sure installation works
-jobs:
-  include:
-    - stage: "test setup.py"
-      script: python setup.py install
