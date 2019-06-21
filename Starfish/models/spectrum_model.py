@@ -17,7 +17,6 @@ from Starfish.transforms import (
     doppler_shift,
     extinct,
     rescale,
-    chebyshev_correct,
 )
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .kernels import global_covariance_matrix, local_covariance_matrix
@@ -82,7 +81,7 @@ class SpectrumModel:
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
     """
 
-    _PARAMS = ["vz", "vsini", "Av", "Rv", "log_scale", "log_sigma_amp"]
+    _PARAMS = ["vz", "vsini", "Av", "Rv", "log_scale", "global_cov", "local_cov"]
     _GLOBAL_PARAMS = ["log_amp", "log_ls"]
     _LOCAL_PARAMS = ["mu", "log_amp", "log_sigma"]
 
@@ -164,7 +163,7 @@ class SpectrumModel:
             else:
                 raise ValueError(f"{cov}{key} not recognized")
         else:
-            if key in self._PARAMS:
+            if key in [*self._PARAMS, *self.emulator.param_names]:
                 self.params[key] = value
             else:
                 raise ValueError(f"{key} not recognized")
@@ -209,7 +208,7 @@ class SpectrumModel:
 
         # Trivial covariance
         np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)
-
+        
         # Global covariance
         if "global_cov" in self.params:
             if "global_cov" not in self.frozen or self._glob_cov is None:
