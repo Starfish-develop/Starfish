@@ -1,8 +1,8 @@
-import numpy as np
+"""
+Constants important for interacting with spectra
+"""
+from math import pi
 
-##################################################
-# Constants
-##################################################
 c_ang = 2.99792458e18  # A s^-1
 c_kms = 2.99792458e5  # km s^-1
 
@@ -25,5 +25,5 @@ AU = 1.4959787066e13  # cm
 L_sun = 3.839e33  # erg/s
 R_sun = 6.955e10  # cm
 F_sun = L_sun / (
-    4 * np.pi * R_sun ** 2
+    4 * pi * R_sun ** 2
 )  # bolometric flux of the Sun measured at the surface
