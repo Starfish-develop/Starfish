@@ -107,6 +107,7 @@ def mock_trained_emulator(mock_emulator):
     else:
         mock_emulator.train()
         mock_emulator.save(filename)
+        yield mock_emulator
 
 
 @pytest.fixture
