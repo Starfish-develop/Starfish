@@ -37,7 +37,7 @@ setup(
         "astropy==3.*,>=3.1.0",
         "dataclasses==0.*,>=0.6.0",
         "emcee==3.0rc2",
-        "extinction==0.*,>=0.4.0",
+        "extinction @ git+https://github.com/mileslucas/extinction.git@master#egg=extinction",
         "flatdict @ git+https://github.com/mileslucas/flatdict.git@master#egg=flatdict-3.2.2",
         "h5py==2.*,>=2.9.0",
         "nptyping==0.*,>=0.2.0",
