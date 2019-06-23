@@ -343,7 +343,7 @@ class BTSettlGridInterface(GridInterface):
         self.Z_dict = {-0.5: "-0.5a+0.2", 0.0: "-0.0a+0.0", 0.5: "+0.5a0.0"}
 
         wl_dict = create_log_lam_grid(
-            0.08 / C.c_kms, wl_start=self.wl_range[0], wl_end=self.wl_range[1]
+            0.08 / C.c_kms, start=self.wl_range[0], end=self.wl_range[1]
         )
         self.wl = wl_dict["wl"]
 
@@ -450,7 +450,7 @@ class CIFISTGridInterface(GridInterface):
         self.full_rname = os.path.join(self.path, self.rname)
 
         wl_dict = create_log_lam_grid(
-            dv=0.08, wl_start=self.wl_range[0], wl_end=self.wl_range[1]
+            dv=0.08, start=self.wl_range[0], end=self.wl_range[1]
         )
         self.wl = wl_dict["wl"]
 
