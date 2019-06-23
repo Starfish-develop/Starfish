@@ -5,16 +5,19 @@
 [![Coverage Status](https://coveralls.io/repos/github/iancze/Starfish/badge.svg?branch=master)](https://coveralls.io/github/iancze/Starfish?branch=master)
 [![PyPi](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
-[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
 ## Beta Version 0.3
 
-### Documentation
+### Matrix
 
-[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
-[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label=develop)](https://starfish.readthedocs.io/en/develop/?badge=develop)
+Version | Status  | Documentation
+-|-|-
+v0.3.0-dev | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=v0.3.0-dev)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/v0.3.0-dev.svg?label="docs")](https://starfish.readthedocs.io/en/v0.3.0-dev/?badge=v0.3.0-dev)
+master | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=master)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label="docs")](https://starfish.readthedocs.io/en/latest/?badge=latest)
+develop | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=develop)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/develop.svg?label="docs")](https://starfish.readthedocs.io/en/develop/?badge=develop)
+
 
 ### Citations
 
