@@ -63,6 +63,11 @@ class TestSpectrum:
         for i, order in enumerate(mock_spectrum):
             assert order == mock_spectrum[i]
 
+    def test_set_ragged_length(self, mock_spectrum):
+        reshaped_spec = mock_spectrum.reshape((2, -1))
+        with pytest.raises(ValueError):
+            mock_spectrum[0] = reshaped_spec[0]
+
     def test_save_load(self, mock_spectrum, tmpdir):
         filename = os.path.join(tmpdir, "data.hdf5")
         mock_spectrum.save(filename)

@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from datetime import datetime
+import textwrap
 
 from flatdict import FlatterDict
 import pytest
@@ -54,9 +55,13 @@ class TestSpectrumModel:
         mock_model.thaw(param)
         assert param in mock_model.labels
 
-    def test_add_bad_param(self, mock_model):
+    @pytest.mark.parametrize(
+        "param",
+        ["garbage", "global_cov:not quite", "global_cov:garbage", "local_cov:garbage"],
+    )
+    def test_add_bad_param(self, mock_model, param):
         with pytest.raises(ValueError):
-            mock_model["garbage_key"] = -4
+            mock_model[param] = -4
 
     def test_labels(self, mock_model):
         assert sorted(mock_model.labels) == sorted(
@@ -200,7 +205,62 @@ class TestSpectrumModel:
         assert lnprob < exact_lnprob
 
     def test_str(self, mock_model):
-        assert str(mock_model).startswith("SpectrumModel")
+        mock_model.freeze("logg")
+        expected = textwrap.dedent(
+            f"""
+            SpectrumModel
+            -------------
+            Data: {mock_model.data_name}
+            Emulator: {mock_model.emulator.name}
+            Log Likelihood: {mock_model.log_likelihood()}
+
+            Parameters
+              Av: 0
+              T: 6000
+              Z: 0.0
+              global_cov:
+                log_amp: 1
+                log_ls: 1
+              local_cov:
+                0: log_amp: 2, log_sigma: 2, mu: 10000.0
+                1: log_amp: 1.5, log_sigma: 2, mu: 13000.0
+              log_scale: -10
+              vsini: 30
+              vz: 0
+
+            Frozen Parameters
+              logg: 4.0
+            """
+        ).strip()
+        assert str(mock_model) == expected
+
+        mock_model.freeze("global_cov")
+        expected = textwrap.dedent(
+            f"""
+            SpectrumModel
+            -------------
+            Data: {mock_model.data_name}
+            Emulator: {mock_model.emulator.name}
+            Log Likelihood: {mock_model.log_likelihood()}
+
+            Parameters
+              Av: 0
+              T: 6000
+              Z: 0.0
+              local_cov:
+                0: log_amp: 2, log_sigma: 2, mu: 10000.0
+                1: log_amp: 1.5, log_sigma: 2, mu: 13000.0
+              log_scale: -10
+              vsini: 30
+              vz: 0
+
+            Frozen Parameters
+              logg: 4.0
+              global_cov:log_amp: 1
+              global_cov:log_ls: 1
+            """
+        ).strip()
+        assert str(mock_model) == expected
 
     def test_freeze_thaw_all(self, mock_model):
         params = mock_model.labels
@@ -248,3 +308,12 @@ class TestSpectrumModel:
         mock_model()
         assert np.allclose(mock_model._loc_cov, loc)
         assert np.allclose(mock_model._glob_cov, glob)
+
+    def test_fails_with_multiple_orders(self, mock_spectrum, mock_emulator):
+        two_order_spectrum = mock_spectrum.reshape((2, -1))
+        with pytest.raises(ValueError):
+            SpectrumModel(
+                emulator=mock_emulator,
+                data=two_order_spectrum,
+                grid_params=[6000, 4.0, 0],
+            )

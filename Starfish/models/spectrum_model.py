@@ -253,15 +253,12 @@ class SpectrumModel:
     def log_likelihood(self) -> float:
         """
         Returns the log probability of a multivariate normal distribution
-        
+
         Returns
         -------
         float
         """
-        try:
-            flux, cov = self()
-        except np.linalg.LinAlgError:
-            pass
+        flux, cov = self()
         np.fill_diagonal(cov, cov.diagonal() + 1e-10)
         factor, flag = cho_factor(cov, overwrite_a=True)
         logdet = 2 * np.sum(np.log(factor.diagonal()))
@@ -485,11 +482,25 @@ class SpectrumModel:
         output += f"Log Likelihood: {self._lnprob}\n"
         output += "\nParameters\n"
         for key, value in self.get_param_dict().items():
-            output += f"  {key}: {value}\n"
+            if key == "global_cov":
+                output += "  global_cov:\n"
+                for gkey, gval in value.items():
+                    output += f"    {gkey}: {gval}\n"
+            elif key == "local_cov":
+                output += "  local_cov:\n"
+                for i, kern in enumerate(value.values()):
+                    output += f"    {i}: "
+                    for lkey, lval in kern.items():
+                        output += f"{lkey}: {lval}, "
+                    # Remove trailing whitespace and comma
+                    output = output[:-2]
+                    output += "\n"
+            else:
+                output += f"  {key}: {value}\n"
         if len(self.frozen) > 0:
             output += "\nFrozen Parameters\n"
             for key in self.frozen:
                 if key in ["global_cov", "local_cov"]:
                     continue
                 output += f"  {key}: {self[key]}\n"
-        return output
+        return output[:-1]  # No trailing newline
