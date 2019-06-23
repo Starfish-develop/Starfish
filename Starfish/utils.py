@@ -60,8 +60,11 @@ def create_log_lam_grid(dv, start, end):
     dict
         a wavelength dictionary containing the specified properties. Note that the returned dv will be less than or equal to the specified dv.
     """
-    if start > end:
-        raise ValueError("Wavelength must be increasing, but start > end")
+    if start >= end:
+        raise ValueError("Wavelength must be increasing, but start >= end")
+
+    if start <= 0 or end <= 0:
+        raise ValueError("Cannot have negative or 0 wavelength")
 
     CDELT_temp = np.log10(dv / C.c_kms + 1.0)
     CRVAL1 = np.log10(start)

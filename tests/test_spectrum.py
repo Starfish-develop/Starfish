@@ -62,6 +62,8 @@ class TestSpectrum:
         assert str(mock_spectrum).startswith("special")
         for i, order in enumerate(mock_spectrum):
             assert order == mock_spectrum[i]
+        reshape_spec = mock_spectrum.reshape((2, -1))
+        reshape_spec[0], reshape_spec[1] = reshape_spec[1], reshape_spec[0]
 
     def test_set_ragged_length(self, mock_spectrum):
         reshaped_spec = mock_spectrum.reshape((2, -1))

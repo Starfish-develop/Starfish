@@ -57,13 +57,7 @@ class Emulator:
 
     Attributes
     ----------
-    bulk_fluxes : numpy.ndarray
-        A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator.
-    variances : numpy.ndarray
-        The variances of each Gaussian process
-    lengthscales : numpy.ndarray
-        The lengthscales for each parameter for each Gaussian process
-    params : OrderedDict
+    params : dict
         The underlying hyperparameter dictionary
     """
 
@@ -78,9 +72,9 @@ class Emulator:
         flux_mean: Array[float],
         flux_std: Array[float],
         lambda_xi: float = 1.0,
-        variances: Optional[Array["float"]] = None,
-        lengthscales: Optional[Array["float"]] = None,
-        name: Optional["str"] = None,
+        variances: Optional[Array[float]] = None,
+        lengthscales: Optional[Array[float]] = None,
+        name: Optional[str] = None,
     ):
         self.log = logging.getLogger(self.__class__.__name__)
         self.grid_points = grid_points
@@ -94,7 +88,7 @@ class Emulator:
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
 
-        self.hyperparams = OrderedDict()
+        self.hyperparams = {}
         self.name = name
 
         self.lambda_xi = lambda_xi
@@ -127,6 +121,11 @@ class Emulator:
 
     @property
     def lambda_xi(self) -> float:
+        """
+        float : The tuning hyperparameter
+
+        :setter: Sets the value.
+        """
         return np.exp(self.hyperparams["log_lambda_xi"])
 
     @lambda_xi.setter
@@ -135,6 +134,11 @@ class Emulator:
 
     @property
     def variances(self) -> Array[float]:
+        """
+        numpy.ndarray : The variances for each Gaussian process kernel.
+
+        :setter: Sets the variances given an array.
+        """
         values = [
             val
             for key, val in self.hyperparams.items()
@@ -149,6 +153,11 @@ class Emulator:
 
     @property
     def lengthscales(self) -> Array[float]:
+        """
+        numpy.ndarray : The lengthscales for each Gaussian process kernel.
+        
+        :setter: Sets the lengthscales given a 2d array
+        """
         values = [
             val
             for key, val in self.hyperparams.items()
@@ -247,7 +256,7 @@ class Emulator:
         self.log.info("Saved file at {}".format(filename))
 
     @classmethod
-    def from_grid(cls, grid: "Starfish.grid_tools.GridInterface", **pca_kwargs):
+    def from_grid(cls, grid, **pca_kwargs):
         """
         Create an Emulator using PCA decomposition from a GridInterface.
 
@@ -361,6 +370,9 @@ class Emulator:
 
     @property
     def bulk_fluxes(self) -> Array[float]:
+        """
+        numpy.ndarray: A vertically concatenated vector of the eigenspectra, flux_mean, and flux_std (in that order). Used for bulk processing with the emulator.
+        """
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
     def load_flux(self, params: Union[Sequence[float], Array[float]]) -> Array[float]:
@@ -397,8 +409,7 @@ class Emulator:
         --------
         Starfish.grid_tools.utils.determine_chunk_log
         """
-        if not isinstance(wavelength, np.ndarray):
-            wavelength = np.array(wavelength)
+        wavelength = np.asarray(wavelength)
 
         # determine the indices
         wl_min = wavelength.min()
@@ -553,9 +564,6 @@ class Emulator:
         logdet = 2 * np.sum(np.log(np.diag(L)))
         sqmah = self.w_hat @ cho_solve((L, flag), self.w_hat)
         return -(logdet + sqmah) / 2
-
-    def grad_log_likelihood(self) -> float:
-        raise NotImplementedError("Pull requests welcome!")
 
     def __repr__(self):
         output = "Emulator\n"

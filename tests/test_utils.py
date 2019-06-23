@@ -27,3 +27,9 @@ def test_calculate_dv_types():
     dv = calculate_dv(wave.tolist())
     assert np.isclose(dv, dv_np)
     assert dv > 0
+
+
+@pytest.mark.parametrize("start,end", [(3e4, 3e4), (4e4, 3e4), (-1, 30), (-10, -2)])
+def test_invalid_points_grid(start, end):
+    with pytest.raises(ValueError):
+        create_log_lam_grid(1000, start, end)

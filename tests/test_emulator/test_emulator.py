@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
-from scipy.linalg import block_diag
 
-from Starfish.emulator._utils import inverse_block_diag
 from Starfish.emulator import Emulator
 
 
@@ -115,3 +113,9 @@ class TestEmulator:
 
     def test_str(self, mock_emulator):
         assert str(mock_emulator).startswith("Emulator")
+
+    def test_get_index(self, mock_emulator):
+        test_index = 4
+        params = mock_emulator.grid_points[test_index]
+        index = mock_emulator.get_index(params)
+        assert index == test_index
