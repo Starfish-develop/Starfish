@@ -19,8 +19,7 @@ class IndexInterpolator:
     """
 
     def __init__(self, parameter_list):
-        if not isinstance(parameter_list, np.ndarray):
-            parameter_list = np.array(parameter_list)
+        parameter_list = np.asarray(parameter_list)
         self.npars = parameter_list.shape[-1]
         self.parameter_list = np.unique(parameter_list)
         self.index_interpolator = interp1d(
@@ -126,8 +125,7 @@ class Interpolator:
 
         .. note:: Automatically pops :attr:`cache_dump` items from cache if full.
         """
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
+        parameters = np.asarray(parameters)
 
         if len(self.cache) > self.cache_max:
             [self.cache.popitem(False) for i in range(self.cache_dump)]
@@ -155,8 +153,7 @@ class Interpolator:
         :raises ValueError: if parameters are out of bounds.
 
         """
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
+        parameters = np.asarray(parameters)
 
         # Previously, parameters was a dictionary of the stellar parameters.
         # Now that we have moved over to arrays, it is a numpy array.

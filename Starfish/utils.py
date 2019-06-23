@@ -59,6 +59,13 @@ def create_log_lam_grid(dv, start, end):
     -------
     dict
         a wavelength dictionary containing the specified properties. Note that the returned dv will be less than or equal to the specified dv.
+
+    Raises
+    ------
+    ValueError
+        If starting wavelength is not less than ending wavelength
+    ValueError
+        If any of the wavelengths are less than 0
     """
     if start >= end:
         raise ValueError("Wavelength must be increasing, but start >= end")

@@ -84,8 +84,7 @@ class GridInterface:
         bool
             True if found in grid
         """
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
+        parameters = np.asarray(parameters)
 
         if len(parameters) != len(self.param_names):
             raise ValueError(
@@ -198,8 +197,7 @@ class HDF5Interface:
         -------
         numpy.ndarray if header is False, otherwise (numpy.ndarray, dict)
         """
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
+        parameters = np.asarray(parameters)
 
         key = self.key_name.format(*parameters)
         with h5py.File(self.filename, "r") as hdf5:

@@ -132,7 +132,10 @@ def rotational_broaden(wave, flux, vsini):
 
 def doppler_shift(wave, vz):
     """
-    Doppler shift a spectrum
+    Doppler shift a spectrum according to the formula
+
+    .. math::
+        \\lambda \\cdot \\sqrt{\\frac{c + v_z}{c - v_z}}
 
     Parameters
     ----------
@@ -155,7 +158,7 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     """
     Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package. In general, it follows the form
 
-    .. math:: f \\times 10^{-0.4 A_V \\cdot A_\\lambda(R_V)}
+    .. math:: f \\cdot 10^{-0.4 A_V \\cdot A_\\lambda(R_V)}
 
     Parameters
     ----------
@@ -203,7 +206,7 @@ def rescale(flux, log_scale):
     """
     Rescale the given flux via the following equation
 
-    .. math:: f \\times 10^{\\log \\Omega}
+    .. math:: f \\cdot 10^{\\log \\Omega}
 
     Parameters
     ----------
@@ -222,10 +225,30 @@ def rescale(flux, log_scale):
 
 
 def chebyshev_correct(wave, flux, coeffs):
-    # TODO everything
+    """
+    Multiply the input flux by a Chebyshev series in order to correct for calibration-level discrepancies.
+    
+    Parameters
+    ----------
+    wave : array-lioke
+        Input wavelengths
+    flux : array-like
+        Input flux
+    coeffs : array-like
+        The coefficients for the chebyshev series.
+    
+    Returns
+    -------
+    numpy.ndarray
+        The corrected flux
+    
+    Raises
+    ------
+    ValueError
+        If only processing a single spectrum and the linear coefficient is not 1.
+    """
     # have to scale wave to fit on domain [0, 1]
-    if not isinstance(coeffs, np.ndarray):
-        coeffs = np.array(coeffs)
+    coeffs = np.asarray(coeffs)
     if coeffs.ndim == 1 and coeffs[0] != 1:
         raise ValueError(
             "For single spectrum the linear Chebyshev coefficient (c[0]) must be 1"

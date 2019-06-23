@@ -187,8 +187,7 @@ class PHOENIXGridInterfaceNoAlpha(PHOENIXGridInterface):
 
     def check_params(self, parameters):
         # Bypass the alpha irregularities in the full grid
-        if not isinstance(parameters, np.ndarray):
-            parameters = np.array(parameters)
+        parameters = np.asarray(parameters)
 
         if len(parameters) != len(self.param_names):
             raise ValueError(

@@ -211,8 +211,7 @@ def vacuum_to_air(wl):
         CA Prieto recommends this as more accurate than the IAU standard.
 
     """
-    if not isinstance(wl, np.ndarray):
-        wl = np.array(wl)
+    wl = np.asarray(wl)
 
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
@@ -228,8 +227,7 @@ def calculate_n(wl):
 
     :return: numpy.ndarray
     """
-    if not isinstance(wl, np.ndarray):
-        wl = np.array(wl)
+    wl = np.asarray(wl)
 
     sigma = (1e4 / wl) ** 2
     f = 1.0 + 0.05792105 / (238.0185 - sigma) + 0.00167917 / (57.362 - sigma)
@@ -250,8 +248,7 @@ def vacuum_to_air_SLOAN(wl):
 
 
     """
-    if not isinstance(wl, np.ndarray):
-        wl = np.array(wl)
+    wl = np.asarray(wl)
     air = wl / (1.0 + 2.735182e-4 + 131.4182 / wl ** 2 + 2.76249e8 / wl ** 4)
     return air
 
@@ -269,36 +266,10 @@ def air_to_vacuum(wl):
 
         It is generally not recommended to do this, as the function is imprecise.
     """
-    if not isinstance(wl, np.ndarray):
-        wl = np.array(wl)
+    wl = np.asarray(wl)
 
     sigma = 1e4 / wl
     vac = wl + wl * (
         6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2)
     )
     return vac
-
-
-@np.vectorize
-def idl_float(idl_num):
-    """
-    idl_float(idl_num)
-    Convert an idl *string* number in scientific notation it to a float.
-
-    :param idl_num: the idl number in sci_notation
-    :type idl_num: str
-
-    :returns: float
-
-    Example usage:
-
-    .. code-block:: python
-
-        idl_num = "1.5D4"
-        idl_float(idl_num)
-        15000.0 # Numpy float64
-
-    """
-    idl_num = idl_num.lower()
-    # replace 'D' with 'E', convert to float
-    return np.float(idl_num.replace("d", "e"))
