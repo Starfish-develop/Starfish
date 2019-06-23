@@ -7,6 +7,9 @@ There have been some significant changes to *Starfish* in the upgrades to versio
 .. warning::
     The current, updated code base does not have the framework for fitting multi-order Echelle spectra. We are working diligently to update the original functionality to match the updated API. For now, you will have to revert to Starfish ``0.2``.
 
+.. note::
+    Was there something in Starfish's utilities you used that was meaningfully removed? Open an `issue request <https://github.com/iancze/starfish/issues>`_ and we can work together to find a solution.
+
 API-ification
 =============
 
@@ -14,7 +17,11 @@ One of the new goals for *Starfish* was to provide a more Pythonistic approach t
 
 **There are no more scripts**
 
-None of the previous scripts are included in version 0.3. Instead, the functionality of the scripts is enocded into some of the examples, which should allow users a quick way to copy-and-paste their way into a working setup. 
+None of the previous scripts are included in version 0.3. Instead, the functionality of the scripts is enocded into some of the examples, which should allow users a quick way to copy-and-paste their way into a working setup.
+
+**Analysis is made easier using other libraries**
+
+The previous analysis code for the MCMC chains left us with a decision to make: keep it baked in and locked to an exact MCMC library (*emcee*) or remove it from the project and let other libraries handle it. We chose the latter. Our recommendations for analyzing Bayesian MCMC chains is `arviz <https://arviz-devs.github.io/arviz/>`_.
 
 **There is no more config.yaml**
 
