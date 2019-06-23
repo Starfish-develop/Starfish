@@ -273,3 +273,29 @@ def air_to_vacuum(wl):
         6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2)
     )
     return vac
+
+
+@np.vectorize
+def idl_float(idl_num: str) -> float:
+    """
+    Convert an IDL string number in scientific notation to a float
+    
+    Parameters
+    ----------
+    idl_num : str
+        Input str
+    
+    Returns
+    -------
+    float
+        Output float
+
+    Examples
+    --------
+    ```python
+    >>> idl_float("1.6D4")
+    1.6e4
+    ```
+    """
+    idl_str = idl_num.lower()
+    return np.float(idl_str.replace("d", "e"))
