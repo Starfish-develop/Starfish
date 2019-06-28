@@ -29,6 +29,7 @@ sphinx = "*"
 sphinx-bootstrap-theme = "*"
 pytest-benchmark = "*"
 sphinx-autodoc-typehints = "*"
+pre-commit = "*"
 
 [pipenv]
 allow_prereleases = true
