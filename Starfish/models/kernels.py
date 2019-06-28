@@ -38,7 +38,7 @@ def global_covariance_matrix(
         * (1 + np.sqrt(3) * r[mask] / lengthscale)
         * np.exp(-np.sqrt(3) * r[mask] / lengthscale)
     )
-    return kernel
+    return kernel / wave ** 4
 
 
 def local_covariance_matrix(
