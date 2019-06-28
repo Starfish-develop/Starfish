@@ -127,15 +127,21 @@ virtual environment. We use `pipenv` (pending a better PEP 517/518 compliant too
     $ git clone https://github.com/<your_fork>/Starfish.git starfish
     $ cd starfish
 
-and then create the virtual environment and install pacakges from the `Pipfile` with
+and then create the virtual environment and install all the packages and developer dependencies from the `Pipfile` with
 
-    $ pipenv install
+    $ pipenv install -d
 
 and to enter the virtual environment, simply issue
 
     $ pipenv shell
 
 whenever you're in the `starfish` folder.
+
+We also enforce the `black` [code style](https://github.com/python/black). This tools allows automatically formatting everything for you, which is much easier than caring about it yourself! We have a [pre-commit](https://pre-commit.com/) hook that will *blacken* your code before you commit so you can avoid failing the CI tests because you forgot to format. To use this, just install the hook with 
+
+    $ pipenv run pre-commit install
+
+From then on, any commits will format your code before succeeding!
 
 Take a look through the [issues](https://github.com/iancze/Starfish/issues) if you are looking for a place to start improving *Starfish*!
 
@@ -149,9 +155,7 @@ Note that we use the `black` code style and our CI testing will check that every
 
     $ black --check .
 
-or to format it automatically
-
-    $ black .
+although if you follow the instructions for using *pre-commit* you should have no issues.
 
 
 ## Contributors
