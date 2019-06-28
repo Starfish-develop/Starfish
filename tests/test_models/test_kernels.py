@@ -10,13 +10,13 @@ class TestKernels:
         amp = 100
         lengthscale = 1
         cov = global_covariance_matrix(wave, amp, lengthscale)
-        assert np.all(cov.diagonal() == amp)
+        assert np.allclose(cov.diagonal(), amp / wave**4)
         assert cov.shape == (1000, 1000)
         assert np.all(np.diag(cov, k=-1) < amp)
         assert np.all(np.diag(cov, k=1) < amp)
         assert cov.min() == 0
         assert np.all(cov >= 0)
-        assert cov.max() == amp
+        assert cov.max() == amp / wave.min()**4
         assert np.all(np.linalg.eigvals(cov) >= 0)
         assert np.allclose(cov, cov.T)
 
