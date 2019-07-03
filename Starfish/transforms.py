@@ -178,7 +178,7 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     ValueError
         If `law` does not match one of the availabe laws
     ValueError
-        If Av or Rv is not positive
+        If Rv is not positive
 
     Returns
     -------
@@ -188,8 +188,6 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
 
     if law not in ["ccm89", "odonnell94", "calzetti00", "fitzpatrick99", "fm07"]:
         raise ValueError("Invalid extinction law given")
-    if Av < 0:
-        raise ValueError("Av must be non-negative")
     if Rv <= 0:
         raise ValueError("Rv must be positive")
 

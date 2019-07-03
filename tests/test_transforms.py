@@ -167,9 +167,7 @@ class TestExtinct:
         with pytest.raises(ValueError):
             extinct(*mock_data, 1.0, 2.2, law="hello")
 
-    @pytest.mark.parametrize(
-        "Av,Rv", [(0.2, -1), (0.3, -np.finfo(np.float64).tiny), (-0.5, 1.3)]
-    )
+    @pytest.mark.parametrize("Av,Rv", [(0.2, -1), (0.3, -np.finfo(np.float64).tiny)])
     def test_bad_av_rv(self, mock_data, Av, Rv):
         with pytest.raises(ValueError):
             extinct(*mock_data, law="ccm89", Av=Av, Rv=Rv)

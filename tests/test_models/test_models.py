@@ -317,3 +317,12 @@ class TestSpectrumModel:
                 data=two_order_spectrum,
                 grid_params=[6000, 4.0, 0],
             )
+
+    def test_delete(self, mock_model):
+        mock_model.freeze("global_cov")
+        mock_model()
+        assert mock_model._glob_cov is not None
+        del mock_model["global_cov"]
+        assert "global_cov" not in mock_model.params
+        assert "global_cov" not in mock_model.frozen
+        assert mock_model._glob_cov is None

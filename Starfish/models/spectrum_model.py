@@ -182,6 +182,24 @@ class SpectrumModel:
             else:
                 raise ValueError(f"{key} not recognized")
 
+    def __delitem__(self, key):
+        if key not in self.params:
+            raise ValueError(f"{key} not in params")
+        elif key == "global_cov":
+            self._glob_cov = None
+            self.frozen = [
+                key for key in self.frozen if not key.startswith("global_cov")
+            ]
+        elif key == "local_cov":
+            self._loc_cov = None
+            self.frozen = [
+                key for key in self.frozen if not key.startswith("local_cov")
+            ]
+
+        del self.params[key]
+        if key in self.frozen:
+            self.frozen.remove(key)
+
     def __call__(self):
         """
         Performs the transformations according to the parameters available in ``self.params``
