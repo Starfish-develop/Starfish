@@ -1,24 +1,31 @@
+from dataclasses import dataclass
+from typing import Tuple
+
+# TODO convert to dataclass
+
 # Convert R to FWHM in km/s by \Delta v = c/R
+@dataclass
 class Instrument:
     """
     Object describing an instrument. This will be used by other methods for
     processing raw synthetic spectra.
 
-    :param name: name of the instrument
-    :type name: string
-    :param FWHM: the FWHM of the instrumental profile in km/s
-    :type FWHM: float
-    :param wl_range: wavelength range of instrument
-    :type wl_range: 2-tuple (low, high)
-    :param oversampling: how many samples fit across the :attr:`FWHM`
-    :type oversampling: float
+    Parameters
+    ----------
+    name: string
+        name of the instrument
+    FWHM: float
+        the FWHM of the instrumental profile in km/s
+    wl_range: Tuple (low, high)
+        wavelength range of instrument
+    oversampling: float, optional
+        how many samples fit across the :attr:`FWHM`. Default is 4.0
     """
 
-    def __init__(self, name, FWHM, wl_range, oversampling=4.0):
-        self.name = name
-        self.FWHM = FWHM  # km/s
-        self.oversampling = oversampling
-        self.wl_range = wl_range
+    name: str
+    FWHM: float
+    wl_range: Tuple[float]
+    oversampling: float = 4.0
 
     def __str__(self):
         """
