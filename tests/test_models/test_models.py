@@ -265,7 +265,7 @@ class TestSpectrumModel:
     def test_freeze_thaw_all(self, mock_model):
         params = mock_model.labels
         mock_model.freeze("all")
-        assert set(params) == set(mock_model.frozen)
+        assert set(params + ("global_cov", "local_cov")) == set(mock_model.frozen)
         mock_model.thaw("all")
         assert set(params) == set(mock_model.labels)
 

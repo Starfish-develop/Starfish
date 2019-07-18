@@ -388,6 +388,10 @@ class SpectrumModel:
             for key in self.labels:
                 if key not in self.frozen:
                     self.frozen.append(key)
+            if "global_cov" in self.params:
+                self.frozen.append("global_cov")
+            if "local_cov" in self.params:
+                self.frozen.append("local_cov")
         else:
             for _name in names:
                 # Avoid kookyness of numpy.str type
