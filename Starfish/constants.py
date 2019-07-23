@@ -27,3 +27,6 @@ R_sun = 6.955e10  # cm
 F_sun = L_sun / (
     4 * pi * R_sun ** 2
 )  # bolometric flux of the Sun measured at the surface
+
+# hc / k_B
+hc_k = 1.43877735e8  # K AA

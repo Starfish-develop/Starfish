@@ -2,7 +2,6 @@ import logging
 
 import numpy as np
 from nptyping import Array
-from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 import scipy.stats as st
 
@@ -14,14 +13,16 @@ def find_residual_peaks(
     model, num_residuals=100, threshold=4.0, buffer=2, wl_range=(0, np.inf)
 ):
     """
-    Find the peaks of the most recent residual and return their properties to aid in setting up local kernels
+    Find the peaks of the most recent residual and return their properties to aid in 
+    setting up local kernels
 
     Parameters
     ----------
     model : Model 
         The model to determine peaks from. Need only have a residuals array.
     num_residuals : int, optional
-        The number of residuals to average together for determining peaks. By default 100.
+        The number of residuals to average together for determining peaks. By default 
+        100.
     threshold : float, optional
         The sigma clipping threshold, by default 4.0
     buffer : float, optional
@@ -39,7 +40,9 @@ def find_residual_peaks(
     if "global_cov" in model.params:
         ag = np.exp(model.params["global_cov:log_amp"])
         lg = np.exp(model.params["global_cov:log_ls"])
-        sigma += global_covariance_matrix(model.data.wave, ag, lg).diagonal()
+        sigma += global_covariance_matrix(
+            model.data.wave, model["T"], ag, lg
+        ).diagonal()
     mask = np.abs(residual - residual.mean()) > threshold * sigma
     mask &= (model.data.wave > wl_range[0]) & (model.data.wave < wl_range[1])
     peak_waves = model.data.wave[1:-1][mask[1:-1]]
@@ -61,7 +64,8 @@ def find_residual_peaks(
 
 def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=100):
     """
-    Optimize the local covariance parameters based on fitting the residual input means as Gaussians around the residuals
+    Optimize the local covariance parameters based on fitting the residual input means 
+    as Gaussians around the residuals
 
     Parameters
     ----------
@@ -70,11 +74,14 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
     mus : array-like
         The means to instantiate Gaussians at and optimize.
     threshold : float, optional
-        This is the threshold for restricting kernels; i.e. if a fit amplitude is less than threshold standard deviations then it will be thrown away. Default is 0.1
+        This is the threshold for restricting kernels; i.e. if a fit amplitude is less 
+        than threshold standard deviations then it will be thrown away. Default is 0.1
     sigma0 : float, optional
-        The initial standard deviation (in Angstrom) of each Gaussian. Default is 50 Angstrom.
+        The initial standard deviation (in Angstrom) of each Gaussian. Default is 50 
+        Angstrom.
     num_residuals : int, optional
-        The number of residuals to average together for determining peaks. By default 100.
+        The number of residuals to average together for determining peaks. By default 
+        100.
 
     Returns
     -------
@@ -86,7 +93,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
     if "global_cov" in model.params:
         ag = np.exp(model.params["global_cov:log_amp"])
         lg = np.exp(model.params["global_cov:log_ls"])
-        global_cov = global_covariance_matrix(model.data.wave, ag, lg)
+        global_cov = global_covariance_matrix(model.data.wave, model["T"], ag, lg)
     else:
         global_cov = None
 
@@ -96,10 +103,11 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
         _sigma = np.exp(log_sigma)
         # Logistic prior for the widths out to 2sigma
         prior = st.uniform.logpdf(_sigma, 0, 2 * sigma0)
-        # Put prior on widths and heights such that the integrated area should be less than the
-        # trapezoidal area of the residual
+        # Put prior on widths and heights such that the integrated area should be less
+        # than the trapezoidal area of the residual
         area_max = 2 * _sigma * np.abs(resid).max()
-        # Area under a gaussian https://en.wikipedia.org/wiki/Gaussian_function#Integral_of_a_Gaussian_function
+        # Area under a gaussian
+        # https://en.wikipedia.org/wiki/Gaussian_function#Integral_of_a_Gaussian_function
         area = np.sqrt(2 * np.pi * _sigma) * _amp
         prior += st.uniform.logpdf(area, 0, area_max)
         prior += st.uniform.logpdf(_amp, 0, np.abs(resid).max())

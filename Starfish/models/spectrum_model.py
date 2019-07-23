@@ -1,12 +1,11 @@
-from collections import deque, OrderedDict
-import copy
-import multiprocessing as mp
-from typing import List, Union, Sequence, Callable, Optional
+from collections import deque
+from typing import Union, Sequence, Optional
 import logging
 
 from flatdict import FlatterDict
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
+from scipy.optimize import minimize
 import toml
 
 from Starfish import Spectrum
@@ -25,7 +24,7 @@ from .kernels import global_covariance_matrix, local_covariance_matrix
 class SpectrumModel:
     """
     A single-order spectrum model.
-    
+
     Parameters
     ----------
     emulator : :class:`Starfish.emulators.Emulator`
@@ -35,7 +34,8 @@ class SpectrumModel:
     grid_params : array-like
         The parameters that are used with the associated emulator
     max_deque_len : int, optional
-        The maximum number of residuals to retain in a deque of residuals. Default is 100
+        The maximum number of residuals to retain in a deque of residuals. Default is 
+        100
     name : str, optional
         A name for the model. Default is 'SpectrumModel'
 
@@ -57,7 +57,9 @@ class SpectrumModel:
     log_scale    :func:`~Starfish.transforms.rescale`
     =========== =======================================
 
-    The ``global_cov`` keyword arguments must be a dictionary definining the hyperparameters for the global covariance kernel, :meth:`kernels.global_covariance_matrix`
+    The ``global_cov`` keyword arguments must be a dictionary definining the 
+    hyperparameters for the global covariance kernel, 
+    :meth:`kernels.global_covariance_matrix`
     
     ================ =============
     Global Parameter  Description
@@ -66,7 +68,8 @@ class SpectrumModel:
     log_ls           The natural logarithm of the lengthscale of the Matern kernel
     ================ =============
     
-    The ``local_cov`` keryword argument must be a list of dictionaries defining hyperparameters for many Gaussian kernels, , :meth:`kernels.local_covariance_matrix`
+    The ``local_cov`` keryword argument must be a list of dictionaries defining 
+    hyperparameters for many Gaussian kernels, , :meth:`kernels.local_covariance_matrix`
     
     ================ =============
     Local Parameter  Description
@@ -202,7 +205,8 @@ class SpectrumModel:
 
     def __call__(self):
         """
-        Performs the transformations according to the parameters available in ``self.params``
+        Performs the transformations according to the parameters available in 
+        ``self.params``
 
         Returns
         -------
@@ -247,7 +251,8 @@ class SpectrumModel:
             if "global_cov" not in self.frozen or self._glob_cov is None:
                 ag = np.exp(self.params["global_cov:log_amp"])
                 lg = np.exp(self.params["global_cov:log_ls"])
-                self._glob_cov = global_covariance_matrix(self.data.wave, ag, lg)
+                T = self.params["T"]
+                self._glob_cov = global_covariance_matrix(self.data.wave, T, ag, lg)
 
         if self._glob_cov is not None:
             cov += self._glob_cov
@@ -293,7 +298,9 @@ class SpectrumModel:
         Parameters
         ----------
         flat : bool, optional
-            If True, returns the parameters completely flat. For example, ``['local']['0']['mu']`` would have the key ``'local:0:mu'``. Default is False
+            If True, returns the parameters completely flat. For example, 
+            ``['local']['0']['mu']`` would have the key ``'local:0:mu'``. 
+            Default is False
 
         Returns
         -------
@@ -312,12 +319,14 @@ class SpectrumModel:
 
     def set_param_dict(self, params):
         """
-        Sets the parameters with a dictionary. Note that this should not be used to add new parameters
+        Sets the parameters with a dictionary. Note that this should not be used to add 
+        new parameters
 
         Parameters
         ----------
         params : dict
-            The new parameters. If a key is present in ``self.frozen`` it will not be changed
+            The new parameters. If a key is present in ``self.frozen`` it will not be 
+            changed
 
         See Also
         --------
@@ -344,7 +353,8 @@ class SpectrumModel:
 
     def set_param_vector(self, params):
         """
-        Sets the parameters based on the current thawed state. The values will be inserted according to the order of :obj:`SpectrumModel.labels`.
+        Sets the parameters based on the current thawed state. The values will be 
+        inserted according to the order of :obj:`SpectrumModel.labels`.
 
         Parameters
         ----------
@@ -367,12 +377,16 @@ class SpectrumModel:
 
     def freeze(self, names):
         """
-        Freeze the given parameter such that :meth:`get_param_dict` and :meth:`get_param_vector` no longer include this parameter, however it will still be used when calling the model.
+        Freeze the given parameter such that :meth:`get_param_dict` and 
+        :meth:`get_param_vector` no longer include this parameter, however it will 
+        still be used when calling the model.
 
         Parameters
         ----------
         name : str or array-like
-            The parameter to freeze. If ``'all'``, will freeze all parameters. If ``'global_cov'`` will freeze all global covariance parameters. If ``'local_cov'`` will freeze all local covariance parameters.
+            The parameter to freeze. If ``'all'``, will freeze all parameters. If 
+            ``'global_cov'`` will freeze all global covariance parameters. If 
+            ``'local_cov'`` will freeze all local covariance parameters.
 
         Raises
         ------
@@ -421,7 +435,9 @@ class SpectrumModel:
         Parameters
         ----------
         name : str or array-like
-            The parameter to thaw. If ``'all'``, will thaw all parameters. If ``'global_cov'`` will thaw all global covariance parameters. If ``'local_cov'`` will thaw all local covariance parameters.
+            The parameter to thaw. If ``'all'``, will thaw all parameters. If 
+            ``'global_cov'`` will thaw all global covariance parameters. If 
+            ``'local_cov'`` will thaw all local covariance parameters.
         
         Raises
         ------
@@ -462,7 +478,9 @@ class SpectrumModel:
         filename : str or path-like
             The TOML filename to save to.
         metadata : dict, optional
-            If provided, will save the provided dictionary under a 'metadata' key. This will not be read in when loading models but provides a way of providing information in the actual TOML files. Default is None.
+            If provided, will save the provided dictionary under a 'metadata' key. This 
+            will not be read in when loading models but provides a way of providing 
+            information in the actual TOML files. Default is None.
         """
         output = {"parameters": self.params.as_dict(), "frozen": self.frozen}
         meta = {}
@@ -493,6 +511,58 @@ class SpectrumModel:
             data = toml.load(handler)
         self.params = FlatterDict(data["parameters"])
         self.frozen = data["frozen"]
+
+    def train(self, model, priors: Optional[dict] = None, **kwargs):
+        """
+        Given a :class:`SpectrumModel` and a dictionary of priors, will perform 
+        maximum-likelihood estimation (MLE). This will use `scipy.optimize.minimize` to 
+        find the maximum a-posteriori (MAP) estimate of the current model state. Note 
+        that this alters the state of the model. This means that you can run this 
+        method multiple times until the optimization succeeds. By default, we use the 
+        "Nelder-Mead" method in `minimize` to avoid approximating any derivatives.
+        
+        Parameters
+        ----------
+        priors : dict, optional
+            If provided, will use these priors in the MLE. Should contain keys that 
+            match the model's keys and values that have a `logpdf` method that takes 
+            one value (like `scipy.stats` distributions). Default is None.
+        **kwargs : dict, optional
+            These keyword arguments will be passed to `scipy.optimize.minimize`
+
+        Returns
+        -------
+        soln : `scipy.optimize.minimize_result`
+            The output of the minimization. 
+        """
+        # Check priors for validity
+        for key, val in priors.items():
+            if key not in self.params:
+                raise ValueError(f"Invalid priors. {key} not a vlid key.")
+            if not callable(getattr(val, "logpdf", None)):
+                raise ValueError(
+                    f"Invalid priors. {key} does not have a `logpdf` method"
+                )
+
+        def nll(P):
+            self.set_param_vector(P)
+            # This sucks, but using a list comp means I don't have to initialize 'll'
+            ll = np.sum(
+                [
+                    priors[key].logpdf(val)
+                    for key, val in zip(self.labels, P)
+                    if key in priors
+                ]
+            )
+            if not np.isfinite(ll):
+                return -np.inf
+            ll += self.log_likelihood()
+            return -ll
+
+        p0 = self.get_param_vector()
+        params = {"method": "Nelder-Mead"}
+        params.update(kwargs)
+        return minimize(nll, p0, **params)
 
     def __repr__(self):
         output = f"{self.name}\n"
