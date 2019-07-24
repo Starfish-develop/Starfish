@@ -20,7 +20,7 @@ A log lambda spectrum is defined by the WCS keywords **CDELT1**, **CRVAL1**, and
 
 .. math::
 
-  \lambda = 10^{{\rm CRVAL1} + {\rm CDELT1} \times i}
+  \lambda = 10^{{\rm CRVAL1} + {\rm CDELT1} \cdot i}
 
 where :math:`i` is the pixel index, with :math:`i = 0` referring to the first pixel and :math:`i = ({\rm NAXIS1} - 1)` referring to the last pixel.
 
@@ -79,7 +79,9 @@ API/Reference
 -------------
 
 .. autoclass:: Order
-   :members:
+  :members:
+  :undoc-members: __len__
+  :special-members: __len__
 
 Spectrum
 =============
@@ -130,3 +132,6 @@ API/Reference
 
 .. autoclass:: Spectrum
   :members:
+  :undoc-members: __len__, __getitem__, __setitem__
+  :special-members: __len__, __getitem__, __setitem__
+

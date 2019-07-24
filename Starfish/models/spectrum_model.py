@@ -273,14 +273,37 @@ class SpectrumModel:
 
         return flux, cov
 
-    def log_likelihood(self) -> float:
+    def log_likelihood(self, priors: Optional[dict] = None) -> float:
         """
         Returns the log probability of a multivariate normal distribution
+
+        Parameters
+        ----------
+        priors : dict, optional
+            If provided, will use these priors in the MLE. Should contain keys that 
+            match the model's keys and values that have a `logpdf` method that takes 
+            one value (like ``scipy.stats`` distributions). Default is None.
+
+        Warning
+        -------
+        No checks will be done on the :attr:`priors` for speed.
 
         Returns
         -------
         float
         """
+        # Priors
+        prior_lp = 0
+
+        if priors is not None:
+            for key, prior in priors.items():
+                if key in self.params:
+                    prior_lp += prior.logpdf(self[key])
+
+        if not np.isfinite(prior_lp):
+            return -np.inf
+
+        # Likelihood
         flux, cov = self()
         np.fill_diagonal(cov, cov.diagonal() + 1e-10)
         factor, flag = cho_factor(cov, overwrite_a=True)
@@ -289,7 +312,8 @@ class SpectrumModel:
         self.residuals.append(R)
         sqmah = R @ cho_solve((factor, flag), R)
         self._lnprob = -(logdet + sqmah) / 2
-        return self._lnprob
+
+        return self._lnprob + prior_lp
 
     def get_param_dict(self, flat: bool = False) -> dict:
         """
@@ -425,7 +449,7 @@ class SpectrumModel:
                             flat_key = f"local_cov:{i}:{key}"
                             if flat_key not in self.frozen:
                                 self.frozen.append(flat_key)
-                elif name not in self.frozen:
+                elif name not in self.frozen and name in self.params:
                     self.frozen.append(name)
 
     def thaw(self, names):
@@ -512,10 +536,10 @@ class SpectrumModel:
         self.params = FlatterDict(data["parameters"])
         self.frozen = data["frozen"]
 
-    def train(self, model, priors: Optional[dict] = None, **kwargs):
+    def train(self, priors: Optional[dict] = None, **kwargs):
         """
         Given a :class:`SpectrumModel` and a dictionary of priors, will perform 
-        maximum-likelihood estimation (MLE). This will use `scipy.optimize.minimize` to 
+        maximum-likelihood estimation (MLE). This will use ``scipy.optimize.minimize`` to 
         find the maximum a-posteriori (MAP) estimate of the current model state. Note 
         that this alters the state of the model. This means that you can run this 
         method multiple times until the optimization succeeds. By default, we use the 
@@ -524,9 +548,7 @@ class SpectrumModel:
         Parameters
         ----------
         priors : dict, optional
-            If provided, will use these priors in the MLE. Should contain keys that 
-            match the model's keys and values that have a `logpdf` method that takes 
-            one value (like `scipy.stats` distributions). Default is None.
+            Priors to pass to :meth:`log_likelihood`
         **kwargs : dict, optional
             These keyword arguments will be passed to `scipy.optimize.minimize`
 
@@ -534,43 +556,144 @@ class SpectrumModel:
         -------
         soln : `scipy.optimize.minimize_result`
             The output of the minimization. 
+
+        Raises
+        ------
+        ValueError
+            If the priors are poorly specified
+        RuntimeError
+            If any priors evaluate to non-finite values
+
+        See Also
+        --------
+        :meth:`log_likelihood`
         """
+        if priors is None:
+            priors = {}
+
         # Check priors for validity
         for key, val in priors.items():
+            # Key exists
             if key not in self.params:
                 raise ValueError(f"Invalid priors. {key} not a vlid key.")
+            # has logpdf method
             if not callable(getattr(val, "logpdf", None)):
                 raise ValueError(
                     f"Invalid priors. {key} does not have a `logpdf` method"
                 )
+            # Evaluates to a finite number in current state
+            log_prob = val.logpdf(self[key])
+            if not np.isfinite(log_prob):
+                raise RuntimeError(f"{key}'s logpdf evaluated to {log_prob}")
 
         def nll(P):
             self.set_param_vector(P)
-            # This sucks, but using a list comp means I don't have to initialize 'll'
-            ll = np.sum(
-                [
-                    priors[key].logpdf(val)
-                    for key, val in zip(self.labels, P)
-                    if key in priors
-                ]
-            )
-            if not np.isfinite(ll):
-                return -np.inf
-            ll += self.log_likelihood()
-            return -ll
+            return -self.log_likelihood(priors)
 
         p0 = self.get_param_vector()
         params = {"method": "Nelder-Mead"}
         params.update(kwargs)
-        return minimize(nll, p0, **params)
+        soln = minimize(nll, p0, **params)
+        if soln.success:
+            self.set_param_vector(soln.x)
+
+        return soln
+
+    def plot(self, axes=None, plot_kwargs=None, resid_kwargs=None):
+        """
+        Plot the model.
+
+        This will create two subplots, one which shows the current model against the 
+        data, and another which shows the current residuals with 3:math:`\\sigma` 
+        contours from the diagonal of the covariance matrix. Note this requires 
+        matplotlib to be installed, which is not installed by default with Starfish.
+        
+        Parameters
+        ----------
+        axes : iterable of matplotlib.Axes, optional
+            If provided, will use the first two axes to plot, otherwise will create new 
+            axes, by default None
+        plot_kwargs : dict, optional
+            If provided, will use these kwargs for the comparison plot, by default None
+        resid_kwargs : dict, optional
+            If provided, will use these kwargs for the residuals plot, by default None
+        
+        Returns
+        -------
+        list of matplotlib.Axes
+            The returned axes, for the user to edit as they please
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib import rcParams
+
+        if axes is None:
+            # Set up a 4x4 grid with the main plot taking the whole left column
+            figsize = rcParams["figure.figsize"]
+            plt.figure(figsize=(figsize[0] * 1.75, figsize[1] * 1.1))
+            grid = plt.GridSpec(2, 2, width_ratios=(1.25, 1))
+            axes = [
+                plt.subplot(grid[:, 0]),
+                plt.subplot(grid[0, 1]),
+                plt.subplot(grid[1, 1]),
+            ]
+            axes[1].tick_params(labelbottom=False)
+        if plot_kwargs is None:
+            plot_kwargs = {}
+        if resid_kwargs is None:
+            resid_kwargs = {}
+
+        model_flux, model_cov = self()
+
+        # Comparison plot
+        plot_params = {"lw": 0.7}
+        plot_params.update(plot_kwargs)
+        ax = axes[0]
+        ax.plot(self.data.wave, self.data.flux, label="Data", **plot_params)
+        ax.plot(self.data.wave, model_flux, label="Model", **plot_params)
+        ax.set_yscale("log")
+        ax.set_xlabel(r"$\lambda$ [$\AA$]")
+        ax.set_ylabel(r"$f_\lambda$ [$erg/cm^2/s/cm$]")
+        ax.legend()
+
+        # Residuals plot
+        R = self.data.flux - model_flux
+        std = np.sqrt(model_cov.diagonal())
+        resid_params = {"lw": 0.3}
+        resid_params.update(resid_kwargs)
+        ax = axes[1]
+        ax.plot(self.data.wave, R, c="k", label="Data - Model", **resid_params)
+        ax.fill_between(
+            self.data.wave, -std, std, color="C2", alpha=0.6, label=r"$\sigma$"
+        )
+        ax.fill_between(
+            self.data.wave, -2 * std, 2 * std, color="C2", alpha=0.4, label=r"$2\sigma$"
+        )
+        ax.fill_between(
+            self.data.wave, -3 * std, 3 * std, color="C2", alpha=0.2, label=r"$3\sigma$"
+        )
+        ax.set_ylabel(r"$\Delta f_\lambda$")
+        ax.yaxis.tick_right()
+        ax.yaxis.set_label_position("right")
+        ax.legend()
+
+        # Relative Error plot
+        R_f = R / self.data.flux
+        ax = axes[2]
+        ax.plot(self.data.wave, R_f, label="Data - Model", c="k", **resid_params)
+        ax.set_xlabel(r"$\lambda$ [$\AA$]")
+        ax.set_ylabel(r"$\Delta f_\lambda / f_\lambda$")
+        ax.yaxis.tick_right()
+        ax.yaxis.set_label_position("right")
+
+        plt.suptitle(self.data_name)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        return axes
 
     def __repr__(self):
         output = f"{self.name}\n"
         output += "-" * len(self.name) + "\n"
         output += f"Data: {self.data_name}\n"
         output += f"Emulator: {self.emulator.name}\n"
-        if self._lnprob is None:
-            self.log_likelihood()  # sets the value
         output += f"Log Likelihood: {self._lnprob}\n"
         output += "\nParameters\n"
         for key, value in self.get_param_dict().items():

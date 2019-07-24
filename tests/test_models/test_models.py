@@ -1,11 +1,11 @@
 import os
-from collections import deque
 from datetime import datetime
 import textwrap
 
 from flatdict import FlatterDict
 import pytest
 import numpy as np
+import scipy.stats as st
 
 from Starfish.models import SpectrumModel
 
@@ -217,7 +217,7 @@ class TestSpectrumModel:
             Parameters
               Av: 0
               T: 6000
-              Z: 0.0
+              Z: 0
               global_cov:
                 log_amp: 1
                 log_ls: 1
@@ -230,34 +230,6 @@ class TestSpectrumModel:
 
             Frozen Parameters
               logg: 4.0
-            """
-        ).strip()
-        assert str(mock_model) == expected
-
-        mock_model.freeze("global_cov")
-        expected = textwrap.dedent(
-            f"""
-            SpectrumModel
-            -------------
-            Data: {mock_model.data_name}
-            Emulator: {mock_model.emulator.name}
-            Log Likelihood: {mock_model.log_likelihood()}
-
-            Parameters
-              Av: 0
-              T: 6000
-              Z: 0.0
-              local_cov:
-                0: log_amp: 2, log_sigma: 2, mu: 10000.0
-                1: log_amp: 1.5, log_sigma: 2, mu: 13000.0
-              log_scale: -10
-              vsini: 30
-              vz: 0
-
-            Frozen Parameters
-              logg: 4.0
-              global_cov:log_amp: 1
-              global_cov:log_ls: 1
             """
         ).strip()
         assert str(mock_model) == expected
@@ -326,3 +298,45 @@ class TestSpectrumModel:
         assert "global_cov" not in mock_model.params
         assert "global_cov" not in mock_model.frozen
         assert mock_model._glob_cov is None
+
+    @pytest.mark.skip
+    def test_train_no_priors(self, mock_model):
+        soln = mock_model.train(options={"maxiter": 1})
+        assert not soln.success
+
+    @pytest.mark.skip
+    def test_train_priors(self, mock_model):
+        priors = {"T": st.uniform(5900, 6700)}
+        soln = mock_model.train(priors, options={"maxiter": 1})
+        assert not soln.success
+
+    @pytest.mark.skip
+    def test_train_custom_prior(self, mock_model):
+        class Prior:
+            @staticmethod
+            def logpdf(x):
+                return 1 / x ** 2
+
+        priors = {"T": Prior}
+        soln = mock_model.train(priors, options={"maxiter": 1})
+        assert not soln.success
+
+    def test_bad_prior_key(self, mock_model):
+        priors = {"penguin": st.uniform(5900, 6700)}
+        with pytest.raises(ValueError):
+            mock_model.train(priors, options={"maxiter": 1})
+
+    def test_bad_prior_value(self, mock_model):
+        priors = {"penguin": lambda x: 1 / x}
+        with pytest.raises(ValueError):
+            mock_model.train(priors, options={"maxiter": 1})
+
+    def test_freeze_bad_param(self, mock_model):
+        fr = mock_model.frozen
+        mock_model.freeze("pinguino")
+        assert all([old == new for old, new in zip(fr, mock_model.frozen)])
+
+    def test_thaw_bad_param(self, mock_model):
+        fr = mock_model.frozen
+        mock_model.thaw("pinguino")
+        assert all([old == new for old, new in zip(fr, mock_model.frozen)])

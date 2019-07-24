@@ -114,13 +114,13 @@ class Spectrum:
             self.orders.append(Order(waves[i], fluxes[i], sigmas[i], masks[i]))
         self.name = name
 
-    def __getitem__(self, key: int):
-        return self.orders[key]
+    def __getitem__(self, index: int):
+        return self.orders[index]
 
-    def __setitem__(self, key: int, value: Order):
-        if len(value) != len(self.orders[0]):
+    def __setitem__(self, index: int, order: Order):
+        if len(order) != len(self.orders[0]):
             raise ValueError("Invalid order length; no ragged spectra allowed")
-        self.orders[key] = value
+        self.orders[index] = order
 
     def __len__(self):
         return len(self.orders)
@@ -265,6 +265,53 @@ class Spectrum:
             base.create_dataset("masks", data=self.masks, compression=9)
             if self.name is not None:
                 base.attrs["name"] = self.name
+
+    def plot(self, ax=None, **kwargs):
+        """
+        Plot all the orders of the spectrum
+        
+        Parameters
+        ----------
+        ax : matplotlib.Axes, optional
+            If provided, will plot on this axis. Otherwise, will create a new axis, by 
+            default None
+        
+        Returns
+        -------
+        matplotlib.Axes
+            The axis that was plotted on
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+
+        plot_params = {"lw": 0.5}
+        plot_params.update(kwargs)
+        # Plot orders
+        for i, order in enumerate(self.orders):
+            ax.plot(order._wave, order._flux, label=f"Order: {i}", **plot_params)
+
+        # Now plot masks
+        ylims = ax.get_ylim()
+        for order in self.orders:
+            ax.fill_between(
+                order._wave,
+                *ylims,
+                color="k",
+                alpha=0.1,
+                where=~order.mask,
+                label="Mask",
+            )
+
+        ax.set_yscale("log")
+        ax.set_ylabel(r"$f_\lambda$ [$erg/cm^2/s/cm$]")
+        ax.set_xlabel(r"$\lambda$ [$\AA$]")
+        ax.legend()
+        if self.name is not None:
+            ax.set_title(self.name)
+        fig.tight_layout()
+        return ax
 
     def __repr__(self):
         return f"{self.name} ({self.waves.shape[0]} orders)"

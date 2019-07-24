@@ -3,7 +3,6 @@ from itertools import product
 
 import numpy as np
 import pytest
-import scipy.stats as st
 
 from Starfish.emulator import Emulator
 from Starfish.grid_tools import (
@@ -30,8 +29,9 @@ def grid_points():
 
 @pytest.fixture(scope="session")
 def PHOENIXModels(grid_points):
+    ranges = [[6000, 6200], [4.0, 5.0], [-1.0, 0.0]]
     outdir = os.path.join(test_base, "data", "phoenix")
-    download_PHOENIX_models(outdir, grid_points)
+    download_PHOENIX_models(outdir, ranges=ranges)
     yield outdir
 
 
@@ -39,7 +39,7 @@ def PHOENIXModels(grid_points):
 def AlphaPHOENIXModels():
     params = [(6100, 4.5, 0.0, -0.2)]
     outdir = os.path.join(test_base, "data", "phoenix")
-    download_PHOENIX_models(outdir, params)
+    download_PHOENIX_models(outdir, parameters=params)
     yield outdir
 
 
@@ -119,7 +119,7 @@ def mock_model(mock_spectrum, mock_trained_emulator):
     ]
     yield SpectrumModel(
         mock_trained_emulator,
-        grid_params=[6000, 4.0, 0.0],
+        grid_params=[6000, 4.0, 0],
         data=mock_spectrum,
         vz=0,
         Av=0,
