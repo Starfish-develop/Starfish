@@ -193,9 +193,9 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
 
     law_fn = eval("extinction.{}".format(law))
     if law == "fm07":
-        A_l = law_fn(wave, Av)
+        A_l = law_fn(wave.astype(np.double), Av)
     else:
-        A_l = law_fn(wave, Av, Rv)
+        A_l = law_fn(wave.astype(np.double), Av, Rv)
     flux_final = flux * 10 ** (-0.4 * A_l)
     return flux_final
 
