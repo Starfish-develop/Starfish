@@ -1,8 +1,6 @@
 import logging
-import math
 import os
 import warnings
-from collections import OrderedDict
 from typing import Sequence, Optional, Union, Tuple
 
 import h5py
@@ -10,7 +8,6 @@ import numpy as np
 from nptyping import Array
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
-from scipy.special import loggamma
 from sklearn.decomposition import PCA
 
 from Starfish.grid_tools.utils import determine_chunk_log

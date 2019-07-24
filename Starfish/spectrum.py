@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from dataclasses import dataclass
 from nptyping import Array
-from typing import Optional, Union
+from typing import Optional
 
 
 @dataclass

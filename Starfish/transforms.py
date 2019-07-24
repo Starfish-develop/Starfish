@@ -1,4 +1,4 @@
-import extinction
+import extinction  # This may be marked as unused, but is necessary
 import numpy as np
 from numpy.polynomial.chebyshev import chebval
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -44,7 +44,8 @@ def resample(wave, flux, new_wave):
 
 def instrumental_broaden(wave, flux, fwhm):
     """
-    Broadens given flux by convolving with a Gaussian kernel appropriate for a spectrograph's instrumental properties. Follows the given equation
+    Broadens given flux by convolving with a Gaussian kernel appropriate for a 
+    spectrograph's instrumental properties. Follows the given equation
 
     .. math::
         f = f * \\mathcal{F}^{\\text{inst}}_v
@@ -52,7 +53,8 @@ def instrumental_broaden(wave, flux, fwhm):
     .. math::
         \\mathcal{F}^{\\text{inst}}_v = \\frac{1}{\\sqrt{2\\pi \\sigma^2}} \\exp \\left[-\\frac12 \\left( \\frac{v}{\\sigma} \\right)^2 \\right]
 
-    This is carried out by multiplication in the Fourier domain rather than using a convolution function.
+    This is carried out by multiplication in the Fourier domain rather than using a 
+    convolution function.
 
     Parameters
     ----------
@@ -61,7 +63,8 @@ def instrumental_broaden(wave, flux, fwhm):
     flux : array_like
         The current flux
     fwhm : float
-        The full width half-maximum of the instrument in km/s. Note that this is equivalent to :math:`2.355\\cdot \\sigma`
+        The full width half-maximum of the instrument in km/s. Note that this is 
+        quivalent to :math:`2.355\\cdot \\sigma`
 
     Raises
     ------
@@ -111,7 +114,8 @@ def rotational_broaden(wave, flux, vsini):
         The broadened flux with the same shape as the input flux
 
 
-    .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*. Cambridge: Cambridge University Press. doi:10.1017/CB09781316036570
+    .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*. 
+    Cambridge: Cambridge University Press. doi:10.1017/CB09781316036570
     """
 
     if vsini <= 0:
@@ -156,7 +160,8 @@ def doppler_shift(wave, vz):
 
 def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     """
-    Extinct a spectrum following one of many empirical extinction laws. This makes use of the `extinction` package. In general, it follows the form
+    Extinct a spectrum following one of many empirical extinction laws. This makes use 
+    of the `extinction` package. In general, it follows the form
 
     .. math:: f \\cdot 10^{-0.4 A_V \\cdot A_\\lambda(R_V)}
 
@@ -171,7 +176,8 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     Rv : float, optional
         The relative attenuation (the default is 3.1, which is the Milky Way average)
     law : str, optional
-        The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00', 'fitzpatrick99', 'fm07'}` (the default is 'ccm89')
+        The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00', 
+        'fitzpatrick99', 'fm07'}` (the default is 'ccm89')
 
     Raises
     ------
@@ -224,7 +230,8 @@ def rescale(flux, log_scale):
 
 def chebyshev_correct(wave, flux, coeffs):
     """
-    Multiply the input flux by a Chebyshev series in order to correct for calibration-level discrepancies.
+    Multiply the input flux by a Chebyshev series in order to correct for 
+    calibration-level discrepancies.
     
     Parameters
     ----------
