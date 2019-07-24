@@ -11,18 +11,29 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
-def download_PHOENIX_models(path, parameters=None):
+def download_PHOENIX_models(path, ranges=None, parameters=None):
     """
-    Download the PHOENIX grid models from the Goettingen servers. This will skip over any ill-defined files or any
-    files that already exist on disk in the given folder.
+    Download the PHOENIX grid models from the Goettingen servers. This will skip over 
+    any ill-defined files or any files that already exist on disk in the given folder.
 
     Parameters
     ----------
     path : str or path-like
         The base directory to save the files in.
+    ranges : iterable of (min, max), optional
+        Each entry in ranges should be (min, max) for the associated parameter, in the 
+        order [Teff, logg, Z, (Alpha)]. Cannot be used with :attr:`parameters`. Default 
+        is None
     parameters : iterable of iterables of length 3 or length 4, optional
-        The parameters to download. Should be a list of parameters where parameters can either be
-        [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be floats or integers and not string. If no value provided, will download all models. Default is None
+        The parameters to download. Should be a list of parameters where parameters can 
+        either be [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be 
+        floats or integers and not string. If no value provided, will download all 
+        models. Default is None
+
+    Raises
+    ------
+    ValueError
+        If both ``parameters`` and ``ranges`` are specified
 
     Warning
     -------
@@ -30,25 +41,39 @@ def download_PHOENIX_models(path, parameters=None):
 
     Warning
     -------
-    Please use this responsibly to avoid over-saturating the connection to the Gottingen servers.
+    Please use this responsibly to avoid over-saturating the connection to the 
+    Gottingen servers.
 
     Examples
     --------
 
     .. code-block:: python
 
+        from Starfish.grid_tools import download_PHOENIX_models
+
+        ranges = [
+            [5000, 5200] # T
+            [4.0, 5.0] # logg
+            [0, 0] # Z
+        ]
+        download_PHOENIX_models(path='models', ranges=ranges)
+
+    or equivalently using ``parameters`` syntax
+
+    .. code-block:: python
+
         from itertools import product
         from Starfish.grid_tools import download_PHOENIX_models
 
-        T = [5000, 5100, 5200]
+        T = [6000, 6100, 6200]
         logg = [4.0, 4.5, 5.0]
         Z = [0]
-        Alpha = [0, -0.2]
-        params = product(T, logg, Z, Alpha)
+        params = product(T, logg, Z)
         download_PHOENIX_models(path='models', parameters=params)
 
     """
-    from .interfaces import PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha
+    if parameters is not None and ranges is not None:
+        raise ValueError("Cannot specify both 'parameters' and 'ranges'")
 
     wave_url = "http://phoenix.astro.physik.uni-goettingen.de/data/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits"
     wave_file = os.path.join(path, "WAVE_PHOENIX-ACES-AGSS-COND-2011.fits")
@@ -62,17 +87,41 @@ def download_PHOENIX_models(path, parameters=None):
     # Download step
     log.info("Starting Download of PHOENIX ACES models to {}".format(path))
     if not os.path.exists(wave_file):
+        log.info("Downloading wavelength file")
         urlretrieve(wave_url, wave_file)
 
+    # Have to wait until wavelength file is downloaded before importing
+    from .interfaces import PHOENIXGridInterface, PHOENIXGridInterfaceNoAlpha
+
+    # Kind of messy, sorry
     if parameters is None:
-        grid = PHOENIXGridInterface(path)
+        if ranges is not None:
+            if len(ranges) == 3:
+                grid = PHOENIXGridInterfaceNoAlpha(path)
+            elif len(ranges) == 4:
+                grid = PHOENIXGridInterface(path)
         parameters = list(itertools.product(*grid.points))
     elif len(parameters[0]) == 3:
         grid = PHOENIXGridInterfaceNoAlpha(path)
     elif len(parameters[0]) == 4:
         grid = PHOENIXGridInterface(path)
 
-    pbar = tqdm.tqdm(parameters)
+    if ranges is not None:
+        _ranges = np.asarray(ranges)
+        min_params = _ranges.T[0]
+        max_params = _ranges.T[1]
+    else:
+        min_params = np.tile(-np.inf, len(parameters[0]))
+        max_params = np.tile(np.inf, len(parameters[0]))
+
+    # I hate to iterate here, but this way the progress bar doesn't show something like
+    # 7000 parameters and skips thousands at a time
+    params = []
+    for p in parameters:
+        if np.all(p >= min_params) and np.all(p <= max_params):
+            params.append(p)
+
+    pbar = tqdm.tqdm(params)
     for p in pbar:
         # Skip irregularities from grid
         try:
@@ -99,9 +148,7 @@ def download_PHOENIX_models(path, parameters=None):
                 urlretrieve(url, output_file)
             except URLError:
                 log.warning(
-                    "Parameters {} not found. Double check they are on PHOENIX grid".format(
-                        p
-                    )
+                    f"Parameters {p} not found. Double check they are on PHOENIX grid"
                 )
 
 
