@@ -11,6 +11,7 @@ from Starfish.transforms import (
     chebyshev_correct,
     extinct,
     rescale,
+    renorm,
 )
 from Starfish.utils import calculate_dv, create_log_lam_grid
 
@@ -186,17 +187,18 @@ class TestExtinct:
 
 
 class TestRescale:
-    @pytest.mark.parametrize("logOmega", [1, 2, 3, -124, -42.2, 0.5])
-    def test_transform(self, mock_data, logOmega):
-        flux = rescale(mock_data[1], logOmega)
-        assert np.allclose(flux, mock_data[1] * 10 ** logOmega)
+    @pytest.mark.parametrize("log_scale", [1, 2, 3, -124, -42.2, 0.5])
+    def test_transform(self, mock_data, log_scale):
+        scale = np.exp(log_scale)
+        flux = rescale(mock_data[1], scale)
+        assert np.allclose(flux, mock_data[1] * scale)
 
     def test_no_scale(self, mock_data):
-        flux = rescale(mock_data[1], 0)
+        flux = rescale(mock_data[1], 1)
         assert np.allclose(flux, mock_data[1])
 
     def test_regression(self, mock_data):
-        flux = rescale(rescale(mock_data[1], -2), 2)
+        flux = rescale(rescale(mock_data[1], 0.01), 100)
         assert np.allclose(flux, mock_data[1])
 
     def test_many_fluxes(self, mock_data):
@@ -209,4 +211,39 @@ class TestRescale:
         "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
     )
     def test_benchmark(self, benchmark, benchmark_data):
-        benchmark(rescale, benchmark_data[1], -10)
+        benchmark(rescale, benchmark_data[1], 10)
+
+
+class TestRenorm:
+    @pytest.fixture
+    def mock_data2(self, mock_data):
+        wave, flux = mock_data
+        flux = rescale(flux, 70)
+        yield wave, flux
+
+    def test_transform(self, mock_data, mock_data2):
+        flux = renorm(*mock_data, mock_data2[1])
+        assert flux.shape == mock_data[1].shape
+        assert np.allclose(flux, mock_data[1] * 70)
+        assert np.allclose(flux, mock_data2[1])
+
+    def test_no_scale(self, mock_data):
+        flux = renorm(*mock_data, mock_data[1])
+        assert np.allclose(flux, mock_data[1])
+
+    def test_regression(self, mock_data, mock_data2):
+        flux = renorm(*mock_data, mock_data2[1])
+        flux = renorm(mock_data[0], flux, mock_data[1])
+        assert np.allclose(flux, mock_data[1])
+
+    def test_many_fluxes(self, mock_data, mock_data2):
+        flux_stack = np.tile(mock_data[1], (4, 1))
+        fluxes = renorm(mock_data[0], flux_stack, mock_data2[1])
+        assert fluxes.shape == flux_stack.shape
+        assert np.allclose(fluxes, flux_stack * 70)
+
+    @pytest.mark.parametrize(
+        "benchmark_data", [100, 500, 1000, 5000, 10000], indirect=True
+    )
+    def test_benchmark(self, benchmark, benchmark_data):
+        benchmark(renorm, *benchmark_data, benchmark_data[1] * 1002)

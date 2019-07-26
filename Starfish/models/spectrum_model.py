@@ -16,6 +16,7 @@ from Starfish.transforms import (
     doppler_shift,
     extinct,
     rescale,
+    renorm,
 )
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .kernels import global_covariance_matrix, local_covariance_matrix
@@ -56,6 +57,11 @@ class SpectrumModel:
     Rv           :func:`~Starfish.transforms.extinct`              
     log_scale    :func:`~Starfish.transforms.rescale`
     =========== =======================================
+
+    .. note::
+        If :attr:`log_scale` is not specified, the model will use 
+        :func:`~Starfish.transforms.renorm` to automatically scale the spectrum to the 
+        data using the ratio of integrated fluxes.
 
     The ``global_cov`` keyword arguments must be a dictionary definining the 
     hyperparameters for the global covariance kernel, 
@@ -229,7 +235,8 @@ class SpectrumModel:
 
         # Only rescale flux_mean and flux_std
         if "log_scale" in self.params:
-            fluxes[-2:] = rescale(fluxes[-2:], self.params["log_scale"])
+            scale = np.exp(self.params["log_scale"])
+            fluxes[-2:] = rescale(fluxes[-2:], scale)
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -242,6 +249,10 @@ class SpectrumModel:
         X = eigenspectra * flux_std
         flux = weights @ X + flux_mean
         cov = X.T @ cho_solve((L, flag), X)
+
+        # If we don't use log_scale automatically rescale using ratio of integrated flux
+        if "log_scale" not in self.params:
+            flux = renorm(self.data.wave, flux, self.data.flux)
 
         # Trivial covariance
         np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)

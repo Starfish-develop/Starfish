@@ -206,26 +206,61 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     return flux_final
 
 
-def rescale(flux, log_scale):
+def rescale(flux, scale):
     """
     Rescale the given flux via the following equation
 
-    .. math:: f \\cdot 10^{\\log \\Omega}
+    .. math:: f \\cdot \\Omega
 
     Parameters
     ----------
     flux : array_like
         The input fluxes
-    log_scale : float
-        The base-10 logarithm of the scaling factor
+    scale : float or array_like
+        The scaling factor. If an array, must have same shape as the batch dimension of 
+        :attr:`flux`
 
     Returns
     -------
     numpy.ndarray
         The rescaled fluxes with the same shape as the input fluxes
     """
+    scale = np.atleast_1d(scale)
+    if len(scale) > 1:
+        scale = scale[:, np.newaxis]
+    return flux * scale
 
-    return flux * (10 ** log_scale)
+
+def renorm(wave, flux, reference_flux):
+    """
+    Renormalize one spectrum to another
+
+    This uses the :meth:`rescale` function with a :attr:`log_scale` of
+
+    .. math::
+
+        \\log \\Omega = \\left. \\int{f^{*}(w) dw} \\middle/ \\int{f(w) dw} \\right.
+
+    where :math:`f^{*}` is the reference flux, :math:`f` is the source flux, and the 
+    integrals are over a common wavelength grid
+
+    Parameters
+    ----------
+    wave : array_like
+        The wavelength grid for the source flux
+    flux : array_like
+        The flux for the source
+    reference_flux : array_like
+        The reference source to renormalize to
+
+    Returns
+    -------
+    numpy.ndarray
+        The renormalized flux
+    """
+    ref_int = np.trapz(reference_flux, wave)
+    flux_int = np.trapz(flux, wave, axis=-1)
+    return rescale(flux, ref_int / flux_int)
 
 
 def chebyshev_correct(wave, flux, coeffs):

@@ -8,9 +8,10 @@ methods unless they are playing around with spectrums or creating custom methods
 .. module:: Starfish.transforms
 
 .. autofunction:: resample
+.. autofunction:: rescale
+.. autofunction:: renorm
 .. autofunction:: doppler_shift
 .. autofunction:: instrumental_broaden
 .. autofunction:: rotational_broaden
-.. autofunction:: chebyshev_correct
 .. autofunction:: extinct
-.. autofunction:: rescale
+.. autofunction:: chebyshev_correct
