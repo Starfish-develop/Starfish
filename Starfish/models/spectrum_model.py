@@ -48,15 +48,15 @@ class SpectrumModel:
 
     Here is a table describing the avialable parameters and their related functions
     
-    =========== =======================================
+    =========== ===============================================
      Parameter                 Function                
-    =========== =======================================
+    =========== ===============================================
     vsini        :func:`~Starfish.transforms.rotational_broaden`
     vz           :func:`~Starfish.transforms.doppler_shift`
     Av           :func:`~Starfish.transforms.extinct`
-    Rv           :func:`~Starfish.transforms.extinct`              
+    Rv           :func:`~Starfish.transforms.extinct`
     log_scale    :func:`~Starfish.transforms.rescale`
-    =========== =======================================
+    =========== ===============================================
 
     .. note::
         If :attr:`log_scale` is not specified, the model will use 
@@ -67,23 +67,23 @@ class SpectrumModel:
     hyperparameters for the global covariance kernel, 
     :meth:`kernels.global_covariance_matrix`
     
-    ================ =============
+    ================ =============================================================
     Global Parameter  Description
-    ================ =============
+    ================ =============================================================
     log_amp          The natural logarithm of the amplitude of the Matern kernel
     log_ls           The natural logarithm of the lengthscale of the Matern kernel
-    ================ =============
+    ================ =============================================================
     
     The ``local_cov`` keryword argument must be a list of dictionaries defining 
     hyperparameters for many Gaussian kernels, , :meth:`kernels.local_covariance_matrix`
     
-    ================ =============
+    ================ =============================================================
     Local Parameter  Description
-    ================ =============
+    ================ =============================================================
     log_amp          The natural logarithm of the amplitude of the kernel
     mu               The location of the local kernel
     log_sigma        The natural logarithm of the standard deviation of the kernel
-    ================ =============
+    ================ =============================================================
 
     Attributes
     ----------
