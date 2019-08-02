@@ -258,9 +258,14 @@ def renorm(wave, flux, reference_flux):
     numpy.ndarray
         The renormalized flux
     """
+    factor = _get_renorm_factor(wave, flux, reference_flux)
+    return rescale(flux, factor)
+
+
+def _get_renorm_factor(wave, flux, reference_flux):
     ref_int = np.trapz(reference_flux, wave)
     flux_int = np.trapz(flux, wave, axis=-1)
-    return rescale(flux, ref_int / flux_int)
+    return ref_int / flux_int
 
 
 def chebyshev_correct(wave, flux, coeffs):

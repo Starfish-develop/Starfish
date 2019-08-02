@@ -16,7 +16,7 @@ from Starfish.transforms import (
     doppler_shift,
     extinct,
     rescale,
-    renorm,
+    _get_renorm_factor,
 )
 from Starfish.utils import calculate_dv, create_log_lam_grid
 from .kernels import global_covariance_matrix, local_covariance_matrix
@@ -248,11 +248,14 @@ class SpectrumModel:
         # Complete the reconstruction
         X = eigenspectra * flux_std
         flux = weights @ X + flux_mean
-        cov = X.T @ cho_solve((L, flag), X)
 
-        # If we don't use log_scale automatically rescale using ratio of integrated flux
+        # Renorm to data flux if no "log_scale" provided
         if "log_scale" not in self.params:
-            flux = renorm(self.data.wave, flux, self.data.flux)
+            factor = _get_renorm_factor(self.data.wave, flux, self.data.flux)
+            flux = rescale(flux, factor)
+            X = rescale(X, factor)
+
+        cov = X.T @ cho_solve((L, flag), X)
 
         # Trivial covariance
         np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)

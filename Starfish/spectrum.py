@@ -294,14 +294,14 @@ class Spectrum:
 
         # Now plot masks
         ylims = ax.get_ylim()
-        for order in self.orders:
+        for i, order in enumerate(self.orders):
             ax.fill_between(
                 order._wave,
                 *ylims,
                 color="k",
                 alpha=0.1,
                 where=~order.mask,
-                label="Mask",
+                label="Mask" if i == 0 else None,
             )
 
         ax.set_yscale("log")
