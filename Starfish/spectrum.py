@@ -17,7 +17,7 @@ class Order:
     _flux : numpy.ndarray
         The full flux array
     _sigma : numpy.ndarray, optional
-        The full sigma array. If None, will default to all 1s. Default is None
+        The full sigma array. If None, will default to all 0s. Default is None
     mask : numpy.ndarray, optional
         The full mask. If None, will default to all Trues. Default is None
 
@@ -33,7 +33,7 @@ class Order:
 
     def __post_init__(self):
         if self._sigma is None:
-            self._sigma = np.ones_like(self._flux)
+            self._sigma = np.zeros_like(self._flux)
         if self.mask is None:
             self.mask = np.ones_like(self._wave, dtype=bool)
 

@@ -11,7 +11,7 @@ class TestOrder:
     def test_no_sigma(self, mock_data):
         wave, flux = mock_data
         order = Order(wave, flux)
-        assert np.all(order._sigma == 1.0)
+        assert np.all(order._sigma == 0.0)
         assert np.all(order.mask)
 
     def test_no_mask(self, mock_data):
