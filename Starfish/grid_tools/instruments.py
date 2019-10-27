@@ -75,6 +75,13 @@ class SPEX_SXD(SPEX):
         super().__init__(name=name, wl_range=(7500, 26000))
 
 
+class SPEX_PRISM(SPEX):
+    """SPEX instrument at IRTF in Hawaii low-res PRISM mode (reduced wavelength range)"""
+
+    def __init__(self, name="SPEX_SXD"):
+        super().__init__(name=name, FWHM=1500, wl_range=(7500, 26000))
+
+
 class IGRINS(Instrument):
     """IGRINS Instruments Abstract Class"""
 
