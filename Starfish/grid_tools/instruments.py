@@ -98,7 +98,7 @@ class IGRINS_H(IGRINS):
 
 
 class IGRINS_K(IGRINS):
-    """IGRINS H band instrument"""
+    """IGRINS K band instrument"""
 
     def __init__(self, name="IGRINS_K", wl_range=(18500, 25200)):
         super().__init__(name=name, wl_range=wl_range)
