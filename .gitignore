@@ -177,3 +177,5 @@ examples/*
 .mypy_cache
 
 .venv
+
+Pipfile.lock
