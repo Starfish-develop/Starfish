@@ -296,7 +296,7 @@ class Emulator:
         log.info(
             f"PCA fit {exp_var:.2f}% of the variance with {pca.n_components_:d} components."
         )
-        w_hat = get_w_hat(eigenspectra, fluxes, len(grid.grid_points))
+        w_hat = get_w_hat(eigenspectra, fluxes)
 
         emulator = cls(
             grid_points=grid.grid_points,

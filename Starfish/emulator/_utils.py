@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+import scipy.linalg as sl
 from scipy.special import loggamma
 
 log = logging.getLogger(__name__)
@@ -20,8 +21,8 @@ def get_w_hat(eigenspectra, fluxes):
             out[i * M + j] = eigenspectra[i].T @ fluxes[j]
 
     phi_squared = get_phi_squared(eigenspectra, M)
-
-    return np.linalg.solve(phi_squared, out)
+    fac = sl.cho_factor(phi_squared, check_finite=False, overwrite_a=True)
+    return sl.cho_solve(fac, out, check_finite=False)
 
 
 def get_phi_squared(eigenspectra, M):
