@@ -2,10 +2,10 @@
 Conversion to 0.3.0
 ###################
 
-There have been some significant changes to *Starfish* in the upgrades to version 0.3. Below are some of the main changes, and we also recommend viewing some of the :doc:`examples/index` to get a hang for the new workflow.
+There have been some significant changes to *Starfish* in the upgrades to version ``0.3.0``. Below are some of the main changes, and we also recommend viewing some of the :doc:`examples/index` to get a hang for the new workflow.
 
 .. warning::
-    The current, updated code base does not have the framework for fitting multi-order Echelle spectra. We are working diligently to update the original functionality to match the updated API. For now, you will have to revert to Starfish ``0.2``.
+    The current, updated code base does not have the framework for fitting multi-order Echelle spectra. We are working diligently to update the original functionality to match the updated API. For now, you will have to revert to Starfish ``0.2.0``.
 
 .. note::
     Was there something in Starfish's utilities you used that was meaningfully removed? Open an `issue request <https://github.com/iancze/starfish/issues>`_ and we can work together to find a solution.
@@ -17,7 +17,7 @@ One of the new goals for *Starfish* was to provide a more Pythonistic approach t
 
 **There are no more scripts**
 
-None of the previous scripts are included in version 0.3. Instead, the functionality of the scripts is enocded into some of the examples, which should allow users a quick way to copy-and-paste their way into a working setup.
+None of the previous scripts are included in version ``0.3.0``. Instead, the functionality of the scripts is enocded into some of the examples, which should allow users a quick way to copy-and-paste their way into a working setup.
 
 **Analysis is made easier using other libraries**
 
@@ -63,4 +63,4 @@ The continuous integration has also been improved to help limit the bugs we let 
 
 **Cleaning up old Issues**
 
-Many issues are well outdated and will soon become irrelevant with version 0.3. In an effort to remove some of the clutter we will be closing all issues older than 6 months old or that are solved with the new version. If you had an old issue and feel it was not resolved, feel free to reach out and reopen it so we can work on further improving *Starfish*. 
+Many issues are well outdated and will soon become irrelevant with version ``0.3.0``. In an effort to remove some of the clutter we will be closing all issues older than 6 months old or that are solved with the new version. If you had an old issue and feel it was not resolved, feel free to reach out and reopen it so we can work on further improving *Starfish*. 

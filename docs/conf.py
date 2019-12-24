@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
-    "sphinx_autodoc_typehints",
 ]
 
 # Autodocs parameters
@@ -61,7 +60,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Starfish"
-copyright = "2013-19, Ian Czekala"
+copyright = "2013-20, Ian Czekala and Collaborators"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

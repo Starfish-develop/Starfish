@@ -87,6 +87,11 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
     -------
     dict
         A dictionary of optimized parameters ready to be plugged into model["local_cov"]
+
+    Warning
+    -------
+    I have had inconsistent results with this optimization, be mindful of your outputs 
+    and consider hand-tuning after optimizing.
     """
     residual = np.mean(list(model.residuals)[-num_residuals:], axis=0)
     amp_cutoff = threshold * residual.std()

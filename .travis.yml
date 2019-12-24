@@ -4,7 +4,7 @@ dist: xenial
 python:
   - 3.6
   - 3.7
-  - 3.8-dev
+  - 3.8
   - nightly
 
 matrix:
@@ -23,26 +23,25 @@ matrix:
     - os: windows
       python: 3.6
       language: shell
-      env: 
-        - PATH=/c/Python36:/c/Python36/Scripts:$PATH 
+      env:
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
         - TRAVIS_PYTHON_VERSION=3.6
-      before_install: 
+      before_install:
         - choco install python --version 3.6.0
         - python -m pip install -U pip
         - python -m pip install -U pipenv
-    - os: windows 
+    - os: windows
       python: 3.7
       language: shell
-      env: 
-        - PATH=/c/Python37:/c/Python37/Scripts:$PATH 
+      env:
+        - PATH=/c/Python37:/c/Python37/Scripts:$PATH
         - TRAVIS_PYTHON_VERSION=3.7
-      before_install: 
+      before_install:
         - choco install python --version 3.7.0
         - python -m pip install -U pip
         - python -m pip install -U pipenv
   allow_failures:
     - os: windows
-    - python: 3.8-dev
     - python: nightly
 
 cache:
@@ -57,7 +56,7 @@ before_install:
 
 install:
   # This will make sure we can install via pyproject.toml/setup.py
-  - pip3 install . 
+  - pip3 install .
   # But still use pipenv for the locked dependencies
   - pipenv install -d --python $TRAVIS_PYTHON_VERSION
 
