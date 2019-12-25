@@ -1,0 +1,41 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Python ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        version: ["3.6", "3.7", "3.8"]
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        arch: ["x64"]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup python ${{ matrix.version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.version }}
+          architecture: ${{ matrix.arch }}
+      - name: Install Project and Dependencies
+        run: |
+          pip install -U pip
+          pip install .[test]
+      - name: Cache Test Data
+        uses: actions/cache@v1
+        with:
+          path: tests/data
+          key: ${{ runner.os }}-test-data
+      - name: Test
+        run: |
+          pytest --cov=Starfish --cov-report=xml --benchmark-skip --black
+      - name: Coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: 2a6c10af-4e8d-4a5e-aa61-fa277817b40e
+          # token: ${{ secrets.CODECOV_TOKEN }} TODO: ian set up secrets

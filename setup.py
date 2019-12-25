@@ -57,6 +57,7 @@ setup(
         "test": [
             "coveralls==1.*,>=1.8.0",
             "pytest==4.*,>=4.6.0",
+            "pytest-black",
             "pytest-cov==2.*,>=2.7.0",
             "pytest-benchmark",
         ],
