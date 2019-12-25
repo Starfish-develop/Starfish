@@ -37,5 +37,4 @@ jobs:
       - name: Coverage
         uses: codecov/codecov-action@v1
         with:
-          token: 2a6c10af-4e8d-4a5e-aa61-fa277817b40e
-          # token: ${{ secrets.CODECOV_TOKEN }} TODO: ian set up secrets
+          token: ${{ secrets.CODECOV_TOKEN }}
