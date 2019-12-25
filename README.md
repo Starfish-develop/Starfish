@@ -1,85 +1,25 @@
 # Starfish
-
-[![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
-[![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg)](https://starfish.readthedocs.io/en/latest/?badge=latest)
-[![Coverage Status](https://coveralls.io/repos/github/iancze/Starfish/badge.svg?branch=master)](https://coveralls.io/github/iancze/Starfish?branch=master)
-[![PyPi](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
+[![Documentation Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://github.com/iancze/Starfish/workflows/CI/badge.svg)](https://github.com/iancze/Starfish/actions)
+[![Coverage Status](https://codecov.io/gh/iancze/Starfish/branch/master/graph/badge.svg)](https://codecov.io/gh/iancze/Starfish/)
+[![PyPI](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
-## Beta Version 0.3
+**Warning!**
 
-### Matrix
-
-Version | Status  | Documentation
--|-|-
-v0.3.0-dev | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=v0.3.0-dev)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/v0.3.0-dev.svg?label="docs")](https://starfish.readthedocs.io/en/v0.3.0-dev/?badge=v0.3.0-dev)
-master | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=master)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/latest.svg?label="docs")](https://starfish.readthedocs.io/en/latest/?badge=latest)
-develop | [![Build Status](https://travis-ci.org/iancze/Starfish.svg?branch=develop)](https://travis-ci.org/iancze/Starfish) | [![Doc Status](https://img.shields.io/readthedocs/starfish/develop.svg?label="docs")](https://starfish.readthedocs.io/en/develop/?badge=develop)
-
+There have been major, breaking updates since version `0.2.0`, please see the section of the documentation that regards these changes if you are used to the old version!
 
 ### Citations
 
-If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). 
-
-<details>
-<summary>BibTex citation</summary>
-
-```
-@ARTICLE{2015ApJ...812..128C,
-        author       = {{Czekala}, Ian and {Andrews}, Sean M. and {Mandel}, Kaisey S. and
-                        {Hogg}, David W. and {Green}, Gregory M.},
-        title        = "{Constructing a Flexible Likelihood Function for Spectroscopic Inference}",
-        journal      = {\apj},
-        keywords     = {methods: data analysis, methods: statistical, stars: fundamental parameters, 
-                        stars: late-type, stars: statistics, techniques: spectroscopic, Astrophysics 
-                        - Solar and Stellar Astrophysics,   Astrophysics - Earth and Planetary 
-                        Astrophysics, Astrophysics - Instrumentation and Methods for Astrophysics},
-        year         = "2015",
-        month        = "Oct",
-        volume       = {812},
-        number       = {2},
-        eid          = {128},
-        pages        = {128},
-        doi          = {10.1088/0004-637X/812/2/128},
-        archivePrefix = {arXiv},
-        eprint       = {1412.5177},
-        primaryClass = {astro-ph.SR},
-        adsurl       = {https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C},
-        adsnote      = {Provided by the SAO/NASA Astrophysics Data System}
-}
-
-@misc{ian_czekala_2018_2221006,
-    author       = {Ian Czekala and
-                    gully and
-                    Kevin Gullikson and
-                    Sean Andrews and
-                    Jason Neal and
-                    Miles Lucas and
-                    Kevin Hardegree-Ullman and
-                    Meredith Rawls and
-                    Edward Betts},
-    title        = {{iancze/Starfish: ca. Czekala et al. 2015 release 
-                    w/ Zenodo}},
-    month        = dec,
-    year         = 2018,
-    doi          = {10.5281/zenodo.2221006},
-    url          = {https://doi.org/10.5281/zenodo.2221006}
-}
-```
-
-</details>
-
-**Warning!**
-
-There have been major updates since version `0.2`, please see the section of the documentation that regards these changes if you are used to the old version!
+If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). See [`CITATIONS.bib`](CITATIONS.bib) for a BibTeX formatted reference of this work.
 
 ### Papers
 * [Czekala et al. 2015](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract)
 * [Gully-Santiago et al. 2017](https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract)
 
-Copyright Ian Czekala and collaborators 2013 - 2019 (see [`CONTRIBUTORS.md`](CONTRIBUTORS.md))
+*If you have used Starfish in your work, please let us know and we can add you to this list!*
 
 Please bear in mind that this package is under heavy development and features may evolve rapidly. If something doesn't work, please fill an [issue](https://github.com/iancze/Starfish/issues) on this repository. If you would like to contribute to this project (either with bugfixes, documentation, or new features) please feel free to fork the repository and submit a pull request!
 
@@ -156,7 +96,7 @@ We use `pytest` for testing; within the virtual environment
 
 Note that we use the `black` code style and our CI testing will check that everything is formatted correctly. To check your code
 
-    $ black --check .
+    $ pytest --black
 
 although if you follow the instructions for using *pre-commit* you should have no issues.
 
