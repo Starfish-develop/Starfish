@@ -6,7 +6,11 @@ from Starfish.emulator import Emulator
 
 class TestEmulator:
     def test_creation(self, mock_emulator):
-        assert mock_emulator._trained == False
+        assert mock_emulator._trained is False
+
+    def test_creation_from_string(self, mock_hdf5):
+        emu = Emulator.from_grid(mock_hdf5)
+        assert emu._trained is False
 
     def test_call(self, mock_emulator):
         mu, cov = mock_emulator([6020, 4.21, -0.01])
@@ -62,7 +66,7 @@ class TestEmulator:
         initial = mock_emulator.get_param_dict()
         init_ll = mock_emulator.log_likelihood()
         init_v11 = mock_emulator.v11
-        assert mock_emulator._trained == False
+        assert mock_emulator._trained is False
         mock_emulator.train(options={"maxiter": 200})
         final = mock_emulator.get_param_dict()
         final_ll = mock_emulator.log_likelihood()

@@ -73,7 +73,7 @@ class Spectrum:
     fluxes : 1D or 2D array-like
          flux (in f_lam)
     sigmas : 1D or 2D array-like, optional
-        Poisson noise (in f_lam). If not specified, will be unitary. Default is None
+        Poisson noise (in f_lam). If not specified, will be zeros. Default is None
     masks : 1D or 2D array-like, optional
         Mask to blot out bad pixels or emission regions. Must be castable to boolean. If None, will create a mask of all True. Default is None
     name : str, optional
@@ -105,7 +105,7 @@ class Spectrum:
         if masks is not None:
             masks = np.atleast_2d(masks).astype(bool)
         else:
-            masks = np.ones_like(waves, dtype=bool)
+            masks = np.zeros_like(waves, dtype=bool)
         assert fluxes.shape == waves.shape, "flux array incompatible shape."
         assert sigmas.shape == waves.shape, "sigma array incompatible shape."
         assert masks.shape == waves.shape, "mask array incompatible shape."

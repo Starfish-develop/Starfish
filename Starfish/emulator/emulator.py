@@ -10,6 +10,7 @@ from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 from sklearn.decomposition import PCA
 
+from Starfish.grid_tools import HDF5Interface
 from Starfish.grid_tools.utils import determine_chunk_log
 from Starfish.utils import calculate_dv
 from .kernels import batch_kernel
@@ -187,7 +188,7 @@ class Emulator:
         filename : str or path-like
         """
         filename = os.path.expandvars(filename)
-        with h5py.File(filename) as base:
+        with h5py.File(filename, "r") as base:
             grid_points = base["grid_points"][:]
             param_names = base["grid_points"].attrs["names"]
             wavelength = base["wavelength"][:]
@@ -265,7 +266,7 @@ class Emulator:
 
         Parameters
         ----------
-        grid : :class:`GridInterface`
+        grid : :class:`GridInterface` or str
             The grid interface to decompose
         pca_kwargs : dict, optional
             The keyword arguments to pass to PCA. By default, `n_components=0.99` and 
@@ -275,6 +276,10 @@ class Emulator:
         --------
         sklearn.decomposition.PCA
         """
+        # Load grid if a string is given
+        if isinstance(grid, str):
+            grid = HDF5Interface(grid)
+
         fluxes = np.array(list(grid.fluxes))
         # Normalize to an average of 1 to remove uninteresting correlation
         fluxes /= fluxes.mean(1, keepdims=True)

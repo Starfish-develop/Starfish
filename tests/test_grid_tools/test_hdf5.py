@@ -14,13 +14,13 @@ class TestHDF5Creator:
         assert os.path.exists(mock_hdf5)
 
     def test_contents(self, mock_hdf5):
-        with h5py.File(mock_hdf5) as base:
+        with h5py.File(mock_hdf5, "r") as base:
             assert "wl" in base
             assert "grid_points" in base
             assert "flux" in base
 
     def test_wl_contents(self, mock_hdf5):
-        with h5py.File(mock_hdf5) as base:
+        with h5py.File(mock_hdf5, "r") as base:
             wave = base["wl"]
             assert wave.attrs["air"] == True
             np.testing.assert_approx_equal(wave.attrs["dv"], 7.40, significant=2)
@@ -28,14 +28,14 @@ class TestHDF5Creator:
             np.testing.assert_approx_equal(np.max(wave[:]), 3e4 + 50)
 
     def test_pars_contents(self, mock_hdf5):
-        with h5py.File(mock_hdf5) as base:
+        with h5py.File(mock_hdf5, "r") as base:
             pars = np.array(base["grid_points"][:])
             assert len(pars) == 27
             np.testing.assert_array_equal(np.min(pars, 0), [6000, 4.0, -1.0])
             np.testing.assert_array_equal(np.max(pars, 0), [6200, 5.0, 0])
 
     def test_flux_contents(self, mock_hdf5):
-        with h5py.File(mock_hdf5) as base:
+        with h5py.File(mock_hdf5, "r") as base:
             flux = base["flux"]
             assert flux.attrs["units"] == "erg/s/cm^2/cm"
             assert len(flux) == len(base["grid_points"])

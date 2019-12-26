@@ -106,6 +106,8 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
         log_amp, mu, log_sigma = P
         _amp = np.exp(log_amp)
         _sigma = np.exp(log_sigma)
+        if _amp == 0 or _sigma == 0:
+            return np.Inf
         # Logistic prior for the widths out to 2sigma
         prior = st.uniform.logpdf(_sigma, 0, 2 * sigma0)
         # Put prior on widths and heights such that the integrated area should be less
