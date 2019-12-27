@@ -9,11 +9,11 @@
 
 **Warning!**
 
-There have been major, breaking updates since version `0.2.0`, please see the section of the documentation that regards these changes if you are used to the old version!
+There have been major, breaking updates since version `0.2.0`, please see [this page](https://starfish.readthedocs.io/en/latest/conversion.html) regarding these changes if you are used to the old version!
 
 ### Citations
 
-If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). See [`CITATIONS.bib`](CITATIONS.bib) for a BibTeX formatted reference of this work.
+If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). See [`CITATION.bib`](CITATION.bib) for a BibTeX formatted reference of this work.
 
 ### Papers
 * [Czekala et al. 2015](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract)
