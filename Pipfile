@@ -1,5 +1,5 @@
 [requires]
-python_version = "^3.6"
+python_version = "3.7"
 
 [packages]
 astropy = "*"
@@ -29,6 +29,7 @@ sphinx-bootstrap-theme = "*"
 pytest-benchmark = "*"
 sphinx-autodoc-typehints = "*"
 pre-commit = "*"
+pytest-black = "*"
 
 [pipenv]
 allow_prereleases = true
