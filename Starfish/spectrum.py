@@ -105,7 +105,7 @@ class Spectrum:
         if masks is not None:
             masks = np.atleast_2d(masks).astype(bool)
         else:
-            masks = np.zeros_like(waves, dtype=bool)
+            masks = np.ones_like(waves, dtype=bool)
         assert fluxes.shape == waves.shape, "flux array incompatible shape."
         assert sigmas.shape == waves.shape, "sigma array incompatible shape."
         assert masks.shape == waves.shape, "mask array incompatible shape."
