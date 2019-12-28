@@ -11,8 +11,7 @@ Name, Github ID
 * Michael Gully-Santiago, @gully
 * Xueying Guo
 * David W. Hogg, @davidwhogg
+* Miles Lucas, @mileslucas
 * Kaisey S. Mandel
 * Jason Neal, @jason-neal
 * Meredith Rawls, @mrawls
-* Miles Lucas, @mileslucas
-

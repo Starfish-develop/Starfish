@@ -1,77 +1,65 @@
-import sys
-from setuptools import setup, Extension
+# -*- coding: utf-8 -*-
+from setuptools import setup, find_packages
 import builtins
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
-try:
-    from Cython.Distutils import build_ext
-except:
-    from setuptools.command.build_ext import build_ext
-    ext_modules = [Extension("Starfish.covariance", 
-        sources=["Starfish/covariance.c"],
-        extra_compile_args=["-Wno-declaration-after-statement",
-                            "-Wno-error=declaration-after-statement",
-                            "-Wno-unused-function",
-                            "-Wno-unused-variable",
-                            "-Wno-unused-but-set-variable"]),]
-else:
-    ext_modules = [Extension("Starfish.covariance", 
-        sources=["Starfish/covariance.pyx"],
-        extra_compile_args=["-Wno-declaration-after-statement",
-                            "-Wno-error=declaration-after-statement",
-                            "-Wno-unused-function",
-                            "-Wno-unused-variable",
-                            "-Wno-unused-but-set-variable"]),]
-
-if sys.version < '3.3':
-    raise RuntimeError('Error: Python 3.3 or greater required for Starfish (using {})'.format(sys.version))
-
-# This is a bit hackish: we are setting a global variable so that the main
-# Starfish.__init__ can detect if it is being loaded by the setup routine, to
-# avoid attempting to load components that aren't built yet.  While ugly, it's
-# a lot more robust than what was previously being used.
 builtins.__STARFISH_SETUP__ = True
+
 import Starfish
 
-# Use this custom class to be able to force numpy installation before using it.
-class CustomBuildExt(build_ext):
-    def run(self):
-        import numpy
-        self.include_dirs.append(numpy.get_include())
-        return super().run()
+with open("README.md", "r") as fh:
+    readme = fh.read()
 
 setup(
-        name="Starfish",
-        version=Starfish.__version__,
-        author="Ian Czekala",
-        author_email="iancze",
-        packages=["Starfish"],
-        url="https://github.com/iancze/Starfish",
-        download_url="https://github.com/iancze/Starfish/archive/master.zip",
-        license="BSD",
-        description="Covariance tools for fitting stellar spectra",
-        long_description = long_description,
-        long_description_content_type = "text/markdown",
-        classifiers=[
-            "Intended Audience :: Science/Research",
-            "Programming Language :: Python :: 3",
-            "Topic :: Scientific/Engineering :: Astronomy",
-            "Topic :: Scientific/Engineering :: Physics"
+    long_description=readme,
+    long_description_content_type="text/markdown",
+    name="astrostarfish",
+    version=Starfish.__version__,
+    description="Covariance tools for fitting stellar spectra",
+    python_requires="==3.*,>=3.6.0",
+    project_urls={
+        "repository": "https://github.com/iancze/Starfish",
+        "documentation": "https://starfish.rtfd.io",
+    },
+    author="Ian Czekala",
+    author_email="iancze@gmail.com",
+    maintainer="Miles Lucas <mdlucas@iastate.edu",
+    license="BSD-4-Clause",
+    keywords="Science Astronomy Physics Data Science",
+    classifiers=[
+        "Intended Audience :: Science/Research",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Astronomy",
+        "Topic :: Scientific/Engineering :: Physics",
+    ],
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    package_data={},
+    install_requires=[
+        "astropy==3.*,>=3.1.0",
+        "dataclasses==0.*,>=0.6.0",
+        "extinction @ git+https://github.com/kbarbary/extinction.git@master#egg=extinction",
+        "flatdict==3.*,>=3.3.0",
+        "h5py==2.*,>=2.9.0",
+        "nptyping==0.*,>=0.2.0",
+        "numpy==1.*,>=1.16.0",
+        "scikit-learn==0.*,>=0.21.2",
+        "scipy==1.*,>=1.3.0",
+        "toml @ git+https://github.com/uiri/toml.git@master#egg=toml-0.10.1",
+        "tqdm==4.*,>=4.32.0",
+    ],
+    extras_require={
+        "docs": [
+            "nbsphinx==0.*,>=0.4.2",
+            "sphinx==2.*,>=2.3",
+            "sphinx-bootstrap-theme==0.*,>=0.7.1",
+            "IPython",
+            "sphinx-autodoc-typehints==1.10.3",
         ],
-        install_requires = ['numpy',
-                            'scipy',
-                            'cython',
-                            'scikit-learn',
-                            'emcee',
-                            'h5py',
-                            'corner',
-                            'astropy',
-                            'tqdm',
-                            'pyyaml'],
-        maintainer = "Ian Czekala",
-        maintainer_email = "iancze@gmail.com",
-        cmdclass = {'build_ext' : CustomBuildExt},
-        ext_modules = ext_modules,
+        "test": [
+            "coveralls==1.*,>=1.8.0",
+            "pytest==4.*,>=4.6.0",
+            "pytest-black",
+            "pytest-cov==2.*,>=2.7.0",
+            "pytest-benchmark",
+        ],
+    },
 )

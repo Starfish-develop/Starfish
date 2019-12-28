@@ -1,116 +1,106 @@
 # Starfish
+[![Documentation Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://github.com/iancze/Starfish/workflows/CI/badge.svg)](https://github.com/iancze/Starfish/actions)
+[![Coverage Status](https://codecov.io/gh/iancze/Starfish/branch/master/graph/badge.svg)](https://codecov.io/gh/iancze/Starfish/)
+[![PyPI](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
 
-[![Build Status](https://travis-ci.org/iancze/Starfish.svg)](https://travis-ci.org/iancze/Starfish)
+*Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
-*Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models, however there are many potential applications to other types of spectra, such as unresolved stellar clusters or supernovae spectra.
+**Warning!**
 
-**Beta version 0.2**
+There have been major, breaking updates since version `0.2.0`, please see [this page](https://starfish.readthedocs.io/en/latest/conversion.html) regarding these changes if you are used to the old version!
 
-Please note that this software package is still under development as more features are being added.
+### Citations
 
-Website: http://iancze.github.io/Starfish/
+If you use this code or derivative components of this code in your research, please cite our [paper](https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract) as well as the [code](https://doi.org/10.5281/zenodo.2221006). See [`CITATION.bib`](CITATION.bib) for a BibTeX formatted reference of this work.
 
-Documentation: http://iancze.github.io/Starfish/current/index.html
+### Papers
+* [Czekala et al. 2015](https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract)
+* [Gully-Santiago et al. 2017](https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract)
 
-Copyright Ian Czekala 2013, 2014, 2015, 2016
+*If you have used Starfish in your work, please let us know and we can add you to this list!*
 
-`iczekala@cfa.harvard.edu`
-
-If you wish to use this code in your own research, please email me and I can help you get started. Please bear in mind that this package is under heavy development and features may evolve rapidly. If something doesn't work, please fill an [issue](https://github.com/iancze/Starfish/issues) on this repository. If you would like to contribute to this project (either with bugfixes, documentation, or new features) please feel free to fork the repository and submit a pull request!
-
-**Citation**: if you use this code or derivative components of this code in your research, please cite our [paper](http://arxiv.org/abs/1412.5177)
+Please bear in mind that this package is under heavy development and features may evolve rapidly. If something doesn't work, please fill an [issue](https://github.com/iancze/Starfish/issues) on this repository. If you would like to contribute to this project (either with bugfixes, documentation, or new features) please feel free to fork the repository and submit a pull request!
 
 # Installation Instructions
 
 ## Prerequisites
 
-*Starfish* has several dependencies, however most of them should be satisfied by an up-to-date scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to python 3.3 or greater. This code makes no attempt to work on the python 2.x series, and I doubt it will if you try. This package has been tested on Linux and Mac OSX 10.10.
-
-Starfish requires the following Python packages:
-
-* numpy
-* scipy
-* matplotlib
-* h5py
-* astropy
-* cython
-* pyyaml
-* scikit-learn
-* [emcee](https://github.com/dfm/emcee)
-* [corner](https://github.com/dfm/corner.py)
-
-Unless you actively maintain your own scientific python distribution, I recommend installing the Anaconda distribution with python 3.3 or greater, obtainable [here](https://store.continuum.io/cshop/anaconda/). All of these required packages can be installed via Anaconda by doing `conda install pkg` where `pkg` is the name of the package you want to install.
+*Starfish* has several dependencies, however most of them should be satisfied by an up-to-date scientific python installation. We highly recommend using the [Anaconda Scientific Python Distribution](https://store.continuum.io/cshop/anaconda/) and updating to 
+Python 3.6 or greater. This code makes no attempt to work on the Python 2.x series, and I doubt it will if you try. This package is tested across Linux, Mac OS X, and Windows. 
 
 To make sure you are running the correct version of python, start a python interpreter via the system shell and you should see something similar
 
     $ python
-    Python 3.4.1 (default, May 19 2014, 17:23:49)
-    [GCC 4.9.0 20140507 (prerelease)] on linux  
+    Python 3.6.1 |Anaconda custom (64-bit)| (default, May 11 2017, 13:25:24) [MSC v.1900 64 bit (AMD64)] on win32
     Type "help", "copyright", "credits" or "license" for more information.
+    >>> 
 
 If your shell says Python 2.x, try using the `python3` command instead of `python`.
 
 ## Installation
 
-For now, we recommended building *Starfish* from source on your machine.
+For the most current release of *Starfish*, use the releases from PyPI
 
-First, if you have not already done so install [install git](http://git-scm.com/downloads) on your computer.
+    $ pip install astrostarfish
 
-In order to download a local copy of this repository, ``cd`` to the location where you want it to live and then do
+If you want to be on the most up-to-date version (or a development version), install from source via
 
-    git clone https://github.com:iancze/Starfish.git
-    cd Starfish
+    $ pip install git+https://github.com/iancze/Starfish.git#egg=astrostarfish
 
-Now we can install the code. We recommend to install using the develop flag so that you can make modifications to 
-the source code.
-    
-    pip install -e .
-
-If you don't care to download the code and would rather install directly into a virtual environment, you can do so with
-
-    pip install git+https://github.com/iancze/Starfish.git#egg=Starfish
-
-or 
-
-    pip install astrostarfsih
 
 To test that you've properly installed *Starfish*, try doing the following inside of a Python interpreter session
+
 ```python
 >>> import Starfish
->>> print(Starfish.__version__)
-'0.1'
+>>> Starfish.__version__
+'0.3.0'
 ```
+
 If you see any errors, then something went wrong--please file an [issue](https://github.com/iancze/Starfish/issues).
 
-Now that you've successfully installed the code, please see the [documentation](http://iancze.github.io/Starfish/current/index.html) on how to begin using *Starfish* to solve your spectroscopic inference problem, or head to the [cookbook](http://iancze.github.io/Starfish/current/cookbook.html) for a taste of a typical workflow.
+Now that you've successfully installed the code, please see the [documentation](https://starfish.readthedocs.io/en/latest/) on how to begin using *Starfish* to solve your spectroscopic inference problem.
 
+# Contributing
+If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into
+making our project better. To get set up in a development environment, it is highly recommended to develop in a
+virtual environment. We use `pipenv` (pending a better PEP 517/518 compliant tool) to manage our environments, to get started clone the repository (and we recommend forking us first)
 
-## Contributing
-If you are interested in contributing to *Starfish*, first off, thank you! We appreciate your time and effort into 
-making our project better. To get set up in a development environment, it is highly recommended to develop in a 
-virtual environment. If you are a fan of *pipenv* go ahead and set up using
-    
-    pipenv install
-    
-which will automatically process the dependencies from `Pipfile.lock`. If you prefer `conda` go ahead 
-with
+    $ git clone https://github.com/<your_fork>/Starfish.git starfish
+    $ cd starfish
 
-    conda create --name starfish
+and then create the virtual environment and install all the packages and developer dependencies from the `Pipfile` with
 
-if you are on windows:
+    $ pipenv install -d
 
-    activate starfish
-   
-otherwise
+and to enter the virtual environment, simply issue
 
-    source activate starfish
-    
-followed by 
-    
-    pip install -r requirements.txt
-    
+    $ pipenv shell
+
+whenever you're in the `starfish` folder.
+
+We also enforce the `black` [code style](https://github.com/python/black). This tools allows automatically formatting everything for you, which is much easier than caring about it yourself! We have a [pre-commit](https://pre-commit.com/) hook that will *blacken* your code before you commit so you can avoid failing the CI tests because you forgot to format. To use this, just install the hook with 
+
+    $ pipenv run pre-commit install
+
+From then on, any commits will format your code before succeeding!
+
 Take a look through the [issues](https://github.com/iancze/Starfish/issues) if you are looking for a place to start improving *Starfish*!
+
+**Tests**
+
+We use `pytest` for testing; within the virtual environment
+
+    $ pytest
+
+Note that we use the `black` code style and our CI testing will check that everything is formatted correctly. To check your code
+
+    $ pytest --black
+
+although if you follow the instructions for using *pre-commit* you should have no issues.
+
 
 ## Contributors
 
-See `CONTRIBUTORS.md` for a full list of contributors.
+See [`CONTRIBUTORS.md`](CONTRIBUTORS.md) for a full list of contributors.

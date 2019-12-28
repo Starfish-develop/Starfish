@@ -13,6 +13,9 @@ dist/
 Starfish/covariance.c
 StellarSpectra/covariance.c
 StellarSpectra/covariance.cpython-34m.so
+Starfish/*.c
+Starfish/*.so
+Starfish/*.dll
 
 #Python install files
 StellarSpectra.egg-info/
@@ -158,4 +161,21 @@ Session.vim
 *~
 attic
 notebooks
+.vscode
 plots
+.pytest_cache
+tests/data/emu.hdf5
+
+## generated c code
+Starfish/emulator/_covariance.c
+Starfish/models/_kernels.c
+.python-version
+
+examples/*
+!examples/*.ipynb
+
+.mypy_cache
+
+.venv
+
+Pipfile.lock
