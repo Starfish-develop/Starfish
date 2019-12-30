@@ -1,6 +1,6 @@
 # Starfish
 [![Documentation Status](https://readthedocs.org/projects/starfish/badge/?version=latest)](https://starfish.readthedocs.io/en/latest/?badge=latest)
-[![Build Status](https://github.com/iancze/Starfish/workflows/CI/badge.svg)](https://github.com/iancze/Starfish/actions)
+[![Build Status](https://github.com/iancze/Starfish/workflows/CI/badge.svg?branch=master)](https://github.com/iancze/Starfish/actions)
 [![Coverage Status](https://codecov.io/gh/iancze/Starfish/graph/badge.svg)](https://codecov.io/gh/iancze/Starfish/)
 [![PyPI](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
