@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
-import builtins
+import os
+import re
 
-builtins.__STARFISH_SETUP__ = True
+version = ""
 
-import Starfish
+with open(os.path.join("Starfish", "__init__.py"), "r") as fh:
+    for line in fh.readlines():
+        m = re.search('__version__ = (".+")', line)
+        if m:
+            version = m.group(1)
+
 
 with open("README.md", "r") as fh:
     readme = fh.read()
@@ -13,7 +19,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     name="astrostarfish",
-    version=Starfish.__version__,
+    version=version,
     description="Covariance tools for fitting stellar spectra",
     python_requires="==3.*,>=3.6.0",
     project_urls={
