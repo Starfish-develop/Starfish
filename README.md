@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/iancze/Starfish/workflows/CI/badge.svg?branch=master)](https://github.com/iancze/Starfish/actions)
 [![Coverage Status](https://codecov.io/gh/iancze/Starfish/graph/badge.svg)](https://codecov.io/gh/iancze/Starfish/)
 [![PyPI](https://img.shields.io/pypi/v/astrostarfish.svg)](https://pypi.org/project/astrostarfish/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221006.svg)](https://doi.org/10.5281/zenodo.2221006)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2221005.svg)](https://doi.org/10.5281/zenodo.2221005)
 
 *Starfish* is a set of tools used for spectroscopic inference. We designed the package to robustly determine stellar parameters using high resolution spectral models.
 
