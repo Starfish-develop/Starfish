@@ -12,7 +12,7 @@ scikit-learn = "*"
 scipy = "*"
 toml = {version = "==0.10.1",git = "https://github.com/uiri/toml"}
 tqdm = "*"
-extinction = "*"
+extinction = "==0.4.2"
 
 [dev-packages]
 black = "==19.3b0"

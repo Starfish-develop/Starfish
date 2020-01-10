@@ -42,7 +42,7 @@ setup(
     install_requires=[
         "astropy==3.*,>=3.1.0",
         "dataclasses==0.*,>=0.6.0",
-        "extinction @ git+https://github.com/kbarbary/extinction.git@master#egg=extinction",
+        "extinction==0.4.*,>=0.4.2",
         "flatdict==3.*,>=3.3.0",
         "h5py==2.*,>=2.9.0",
         "nptyping==0.*,>=0.2.0",
