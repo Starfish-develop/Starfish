@@ -41,7 +41,8 @@ If your shell says Python 2.x, try using the `python3` command instead of `pytho
 
 ## Installation
 
-** WARNING: The version on PyPI is not up-to-date, please install from master ([see this issue](https://github.com/uiri/toml/issues/267))**
+**WARNING: The version on PyPI is not up-to-date, please install from master ([see this issue](https://github.com/uiri/toml/issues/267))**
+
 For the most current stable release of *Starfish*, use the releases from PyPI
 
     $ pip install astrostarfish
