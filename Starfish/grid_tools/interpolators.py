@@ -91,8 +91,8 @@ class Interpolator:
         self.cache = OrderedDict([])
         self.cache_max = cache_max
         self.cache_dump = (
-            cache_dump
-        )  # how many to clear once the maximum cache has been reached
+            cache_dump  # how many to clear once the maximum cache has been reached
+        )
         self.log = logging.getLogger(self.__class__.__name__)
 
     def _determine_chunk_log(self):
