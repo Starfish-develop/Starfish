@@ -55,7 +55,7 @@ setup(
     extras_require={
         "docs": [
             "nbsphinx==0.*,>=0.4.2",
-            "sphinx==2.*,>=2.3",
+            "sphinx==2.3.*",
             "sphinx-bootstrap-theme==0.*,>=0.7.1",
             "IPython",
             "sphinx-autodoc-typehints==1.10.3",
