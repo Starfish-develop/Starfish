@@ -61,6 +61,7 @@ setup(
             "sphinx-autodoc-typehints==1.10.3",
         ],
         "test": [
+            "black==20.*",
             "coveralls==1.*,>=1.8.0",
             "pytest==4.*,>=4.6.0",
             "pytest-black",
