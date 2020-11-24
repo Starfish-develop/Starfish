@@ -159,9 +159,7 @@ class HDF5Interface:
             self.wl_header = dict(base["wl"].attrs.items())
             self.dv = self.wl_header["dv"]
             self.grid_points = base["grid_points"][:]
-            self.param_names = list(
-                map(lambda s: s.decode("utf-8"), base["grid_points"].attrs["names"])
-            )
+            self.param_names = base["grid_points"].attrs["names"]
             self.wave_units = base["wl"].attrs["units"]
             self.flux_units = base["flux"].attrs["units"]
 
