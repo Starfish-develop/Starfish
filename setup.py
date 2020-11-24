@@ -7,7 +7,7 @@ version = ""
 
 with open(os.path.join("Starfish", "__init__.py"), "r") as fh:
     for line in fh.readlines():
-        m = re.search('__version__ = (".+")', line)
+        m = re.search("__version__ = [\"'](.+)[\"']", line)
         if m:
             version = m.group(1)
 
@@ -49,7 +49,7 @@ setup(
         "numpy==1.*,>=1.16.0",
         "scikit-learn==0.*,>=0.21.2",
         "scipy==1.*,>=1.3.0",
-        "toml @ git+https://github.com/uiri/toml.git@master#egg=toml-0.10.1",
+        "toml==0.10.*,>=0.10.1",
         "tqdm==4.*,>=4.32.0",
     ],
     extras_require={

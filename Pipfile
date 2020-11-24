@@ -4,13 +4,13 @@ python_version = "3.7"
 [packages]
 astropy = "*"
 dataclasses = "*"
-flatdict = {version = "==3.2.2",git = "https://github.com/mileslucas/flatdict"}
+flatdict = {version = "==3.2.2"}
 h5py = "*"
 nptyping = "*"
 numpy = "*"
 scikit-learn = "*"
 scipy = "*"
-toml = {version = "==0.10.1",git = "https://github.com/uiri/toml"}
+toml = {version = "==0.10.1"}
 tqdm = "*"
 extinction = "==0.4.2"
 
