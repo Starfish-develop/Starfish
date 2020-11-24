@@ -5,7 +5,7 @@ from typing import Sequence, Optional, Union, Tuple
 
 import h5py
 import numpy as np
-from nptyping import Array
+from nptyping import NDArray
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 from sklearn.decomposition import PCA
@@ -67,17 +67,17 @@ class Emulator:
 
     def __init__(
         self,
-        grid_points: Array[float],
+        grid_points: NDArray[float],
         param_names: Sequence[str],
-        wavelength: Array[float],
-        weights: Array[float],
-        eigenspectra: Array[float],
-        w_hat: Array[float],
-        flux_mean: Array[float],
-        flux_std: Array[float],
+        wavelength: NDArray[float],
+        weights: NDArray[float],
+        eigenspectra: NDArray[float],
+        w_hat: NDArray[float],
+        flux_mean: NDArray[float],
+        flux_std: NDArray[float],
         lambda_xi: float = 1.0,
-        variances: Optional[Array[float]] = None,
-        lengthscales: Optional[Array[float]] = None,
+        variances: Optional[NDArray[float]] = None,
+        lengthscales: Optional[NDArray[float]] = None,
         name: Optional[str] = None,
     ):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -137,7 +137,7 @@ class Emulator:
         self.hyperparams["log_lambda_xi"] = np.log(value)
 
     @property
-    def variances(self) -> Array[float]:
+    def variances(self) -> NDArray[float]:
         """
         numpy.ndarray : The variances for each Gaussian process kernel.
 
@@ -151,12 +151,12 @@ class Emulator:
         return np.exp(values)
 
     @variances.setter
-    def variances(self, values: Array[float]):
+    def variances(self, values: NDArray[float]):
         for i, value in enumerate(values):
             self.hyperparams[f"log_variance:{i}"] = np.log(value)
 
     @property
-    def lengthscales(self) -> Array[float]:
+    def lengthscales(self) -> NDArray[float]:
         """
         numpy.ndarray : The lengthscales for each Gaussian process kernel.
 
@@ -170,7 +170,7 @@ class Emulator:
         return np.exp(values).reshape(self.ncomps, -1)
 
     @lengthscales.setter
-    def lengthscales(self, values: Array[float]):
+    def lengthscales(self, values: NDArray[float]):
         for i, value in enumerate(values):
             for j, ls in enumerate(value):
                 self.hyperparams[f"log_lengthscale:{i}:{j}"] = np.log(ls)
@@ -320,7 +320,7 @@ class Emulator:
         params: Sequence[float],
         full_cov: bool = True,
         reinterpret_batch: bool = False,
-    ) -> Tuple[Array[float], Array[float]]:
+    ) -> Tuple[NDArray[float], NDArray[float]]:
         """
         Gets the mu and cov matrix for a given set of params
 
@@ -382,14 +382,16 @@ class Emulator:
         return mu, cov
 
     @property
-    def bulk_fluxes(self) -> Array[float]:
+    def bulk_fluxes(self) -> NDArray[float]:
         """
         numpy.ndarray: A vertically concatenated vector of the eigenspectra, flux_mean,
         and flux_std (in that order). Used for bulk processing with the emulator.
         """
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
-    def load_flux(self, params: Union[Sequence[float], Array[float]]) -> Array[float]:
+    def load_flux(
+        self, params: Union[Sequence[float], NDArray[float]]
+    ) -> NDArray[float]:
         """
         Interpolate a model given any parameters within the grid's parameter range
         using eigenspectrum reconstruction
@@ -536,7 +538,7 @@ class Emulator:
             self.grid_points, self.grid_points, self.variances, self.lengthscales
         )
 
-    def get_param_vector(self) -> Array[float]:
+    def get_param_vector(self) -> NDArray[float]:
         """
         Get a vector of the current trainable parameters of the emulator
 
@@ -547,7 +549,7 @@ class Emulator:
         values = list(self.get_param_dict().values())
         return np.array(values)
 
-    def set_param_vector(self, params: Array[float]):
+    def set_param_vector(self, params: NDArray[float]):
         """
         Set the current trainable parameters given a vector. Must have the same form as
         :meth:`get_param_vector`

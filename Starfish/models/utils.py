@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from nptyping import Array
+from nptyping import NDArray
 from scipy.optimize import minimize
 import scipy.stats as st
 
@@ -153,7 +153,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
 log = logging.getLogger(__name__)
 
 
-def covariance_debugger(cov: Array[float]):
+def covariance_debugger(cov: NDArray[float]):
     """
     Special debugging information for the covariance matrix decomposition.
     """
