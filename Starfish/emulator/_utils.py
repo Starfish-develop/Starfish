@@ -50,9 +50,9 @@ def get_phi_squared(eigenspectra, M):
 
 def get_altered_prior_factors(eigenspectra, fluxes):
     """
-    Compute the altered priors for the :math:`\\lambda_\\xi` term as in eqns. A24 and 
+    Compute the altered priors for the :math:`\\lambda_\\xi` term as in eqns. A24 and
     A25 of Czekala et al. 2015.
-    
+
     Parameters
     ----------
     eigenspectra : numpy.ndarray

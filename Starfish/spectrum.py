@@ -188,7 +188,7 @@ class Spectrum:
     @property
     def shape(self):
         """
-        numpy.ndarray: The shape of the spectrum, *(norders, npixels)*   
+        numpy.ndarray: The shape of the spectrum, *(norders, npixels)*
 
         :setter: Tries to reshape the data into a new arrangement of orders and pixels following numpy reshaping rules.
         """
@@ -202,12 +202,12 @@ class Spectrum:
     def reshape(self, shape):
         """
         Reshape the spectrum to the new shape. Obeys the same rules that numpy reshaping does. Note this is not done in-place.
-        
+
         Parameters
         ----------
         shape : tuple
             The new shape of the spectrum. Must abide by numpy reshaping rules.
-        
+
         Returns
         -------
         Spectrum
@@ -269,13 +269,13 @@ class Spectrum:
     def plot(self, ax=None, **kwargs):
         """
         Plot all the orders of the spectrum
-        
+
         Parameters
         ----------
         ax : matplotlib.Axes, optional
-            If provided, will plot on this axis. Otherwise, will create a new axis, by 
+            If provided, will plot on this axis. Otherwise, will create a new axis, by
             default None
-        
+
         Returns
         -------
         matplotlib.Axes

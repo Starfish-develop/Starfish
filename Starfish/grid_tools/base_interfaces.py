@@ -173,7 +173,9 @@ class HDF5Interface:
             np.unique(self.grid_points[:, i]) for i in range(self.grid_points.shape[1])
         ]
 
-        self.ind = None  # Overwritten by other methods using this as part of a ModelInterpolator
+        self.ind = (
+            None
+        )  # Overwritten by other methods using this as part of a ModelInterpolator
 
         # Test if key-name is specified correctly
         try:
@@ -249,8 +251,8 @@ class HDF5Creator:
         formatting string that has keys for each of the parameter names to translate into a hash-able string. If set to None, will create a name by taking each parameter name followed by value with underscores delimiting parameters. Default is None.
 
     Raises
-    ------ 
-    ValueError 
+    ------
+    ValueError
         if the wl_range is ill-specified or if the parameter range are completely disjoint from the grid points.
     """
 

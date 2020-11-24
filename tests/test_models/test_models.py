@@ -169,7 +169,7 @@ class TestSpectrumModel:
 
     def test_save_load_numpy(self, mock_model, tmpdir):
         """
-        In TOML library numpy.float64(32/16) do not get saved as floats but as strings. This checks that 
+        In TOML library numpy.float64(32/16) do not get saved as floats but as strings. This checks that
         it is correctly handled.
         """
         path = os.path.join(tmpdir, "model.toml")

@@ -35,7 +35,7 @@ class SpectrumModel:
     grid_params : array-like
         The parameters that are used with the associated emulator
     max_deque_len : int, optional
-        The maximum number of residuals to retain in a deque of residuals. Default is 
+        The maximum number of residuals to retain in a deque of residuals. Default is
         100
     name : str, optional
         A name for the model. Default is 'SpectrumModel'
@@ -43,13 +43,13 @@ class SpectrumModel:
     Keyword Arguments
     -----------------
     params : dict
-        Any remaining keyword arguments will be interpreted as parameters. 
-    
+        Any remaining keyword arguments will be interpreted as parameters.
+
 
     Here is a table describing the avialable parameters and their related functions
-    
+
     =========== ===============================================
-     Parameter                 Function                
+     Parameter                 Function
     =========== ===============================================
     vsini        :func:`~Starfish.transforms.rotational_broaden`
     vz           :func:`~Starfish.transforms.doppler_shift`
@@ -59,24 +59,24 @@ class SpectrumModel:
     =========== ===============================================
 
     .. note::
-        If :attr:`log_scale` is not specified, the model will use 
-        :func:`~Starfish.transforms.renorm` to automatically scale the spectrum to the 
+        If :attr:`log_scale` is not specified, the model will use
+        :func:`~Starfish.transforms.renorm` to automatically scale the spectrum to the
         data using the ratio of integrated fluxes.
 
-    The ``global_cov`` keyword arguments must be a dictionary definining the 
-    hyperparameters for the global covariance kernel, 
+    The ``global_cov`` keyword arguments must be a dictionary definining the
+    hyperparameters for the global covariance kernel,
     :meth:`kernels.global_covariance_matrix`
-    
+
     ================ =============================================================
     Global Parameter  Description
     ================ =============================================================
     log_amp          The natural logarithm of the amplitude of the Matern kernel
     log_ls           The natural logarithm of the lengthscale of the Matern kernel
     ================ =============================================================
-    
-    The ``local_cov`` keryword argument must be a list of dictionaries defining 
+
+    The ``local_cov`` keryword argument must be a list of dictionaries defining
     hyperparameters for many Gaussian kernels, , :meth:`kernels.local_covariance_matrix`
-    
+
     ================ =============================================================
     Local Parameter  Description
     ================ =============================================================
@@ -211,7 +211,7 @@ class SpectrumModel:
 
     def __call__(self):
         """
-        Performs the transformations according to the parameters available in 
+        Performs the transformations according to the parameters available in
         ``self.params``
 
         Returns
@@ -294,8 +294,8 @@ class SpectrumModel:
         Parameters
         ----------
         priors : dict, optional
-            If provided, will use these priors in the MLE. Should contain keys that 
-            match the model's keys and values that have a `logpdf` method that takes 
+            If provided, will use these priors in the MLE. Should contain keys that
+            match the model's keys and values that have a `logpdf` method that takes
             one value (like ``scipy.stats`` distributions). Default is None.
 
         Warning
@@ -336,8 +336,8 @@ class SpectrumModel:
         Parameters
         ----------
         flat : bool, optional
-            If True, returns the parameters completely flat. For example, 
-            ``['local']['0']['mu']`` would have the key ``'local:0:mu'``. 
+            If True, returns the parameters completely flat. For example,
+            ``['local']['0']['mu']`` would have the key ``'local:0:mu'``.
             Default is False
 
         Returns
@@ -357,13 +357,13 @@ class SpectrumModel:
 
     def set_param_dict(self, params):
         """
-        Sets the parameters with a dictionary. Note that this should not be used to add 
+        Sets the parameters with a dictionary. Note that this should not be used to add
         new parameters
 
         Parameters
         ----------
         params : dict
-            The new parameters. If a key is present in ``self.frozen`` it will not be 
+            The new parameters. If a key is present in ``self.frozen`` it will not be
             changed
 
         See Also
@@ -391,7 +391,7 @@ class SpectrumModel:
 
     def set_param_vector(self, params):
         """
-        Sets the parameters based on the current thawed state. The values will be 
+        Sets the parameters based on the current thawed state. The values will be
         inserted according to the order of :obj:`SpectrumModel.labels`.
 
         Parameters
@@ -415,15 +415,15 @@ class SpectrumModel:
 
     def freeze(self, names):
         """
-        Freeze the given parameter such that :meth:`get_param_dict` and 
-        :meth:`get_param_vector` no longer include this parameter, however it will 
+        Freeze the given parameter such that :meth:`get_param_dict` and
+        :meth:`get_param_vector` no longer include this parameter, however it will
         still be used when calling the model.
 
         Parameters
         ----------
         name : str or array-like
-            The parameter to freeze. If ``'all'``, will freeze all parameters. If 
-            ``'global_cov'`` will freeze all global covariance parameters. If 
+            The parameter to freeze. If ``'all'``, will freeze all parameters. If
+            ``'global_cov'`` will freeze all global covariance parameters. If
             ``'local_cov'`` will freeze all local covariance parameters.
 
         Raises
@@ -473,15 +473,15 @@ class SpectrumModel:
         Parameters
         ----------
         name : str or array-like
-            The parameter to thaw. If ``'all'``, will thaw all parameters. If 
-            ``'global_cov'`` will thaw all global covariance parameters. If 
+            The parameter to thaw. If ``'all'``, will thaw all parameters. If
+            ``'global_cov'`` will thaw all global covariance parameters. If
             ``'local_cov'`` will thaw all local covariance parameters.
-        
+
         Raises
         ------
         ValueError
             If the given parameter does not exist.
-        
+
         See Also
         --------
         :meth:`freeze`
@@ -510,14 +510,14 @@ class SpectrumModel:
     def save(self, filename, metadata=None):
         """
         Saves the model as a set of parameters into a TOML file
-        
+
         Parameters
         ----------
         filename : str or path-like
             The TOML filename to save to.
         metadata : dict, optional
-            If provided, will save the provided dictionary under a 'metadata' key. This 
-            will not be read in when loading models but provides a way of providing 
+            If provided, will save the provided dictionary under a 'metadata' key. This
+            will not be read in when loading models but provides a way of providing
             information in the actual TOML files. Default is None.
         """
         output = {"parameters": self.params.as_dict(), "frozen": self.frozen}
@@ -539,7 +539,7 @@ class SpectrumModel:
     def load(self, filename):
         """
         Load a saved model state from a TOML file
-        
+
         Parameters
         ----------
         filename : str or path-like
@@ -552,13 +552,13 @@ class SpectrumModel:
 
     def train(self, priors: Optional[dict] = None, **kwargs):
         """
-        Given a :class:`SpectrumModel` and a dictionary of priors, will perform 
-        maximum-likelihood estimation (MLE). This will use ``scipy.optimize.minimize`` to 
-        find the maximum a-posteriori (MAP) estimate of the current model state. Note 
-        that this alters the state of the model. This means that you can run this 
-        method multiple times until the optimization succeeds. By default, we use the 
+        Given a :class:`SpectrumModel` and a dictionary of priors, will perform
+        maximum-likelihood estimation (MLE). This will use ``scipy.optimize.minimize`` to
+        find the maximum a-posteriori (MAP) estimate of the current model state. Note
+        that this alters the state of the model. This means that you can run this
+        method multiple times until the optimization succeeds. By default, we use the
         "Nelder-Mead" method in `minimize` to avoid approximating any derivatives.
-        
+
         Parameters
         ----------
         priors : dict, optional
@@ -569,7 +569,7 @@ class SpectrumModel:
         Returns
         -------
         soln : `scipy.optimize.minimize_result`
-            The output of the minimization. 
+            The output of the minimization.
 
         Raises
         ------
@@ -617,21 +617,21 @@ class SpectrumModel:
         """
         Plot the model.
 
-        This will create two subplots, one which shows the current model against the 
-        data, and another which shows the current residuals with 3:math:`\\sigma` 
-        contours from the diagonal of the covariance matrix. Note this requires 
+        This will create two subplots, one which shows the current model against the
+        data, and another which shows the current residuals with 3:math:`\\sigma`
+        contours from the diagonal of the covariance matrix. Note this requires
         matplotlib to be installed, which is not installed by default with Starfish.
-        
+
         Parameters
         ----------
         axes : iterable of matplotlib.Axes, optional
-            If provided, will use the first two axes to plot, otherwise will create new 
+            If provided, will use the first two axes to plot, otherwise will create new
             axes, by default None
         plot_kwargs : dict, optional
             If provided, will use these kwargs for the comparison plot, by default None
         resid_kwargs : dict, optional
             If provided, will use these kwargs for the residuals plot, by default None
-        
+
         Returns
         -------
         list of matplotlib.Axes

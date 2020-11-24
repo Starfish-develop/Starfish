@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 def download_PHOENIX_models(path, ranges=None, parameters=None):
     """
-    Download the PHOENIX grid models from the Goettingen servers. This will skip over 
+    Download the PHOENIX grid models from the Goettingen servers. This will skip over
     any ill-defined files or any files that already exist on disk in the given folder.
 
     Parameters
@@ -21,13 +21,13 @@ def download_PHOENIX_models(path, ranges=None, parameters=None):
     path : str or path-like
         The base directory to save the files in.
     ranges : iterable of (min, max), optional
-        Each entry in ranges should be (min, max) for the associated parameter, in the 
-        order [Teff, logg, Z, (Alpha)]. Cannot be used with :attr:`parameters`. Default 
+        Each entry in ranges should be (min, max) for the associated parameter, in the
+        order [Teff, logg, Z, (Alpha)]. Cannot be used with :attr:`parameters`. Default
         is None
     parameters : iterable of iterables of length 3 or length 4, optional
-        The parameters to download. Should be a list of parameters where parameters can 
-        either be [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be 
-        floats or integers and not string. If no value provided, will download all 
+        The parameters to download. Should be a list of parameters where parameters can
+        either be [Teff, logg, Z] or [Teff, logg, Z, Alpha]. All values should be
+        floats or integers and not string. If no value provided, will download all
         models. Default is None
 
     Raises
@@ -41,7 +41,7 @@ def download_PHOENIX_models(path, ranges=None, parameters=None):
 
     Warning
     -------
-    Please use this responsibly to avoid over-saturating the connection to the 
+    Please use this responsibly to avoid over-saturating the connection to the
     Gottingen servers.
 
     Examples
@@ -326,12 +326,12 @@ def air_to_vacuum(wl):
 def idl_float(idl_num: str) -> float:
     """
     Convert an IDL string number in scientific notation to a float
-    
+
     Parameters
     ----------
     idl_num : str
         Input str
-    
+
     Returns
     -------
     float

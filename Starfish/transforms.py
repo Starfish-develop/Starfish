@@ -44,7 +44,7 @@ def resample(wave, flux, new_wave):
 
 def instrumental_broaden(wave, flux, fwhm):
     """
-    Broadens given flux by convolving with a Gaussian kernel appropriate for a 
+    Broadens given flux by convolving with a Gaussian kernel appropriate for a
     spectrograph's instrumental properties. Follows the given equation
 
     .. math::
@@ -53,7 +53,7 @@ def instrumental_broaden(wave, flux, fwhm):
     .. math::
         \\mathcal{F}^{\\text{inst}}_v = \\frac{1}{\\sqrt{2\\pi \\sigma^2}} \\exp \\left[-\\frac12 \\left( \\frac{v}{\\sigma} \\right)^2 \\right]
 
-    This is carried out by multiplication in the Fourier domain rather than using a 
+    This is carried out by multiplication in the Fourier domain rather than using a
     convolution function.
 
     Parameters
@@ -63,7 +63,7 @@ def instrumental_broaden(wave, flux, fwhm):
     flux : array_like
         The current flux
     fwhm : float
-        The full width half-maximum of the instrument in km/s. Note that this is 
+        The full width half-maximum of the instrument in km/s. Note that this is
         quivalent to :math:`2.355\\cdot \\sigma`
 
     Raises
@@ -114,7 +114,7 @@ def rotational_broaden(wave, flux, vsini):
         The broadened flux with the same shape as the input flux
 
 
-    .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*. 
+    .. [1] Gray, D. (2005). *The observation and Analysis of Stellar Photospheres*.
     Cambridge: Cambridge University Press. doi:10.1017/CB09781316036570
     """
 
@@ -160,7 +160,7 @@ def doppler_shift(wave, vz):
 
 def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     """
-    Extinct a spectrum following one of many empirical extinction laws. This makes use 
+    Extinct a spectrum following one of many empirical extinction laws. This makes use
     of the `extinction` package. In general, it follows the form
 
     .. math:: f \\cdot 10^{-0.4 A_V \\cdot A_\\lambda(R_V)}
@@ -176,7 +176,7 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     Rv : float, optional
         The relative attenuation (the default is 3.1, which is the Milky Way average)
     law : str, optional
-        The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00', 
+        The extinction law to use. One of `{'ccm89', 'odonnell94', 'calzetti00',
         'fitzpatrick99', 'fm07'}` (the default is 'ccm89')
 
     Raises
@@ -217,7 +217,7 @@ def rescale(flux, scale):
     flux : array_like
         The input fluxes
     scale : float or array_like
-        The scaling factor. If an array, must have same shape as the batch dimension of 
+        The scaling factor. If an array, must have same shape as the batch dimension of
         :attr:`flux`
 
     Returns
@@ -241,7 +241,7 @@ def renorm(wave, flux, reference_flux):
 
         \\log \\Omega = \\left. \\int{f^{*}(w) dw} \\middle/ \\int{f(w) dw} \\right.
 
-    where :math:`f^{*}` is the reference flux, :math:`f` is the source flux, and the 
+    where :math:`f^{*}` is the reference flux, :math:`f` is the source flux, and the
     integrals are over a common wavelength grid
 
     Parameters
@@ -270,9 +270,9 @@ def _get_renorm_factor(wave, flux, reference_flux):
 
 def chebyshev_correct(wave, flux, coeffs):
     """
-    Multiply the input flux by a Chebyshev series in order to correct for 
+    Multiply the input flux by a Chebyshev series in order to correct for
     calibration-level discrepancies.
-    
+
     Parameters
     ----------
     wave : array-lioke
@@ -281,12 +281,12 @@ def chebyshev_correct(wave, flux, coeffs):
         Input flux
     coeffs : array-like
         The coefficients for the chebyshev series.
-    
+
     Returns
     -------
     numpy.ndarray
         The corrected flux
-    
+
     Raises
     ------
     ValueError

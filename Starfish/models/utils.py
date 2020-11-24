@@ -13,15 +13,15 @@ def find_residual_peaks(
     model, num_residuals=100, threshold=4.0, buffer=2, wl_range=(0, np.inf)
 ):
     """
-    Find the peaks of the most recent residual and return their properties to aid in 
+    Find the peaks of the most recent residual and return their properties to aid in
     setting up local kernels
 
     Parameters
     ----------
-    model : Model 
+    model : Model
         The model to determine peaks from. Need only have a residuals array.
     num_residuals : int, optional
-        The number of residuals to average together for determining peaks. By default 
+        The number of residuals to average together for determining peaks. By default
         100.
     threshold : float, optional
         The sigma clipping threshold, by default 4.0
@@ -64,7 +64,7 @@ def find_residual_peaks(
 
 def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=100):
     """
-    Optimize the local covariance parameters based on fitting the residual input means 
+    Optimize the local covariance parameters based on fitting the residual input means
     as Gaussians around the residuals
 
     Parameters
@@ -74,13 +74,13 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
     mus : array-like
         The means to instantiate Gaussians at and optimize.
     threshold : float, optional
-        This is the threshold for restricting kernels; i.e. if a fit amplitude is less 
+        This is the threshold for restricting kernels; i.e. if a fit amplitude is less
         than threshold standard deviations then it will be thrown away. Default is 0.1
     sigma0 : float, optional
-        The initial standard deviation (in Angstrom) of each Gaussian. Default is 50 
+        The initial standard deviation (in Angstrom) of each Gaussian. Default is 50
         Angstrom.
     num_residuals : int, optional
-        The number of residuals to average together for determining peaks. By default 
+        The number of residuals to average together for determining peaks. By default
         100.
 
     Returns
@@ -90,7 +90,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
 
     Warning
     -------
-    I have had inconsistent results with this optimization, be mindful of your outputs 
+    I have had inconsistent results with this optimization, be mindful of your outputs
     and consider hand-tuning after optimizing.
     """
     residual = np.mean(list(model.residuals)[-num_residuals:], axis=0)

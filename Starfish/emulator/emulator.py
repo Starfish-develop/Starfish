@@ -23,9 +23,9 @@ class Emulator:
     """
     A Bayesian spectral emulator.
 
-    This emulator offers an interface to spectral libraries that offers interpolation 
-    while providing a variance-covariance matrix that can be forward-propagated in 
-    likelihood calculations. For more details, see the appendix from Czekala et al. 
+    This emulator offers an interface to spectral libraries that offers interpolation
+    while providing a variance-covariance matrix that can be forward-propagated in
+    likelihood calculations. For more details, see the appendix from Czekala et al.
     (2015).
 
     Parameters
@@ -51,11 +51,11 @@ class Emulator:
     variances : numpy.ndarray, optional
         The variance parameters for each of Gaussian process, default is array of 1s
     lengthscales : numpy.ndarray, optional
-        The lengthscales for each Gaussian process, each row should have length equal 
-        to number of library parameters, default is arrays of 3 * the max grid 
+        The lengthscales for each Gaussian process, each row should have length equal
+        to number of library parameters, default is arrays of 3 * the max grid
         separation for the grid_points
     name : str, optional
-        If provided, will give a name to the emulator; useful for keeping track of 
+        If provided, will give a name to the emulator; useful for keeping track of
         filenames. Default is None.
 
 
@@ -159,7 +159,7 @@ class Emulator:
     def lengthscales(self) -> Array[float]:
         """
         numpy.ndarray : The lengthscales for each Gaussian process kernel.
-        
+
         :setter: Sets the lengthscales given a 2d array
         """
         values = [
@@ -269,7 +269,7 @@ class Emulator:
         grid : :class:`GridInterface` or str
             The grid interface to decompose
         pca_kwargs : dict, optional
-            The keyword arguments to pass to PCA. By default, `n_components=0.99` and 
+            The keyword arguments to pass to PCA. By default, `n_components=0.99` and
             `svd_solver='full'`.
 
         See Also
@@ -327,13 +327,13 @@ class Emulator:
         Parameters
         ----------
         params : array_like
-            The parameters to sample at. Should be consistent with the shapes of the 
+            The parameters to sample at. Should be consistent with the shapes of the
             original grid points.
         full_cov : bool, optional
-            Return the full covariance or just the variance, default is True. This will 
+            Return the full covariance or just the variance, default is True. This will
             have no effect of reinterpret_batch is true
         reinterpret_batch : bool, optional
-            Will try and return a batch of output matrices if the input params are a 
+            Will try and return a batch of output matrices if the input params are a
             list of params, default is False.
 
         Returns
@@ -384,14 +384,14 @@ class Emulator:
     @property
     def bulk_fluxes(self) -> Array[float]:
         """
-        numpy.ndarray: A vertically concatenated vector of the eigenspectra, flux_mean, 
+        numpy.ndarray: A vertically concatenated vector of the eigenspectra, flux_mean,
         and flux_std (in that order). Used for bulk processing with the emulator.
         """
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
     def load_flux(self, params: Union[Sequence[float], Array[float]]) -> Array[float]:
         """
-        Interpolate a model given any parameters within the grid's parameter range 
+        Interpolate a model given any parameters within the grid's parameter range
         using eigenspectrum reconstruction
         by sampling from the weight distributions.
 
@@ -411,7 +411,7 @@ class Emulator:
 
     def determine_chunk_log(self, wavelength: Sequence[float], buffer: float = 50):
         """
-        Possibly truncate the wavelength and eigenspectra in response to some new 
+        Possibly truncate the wavelength and eigenspectra in response to some new
         wavelengths
 
         Parameters
@@ -454,7 +454,7 @@ class Emulator:
         Parameters
         ----------
         **opt_kwargs
-            Any arguments to pass to the optimizer. By default, `method='Nelder-Mead'` 
+            Any arguments to pass to the optimizer. By default, `method='Nelder-Mead'`
             and `maxiter=10000`.
 
         See Also
@@ -549,7 +549,7 @@ class Emulator:
 
     def set_param_vector(self, params: Array[float]):
         """
-        Set the current trainable parameters given a vector. Must have the same form as 
+        Set the current trainable parameters given a vector. Must have the same form as
         :meth:`get_param_vector`
 
         Parameters
@@ -567,7 +567,7 @@ class Emulator:
 
     def log_likelihood(self) -> float:
         """
-        Get the log likelihood of the emulator in its current state as calculated in 
+        Get the log likelihood of the emulator in its current state as calculated in
         the appendix of Czekala et al. (2015)
 
         Returns
