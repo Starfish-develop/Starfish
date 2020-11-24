@@ -179,3 +179,4 @@ examples/*
 .venv
 
 Pipfile.lock
+pip-wheel-metadata
