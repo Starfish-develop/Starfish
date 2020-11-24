@@ -4,7 +4,7 @@ python_version = "3.7"
 [packages]
 astropy = "*"
 dataclasses = "*"
-flatdict = ">=3.2.2"
+flatdict = "*"
 h5py = "*"
 nptyping = "*"
 numpy = "*"
