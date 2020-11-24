@@ -110,7 +110,7 @@ class TestSpectrumModel:
         for key, value in original.items():
             mock_model[key] = value
 
-        assert mock_model.params == original
+        assert mock_model.params.values() == original.values()
 
     @pytest.mark.parametrize("flat", [False, True])
     def test_get_set_param_dict(self, mock_model, flat):
@@ -215,19 +215,19 @@ class TestSpectrumModel:
             Log Likelihood: {mock_model.log_likelihood()}
 
             Parameters
+              vz: 0
               Av: 0
-              T: 6000
-              Z: 0
+              log_scale: -10
+              vsini: 30
               global_cov:
                 log_amp: 1
                 log_ls: 1
               local_cov:
-                0: log_amp: 2, log_sigma: 2, mu: 10000.0
-                1: log_amp: 1.5, log_sigma: 2, mu: 13000.0
-              log_scale: -10
-              vsini: 30
-              vz: 0
-
+                0: mu: 10000.0, log_amp: 2, log_sigma: 2
+                1: mu: 13000.0, log_amp: 1.5, log_sigma: 2
+              T: 6000
+              Z: 0
+            
             Frozen Parameters
               logg: 4.0
             """
