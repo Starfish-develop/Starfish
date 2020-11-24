@@ -28,7 +28,7 @@ setup(
     },
     author="Ian Czekala",
     author_email="iancze@gmail.com",
-    maintainer="Miles Lucas <mdlucas@iastate.edu",
+    maintainer="Miles Lucas <mdlucas@hawaii.edu",
     license="BSD-4-Clause",
     keywords="Science Astronomy Physics Data Science",
     classifiers=[
@@ -40,17 +40,17 @@ setup(
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     package_data={},
     install_requires=[
-        "astropy==3.*,>=3.1.0",
+        "astropy==4.*",
         "dataclasses==0.*,>=0.6.0",
-        "extinction==0.4.*,>=0.4.2",
+        "extinction==0.4.*",
         "flatdict==4.*",
-        "h5py==2.*,>=2.9.0",
-        "nptyping==0.*,>=0.2.0",
+        "h5py==3.*",
+        "nptyping==1.*",
         "numpy==1.*,>=1.16.0",
         "scikit-learn==0.*,>=0.21.2",
         "scipy==1.*,>=1.3.0",
         "toml==0.10.*,>=0.10.1",
-        "tqdm==4.*,>=4.32.0",
+        "tqdm==4.*",
     ],
     extras_require={
         "docs": [
