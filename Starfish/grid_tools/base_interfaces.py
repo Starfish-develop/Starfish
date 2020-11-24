@@ -171,9 +171,7 @@ class HDF5Interface:
             np.unique(self.grid_points[:, i]) for i in range(self.grid_points.shape[1])
         ]
 
-        self.ind = (
-            None
-        )  # Overwritten by other methods using this as part of a ModelInterpolator
+        self.ind = None  # Overwritten by other methods using this as part of a ModelInterpolator
 
         # Test if key-name is specified correctly
         try:
