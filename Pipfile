@@ -4,18 +4,18 @@ python_version = "3.7"
 [packages]
 astropy = "*"
 dataclasses = "*"
-flatdict = {version = "==3.2.2"}
+flatdict = ">=3.2.2"
 h5py = "*"
 nptyping = "*"
 numpy = "*"
 scikit-learn = "*"
 scipy = "*"
-toml = {version = "==0.10.1"}
+toml = ">=0.10.1"
 tqdm = "*"
-extinction = "==0.4.2"
+extinction = ">=0.4.2"
 
 [dev-packages]
-black = "==19.3b0"
+black = "*"
 coveralls = "*"
 flake8 = "*"
 ipython = "*"
