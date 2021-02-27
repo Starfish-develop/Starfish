@@ -11,6 +11,7 @@ class TestEmulator:
     def test_creation_from_string(self, mock_hdf5):
         emu = Emulator.from_grid(mock_hdf5)
         assert emu._trained is False
+        assert np.allclose(emu._grid_sep, [100, 0.5, 0.5])  # issue 134
 
     def test_call(self, mock_emulator):
         mu, cov = mock_emulator([6020, 4.21, -0.01])

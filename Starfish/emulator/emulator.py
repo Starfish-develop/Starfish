@@ -101,9 +101,10 @@ class Emulator:
             variances if variances is not None else 1e4 * np.ones(self.ncomps)
         )
 
+        unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
+        self._grid_sep = np.array([np.diff(param).max() for param in unique])
+
         if lengthscales is None:
-            unique = [sorted(np.unique(param_set)) for param_set in self.grid_points.T]
-            self._grid_sep = np.array([np.diff(param).max() for param in unique])
             lengthscales = np.tile(3 * self._grid_sep, (self.ncomps, 1))
 
         self.lengthscales = lengthscales
@@ -451,7 +452,7 @@ class Emulator:
 
     def train(self, **opt_kwargs):
         """
-        Trains the emulator's hyperparameters using gradient descent
+        Trains the emulator's hyperparameters using gradient descent. This is a light wrapper around `scipy.optimize.minimize`. If you are experiencing problems optimizing the emulator, consider implementing your own training loop, using this function as a template.
 
         Parameters
         ----------
@@ -466,7 +467,7 @@ class Emulator:
         """
         # Define our loss function
         def nll(P):
-            if np.any(P < 0):
+            if np.any(~np.isfinite(P)):
                 return np.inf
             self.set_param_vector(P)
             if np.any(self.lengthscales < 2 * self._grid_sep):
