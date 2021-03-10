@@ -57,12 +57,19 @@ class SpectrumModel:
     Av           :func:`~Starfish.transforms.extinct`
     Rv           :func:`~Starfish.transforms.extinct`
     log_scale    :func:`~Starfish.transforms.rescale`
+    cheb         :func:`~Starfish.transforms.chebyshev_correct`
     =========== ===============================================
 
     .. note::
         If :attr:`log_scale` is not specified, the model will use
         :func:`~Starfish.transforms.renorm` to automatically scale the spectrum to the
         data using the ratio of integrated fluxes.
+
+    .. note::
+        `cheb` corresponds to a list/array of coefficients, however we force the constant
+        coefficient (`c0`) to be 1. This means `cheb` will correspond to `c1, c2, ...`.
+        The entire list can be retrieved like `model["cheb"]` and indiviual values can be
+        retrieved with `model["cheb:0"]` (again, `"cheb:0"` corresponds to `c1`).
 
     The ``global_cov`` keyword arguments must be a dictionary definining the
     hyperparameters for the global covariance kernel,
@@ -264,7 +271,7 @@ class SpectrumModel:
             fluxes = extinct(self.data.wave, fluxes, self.params["Av"])
 
         if "cheb" in self.params:
-            # force linear term to be 1 to avoid degeneracy with log_scale
+            # force constant term to be 1 to avoid degeneracy with log_scale
             coeffs = [1, *self.cheb]
             fluxes = chebyshev_correct(self.data.wave, fluxes, coeffs)
 
