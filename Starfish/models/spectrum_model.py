@@ -151,7 +151,6 @@ class SpectrumModel:
         self.grid_params = grid_params
 
         self._lnprob = None
-        self._cheb = None
         self._glob_cov = None
         self._loc_cov = None
 
@@ -265,7 +264,9 @@ class SpectrumModel:
             fluxes = extinct(self.data.wave, fluxes, self.params["Av"])
 
         if "cheb" in self.params:
-            fluxes = chebyshev_correct(self.data.wave, fluxes, self.cheb)
+            # force linear term to be 1 to avoid degeneracy with log_scale
+            coeffs = [1, *self.cheb]
+            fluxes = chebyshev_correct(self.data.wave, fluxes, coeffs)
 
         # Only rescale flux_mean and flux_std
         if "log_scale" in self.params:
