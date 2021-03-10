@@ -11,6 +11,7 @@ import toml
 from Starfish import Spectrum
 from Starfish.emulator import Emulator
 from Starfish.transforms import (
+    chebyshev_correct,
     rotational_broaden,
     resample,
     doppler_shift,
@@ -175,6 +176,21 @@ class SpectrumModel:
                 self.params[key] = value
 
     @property
+    def cheb(self):
+        """
+        numpy.ndarray : The Chebyshev polynomial coefficients used for the background model
+        """
+        return np.array(self.params["cheb"].values())
+
+    @cheb.setter
+    def cheb(self, values):
+        if "cheb" in self.frozen:
+            return
+        for key, value in zip(self.params["cheb"], values):
+            if f"cheb:{key}" not in self.frozen:
+                self.params["cheb"][key] = value
+
+    @property
     def labels(self):
         """
         tuple of str : The thawed parameter names
@@ -194,12 +210,15 @@ class SpectrumModel:
             elif group == "local_cov" and k in self._LOCAL_PARAMS:
                 self.params[key] = value
             elif group == "cheb":
-                self.params[key] = value
+                self.params[group][k] = value
             else:
                 raise ValueError(f"{key} not recognized")
         else:
             if key in [*self._PARAMS, *self.emulator.param_names]:
-                self.params[key] = value
+                if key == "cheb":
+                    self.params[key] = list(value)
+                else:
+                    self.params[key] = value
             else:
                 raise ValueError(f"{key} not recognized")
 
@@ -245,12 +264,13 @@ class SpectrumModel:
         if "Av" in self.params:
             fluxes = extinct(self.data.wave, fluxes, self.params["Av"])
 
+        if "cheb" in self.params:
+            fluxes = chebyshev_correct(self.data.wave, fluxes, self.cheb)
+
         # Only rescale flux_mean and flux_std
         if "log_scale" in self.params:
             scale = np.exp(self.params["log_scale"])
             fluxes[-2:] = rescale(fluxes[-2:], scale)
-
-        # if "cheb" in
 
         weights, weights_cov = self.emulator(self.grid_params)
 
@@ -741,7 +761,7 @@ class SpectrumModel:
                     output += "\n"
             elif key == "cheb":
                 output += "  cheb: "
-                output += str(list(value.values()))
+                output += str(list(self.cheb))
                 output += "\n"
             else:
                 output += f"  {key}: {value}\n"
