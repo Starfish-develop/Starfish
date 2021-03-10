@@ -95,7 +95,16 @@ class SpectrumModel:
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
     """
 
-    _PARAMS = ["vz", "vsini", "Av", "Rv", "log_scale", "global_cov", "local_cov"]
+    _PARAMS = [
+        "vz",
+        "vsini",
+        "Av",
+        "Rv",
+        "log_scale",
+        "global_cov",
+        "local_cov",
+        "cheb",
+    ]
     _GLOBAL_PARAMS = ["log_amp", "log_ls"]
     _LOCAL_PARAMS = ["mu", "log_amp", "log_sigma"]
 
@@ -141,6 +150,7 @@ class SpectrumModel:
         self.grid_params = grid_params
 
         self._lnprob = None
+        self._cheb = None
         self._glob_cov = None
         self._loc_cov = None
 
@@ -177,11 +187,13 @@ class SpectrumModel:
 
     def __setitem__(self, key, value):
         if ":" in key:
-            cov, rest = key.split(":", 1)
+            group, rest = key.split(":", 1)
             k = rest.split(":")[-1] if ":" in rest else rest
-            if cov == "global_cov" and k in self._GLOBAL_PARAMS:
+            if group == "global_cov" and k in self._GLOBAL_PARAMS:
                 self.params[key] = value
-            elif cov == "local_cov" and k in self._LOCAL_PARAMS:
+            elif group == "local_cov" and k in self._LOCAL_PARAMS:
+                self.params[key] = value
+            elif group == "cheb":
                 self.params[key] = value
             else:
                 raise ValueError(f"{key} not recognized")
@@ -238,6 +250,8 @@ class SpectrumModel:
             scale = np.exp(self.params["log_scale"])
             fluxes[-2:] = rescale(fluxes[-2:], scale)
 
+        # if "cheb" in
+
         weights, weights_cov = self.emulator(self.grid_params)
 
         L, flag = cho_factor(weights_cov, overwrite_a=True)
@@ -274,11 +288,12 @@ class SpectrumModel:
         # Local covariance
         if "local_cov" in self.params:
             if "local_cov" not in self.frozen or self._loc_cov is None:
+                self._loc_cov = 0
                 for kernel in self.params.as_dict()["local_cov"]:
                     mu = kernel["mu"]
                     amplitude = np.exp(kernel["log_amp"])
                     sigma = np.exp(kernel["log_sigma"])
-                    self._loc_cov = local_covariance_matrix(
+                    self._loc_cov += local_covariance_matrix(
                         self.data.wave, amplitude, mu, sigma
                     )
 
@@ -724,6 +739,10 @@ class SpectrumModel:
                     # Remove trailing whitespace and comma
                     output = output[:-2]
                     output += "\n"
+            elif key == "cheb":
+                output += "  cheb: "
+                output += str(list(value.values()))
+                output += "\n"
             else:
                 output += f"  {key}: {value}\n"
         if len(self.frozen) > 0:
