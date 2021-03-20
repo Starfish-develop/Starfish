@@ -229,6 +229,11 @@ class SpectrumModel:
             elif group == "local_cov" and k in self._LOCAL_PARAMS:
                 self.params[key] = value
             elif group == "cheb":
+                # widen list with 0s if necessary
+                N = len(self.params[group])
+                idx = int(rest)
+                for i in range(N + 1, idx + 1):
+                    self.params[f"{group}:{i}"] = 0
                 self.params[key] = value
             else:
                 raise KeyError(f"{key} not recognized")

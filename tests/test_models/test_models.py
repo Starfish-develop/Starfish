@@ -133,6 +133,14 @@ class TestSpectrumModel:
         P1 = mock_model.get_param_dict(flat=flat)
         assert P0 == P1
 
+    def test_cheb_skip_idx(self, mock_model):
+        # add coeff out of order
+        mock_model["cheb:4"] = 0.05
+
+        assert list(mock_model.cheb) == [0.1, -0.2, 0, 0.05]
+        assert mock_model["cheb:3"] == 0
+        assert mock_model["cheb:4"] == 0.05
+
     def test_set_param_dict_frozen_params(self, mock_model):
         P0 = mock_model.get_param_dict()
         mock_model.freeze("Z")
