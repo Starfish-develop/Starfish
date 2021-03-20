@@ -215,7 +215,10 @@ class SpectrumModel:
         return tuple(keys)
 
     def __getitem__(self, key):
-        return self.params[key]
+        if key == "cheb":
+            return list(self.params[key].values())
+        else:
+            return self.params[key]
 
     def __setitem__(self, key, value):
         if ":" in key:
@@ -225,8 +228,10 @@ class SpectrumModel:
                 self.params[key] = value
             elif group == "local_cov" and k in self._LOCAL_PARAMS:
                 self.params[key] = value
+            elif group == "cheb":
+                self.params[key] = value
             else:
-                raise ValueError(f"{key} not recognized")
+                raise KeyError(f"{key} not recognized")
         else:
             if key == "cheb":
                 cheb_idxs = [str(i) for i in range(1, len(value) + 1)]
@@ -234,11 +239,11 @@ class SpectrumModel:
             elif key in [*self._PARAMS, *self.emulator.param_names]:
                 self.params[key] = value
             else:
-                raise ValueError(f"{key} not recognized")
+                raise KeyError(f"{key} not recognized")
 
     def __delitem__(self, key):
         if key not in self.params:
-            raise ValueError(f"{key} not in params")
+            raise KeyError(f"{key} not in params")
         elif key == "global_cov":
             self._glob_cov = None
             self.frozen = [
@@ -497,15 +502,18 @@ class SpectrumModel:
                 self.frozen.append("global_cov")
             if "local_cov" in self.params:
                 self.frozen.append("local_cov")
+            if "cheb" in self.params:
+                self.frozen.append("cheb")
         else:
             for _name in names:
                 # Avoid kookyness of numpy.str type
                 name = str(_name)
-                if name == "global_cov":
-                    self.frozen.append("global_cov")
-                    self._glob_cov = None
-                    for key in self.params.as_dict()["global_cov"].keys():
-                        flat_key = f"global_cov:{key}"
+                if name == "global_cov" or name == "cheb":
+                    self.frozen.append(name)
+                    if name == "global_cov":
+                        self._glob_cov = None
+                    for key in self.params.as_dict()[name].keys():
+                        flat_key = f"{name}:{key}"
                         if flat_key not in self.frozen:
                             self.frozen.append(flat_key)
                 elif name == "local_cov":
@@ -546,10 +554,10 @@ class SpectrumModel:
             for _name in names:
                 # Avoid kookyness of numpy.str type
                 name = str(_name)
-                if name == "global_cov":
-                    self.frozen.remove("global_cov")
-                    for key in self.params.as_dict()["global_cov"].keys():
-                        flat_key = f"global_cov:{key}"
+                if name == "global_cov" or name == "cheb":
+                    self.frozen.remove(name)
+                    for key in self.params.as_dict()[name].keys():
+                        flat_key = f"{name}:{key}"
                         self.frozen.remove(flat_key)
                 elif name == "local_cov":
                     self.frozen.remove("local_cov")

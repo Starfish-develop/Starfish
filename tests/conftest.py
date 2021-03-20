@@ -127,4 +127,5 @@ def mock_model(mock_spectrum, mock_trained_emulator):
         vsini=30,
         global_cov=global_params,
         local_cov=local_params,
+        cheb=[0.1, -0.2],
     )

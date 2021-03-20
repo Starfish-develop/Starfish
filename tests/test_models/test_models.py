@@ -22,6 +22,7 @@ class TestSpectrumModel:
         assert mock_model["Av"] == 0
         assert mock_model["log_scale"] == -10
         assert mock_model["vsini"] == 30
+        assert mock_model["cheb"] == [0.1, -0.2]
 
     def test_create_from_strings(self, mock_spectrum, mock_trained_emulator, tmpdir):
         tmp_emu = os.path.join(tmpdir, "emu.hdf5")
@@ -34,6 +35,19 @@ class TestSpectrumModel:
 
         assert mock_trained_emulator.hyperparams == model.emulator.hyperparams
         assert model.data_name == mock_spectrum.name
+
+    def test_cheb_coeffs_index(self, mock_model):
+        cs = list(filter(lambda k: k.startswith("cheb"), mock_model.params))
+        assert cs[0] == "cheb:1"
+        assert cs[1] == "cheb:2"
+
+    def test_cheb_coeffs_setindex(self, mock_model):
+        mock_model["cheb"] = [-0.2, 0.1]
+        assert mock_model["cheb:1"] == -0.2
+        assert mock_model["cheb:2"] == 0.1
+
+        with pytest.raises(KeyError):
+            mock_model["cheb:0"] = 1
 
     def test_global_cov_param_dict(self, mock_model):
         assert "log_amp" in mock_model["global_cov"]
@@ -60,7 +74,7 @@ class TestSpectrumModel:
         ["garbage", "global_cov:not quite", "global_cov:garbage", "local_cov:garbage"],
     )
     def test_add_bad_param(self, mock_model, param):
-        with pytest.raises(ValueError):
+        with pytest.raises(KeyError):
             mock_model[param] = -4
 
     def test_labels(self, mock_model):
@@ -225,6 +239,7 @@ class TestSpectrumModel:
               local_cov:
                 0: mu: 10000.0, log_amp: 2, log_sigma: 2
                 1: mu: 13000.0, log_amp: 1.5, log_sigma: 2
+              cheb: [0.1, -0.2]
               T: 6000
               Z: 0
             
@@ -237,7 +252,9 @@ class TestSpectrumModel:
     def test_freeze_thaw_all(self, mock_model):
         params = mock_model.labels
         mock_model.freeze("all")
-        assert set(params + ("global_cov", "local_cov")) == set(mock_model.frozen)
+        assert set(params + ("global_cov", "local_cov", "cheb")) == set(
+            mock_model.frozen
+        )
         mock_model.thaw("all")
         assert set(params) == set(mock_model.labels)
 
@@ -258,6 +275,15 @@ class TestSpectrumModel:
         mock_model.thaw("local_cov")
         assert "local_cov" not in mock_model.frozen
         assert all([l not in mock_model.frozen for l in local_labels])
+
+    def test_freeze_thaw_cheb(self, mock_model):
+        cheb_labels = [l for l in mock_model.labels if l.startswith("cheb")]
+        mock_model.freeze("cheb")
+        assert "cheb" in mock_model.frozen
+        assert all([l in mock_model.frozen for l in cheb_labels])
+        mock_model.thaw("cheb")
+        assert "cheb" not in mock_model.frozen
+        assert all([l not in mock_model.frozen for l in cheb_labels])
 
     def test_cov_caching(self, mock_model):
         assert mock_model._glob_cov is None
