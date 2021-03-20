@@ -69,7 +69,7 @@ class SpectrumModel:
         `cheb` corresponds to a list/array of coefficients, however we force the constant
         coefficient (`c0`) to be 1. This means `cheb` will correspond to `c1, c2, ...`.
         The entire list can be retrieved like `model["cheb"]` and indiviual values can be
-        retrieved with `model["cheb:0"]` (again, `"cheb:0"` corresponds to `c1`).
+        retrieved with `model["cheb:1"]`.
 
     The ``global_cov`` keyword arguments must be a dictionary definining the
     hyperparameters for the global covariance kernel,
