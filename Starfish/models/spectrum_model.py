@@ -96,7 +96,11 @@ class SpectrumModel:
     Attributes
     ----------
     params : dict
-        The dictionary of parameters that are used for doing the modeling.
+        The dictionary of parameters that are used for doing the modeling. (The Chebyshev coefficients are not stored in this structure)
+    grid_params : ndarray
+        The vector of parameters for the spectral emulator. Setter obeys frozen parameters.
+    cheb : ndarray
+        The vector of `c1, c2, ...` Chebyshev coefficients. `c0` is fixed to 1 by definition. Setter obeys frozen parameters.
     frozen : list
         A list of strings corresponding to frozen parameters
     residuals : deque
@@ -149,6 +153,11 @@ class SpectrumModel:
 
         self.residuals = deque(maxlen=max_deque_len)
 
+        # manually handle cheb coeffs to offset index by 1
+        chebs = params.pop("cheb", [])
+        cheb_idxs = [str(i) for i in range(1, len(chebs) + 1)]
+        params["cheb"] = dict(zip(cheb_idxs, chebs))
+        # load rest of params into FlatterDict
         self.params = FlatterDict(params)
         self.frozen = []
         self.name = name
@@ -157,6 +166,7 @@ class SpectrumModel:
         self.n_grid_params = len(grid_params)
         self.grid_params = grid_params
 
+        # None means "yet to be calculated", do not use NaN
         self._lnprob = None
         self._glob_cov = None
         self._loc_cov = None
@@ -193,7 +203,7 @@ class SpectrumModel:
         if "cheb" in self.frozen:
             return
         for key, value in zip(self.params["cheb"], values):
-            if f"cheb:{key}" not in self.frozen:
+            if key not in self.frozen:
                 self.params["cheb"][key] = value
 
     @property
@@ -215,16 +225,14 @@ class SpectrumModel:
                 self.params[key] = value
             elif group == "local_cov" and k in self._LOCAL_PARAMS:
                 self.params[key] = value
-            elif group == "cheb":
-                self.params[group][k] = value
             else:
                 raise ValueError(f"{key} not recognized")
         else:
-            if key in [*self._PARAMS, *self.emulator.param_names]:
-                if key == "cheb":
-                    self.params[key] = list(value)
-                else:
-                    self.params[key] = value
+            if key == "cheb":
+                cheb_idxs = [str(i) for i in range(1, len(value) + 1)]
+                self.params[key] = dict(zip(cheb_idxs, value))
+            elif key in [*self._PARAMS, *self.emulator.param_names]:
+                self.params[key] = value
             else:
                 raise ValueError(f"{key} not recognized")
 
@@ -396,7 +404,9 @@ class SpectrumModel:
             if key not in self.frozen:
                 params[key] = val
 
-        return params if flat else params.as_dict()
+        output = params if flat else params.as_dict()
+
+        return output
 
     def set_param_dict(self, params):
         """
@@ -631,7 +641,7 @@ class SpectrumModel:
         # Check priors for validity
         for key, val in priors.items():
             # Key exists
-            if key not in self.params:
+            if key not in self.params and not key.startswith("cheb"):
                 raise ValueError(f"Invalid priors. {key} not a vlid key.")
             # has logpdf method
             if not callable(getattr(val, "logpdf", None)):
@@ -768,9 +778,7 @@ class SpectrumModel:
                     output = output[:-2]
                     output += "\n"
             elif key == "cheb":
-                output += "  cheb: "
-                output += str(list(self.cheb))
-                output += "\n"
+                output += f"  cheb: {list(value.values())}\n"
             else:
                 output += f"  {key}: {value}\n"
         if len(self.frozen) > 0:
