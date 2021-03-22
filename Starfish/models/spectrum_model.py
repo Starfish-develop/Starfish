@@ -11,6 +11,7 @@ import toml
 from Starfish import Spectrum
 from Starfish.emulator import Emulator
 from Starfish.transforms import (
+    chebyshev_correct,
     rotational_broaden,
     resample,
     doppler_shift,
@@ -56,12 +57,19 @@ class SpectrumModel:
     Av           :func:`~Starfish.transforms.extinct`
     Rv           :func:`~Starfish.transforms.extinct`
     log_scale    :func:`~Starfish.transforms.rescale`
+    cheb         :func:`~Starfish.transforms.chebyshev_correct`
     =========== ===============================================
 
     .. note::
         If :attr:`log_scale` is not specified, the model will use
         :func:`~Starfish.transforms.renorm` to automatically scale the spectrum to the
         data using the ratio of integrated fluxes.
+
+    .. note::
+        `cheb` corresponds to a list/array of coefficients, however we force the constant
+        coefficient (`c0`) to be 1. This means `cheb` will correspond to `c1, c2, ...`.
+        The entire list can be retrieved like `model["cheb"]` and indiviual values can be
+        retrieved with `model["cheb:1"]`.
 
     The ``global_cov`` keyword arguments must be a dictionary definining the
     hyperparameters for the global covariance kernel,
@@ -88,14 +96,27 @@ class SpectrumModel:
     Attributes
     ----------
     params : dict
-        The dictionary of parameters that are used for doing the modeling.
+        The dictionary of parameters that are used for doing the modeling. (The Chebyshev coefficients are not stored in this structure)
+    grid_params : ndarray
+        The vector of parameters for the spectral emulator. Setter obeys frozen parameters.
+    cheb : ndarray
+        The vector of `c1, c2, ...` Chebyshev coefficients. `c0` is fixed to 1 by definition. Setter obeys frozen parameters.
     frozen : list
         A list of strings corresponding to frozen parameters
     residuals : deque
         A deque containing residuals from calling :meth:`SpectrumModel.log_likelihood`
     """
 
-    _PARAMS = ["vz", "vsini", "Av", "Rv", "log_scale", "global_cov", "local_cov"]
+    _PARAMS = [
+        "vz",
+        "vsini",
+        "Av",
+        "Rv",
+        "log_scale",
+        "global_cov",
+        "local_cov",
+        "cheb",
+    ]
     _GLOBAL_PARAMS = ["log_amp", "log_ls"]
     _LOCAL_PARAMS = ["mu", "log_amp", "log_sigma"]
 
@@ -132,6 +153,11 @@ class SpectrumModel:
 
         self.residuals = deque(maxlen=max_deque_len)
 
+        # manually handle cheb coeffs to offset index by 1
+        chebs = params.pop("cheb", [])
+        cheb_idxs = [str(i) for i in range(1, len(chebs) + 1)]
+        params["cheb"] = dict(zip(cheb_idxs, chebs))
+        # load rest of params into FlatterDict
         self.params = FlatterDict(params)
         self.frozen = []
         self.name = name
@@ -140,6 +166,7 @@ class SpectrumModel:
         self.n_grid_params = len(grid_params)
         self.grid_params = grid_params
 
+        # None means "yet to be calculated", do not use NaN
         self._lnprob = None
         self._glob_cov = None
         self._loc_cov = None
@@ -165,6 +192,21 @@ class SpectrumModel:
                 self.params[key] = value
 
     @property
+    def cheb(self):
+        """
+        numpy.ndarray : The Chebyshev polynomial coefficients used for the background model
+        """
+        return np.array(self.params["cheb"].values())
+
+    @cheb.setter
+    def cheb(self, values):
+        if "cheb" in self.frozen:
+            return
+        for key, value in zip(self.params["cheb"], values):
+            if key not in self.frozen:
+                self.params["cheb"][key] = value
+
+    @property
     def labels(self):
         """
         tuple of str : The thawed parameter names
@@ -173,27 +215,43 @@ class SpectrumModel:
         return tuple(keys)
 
     def __getitem__(self, key):
-        return self.params[key]
+        if key == "cheb":
+            return list(self.params[key].values())
+        else:
+            return self.params[key]
 
     def __setitem__(self, key, value):
         if ":" in key:
-            cov, rest = key.split(":", 1)
+            group, rest = key.split(":", 1)
             k = rest.split(":")[-1] if ":" in rest else rest
-            if cov == "global_cov" and k in self._GLOBAL_PARAMS:
+            if group == "global_cov" and k in self._GLOBAL_PARAMS:
                 self.params[key] = value
-            elif cov == "local_cov" and k in self._LOCAL_PARAMS:
+            elif group == "local_cov" and k in self._LOCAL_PARAMS:
+                self.params[key] = value
+            elif group == "cheb":
+                # widen list with 0s if necessary
+                if "cheb" in self.params:
+                    N = len(self.params[group])
+                    idx = int(rest)
+                    if idx == 0:
+                        raise KeyError("cannot change constant Chebyshev term")
+                    for i in range(N + 1, idx + 1):
+                        self.params[f"{group}:{i}"] = 0
                 self.params[key] = value
             else:
-                raise ValueError(f"{key} not recognized")
+                raise KeyError(f"{key} not recognized")
         else:
-            if key in [*self._PARAMS, *self.emulator.param_names]:
+            if key == "cheb":
+                cheb_idxs = [str(i) for i in range(1, len(value) + 1)]
+                self.params[key] = dict(zip(cheb_idxs, value))
+            elif key in [*self._PARAMS, *self.emulator.param_names]:
                 self.params[key] = value
             else:
-                raise ValueError(f"{key} not recognized")
+                raise KeyError(f"{key} not recognized")
 
     def __delitem__(self, key):
         if key not in self.params:
-            raise ValueError(f"{key} not in params")
+            raise KeyError(f"{key} not in params")
         elif key == "global_cov":
             self._glob_cov = None
             self.frozen = [
@@ -232,6 +290,11 @@ class SpectrumModel:
 
         if "Av" in self.params:
             fluxes = extinct(self.data.wave, fluxes, self.params["Av"])
+
+        if "cheb" in self.params:
+            # force constant term to be 1 to avoid degeneracy with log_scale
+            coeffs = [1, *self.cheb]
+            fluxes = chebyshev_correct(self.data.wave, fluxes, coeffs)
 
         # Only rescale flux_mean and flux_std
         if "log_scale" in self.params:
@@ -274,11 +337,12 @@ class SpectrumModel:
         # Local covariance
         if "local_cov" in self.params:
             if "local_cov" not in self.frozen or self._loc_cov is None:
+                self._loc_cov = 0
                 for kernel in self.params.as_dict()["local_cov"]:
                     mu = kernel["mu"]
                     amplitude = np.exp(kernel["log_amp"])
                     sigma = np.exp(kernel["log_sigma"])
-                    self._loc_cov = local_covariance_matrix(
+                    self._loc_cov += local_covariance_matrix(
                         self.data.wave, amplitude, mu, sigma
                     )
 
@@ -353,7 +417,9 @@ class SpectrumModel:
             if key not in self.frozen:
                 params[key] = val
 
-        return params if flat else params.as_dict()
+        output = params if flat else params.as_dict()
+
+        return output
 
     def set_param_dict(self, params):
         """
@@ -444,15 +510,18 @@ class SpectrumModel:
                 self.frozen.append("global_cov")
             if "local_cov" in self.params:
                 self.frozen.append("local_cov")
+            if "cheb" in self.params:
+                self.frozen.append("cheb")
         else:
             for _name in names:
                 # Avoid kookyness of numpy.str type
                 name = str(_name)
-                if name == "global_cov":
-                    self.frozen.append("global_cov")
-                    self._glob_cov = None
-                    for key in self.params.as_dict()["global_cov"].keys():
-                        flat_key = f"global_cov:{key}"
+                if name == "global_cov" or name == "cheb":
+                    self.frozen.append(name)
+                    if name == "global_cov":
+                        self._glob_cov = None
+                    for key in self.params.as_dict()[name].keys():
+                        flat_key = f"{name}:{key}"
                         if flat_key not in self.frozen:
                             self.frozen.append(flat_key)
                 elif name == "local_cov":
@@ -493,10 +562,10 @@ class SpectrumModel:
             for _name in names:
                 # Avoid kookyness of numpy.str type
                 name = str(_name)
-                if name == "global_cov":
-                    self.frozen.remove("global_cov")
-                    for key in self.params.as_dict()["global_cov"].keys():
-                        flat_key = f"global_cov:{key}"
+                if name == "global_cov" or name == "cheb":
+                    self.frozen.remove(name)
+                    for key in self.params.as_dict()[name].keys():
+                        flat_key = f"{name}:{key}"
                         self.frozen.remove(flat_key)
                 elif name == "local_cov":
                     self.frozen.remove("local_cov")
@@ -588,7 +657,7 @@ class SpectrumModel:
         # Check priors for validity
         for key, val in priors.items():
             # Key exists
-            if key not in self.params:
+            if key not in self.params and not key.startswith("cheb"):
                 raise ValueError(f"Invalid priors. {key} not a vlid key.")
             # has logpdf method
             if not callable(getattr(val, "logpdf", None)):
@@ -724,6 +793,8 @@ class SpectrumModel:
                     # Remove trailing whitespace and comma
                     output = output[:-2]
                     output += "\n"
+            elif key == "cheb":
+                output += f"  cheb: {list(value.values())}\n"
             else:
                 output += f"  {key}: {value}\n"
         if len(self.frozen) > 0:
