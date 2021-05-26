@@ -1,8 +1,8 @@
 ###################
-Conversion to 0.3.0
+Conversion from v0.2
 ###################
 
-There have been some significant changes to *Starfish* in the upgrades to version ``0.3.0``. Below are some of the main changes, and we also recommend viewing some of the :doc:`examples/index` to get a hang for the new workflow.
+There have been some significant changes to *Starfish* in the upgrades to version ``0.3.0`` and later. Below are some of the main changes, and we also recommend viewing some of the :doc:`examples/index` to get a hang for the new workflow.
 
 .. warning::
     The current, updated code base does not have the framework for fitting multi-order Echelle spectra. We are working diligently to update the original functionality to match the updated API. For now, you will have to revert to Starfish ``0.2.0``.
