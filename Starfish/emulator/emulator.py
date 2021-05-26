@@ -91,7 +91,9 @@ class Emulator:
         self.flux_mean = flux_mean
         self.flux_std = flux_std
         self.factors = factors
-        self.factor_interpolator = LinearNDInterpolator(grid_points, factors)
+        self.factor_interpolator = LinearNDInterpolator(
+            grid_points, factors, rescale=True
+        )
 
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
