@@ -10,6 +10,17 @@ Citation
 
 If *Starfish* or any derivative of it was used for your work, please cite both `the paper <https://ui.adsabs.harvard.edu/abs/2015ApJ...812..128C/abstract>`_ and `the code <https://zenodo.org/record/2221006>`_. We provide a BibTeX formatted file `here <https://github.com/iancze/Starfish/blob/master/CITATION.bib>`_ for your convenience. Thanks!
 
+Papers
+------
+
+Some research that has made considerable usage of Starfish includes
+
+* `Czekala et al. 2015 <https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract>`_
+* `Gully-Santiago et al. 2017 <https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract>`_
+* `Zhang et al. 2021b <https://ui.adsabs.harvard.edu/abs/2020arXiv201112294Z/abstract>`_
+* `Zhang et al. 2021c <https://ui.adsabs.harvard.edu/abs/2021arXiv210505256Z/abstract>`_
+
+*If you have used Starfish in your work, please let us know and we can add you to this list!*
 
 Installation
 ============
