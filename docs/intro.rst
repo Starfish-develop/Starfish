@@ -17,6 +17,7 @@ Some research that has made considerable usage of Starfish includes
 
 * `Czekala et al. 2015 <https://ui.adsabs.harvard.edu/#abs/2015ApJ...812..128C/abstract>`_
 * `Gully-Santiago et al. 2017 <https://ui.adsabs.harvard.edu/#abs/2017ApJ...836..200G/abstract>`_
+* `Greene et al. 2018 <https://ui.adsabs.harvard.edu/abs/2018ApJ...862...85G/abstract>`_
 * `Zhang et al. 2021b <https://ui.adsabs.harvard.edu/abs/2020arXiv201112294Z/abstract>`_
 * `Zhang et al. 2021c <https://ui.adsabs.harvard.edu/abs/2021arXiv210505256Z/abstract>`_
 
