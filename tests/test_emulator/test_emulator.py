@@ -59,6 +59,27 @@ class TestEmulator:
         assert len(flux) == len(params)
         assert np.all(np.isfinite(flux))
 
+    def test_load_flux_norm(self, mock_hdf5_interface, mock_emulator):
+        params = mock_hdf5_interface.grid_points[0]
+        grid_flux = mock_hdf5_interface.load_flux(params)
+        np.random.seed(123)
+        emu_flux = mock_emulator.load_flux(params, norm=True)
+        assert np.allclose(emu_flux, grid_flux, rtol=1e-2)
+
+        factor = mock_emulator.norm_factor(params)
+        np.random.seed(123)
+        raw_flux = mock_emulator.load_flux(params)
+        assert np.allclose(factor * raw_flux, emu_flux)
+
+    def test_load_many_fluxes_norm(self, mock_hdf5_interface, mock_emulator):
+        params = mock_hdf5_interface.grid_points[:2]
+        np.random.seed(123)
+        emu_flux = mock_emulator.load_flux(params, norm=True)
+        factor = mock_emulator.norm_factor(params)
+        np.random.seed(123)
+        raw_flux = mock_emulator.load_flux(params)
+        assert np.allclose(factor[:, np.newaxis] * raw_flux, emu_flux)
+
     def test_warns_before_trained(self, mock_emulator):
         with pytest.warns(UserWarning):
             mock_emulator([6000, 4.2, 0.0])

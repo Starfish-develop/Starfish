@@ -423,7 +423,7 @@ class Emulator:
         X = self.eigenspectra * self.flux_std
         flux = weights @ X + self.flux_mean
         if norm:
-            flux *= self.norm_factor(params)
+            flux *= self.norm_factor(params)[:, np.newaxis]
         return np.squeeze(flux)
 
     def norm_factor(self, params: Union[Sequence[float], NDArray[float]]) -> float:
