@@ -408,7 +408,7 @@ class TestSpectrumModel:
               cheb: [0.1, -0.2]
               T: 6000
               Z: 0
-              log_scale: 12.399237019908904 (fit)
+              log_scale: {mock_model._log_scale} (fit)
             
             Frozen Parameters
               logg: 4.0
