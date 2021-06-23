@@ -32,8 +32,10 @@ class TestSpectrumModel:
         mock_spectrum.save(tmp_data)
 
         model = SpectrumModel(tmp_emu, grid_params=[6000, 4.0, 0.0], data=tmp_data)
-
-        assert mock_trained_emulator.hyperparams == model.emulator.hyperparams
+        for key in mock_trained_emulator.hyperparams.keys():
+            assert np.isclose(
+                mock_trained_emulator.hyperparams[key], model.emulator.hyperparams[key]
+            )
         assert model.data_name == mock_spectrum.name
 
     def test_cheb_coeffs_index(self, mock_model):
