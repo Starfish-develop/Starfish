@@ -374,3 +374,44 @@ class TestSpectrumModel:
         fr = mock_model.frozen
         mock_model.thaw("pinguino")
         assert all([old == new for old, new in zip(fr, mock_model.frozen)])
+
+    def test_normalize(self, mock_model):
+        np.random.seed(123)
+        F1, cov1 = mock_model()
+        mock_model.normalize = True
+        np.random.seed(123)
+        F2, cov2 = mock_model()
+        factor = mock_model.emulator.norm_factor(mock_model.grid_params)
+        assert np.allclose(F1 * factor, F2)
+
+    def test_str_logscale_cheat(self, mock_model):
+        mock_model.freeze("logg")
+        del mock_model["log_scale"]
+        expected = textwrap.dedent(
+            f"""
+            SpectrumModel
+            -------------
+            Data: {mock_model.data_name}
+            Emulator: {mock_model.emulator.name}
+            Log Likelihood: {mock_model.log_likelihood()}
+
+            Parameters
+              vz: 0
+              Av: 0
+              vsini: 30
+              global_cov:
+                log_amp: 1
+                log_ls: 1
+              local_cov:
+                0: mu: 10000.0, log_amp: 2, log_sigma: 2
+                1: mu: 13000.0, log_amp: 1.5, log_sigma: 2
+              cheb: [0.1, -0.2]
+              T: 6000
+              Z: 0
+              log_scale: 12.399237019908904 (fit)
+            
+            Frozen Parameters
+              logg: 4.0
+            """
+        ).strip()
+        assert str(mock_model) == expected

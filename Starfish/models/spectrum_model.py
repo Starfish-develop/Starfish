@@ -305,8 +305,6 @@ class SpectrumModel:
 
         weights, weights_cov = self.emulator(self.grid_params)
 
-        L, flag = cho_factor(weights_cov, overwrite_a=True)
-
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)
         *eigenspectra, flux_mean, flux_std = fluxes
 
@@ -333,6 +331,7 @@ class SpectrumModel:
         flux = rescale(flux, scale)
         X = rescale(X, scale)
 
+        L, flag = cho_factor(weights_cov, overwrite_a=True)
         cov = X.T @ cho_solve((L, flag), X)
 
         # Trivial covariance
