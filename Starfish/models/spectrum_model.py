@@ -38,7 +38,7 @@ class SpectrumModel:
     max_deque_len : int, optional
         The maximum number of residuals to retain in a deque of residuals. Default is
         100
-    normalize : bool, optional
+    norm : bool, optional
         If true, will rescale the model flux to the appropriate flux normalization
         according to the original spectral library. Default is `False`.
     name : str, optional
@@ -129,7 +129,7 @@ class SpectrumModel:
         data: Union[str, Spectrum],
         grid_params: Sequence[float],
         max_deque_len: int = 100,
-        normalize=False,
+        norm=False,
         name: str = "SpectrumModel",
         **params,
     ):
@@ -166,7 +166,7 @@ class SpectrumModel:
         self.params = FlatterDict(params)
         self.frozen = []
         self.name = name
-        self.normalize = normalize
+        self.norm = norm
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
@@ -313,7 +313,7 @@ class SpectrumModel:
         flux = weights @ X + flux_mean
 
         # optionally scale using absolute flux calibration
-        if self.normalize:
+        if self.norm:
             norm = self.emulator.norm_factor(self.grid_params)
         else:
             norm = 1

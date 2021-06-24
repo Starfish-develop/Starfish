@@ -380,7 +380,7 @@ class TestSpectrumModel:
     def test_normalize(self, mock_model):
         np.random.seed(123)
         F1, cov1 = mock_model()
-        mock_model.normalize = True
+        mock_model.norm = True
         np.random.seed(123)
         F2, cov2 = mock_model()
         factor = mock_model.emulator.norm_factor(mock_model.grid_params)
