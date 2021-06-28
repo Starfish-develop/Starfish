@@ -38,6 +38,9 @@ class SpectrumModel:
     max_deque_len : int, optional
         The maximum number of residuals to retain in a deque of residuals. Default is
         100
+    norm : bool, optional
+        If true, will rescale the model flux to the appropriate flux normalization
+        according to the original spectral library. Default is `False`.
     name : str, optional
         A name for the model. Default is 'SpectrumModel'
 
@@ -126,6 +129,7 @@ class SpectrumModel:
         data: Union[str, Spectrum],
         grid_params: Sequence[float],
         max_deque_len: int = 100,
+        norm=False,
         name: str = "SpectrumModel",
         **params,
     ):
@@ -154,13 +158,15 @@ class SpectrumModel:
         self.residuals = deque(maxlen=max_deque_len)
 
         # manually handle cheb coeffs to offset index by 1
-        chebs = params.pop("cheb", [])
-        cheb_idxs = [str(i) for i in range(1, len(chebs) + 1)]
-        params["cheb"] = dict(zip(cheb_idxs, chebs))
+        if "cheb" in params:
+            chebs = params.pop("cheb")
+            cheb_idxs = [str(i) for i in range(1, len(chebs) + 1)]
+            params["cheb"] = dict(zip(cheb_idxs, chebs))
         # load rest of params into FlatterDict
         self.params = FlatterDict(params)
         self.frozen = []
         self.name = name
+        self.norm = norm
 
         # Unpack the grid parameters
         self.n_grid_params = len(grid_params)
@@ -170,6 +176,7 @@ class SpectrumModel:
         self._lnprob = None
         self._glob_cov = None
         self._loc_cov = None
+        self._log_scale = params.get("log_scale", None)
 
         self.log = logging.getLogger(self.__class__.__name__)
 
@@ -296,14 +303,7 @@ class SpectrumModel:
             coeffs = [1, *self.cheb]
             fluxes = chebyshev_correct(self.data.wave, fluxes, coeffs)
 
-        # Only rescale flux_mean and flux_std
-        if "log_scale" in self.params:
-            scale = np.exp(self.params["log_scale"])
-            fluxes[-2:] = rescale(fluxes[-2:], scale)
-
         weights, weights_cov = self.emulator(self.grid_params)
-
-        L, flag = cho_factor(weights_cov, overwrite_a=True)
 
         # Decompose the bulk_fluxes (see emulator/emulator.py for the ordering)
         *eigenspectra, flux_mean, flux_std = fluxes
@@ -312,12 +312,26 @@ class SpectrumModel:
         X = eigenspectra * flux_std
         flux = weights @ X + flux_mean
 
+        # optionally scale using absolute flux calibration
+        if self.norm:
+            norm = self.emulator.norm_factor(self.grid_params)
+        else:
+            norm = 1
+
         # Renorm to data flux if no "log_scale" provided
         if "log_scale" not in self.params:
-            factor = _get_renorm_factor(self.data.wave, flux, self.data.flux)
-            flux = rescale(flux, factor)
-            X = rescale(X, factor)
+            scale = _get_renorm_factor(self.data.wave, flux * norm, self.data.flux)
+            self._log_scale = np.log(scale)
+            scale *= norm
+            self.log.debug(f"fit scale factor using integrated flux ratio: {scale}")
+        else:
+            self._log_scale = self.params["log_scale"]
+            scale = np.exp(self.params["log_scale"]) * norm
 
+        flux = rescale(flux, scale)
+        X = rescale(X, scale)
+
+        L, flag = cho_factor(weights_cov, overwrite_a=True)
         cov = X.T @ cho_solve((L, flag), X)
 
         # Trivial covariance
@@ -797,6 +811,9 @@ class SpectrumModel:
                 output += f"  cheb: {list(value.values())}\n"
             else:
                 output += f"  {key}: {value}\n"
+        if "log_scale" not in self.params:
+            self()
+            output += f"  log_scale: {self._log_scale} (fit)\n"
         if len(self.frozen) > 0:
             output += "\nFrozen Parameters\n"
             for key in self.frozen:

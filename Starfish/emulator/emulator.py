@@ -6,6 +6,7 @@ from typing import Sequence, Optional, Union, Tuple
 import h5py
 import numpy as np
 from nptyping import NDArray
+from scipy.interpolate import LinearNDInterpolator
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
 from sklearn.decomposition import PCA
@@ -75,6 +76,7 @@ class Emulator:
         w_hat: NDArray[float],
         flux_mean: NDArray[float],
         flux_std: NDArray[float],
+        factors: NDArray[float],
         lambda_xi: float = 1.0,
         variances: Optional[NDArray[float]] = None,
         lengthscales: Optional[NDArray[float]] = None,
@@ -88,6 +90,10 @@ class Emulator:
         self.eigenspectra = eigenspectra
         self.flux_mean = flux_mean
         self.flux_std = flux_std
+        self.factors = factors
+        self.factor_interpolator = LinearNDInterpolator(
+            grid_points, factors, rescale=True
+        )
 
         self.dv = calculate_dv(wavelength)
         self.ncomps = eigenspectra.shape[0]
@@ -198,6 +204,7 @@ class Emulator:
             flux_mean = base["flux_mean"][:]
             flux_std = base["flux_std"][:]
             w_hat = base["w_hat"][:]
+            factors = base["factors"][:]
             lambda_xi = base["hyperparameters"]["lambda_xi"][()]
             variances = base["hyperparameters"]["variances"][:]
             lengthscales = base["hyperparameters"]["lengthscales"][:]
@@ -220,6 +227,7 @@ class Emulator:
             variances=variances,
             lengthscales=lengthscales,
             name=name,
+            factors=factors,
         )
         emulator._trained = trained
         return emulator
@@ -251,6 +259,7 @@ class Emulator:
             base.attrs["trained"] = self._trained
             if self.name is not None:
                 base.attrs["name"] = self.name
+            base.create_dataset("factors", data=self.factors, compression=9)
             hp_group = base.create_group("hyperparameters")
             hp_group.create_dataset("lambda_xi", data=self.lambda_xi)
             hp_group.create_dataset("variances", data=self.variances, compression=9)
@@ -283,7 +292,8 @@ class Emulator:
 
         fluxes = np.array(list(grid.fluxes))
         # Normalize to an average of 1 to remove uninteresting correlation
-        fluxes /= fluxes.mean(1, keepdims=True)
+        norm_factors = fluxes.mean(1)
+        fluxes /= norm_factors[:, np.newaxis]
         # Center and whiten
         flux_mean = fluxes.mean(0)
         fluxes -= flux_mean
@@ -313,6 +323,7 @@ class Emulator:
             w_hat=w_hat,
             flux_mean=flux_mean,
             flux_std=flux_std,
+            factors=norm_factors,
         )
         return emulator
 
@@ -391,7 +402,7 @@ class Emulator:
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
     def load_flux(
-        self, params: Union[Sequence[float], NDArray[float]]
+        self, params: Union[Sequence[float], NDArray[float]], norm=False
     ) -> NDArray[float]:
         """
         Interpolate a model given any parameters within the grid's parameter range
@@ -410,7 +421,27 @@ class Emulator:
         mu, cov = self(params, reinterpret_batch=False)
         weights = np.random.multivariate_normal(mu, cov).reshape(-1, self.ncomps)
         X = self.eigenspectra * self.flux_std
-        return weights @ X + self.flux_mean
+        flux = weights @ X + self.flux_mean
+        if norm:
+            flux *= self.norm_factor(params)[:, np.newaxis]
+        return np.squeeze(flux)
+
+    def norm_factor(self, params: Union[Sequence[float], NDArray[float]]) -> float:
+        """
+        Return the scaling factor for the absolute flux units in flux-normalized spectra
+
+        Parameters
+        ----------
+        params : array_like
+            The parameters to interpolate at
+
+        Returns
+        -------
+        factor: float
+            The multiplicative factor to normalize a spectrum to the model's absolute flux units
+        """
+        _params = np.asarray(params)
+        return self.factor_interpolator(_params)
 
     def determine_chunk_log(self, wavelength: Sequence[float], buffer: float = 50):
         """

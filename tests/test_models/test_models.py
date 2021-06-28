@@ -32,8 +32,10 @@ class TestSpectrumModel:
         mock_spectrum.save(tmp_data)
 
         model = SpectrumModel(tmp_emu, grid_params=[6000, 4.0, 0.0], data=tmp_data)
-
-        assert mock_trained_emulator.hyperparams == model.emulator.hyperparams
+        for key in mock_trained_emulator.hyperparams.keys():
+            assert np.isclose(
+                mock_trained_emulator.hyperparams[key], model.emulator.hyperparams[key]
+            )
         assert model.data_name == mock_spectrum.name
 
     def test_cheb_coeffs_index(self, mock_model):
@@ -374,3 +376,42 @@ class TestSpectrumModel:
         fr = mock_model.frozen
         mock_model.thaw("pinguino")
         assert all([old == new for old, new in zip(fr, mock_model.frozen)])
+
+    def test_normalize(self, mock_model):
+        F1, _ = mock_model()
+        mock_model.norm = True
+        F2, _ = mock_model()
+        factor = mock_model.emulator.norm_factor(mock_model.grid_params)
+        assert np.allclose(F1 * factor, F2)
+
+    def test_str_logscale_cheat(self, mock_model):
+        mock_model.freeze("logg")
+        del mock_model["log_scale"]
+        expected = textwrap.dedent(
+            f"""
+            SpectrumModel
+            -------------
+            Data: {mock_model.data_name}
+            Emulator: {mock_model.emulator.name}
+            Log Likelihood: {mock_model.log_likelihood()}
+
+            Parameters
+              vz: 0
+              Av: 0
+              vsini: 30
+              global_cov:
+                log_amp: 1
+                log_ls: 1
+              local_cov:
+                0: mu: 10000.0, log_amp: 2, log_sigma: 2
+                1: mu: 13000.0, log_amp: 1.5, log_sigma: 2
+              cheb: [0.1, -0.2]
+              T: 6000
+              Z: 0
+              log_scale: {mock_model._log_scale} (fit)
+            
+            Frozen Parameters
+              logg: 4.0
+            """
+        ).strip()
+        assert str(mock_model) == expected
