@@ -378,11 +378,9 @@ class TestSpectrumModel:
         assert all([old == new for old, new in zip(fr, mock_model.frozen)])
 
     def test_normalize(self, mock_model):
-        np.random.seed(123)
-        F1, cov1 = mock_model()
+        F1, _ = mock_model()
         mock_model.norm = True
-        np.random.seed(123)
-        F2, cov2 = mock_model()
+        F2, _ = mock_model()
         factor = mock_model.emulator.norm_factor(mock_model.grid_params)
         assert np.allclose(F1 * factor, F2)
 
