@@ -415,3 +415,22 @@ class TestSpectrumModel:
             """
         ).strip()
         assert str(mock_model) == expected
+
+    def test_model_nocheb(self, mock_spectrum, mock_trained_emulator):
+        global_params = {"log_amp": 1, "log_ls": 1}
+        local_params = [
+            {"mu": 1e4, "log_amp": 2, "log_sigma": 2},
+            {"mu": 1.3e4, "log_amp": 1.5, "log_sigma": 2},
+        ]
+        model = SpectrumModel(
+            mock_trained_emulator,
+            grid_params=[6000, 4.0, 0],
+            data=mock_spectrum,
+            vz=0,
+            Av=0,
+            log_scale=-10,
+            vsini=30,
+            global_cov=global_params,
+            local_cov=local_params,
+        )
+        assert "cheb" not in model.params
