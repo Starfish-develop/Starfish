@@ -342,8 +342,7 @@ class SpectrumModel:
             if "global_cov" not in self.frozen or self._glob_cov is None:
                 ag = np.exp(self.params["global_cov:log_amp"])
                 lg = np.exp(self.params["global_cov:log_ls"])
-                T = self.params["T"]
-                self._glob_cov = global_covariance_matrix(self.data.wave, T, ag, lg)
+                self._glob_cov = global_covariance_matrix(self.data.wave, ag, lg)
 
         if self._glob_cov is not None:
             cov += self._glob_cov

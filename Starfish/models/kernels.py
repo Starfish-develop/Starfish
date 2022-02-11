@@ -5,17 +5,15 @@ from Starfish import constants as C
 
 
 def global_covariance_matrix(
-    wave: np.ndarray, temp: float, amplitude: float, lengthscale: float
+    wave: np.ndarray, amplitude: float, lengthscale: float
 ) -> np.ndarray:
     """
-    A matern-3/2 kernel scaled by the planck function where the metric is defined as the velocity separation of the wavelengths.
+    A matern-3/2 kernel where the metric is defined as the velocity separation of the wavelengths.
 
     Parameters
     ----------
     wave : numpy.ndarray
         The wavelength grid
-    temp : float
-        The temperature of the current spectrum
     amplitude : float
         The amplitude of the kernel
     lengthscale : float
@@ -40,8 +38,7 @@ def global_covariance_matrix(
         * (1 + np.sqrt(3) * r[mask] / lengthscale)
         * np.exp(-np.sqrt(3) * r[mask] / lengthscale)
     )
-    planck = wave ** 5 * (np.exp(C.hc_k / wave / temp) - 1)
-    return kernel / planck
+    return kernel
 
 
 def local_covariance_matrix(
