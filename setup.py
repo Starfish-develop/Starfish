@@ -40,7 +40,7 @@ setup(
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     package_data={},
     install_requires=[
-        "astropy>=4.*,>=5.*,<6",
+        "astropy>=4.*,<6",
         "dataclasses==0.*,>=0.6.0",
         "extinction==0.4.*",
         "flatdict==4.*",
