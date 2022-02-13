@@ -296,7 +296,7 @@ def vacuum_to_air_SLOAN(wl):
 
     """
     wl = np.asarray(wl)
-    air = wl / (1.0 + 2.735182e-4 + 131.4182 / wl ** 2 + 2.76249e8 / wl ** 4)
+    air = wl / (1.0 + 2.735182e-4 + 131.4182 / wl**2 + 2.76249e8 / wl**4)
     return air
 
 
@@ -317,7 +317,7 @@ def air_to_vacuum(wl):
 
     sigma = 1e4 / wl
     vac = wl + wl * (
-        6.4328e-5 + 2.94981e-2 / (146 - sigma ** 2) + 2.5540e-4 / (41 - sigma ** 2)
+        6.4328e-5 + 2.94981e-2 / (146 - sigma**2) + 2.5540e-4 / (41 - sigma**2)
     )
     return vac
 

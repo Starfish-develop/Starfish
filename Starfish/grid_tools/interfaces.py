@@ -283,7 +283,7 @@ class KuruczGridInterface(GridInterface):
 
         # Also, we should convert from f_nu to f_lam
         if norm:
-            f *= C.c_ang / self.wl ** 2  # Convert from f_nu to f_lambda
+            f *= C.c_ang / self.wl**2  # Convert from f_nu to f_lambda
             f /= np.average(f)  # divide by the mean flux, so avg(f) = 1
 
         # Add temp, logg, Z, norm to the metadata

@@ -5,17 +5,15 @@ from Starfish import constants as C
 
 
 def global_covariance_matrix(
-    wave: np.ndarray, temp: float, amplitude: float, lengthscale: float
+    wave: np.ndarray, amplitude: float, lengthscale: float
 ) -> np.ndarray:
     """
-    A matern-3/2 kernel scaled by the planck function where the metric is defined as the velocity separation of the wavelengths.
+    A matern-3/2 kernel where the metric is defined as the velocity separation of the wavelengths.
 
     Parameters
     ----------
     wave : numpy.ndarray
         The wavelength grid
-    temp : float
-        The temperature of the current spectrum
     amplitude : float
         The amplitude of the kernel
     lengthscale : float
@@ -40,8 +38,7 @@ def global_covariance_matrix(
         * (1 + np.sqrt(3) * r[mask] / lengthscale)
         * np.exp(-np.sqrt(3) * r[mask] / lengthscale)
     )
-    planck = wave ** 5 * (np.exp(C.hc_k / wave / temp) - 1)
-    return kernel / planck
+    return kernel
 
 
 def local_covariance_matrix(
@@ -73,12 +70,12 @@ def local_covariance_matrix(
     met = C.c_kms / mu * np.abs(wave - mu)
     x, y = np.meshgrid(met, met)
     r_tap = np.max([x, y], axis=0)
-    r2 = x ** 2 + y ** 2
+    r2 = x**2 + y**2
     r0 = 4 * sigma
 
     # Calculate the kernel. Use masking to keep sparse-ish calculations
     kernel = np.zeros((len(x), len(y)))
     mask = r_tap <= r0
     taper = 0.5 + 0.5 * np.cos(np.pi * r_tap[mask] / r0)
-    kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma ** 2)
+    kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma**2)
     return kernel

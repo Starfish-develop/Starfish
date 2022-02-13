@@ -128,7 +128,7 @@ def rotational_broaden(wave, flux, vsini):
     ub = 2.0 * np.pi * vsini * freq
     # Remove 0th frequency
     ub = ub[1:]
-    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub ** 2) + 3.0 * np.sin(ub) / (2 * ub ** 3)
+    sb = j1(ub) / ub - 3 * np.cos(ub) / (2 * ub**2) + 3.0 * np.sin(ub) / (2 * ub**3)
     flux_ff *= np.insert(sb, 0, 1.0)
     flux_final = np.fft.irfft(flux_ff, n=flux.shape[-1])
     return flux_final

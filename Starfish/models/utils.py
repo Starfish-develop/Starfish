@@ -40,9 +40,7 @@ def find_residual_peaks(
     if "global_cov" in model.params:
         ag = np.exp(model.params["global_cov:log_amp"])
         lg = np.exp(model.params["global_cov:log_ls"])
-        sigma += global_covariance_matrix(
-            model.data.wave, model["T"], ag, lg
-        ).diagonal()
+        sigma += global_covariance_matrix(model.data.wave, ag, lg).diagonal()
     mask = np.abs(residual - residual.mean()) > threshold * sigma
     mask &= (model.data.wave > wl_range[0]) & (model.data.wave < wl_range[1])
     peak_waves = model.data.wave[1:-1][mask[1:-1]]
@@ -98,7 +96,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
     if "global_cov" in model.params:
         ag = np.exp(model.params["global_cov:log_amp"])
         lg = np.exp(model.params["global_cov:log_ls"])
-        global_cov = global_covariance_matrix(model.data.wave, model["T"], ag, lg)
+        global_cov = global_covariance_matrix(model.data.wave, ag, lg)
     else:
         global_cov = None
 

@@ -37,7 +37,7 @@ def calculate_dv_dict(wave_dict):
         delta-v in units of km/s
     """
     CDELT1 = wave_dict["CDELT1"]
-    dv = C.c_kms * (10 ** CDELT1 - 1)
+    dv = C.c_kms * (10**CDELT1 - 1)
     return dv
 
 
