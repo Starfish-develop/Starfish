@@ -25,7 +25,7 @@ AU = 1.4959787066e13  # cm
 L_sun = 3.839e33  # erg/s
 R_sun = 6.955e10  # cm
 F_sun = L_sun / (
-    4 * pi * R_sun ** 2
+    4 * pi * R_sun**2
 )  # bolometric flux of the Sun measured at the surface
 
 # hc / k_B

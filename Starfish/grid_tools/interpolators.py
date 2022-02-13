@@ -140,7 +140,7 @@ class Interpolator:
         self.index_interpolator = IndexInterpolator(self.interface.points)
 
         lenF = self.interface.ind[1] - self.interface.ind[0]
-        self.fluxes = np.empty((2 ** self.npars, lenF))  # 8 rows, for temp, logg, Z
+        self.fluxes = np.empty((2**self.npars, lenF))  # 8 rows, for temp, logg, Z
 
     def interpolate(self, parameters):
         """
