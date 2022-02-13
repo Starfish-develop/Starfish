@@ -21,7 +21,7 @@ setup(
     name="astrostarfish",
     version=version,
     description="Covariance tools for fitting stellar spectra",
-    python_requires="==3.*,>=3.6.0",
+    python_requires=">=3.7,<3.10",
     project_urls={
         "repository": "https://github.com/iancze/Starfish",
         "documentation": "https://starfish.rtfd.io",
