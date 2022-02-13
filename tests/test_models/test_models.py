@@ -351,7 +351,7 @@ class TestSpectrumModel:
         class Prior:
             @staticmethod
             def logpdf(x):
-                return 1 / x ** 2
+                return 1 / x**2
 
         priors = {"T": Prior}
         soln = mock_model.train(priors, options={"maxiter": 1})

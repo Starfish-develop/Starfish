@@ -70,12 +70,12 @@ def local_covariance_matrix(
     met = C.c_kms / mu * np.abs(wave - mu)
     x, y = np.meshgrid(met, met)
     r_tap = np.max([x, y], axis=0)
-    r2 = x ** 2 + y ** 2
+    r2 = x**2 + y**2
     r0 = 4 * sigma
 
     # Calculate the kernel. Use masking to keep sparse-ish calculations
     kernel = np.zeros((len(x), len(y)))
     mask = r_tap <= r0
     taper = 0.5 + 0.5 * np.cos(np.pi * r_tap[mask] / r0)
-    kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma ** 2)
+    kernel[mask] = taper * amplitude * np.exp(-0.5 * r2[mask] / sigma**2)
     return kernel

@@ -17,9 +17,7 @@ class TestKernels:
         assert np.all(np.diag(cov, k=1) < amp)
         assert cov.min() == 0
         assert np.all(cov >= 0)
-        assert np.allclose(
-            cov.max(), amp
-        )
+        assert np.allclose(cov.max(), amp)
         assert np.all(np.linalg.eigvals(cov) >= 0)
         assert np.allclose(cov, cov.T)
 

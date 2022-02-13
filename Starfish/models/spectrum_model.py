@@ -335,7 +335,7 @@ class SpectrumModel:
         cov = X.T @ cho_solve((L, flag), X)
 
         # Trivial covariance
-        np.fill_diagonal(cov, cov.diagonal() + self.data.sigma ** 2)
+        np.fill_diagonal(cov, cov.diagonal() + self.data.sigma**2)
 
         # Global covariance
         if "global_cov" in self.params:
