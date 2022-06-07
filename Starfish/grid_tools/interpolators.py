@@ -24,7 +24,8 @@ class IndexInterpolator:
         self.parameter_list = [np.unique(pars) for pars in parameter_list]
         idxs = [np.arange(len(pars)) for pars in self.parameter_list]
         self.index_interpolators = [
-            interp1d(pars, idx, kind="linear") for pars, idx in zip(self.parameter_list, idxs)
+            interp1d(pars, idx, kind="linear")
+            for pars, idx in zip(self.parameter_list, idxs)
         ]
 
     def __call__(self, param):
@@ -62,6 +63,7 @@ class IndexInterpolator:
             fracs[i] = frac
 
         return (lows, highs), (1 - fracs, fracs)
+
 
 class Interpolator:
     """
