@@ -217,7 +217,7 @@ def determine_chunk_log(wl, wl_min, wl_max):
         else:
             break
 
-    assert type(chunk) == np.int, "Chunk is not an integer!. Chunk is {}".format(chunk)
+    assert type(chunk) == int, "Chunk is not an integer!. Chunk is {}".format(chunk)
 
     if chunk < len_wl:
         # Now that we have determined the length of the chunk of the synthetic
@@ -345,4 +345,4 @@ def idl_float(idl_num: str) -> float:
     ```
     """
     idl_str = idl_num.lower()
-    return np.float(idl_str.replace("d", "e"))
+    return float(idl_str.replace("d", "e"))

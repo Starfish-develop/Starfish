@@ -7,7 +7,8 @@ from Starfish.grid_tools import IndexInterpolator, Interpolator
 class TestIndexInterpolator:
     @pytest.fixture
     def mock_index_interpolator(self, grid_points):
-        yield IndexInterpolator(grid_points)
+        pars = [np.unique(pars) for pars in grid_points.T]
+        yield IndexInterpolator(pars)
 
     @pytest.mark.parametrize(
         "input, expected",

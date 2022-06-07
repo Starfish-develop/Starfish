@@ -19,12 +19,14 @@ class IndexInterpolator:
     """
 
     def __init__(self, parameter_list):
-        parameter_list = np.asarray(parameter_list)
-        self.npars = parameter_list.shape[-1]
-        self.parameter_list = np.unique(parameter_list)
-        self.index_interpolator = interp1d(
-            self.parameter_list, np.arange(len(self.parameter_list)), kind="linear"
-        )
+        parameter_list = list(parameter_list)
+        self.npars = len(parameter_list)
+        self.parameter_list = [np.unique(pars) for pars in parameter_list]
+        idxs = [np.arange(len(pars)) for pars in self.parameter_list]
+        self.index_interpolators = [
+            interp1d(pars, idx, kind="linear")
+            for pars, idx in zip(self.parameter_list, idxs)
+        ]
 
     def __call__(self, param):
         """
@@ -34,8 +36,8 @@ class IndexInterpolator:
         :type param: list
         :raises ValueError: if *value* is out of bounds.
 
-        :returns: ((low_val, high_val), (frac_low, frac_high)), the lower and higher bounding points in the grid
-        and the fractional distance (0 - 1) between them and the value.
+        :returns: ((low_val, high_val), (low_dist, high_dist)), the lower and higher bounding points in the grid
+        and the fractional distance (0 - 1) from the two points.
         """
         if len(param) != self.npars:
             raise ValueError(
@@ -43,17 +45,24 @@ class IndexInterpolator:
                     self.npars, len(param)
                 )
             )
-        try:
-            index = self.index_interpolator(param)
-        except ValueError:
-            raise ValueError("Requested param {} is out of bounds.".format(param))
-        high = np.ceil(index).astype(int)
-        low = np.floor(index).astype(int)
-        frac_index = index - low
-        return (
-            (self.parameter_list[low], self.parameter_list[high]),
-            ((1 - frac_index), frac_index),
-        )
+        lows = np.empty(self.npars)
+        highs = np.empty(self.npars)
+        fracs = np.empty(self.npars)
+        for i in range(self.npars):
+            # get interpolated index
+            try:
+                index = self.index_interpolators[i](param[i])
+            except ValueError:
+                raise ValueError("Requested param {} is out of bounds.".format(param))
+            low = np.floor(index).astype(int)
+            high = np.ceil(index).astype(int)
+            frac = index - low
+            # get bounding params
+            lows[i] = self.parameter_list[i][low]
+            highs[i] = self.parameter_list[i][high]
+            fracs[i] = frac
+
+        return (lows, highs), (1 - fracs, fracs)
 
 
 class Interpolator:
