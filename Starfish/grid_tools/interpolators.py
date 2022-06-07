@@ -35,7 +35,7 @@ class IndexInterpolator:
         :type param: list
         :raises ValueError: if *value* is out of bounds.
 
-        :returns: ((low_val, high_val), (low_dist, high_dist), the lower and higher bounding points in the grid
+        :returns: ((low_val, high_val), (low_dist, high_dist)), the lower and higher bounding points in the grid
         and the fractional distance (0 - 1) from the two points.
         """
         if len(param) != self.npars:
