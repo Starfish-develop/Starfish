@@ -345,4 +345,4 @@ def idl_float(idl_num: str) -> float:
     ```
     """
     idl_str = idl_num.lower()
-    return np.float(idl_str.replace("d", "e"))
+    return float(idl_str.replace("d", "e"))
