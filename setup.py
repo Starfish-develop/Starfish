@@ -21,14 +21,14 @@ setup(
     name="astrostarfish",
     version=version,
     description="Covariance tools for fitting stellar spectra",
-    python_requires=">=3.7,<3.10",
+    python_requires=">=3.7,<3.11",
     project_urls={
         "repository": "https://github.com/iancze/Starfish",
         "documentation": "https://starfish.rtfd.io",
     },
     author="Ian Czekala",
     author_email="iancze@gmail.com",
-    maintainer="Miles Lucas <mdlucas@hawaii.edu",
+    maintainer="Miles Lucas <mdlucas@hawaii.edu>",
     license="BSD-4-Clause",
     keywords="Science Astronomy Physics Data Science",
     classifiers=[
