@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import numpy as np
 
-plt.style.use("seaborn")
+try:
+    plt.style.use("seaborn-v0_8")
+except OSError:
+    pass
 
 
 def plot_reconstructed(emulator, grid, folder):

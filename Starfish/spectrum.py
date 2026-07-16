@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 from dataclasses import dataclass
-from nptyping import NDArray
+from numpy.typing import NDArray
 from typing import Optional
 
 
@@ -26,10 +26,10 @@ class Order:
     name : str
     """
 
-    _wave: NDArray[float]
-    _flux: NDArray[float]
-    _sigma: Optional[NDArray[float]] = None
-    mask: Optional[NDArray[bool]] = None
+    _wave: NDArray[np.float64]
+    _flux: NDArray[np.float64]
+    _sigma: Optional[NDArray[np.float64]] = None
+    mask: Optional[NDArray[np.bool_]] = None
 
     def __post_init__(self):
         if self._sigma is None:

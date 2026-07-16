@@ -1,3 +1,60 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=77"]
+
+[project]
+name = "astrostarfish"
+description = "Covariance tools for fitting stellar spectra"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-4-Clause"
+authors = [{ name = "Ian Czekala", email = "iancze@gmail.com" }]
+maintainers = [{ name = "Miles Lucas", email = "mdlucas@hawaii.edu" }]
+keywords = ["Science", "Astronomy", "Physics", "Data Science"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "astropy>=5.3",
+    "extinction>=0.4.7",
+    "flatdict>=4.0",
+    "h5py>=3.8",
+    "numpy>=1.24",
+    "scikit-learn>=1.2",
+    "scipy>=1.10",
+    "toml>=0.10.2",
+    "tqdm>=4.60",
+]
+dynamic = ["version"]
+
+[project.urls]
+repository = "https://github.com/iancze/Starfish"
+documentation = "https://starfish.rtfd.io"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-benchmark>=4",
+    "pytest-cov>=5",
+]
+docs = [
+    "IPython",
+    "nbsphinx>=0.9",
+    "pandoc",
+    "sphinx>=7",
+    "sphinx-autodoc-typehints>=1.25",
+    "sphinx-bootstrap-theme>=0.8",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "Starfish.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["Starfish*"]

@@ -5,7 +5,7 @@ from typing import Sequence, Optional, Union, Tuple
 
 import h5py
 import numpy as np
-from nptyping import NDArray
+from numpy.typing import NDArray
 from scipy.interpolate import LinearNDInterpolator
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import minimize
@@ -68,18 +68,18 @@ class Emulator:
 
     def __init__(
         self,
-        grid_points: NDArray[float],
+        grid_points: NDArray[np.float64],
         param_names: Sequence[str],
-        wavelength: NDArray[float],
-        weights: NDArray[float],
-        eigenspectra: NDArray[float],
-        w_hat: NDArray[float],
-        flux_mean: NDArray[float],
-        flux_std: NDArray[float],
-        factors: NDArray[float],
+        wavelength: NDArray[np.float64],
+        weights: NDArray[np.float64],
+        eigenspectra: NDArray[np.float64],
+        w_hat: NDArray[np.float64],
+        flux_mean: NDArray[np.float64],
+        flux_std: NDArray[np.float64],
+        factors: NDArray[np.float64],
         lambda_xi: float = 1.0,
-        variances: Optional[NDArray[float]] = None,
-        lengthscales: Optional[NDArray[float]] = None,
+        variances: Optional[NDArray[np.float64]] = None,
+        lengthscales: Optional[NDArray[np.float64]] = None,
         name: Optional[str] = None,
     ):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -144,7 +144,7 @@ class Emulator:
         self.hyperparams["log_lambda_xi"] = np.log(value)
 
     @property
-    def variances(self) -> NDArray[float]:
+    def variances(self) -> NDArray[np.float64]:
         """
         numpy.ndarray : The variances for each Gaussian process kernel.
 
@@ -158,12 +158,12 @@ class Emulator:
         return np.exp(values)
 
     @variances.setter
-    def variances(self, values: NDArray[float]):
+    def variances(self, values: NDArray[np.float64]):
         for i, value in enumerate(values):
             self.hyperparams[f"log_variance:{i}"] = np.log(value)
 
     @property
-    def lengthscales(self) -> NDArray[float]:
+    def lengthscales(self) -> NDArray[np.float64]:
         """
         numpy.ndarray : The lengthscales for each Gaussian process kernel.
 
@@ -177,7 +177,7 @@ class Emulator:
         return np.exp(values).reshape(self.ncomps, -1)
 
     @lengthscales.setter
-    def lengthscales(self, values: NDArray[float]):
+    def lengthscales(self, values: NDArray[np.float64]):
         for i, value in enumerate(values):
             for j, ls in enumerate(value):
                 self.hyperparams[f"log_lengthscale:{i}:{j}"] = np.log(ls)
@@ -332,7 +332,7 @@ class Emulator:
         params: Sequence[float],
         full_cov: bool = True,
         reinterpret_batch: bool = False,
-    ) -> Tuple[NDArray[float], NDArray[float]]:
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Gets the mu and cov matrix for a given set of params
 
@@ -394,7 +394,7 @@ class Emulator:
         return mu, cov
 
     @property
-    def bulk_fluxes(self) -> NDArray[float]:
+    def bulk_fluxes(self) -> NDArray[np.float64]:
         """
         numpy.ndarray: A vertically concatenated vector of the eigenspectra, flux_mean,
         and flux_std (in that order). Used for bulk processing with the emulator.
@@ -402,8 +402,8 @@ class Emulator:
         return np.vstack([self.eigenspectra, self.flux_mean, self.flux_std])
 
     def load_flux(
-        self, params: Union[Sequence[float], NDArray[float]], norm=False
-    ) -> NDArray[float]:
+        self, params: Union[Sequence[float], NDArray[np.float64]], norm=False
+    ) -> NDArray[np.float64]:
         """
         Interpolate a model given any parameters within the grid's parameter range
         using eigenspectrum reconstruction
@@ -426,7 +426,7 @@ class Emulator:
             flux *= self.norm_factor(params)[:, np.newaxis]
         return np.squeeze(flux)
 
-    def norm_factor(self, params: Union[Sequence[float], NDArray[float]]) -> float:
+    def norm_factor(self, params: Union[Sequence[float], NDArray[np.float64]]) -> float:
         """
         Return the scaling factor for the absolute flux units in flux-normalized spectra
 
@@ -570,7 +570,7 @@ class Emulator:
             self.grid_points, self.grid_points, self.variances, self.lengthscales
         )
 
-    def get_param_vector(self) -> NDArray[float]:
+    def get_param_vector(self) -> NDArray[np.float64]:
         """
         Get a vector of the current trainable parameters of the emulator
 
@@ -581,7 +581,7 @@ class Emulator:
         values = list(self.get_param_dict().values())
         return np.array(values)
 
-    def set_param_vector(self, params: NDArray[float]):
+    def set_param_vector(self, params: NDArray[np.float64]):
         """
         Set the current trainable parameters given a vector. Must have the same form as
         :meth:`get_param_vector`
