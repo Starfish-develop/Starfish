@@ -93,7 +93,7 @@ def plot_eigenspectra(emulator, params, filename=None):
     )
     ax = plt.subplot(gs[0])
     ax.plot(emulator.wl, reconstructed, lw=1)
-    ax.set_ylabel("$f_\lambda$ [erg/cm^2/s/A]")
+    ax.set_ylabel(r"$f_\lambda$ [erg/cm^2/s/A]")
     plt.setp(ax.get_xticklabels(), visible=False)
     for i in range(emulator.ncomps):
         ax = plt.subplot(gs[i + 1], sharex=ax)
@@ -152,6 +152,6 @@ def plot_emulator(emulator):
         axes[i].fill_between(Ttest, m - 2 * s, m + 2 * s, color="C1", alpha=0.4)
     axes[-1].set_xlabel("T (K)")
     plt.suptitle(
-        f"Weights for fixed $\log g={logg[0]:.2f}$, $[Fe/H]={Z[0]:.2f}$", fontsize=20
+        rf"Weights for fixed $\log g={logg[0]:.2f}$, $[Fe/H]={Z[0]:.2f}$", fontsize=20
     )
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
