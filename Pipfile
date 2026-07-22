@@ -1,22 +1,19 @@
 [requires]
-python_version = "3.7"
+python_version = "3.11"
 
 [packages]
 astropy = "*"
-dataclasses = "*"
 flatdict = "*"
 h5py = "*"
-nptyping = "*"
 numpy = "*"
 scikit-learn = "*"
 scipy = "*"
-toml = ">=0.10.1"
+toml = ">=0.10.2"
 tqdm = "*"
-extinction = ">=0.4.2"
+extinction = ">=0.4.7"
 
 [dev-packages]
 black = "*"
-coveralls = "*"
 flake8 = "*"
 ipython = "*"
 mypy = "*"
@@ -29,7 +26,6 @@ sphinx-bootstrap-theme = "*"
 pytest-benchmark = "*"
 sphinx-autodoc-typehints = "*"
 pre-commit = "*"
-pytest-black = "*"
 
 [pipenv]
 allow_prereleases = true

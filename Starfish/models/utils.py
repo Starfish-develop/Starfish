@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from nptyping import NDArray
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 import scipy.stats as st
 
@@ -105,7 +105,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
         _amp = np.exp(log_amp)
         _sigma = np.exp(log_sigma)
         if _amp == 0 or _sigma == 0:
-            return np.Inf
+            return np.inf
         # Logistic prior for the widths out to 2sigma
         prior = st.uniform.logpdf(_sigma, 0, 2 * sigma0)
         # Put prior on widths and heights such that the integrated area should be less
@@ -151,7 +151,7 @@ def optimize_residual_peaks(model, mus, threshold=0.1, sigma0=50, num_residuals=
 log = logging.getLogger(__name__)
 
 
-def covariance_debugger(cov: NDArray[float]):
+def covariance_debugger(cov: NDArray[np.float64]):
     """
     Special debugging information for the covariance matrix decomposition.
     """

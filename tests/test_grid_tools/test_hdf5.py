@@ -149,9 +149,7 @@ class TestHDF5Creator:
             instrument=mock_instrument,
             ranges=None,
         )
-        for cpars, gpars in zip(
-            creator.points, np.asarray(mock_no_alpha_grid.points).T
-        ):
+        for cpars, gpars in zip(creator.points, mock_no_alpha_grid.points):
             np.testing.assert_allclose(cpars, np.unique(gpars))
 
 

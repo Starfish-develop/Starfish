@@ -1,6 +1,7 @@
-import extinction  # This may be marked as unused, but is necessary
+import extinction
 import numpy as np
 from numpy.polynomial.chebyshev import chebval
+from scipy.integrate import trapezoid
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import j1
 
@@ -197,7 +198,7 @@ def extinct(wave, flux, Av, Rv=3.1, law="ccm89"):
     if Rv <= 0:
         raise ValueError("Rv must be positive")
 
-    law_fn = eval("extinction.{}".format(law))
+    law_fn = getattr(extinction, law)
     if law == "fm07":
         A_l = law_fn(wave.astype(np.double), Av)
     else:
@@ -263,8 +264,8 @@ def renorm(wave, flux, reference_flux):
 
 
 def _get_renorm_factor(wave, flux, reference_flux):
-    ref_int = np.trapz(reference_flux, wave)
-    flux_int = np.trapz(flux, wave, axis=-1)
+    ref_int = trapezoid(reference_flux, wave)
+    flux_int = trapezoid(flux, wave, axis=-1)
     return ref_int / flux_int
 
 
